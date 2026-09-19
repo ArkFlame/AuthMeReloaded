@@ -14,7 +14,7 @@ import net.md_5.bungee.api.connection.ProxiedPlayer;
 import net.md_5.bungee.api.connection.Server;
 import net.md_5.bungee.api.event.ChatEvent;
 import net.md_5.bungee.api.event.PlayerDisconnectEvent;
-import net.md_5.bungee.api.event.PlayerHandshakeEvent;
+import net.md_5.bungee.api.event.PreLoginEvent;
 import net.md_5.bungee.api.event.PluginMessageEvent;
 import net.md_5.bungee.api.event.ServerConnectEvent;
 import net.md_5.bungee.api.event.ServerSwitchEvent;
@@ -175,8 +175,10 @@ public final class BungeeProxyBridge implements Listener {
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
-    public void onPlayerHandshake(PlayerHandshakeEvent event) {
+    public void onPreLogin(PreLoginEvent event) {
         if (!configuration.keepOfflineUuidCompatibility()) {
+            // PlayerHandshakeEvent runs before LOGIN_START, so the connection name is still null there.
+            // PreLoginEvent runs after LOGIN_START and before Bungee chooses the encryption path.
             premiumOnlineModeHandler.enableOnlineModeIfRequired(event.getConnection());
         }
     }
