@@ -22,7 +22,8 @@ public final class RegistrationSettings implements SettingsHolder {
 
     @Comment({
         "Delay in seconds before showing the first registration reminder.",
-        "When the delay expires, AuthMe checks whether the player is still unregistered before sending it."})
+        "When the delay expires, AuthMe checks whether the player is still unregistered",
+        "before sending it."})
     public static final Property<Integer> REGISTER_MESSAGE_DELAY =
         newProperty("settings.registration.registerMessageDelay", 1);
 
