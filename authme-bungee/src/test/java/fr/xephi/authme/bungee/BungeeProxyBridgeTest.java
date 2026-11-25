@@ -651,10 +651,10 @@ class BungeeProxyBridgeTest {
         bridge.shutdown();
 
         BungeeProxyBridge restarted = new BungeeProxyBridge(proxyServer, logger, createConfiguration(), new BungeeAuthenticationStore(), tempDir);
-        given(playerHandshakeEvent.getConnection()).willReturn(pendingConnection);
+        given(preLoginEvent.getConnection()).willReturn(pendingConnection);
         given(pendingConnection.getName()).willReturn("Alice");
         given(pendingConnection.isOnlineMode()).willReturn(false);
-        restarted.onPlayerHandshake(playerHandshakeEvent);
+        restarted.onPreLogin(preLoginEvent);
         restarted.shutdown();
 
         verify(pendingConnection).setOnlineMode(true);
