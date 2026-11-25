@@ -57,6 +57,10 @@ import org.bukkit.entity.Player;
 import javax.inject.Inject;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static fr.xephi.authme.service.BukkitService.TICKS_PER_SECOND;
 import static fr.xephi.authme.settings.properties.RestrictionSettings.PROTECT_INVENTORY_BEFORE_LOGIN;
@@ -65,6 +69,14 @@ import static fr.xephi.authme.settings.properties.RestrictionSettings.PROTECT_IN
  * Asynchronous process for when a player joins.
  */
 public class AsynchronousJoin implements AsynchronousProcess {
+
+    /** Upper bound for waiting on {@link PlayerPreAuthEvent} listeners before continuing the regular join. */
+    private long preAuthEventTimeoutMillis = 10_000L;
+
+    /** Overrides the pre-auth event wait bound (for tests). */
+    void setPreAuthEventTimeoutMillis(long millis) {
+        this.preAuthEventTimeoutMillis = millis;
+    }
 
     private final ConsoleLogger logger = ConsoleLoggerFactory.get(AsynchronousJoin.class);
 
@@ -194,10 +206,14 @@ public class AsynchronousJoin implements AsynchronousProcess {
             return;
         }
 
-        boolean isAuthAvailable = database.isAuthAvailable(name);
+        // Single account lookup for the entire join. The same PlayerAuth is reused for the premium
+        // check and for a listener-requested forced login, so no second query is needed later on.
+        PlayerAuth auth = database.getAuth(name);
+        boolean isAuthAvailable = auth != null;
 
-        // Earliest possible hook for integrations: before session lookups, premium bypass, limbo and prompts
-        if (handlePreAuthEvent(player, isAuthAvailable)) {
+        // Earliest possible hook for integrations: before session lookups, premium bypass, limbo and prompts.
+        // The event is dispatched on the player's thread and its decision is applied before we continue.
+        if (handlePreAuthEvent(player, isAuthAvailable, auth)) {
             return;
         }
 
@@ -221,7 +237,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
 
             // Premium players are always verified by Mojang — skip the session mechanism entirely,
             // which would send a misleading SESSION_RECONNECTION message and run session commands.
-            if (canBypassWithPremium(player)) {
+            if (canBypassWithPremium(player, auth)) {
                 // Premium bypass: player has a verified Mojang UUID matching the connecting player's UUID
                 if (bungeeSender.isEnabled()) {
                     // Proxy handles routing; do not attempt backend-side BungeeCord redirect
@@ -262,6 +278,8 @@ public class AsynchronousJoin implements AsynchronousProcess {
                 bukkitService.runTaskOptionallyAsync(() -> asynchronousLogin.forceLogin(player));
                 return;
             }
+        } else if (premiumService.tryAutoRegister(player)) {
+            return;
         } else if (pendingRegistration == null && floodgateService.canAutoRegister(player.getUniqueId())) {
             logger.info("The Bedrock player " + player.getName() + " has been automatically registered (Floodgate).");
             asyncRegister.register(RegistrationMethod.API_REGISTRATION,
@@ -303,20 +321,44 @@ public class AsynchronousJoin implements AsynchronousProcess {
     }
 
     /**
-     * Fires {@link PlayerPreAuthEvent} and applies what listeners asked for.
+     * Fires {@link PlayerPreAuthEvent} on the player's owning thread and applies what listeners asked for.
+     * The asynchronous join pipeline waits for the listeners to finish, so their decision is final.
      *
      * @param player the joining player
      * @param registered whether the player has an account
+     * @param auth the account loaded for this join, null for an unregistered player
      * @return true if the join has been fully handled by a listener (forced login or skipped authentication)
      */
-    private boolean handlePreAuthEvent(Player player, boolean registered) {
-        PlayerPreAuthEvent.Source source = bungeeSender.isEnabled()
+    private boolean handlePreAuthEvent(Player player, boolean registered, PlayerAuth auth) {
+        final PlayerPreAuthEvent.Source source = bungeeSender.isEnabled()
             ? PlayerPreAuthEvent.Source.PROXY : PlayerPreAuthEvent.Source.JOIN;
-        PlayerPreAuthEvent event = bukkitService.createAndCallEvent(
-            isAsync -> new PlayerPreAuthEvent(player, registered, source, isAsync));
+        final CompletableFuture<PlayerPreAuthEvent> result = new CompletableFuture<>();
+
+        // createAndCallEvent() would use the configurable async flag and run on the join thread.
+        // The entity scheduler runs on the player's region thread on Folia and on the main thread on
+        // Bukkit/Paper; the event is explicitly synchronous so listeners may safely touch the player.
+        bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, () -> {
+            PlayerPreAuthEvent event = new PlayerPreAuthEvent(player, registered, source, false);
+            try {
+                bukkitService.callEvent(event);
+            } catch (RuntimeException e) {
+                // Bukkit logs and swallows listener exceptions; do the same so a faulty listener
+                // cannot stall or abort the join.
+                logger.fine("PlayerPreAuthEvent listener failed for " + player.getName() + ": " + e);
+            } finally {
+                result.complete(event);
+            }
+        });
+
+        PlayerPreAuthEvent event = awaitPreAuthResult(result, player);
+        if (event == null) {
+            logger.fine("PlayerPreAuthEvent could not be dispatched for " + player.getName()
+                + "; continuing with the regular join");
+            return false;
+        }
         if (event.isForceLoginRequested()) {
             logger.fine("PlayerPreAuthEvent: forced login requested for " + player.getName());
-            bukkitService.runTaskOptionallyAsync(() -> asynchronousLogin.forceLogin(player));
+            bukkitService.runTaskOptionallyAsync(() -> performForcedLogin(player, auth));
             return true;
         }
         if (event.isCancelled()) {
@@ -324,6 +366,45 @@ public class AsynchronousJoin implements AsynchronousProcess {
             return true;
         }
         return false;
+    }
+
+    private PlayerPreAuthEvent awaitPreAuthResult(CompletableFuture<PlayerPreAuthEvent> result, Player player) {
+        try {
+            // Safety net only: the event normally completes within a tick. If the scheduler drops the task
+            // (e.g. the player disconnected), fall back to the regular join instead of blocking forever.
+            return result.get(preAuthEventTimeoutMillis, TimeUnit.MILLISECONDS);
+        } catch (TimeoutException e) {
+            logger.fine("Timed out waiting for PlayerPreAuthEvent for " + player.getName());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger.fine("Interrupted while waiting for PlayerPreAuthEvent for " + player.getName());
+        } catch (ExecutionException e) {
+            logger.fine("Failed to dispatch PlayerPreAuthEvent for " + player.getName() + ": " + e.getCause());
+        }
+        return null;
+    }
+
+    /**
+     * Applies a forced login requested by a {@link PlayerPreAuthEvent} listener. Like
+     * {@code AsynchronousLogin.forceLogin}, this skips the password and TOTP check; unlike it, the
+     * account is the one already loaded for this join, so no second database lookup is performed.
+     * Online and authenticated guards keep the operation idempotent and safe if the player quit.
+     *
+     * @param player the joining player
+     * @param auth the account loaded for this join, null for an unregistered player
+     */
+    private void performForcedLogin(Player player, PlayerAuth auth) {
+        if (auth == null || !player.isOnline()) {
+            logger.fine("PlayerPreAuthEvent: forced login skipped for offline or unregistered player "
+                + player.getName());
+            return;
+        }
+        if (playerCache.isAuthenticated(player.getName().toLowerCase(Locale.ROOT))) {
+            logger.fine("PlayerPreAuthEvent: " + player.getName()
+                + " is already authenticated, not logging in twice");
+            return;
+        }
+        asynchronousLogin.performLogin(player, auth);
     }
 
     /**
@@ -488,15 +569,11 @@ public class AsynchronousJoin implements AsynchronousProcess {
         return true;
     }
 
-    private boolean canBypassWithPremium(Player player) {
-        if (!service.getProperty(PremiumSettings.ENABLE_PREMIUM)) {
+    private boolean canBypassWithPremium(Player player, PlayerAuth auth) {
+        if (!service.getProperty(PremiumSettings.ENABLE_PREMIUM) || auth == null) {
             return false;
         }
         String name = player.getName();
-        PlayerAuth auth = database.getAuth(name.toLowerCase(Locale.ROOT));
-        if (auth == null) {
-            return false;
-        }
 
         if (!auth.isPremium()) {
             UUID playerId = player.getUniqueId();

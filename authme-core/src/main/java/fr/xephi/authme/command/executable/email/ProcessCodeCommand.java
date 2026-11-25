@@ -3,6 +3,7 @@ package fr.xephi.authme.command.executable.email;
 import fr.xephi.authme.command.PlayerCommand;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.service.CommonService;
+import fr.xephi.authme.service.EmailRecoveryDialogService;
 import fr.xephi.authme.service.PasswordRecoveryService;
 import fr.xephi.authme.service.RecoveryCodeService;
 import org.bukkit.entity.Player;
@@ -24,8 +25,16 @@ public class ProcessCodeCommand extends PlayerCommand {
     @Inject
     private PasswordRecoveryService recoveryService;
 
+    @Inject
+    private EmailRecoveryDialogService dialogRecoveryService;
+
     @Override
     protected void runCommand(Player player, List<String> arguments) {
+        if (dialogRecoveryService.isDialogFlowEnabled()) {
+            dialogRecoveryService.submitCode(player, arguments.get(0));
+            return;
+        }
+
         String name = player.getName();
         String code = arguments.get(0);
 

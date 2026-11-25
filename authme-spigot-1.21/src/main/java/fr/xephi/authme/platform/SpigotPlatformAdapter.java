@@ -85,6 +85,16 @@ public class SpigotPlatformAdapter extends AbstractSpigotPlatformAdapter {
     }
 
     @Override
+    public void showRecoveryCodeDialog(Player player, DialogWindowSpec dialog) {
+        SpigotDialogHelper.showRecoveryCodeDialog(player, dialog);
+    }
+
+    @Override
+    public void showNewPasswordDialog(Player player, DialogWindowSpec dialog) {
+        SpigotDialogHelper.showNewPasswordDialog(player, dialog);
+    }
+
+    @Override
     public void closeDialog(Player player) {
         if (DIALOG_AVAILABLE) {
             SpigotDialogHelper.closeDialog(player);

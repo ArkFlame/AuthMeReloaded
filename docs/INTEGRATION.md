@@ -39,17 +39,18 @@ permissions are unchanged; only display name/author/jar names are rebranded.
 | 3152 | feature | deferred (Brigadier per-permission completion), see `docs/triage/batch-B.md` | - |
 | 3112 | feature | Bedrock auto-login: covered by existing Floodgate auto-login (`FloodgateService.canAutoLogin`) | `AsynchronousJoinTest` |
 | 3121, 3071, 3060 | support | no code change (online-mode proxy / Mojang rate limit / config) | - |
-| 3055, 3031 | invalid | working as intended | - |
+| 3055, 3031 | invalid | working as intended (per-client language already supported) | - |
 | 3146 | bug | fixed: pre-join dialog closed when response future times out | `PaperDialogFlowListenerIssue3146Test` |
 | 3088 | bug | fixed: captcha-required registration rejected from dialog | `PaperDialogFlowListenerIssue3088Test` |
 | 3072 | bug | fixed: login/forcelogin suggest all online players | Paper Brigadier registrar test |
 | 3159, 3116, 3090 | bug | fixed in `VelocityProxyBridge` | `VelocityIssue3159Test`, `VelocityIssue3116Test`, `VelocityIssue3090Test` |
-| 3156 | feature | e-mail recovery dialog: classified feature, not implemented (needs new dialog UI) | - |
+| 3156 | feature | fixed: opt-in e-mail recovery dialogs (code, then new password) delegating to existing recovery services (expiry, cooldown, privacy, chat fallback kept); EmailRecoveryDialogServiceTest | this batch |
 | 3056 | feature | force e-mail verification: HaHaWTH `unregisterOnEmailVerificationFailure` port covers the sound part | `RegisterCommandTest` |
 | 3142 | invalid | online-count on proxy is a proxy-plugin concern, out of scope | - |
-| 3126 | bug (deferred) | Velocity offline-UUID compat vs /premium pets/skins; needs live proxy to reproduce | - |
+| 3126 | bug | root cause evidenced by Velocity3126Test: proxy forwards the offline UUID and skin properties correctly; the client identity mismatch comes from forceOnlineMode (Mojang session UUID), which is also the premium proof. Removing it would weaken authentication, so no code change; documented limitation | evidence in test |
 | 3152 | invalid | concerns the unrelated OutMe plugin | - |
-| 3117, 3100 | feature | deferred: auto-register premium and a pre-join-dialog prompt event are sound features but not implemented in this pass | - |
+| 3117 | feature | fixed: opt-in settings.premium.autoRegister, verified identity only, existing accounts untouched (PremiumAutoRegisterServiceTest) | this batch |
+| 3100 | feature | fixed: cancellable PreJoinDialogEvent in authme-api, fired by PaperDialogFlowListener (PreJoinDialogEventTest) | this batch |
 
 Details: `docs/triage/batch-A.md`, `docs/triage/batch-B.md`.
 

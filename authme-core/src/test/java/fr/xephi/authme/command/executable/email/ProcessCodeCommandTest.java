@@ -6,6 +6,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.junit.jupiter.api.extension.ExtendWith;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.service.CommonService;
+import fr.xephi.authme.service.EmailRecoveryDialogService;
 import fr.xephi.authme.service.PasswordRecoveryService;
 import fr.xephi.authme.service.RecoveryCodeService;
 import org.bukkit.entity.Player;
@@ -38,6 +39,9 @@ public class ProcessCodeCommandTest {
 
     @Mock
     private PasswordRecoveryService recoveryService;
+
+    @Mock
+    private EmailRecoveryDialogService dialogRecoveryService;
 
     @Test
     public void shouldSendErrorForInvalidRecoveryCode() {

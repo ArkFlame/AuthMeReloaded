@@ -129,7 +129,7 @@ public class PlayerListener implements Listener {
 
         // Non-blocking checks
         try {
-            onJoinVerifier.checkIsValidName(name);
+            onJoinVerifier.checkIsValidName(name, event.getUniqueId());
         } catch (FailedVerificationException e) {
             event.setKickMessage(messages.retrieveSingle(name, e.getReason(), e.getArgs()));
             event.setLoginResult(AsyncPlayerPreLoginEvent.Result.KICK_OTHER);
@@ -585,12 +585,25 @@ public class PlayerListener implements Listener {
         }
     }
 
+    // Port of HaHaWTH/AuthMeReReloaded @ 06f6035b0: exact or substring inventory title matching
     private boolean isInventoryWhitelisted(InventoryView inventory) {
         if (inventory == null) {
             return false;
         }
         Set<String> whitelist = settings.getProperty(RestrictionSettings.UNRESTRICTED_INVENTORIES);
-        return whitelist.contains(ChatColor.stripColor(inventory.getTitle()).toLowerCase(Locale.ROOT));
+        if (whitelist.isEmpty()) {
+            return false;
+        }
+        String invName = ChatColor.stripColor(inventory.getTitle()).toLowerCase(Locale.ROOT);
+        if (settings.getProperty(RestrictionSettings.STRICT_UNRESTRICTED_INVENTORIES_CHECK)) {
+            return whitelist.contains(invName);
+        }
+        for (String wl : whitelist) {
+            if (invName.contains(wl)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)

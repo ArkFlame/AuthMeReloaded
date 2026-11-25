@@ -54,6 +54,25 @@ final class SpigotDialogHelper {
             new ActionButton(toTextComponent(dialog.primaryButtonLabel()), new RunCommandAction("2fa code $(code)"))));
     }
 
+    static void showRecoveryCodeDialog(Player player, DialogWindowSpec dialog) {
+        showCommandDialog(player, dialog, "email code $(code)");
+    }
+
+    static void showNewPasswordDialog(Player player, DialogWindowSpec dialog) {
+        showCommandDialog(player, dialog, "email setpassword $(password)");
+    }
+
+    private static void showCommandDialog(Player player, DialogWindowSpec dialog, String commandTemplate) {
+        DialogBase base = new DialogBase(toTextComponent(dialog.title()))
+            .inputs(createInputs(dialog))
+            .body(createBody(dialog))
+            .afterAction(DialogBase.AfterAction.CLOSE);
+
+        player.showDialog(new MultiActionDialog(base,
+            new ActionButton(toTextComponent(dialog.primaryButtonLabel()), new RunCommandAction(commandTemplate)))
+            .columns(dialog.buttonColumns()));
+    }
+
     static void showRegisterDialog(Player player, RegistrationType type, RegisterSecondaryArgument secondArg,
                                    DialogWindowSpec dialog) {
         DialogBase base = new DialogBase(toTextComponent(dialog.title()))

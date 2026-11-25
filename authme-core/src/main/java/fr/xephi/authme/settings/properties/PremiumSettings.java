@@ -21,6 +21,15 @@ public final class PremiumSettings implements SettingsHolder {
     public static final Property<Boolean> ENABLE_PREMIUM =
         newProperty("settings.enablePremium", false);
 
+    @Comment({
+        "Automatically register players with a verified premium identity",
+        "who do not have an account yet.",
+        "Requires enablePremium and the same identity verification as premium bypass.",
+        "Existing accounts are never modified."
+    })
+    public static final Property<Boolean> AUTO_REGISTER =
+        newProperty("settings.premium.autoRegister", false);
+
     private PremiumSettings() {
     }
 

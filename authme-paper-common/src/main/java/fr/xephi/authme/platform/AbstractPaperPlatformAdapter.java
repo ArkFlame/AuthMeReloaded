@@ -96,6 +96,16 @@ public abstract class AbstractPaperPlatformAdapter extends AbstractSpigotPlatfor
     }
 
     @Override
+    public void showRecoveryCodeDialog(Player player, DialogWindowSpec dialog) {
+        PaperDialogHelper.showRecoveryCodeDialog(player, dialog);
+    }
+
+    @Override
+    public void showNewPasswordDialog(Player player, DialogWindowSpec dialog) {
+        PaperDialogHelper.showNewPasswordDialog(player, dialog);
+    }
+
+    @Override
     public void closeDialog(Player player) {
         if (DIALOG_AVAILABLE) {
             PaperDialogHelper.closeDialog(player);

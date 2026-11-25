@@ -9,8 +9,10 @@ import fr.xephi.authme.permission.PermissionsManager;
 import fr.xephi.authme.permission.PlayerStatePermission;
 import fr.xephi.authme.service.AntiBotService;
 import fr.xephi.authme.service.BukkitService;
+import fr.xephi.authme.service.FloodgateService;
 import fr.xephi.authme.service.ValidationService;
 import fr.xephi.authme.settings.Settings;
+import fr.xephi.authme.settings.properties.HooksSettings;
 import fr.xephi.authme.settings.properties.ProtectionSettings;
 import fr.xephi.authme.settings.properties.RegistrationSettings;
 import fr.xephi.authme.settings.properties.RestrictionSettings;
@@ -33,9 +35,11 @@ import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -68,6 +72,8 @@ class OnJoinVerifierTest {
     private ValidationService validationService;
     @Mock
     private BukkitService bukkitService;
+    @Mock
+    private FloodgateService floodgateService;
     @Mock
     private Server server;
 
@@ -249,6 +255,58 @@ class OnJoinVerifierTest {
 
         // when / then
         expectValidationExceptionWith(() -> onJoinVerifier.checkIsValidName("Tester!"),
+            MessageKey.INVALID_NAME_CHARACTERS, "[a-zA-Z0-9]+");
+    }
+
+    @Test
+    void shouldSkipNameCharacterCheckForVerifiedBedrockPlayer() {
+        // given
+        UUID playerId = UUID.fromString("753493c9-33ba-4a4a-bf61-1bce9d3c9a71");
+        configureNicknameCharacterCheck(16);
+        given(settings.getProperty(HooksSettings.IGNORE_BEDROCK_NAME_CHECK)).willReturn(true);
+        given(floodgateService.isFloodgatePlayer(playerId)).willReturn(true);
+
+        // when / then
+        assertDoesNotThrow(() -> onJoinVerifier.checkIsValidName("Tester!", playerId));
+        verify(floodgateService).isFloodgatePlayer(playerId);
+    }
+
+    @Test
+    void shouldStillCheckNameOfNonBedrockPlayer() {
+        // given
+        UUID playerId = UUID.fromString("753493c9-33ba-4a4a-bf61-1bce9d3c9a71");
+        configureNicknameCharacterCheck(16);
+        given(settings.getProperty(HooksSettings.IGNORE_BEDROCK_NAME_CHECK)).willReturn(true);
+        given(floodgateService.isFloodgatePlayer(playerId)).willReturn(false);
+
+        // when / then
+        expectValidationExceptionWith(() -> onJoinVerifier.checkIsValidName("Tester!", playerId),
+            MessageKey.INVALID_NAME_CHARACTERS, "[a-zA-Z0-9]+");
+    }
+
+    @Test
+    void shouldStillCheckNameWhenBedrockBypassIsDisabled() {
+        // given
+        UUID playerId = UUID.fromString("753493c9-33ba-4a4a-bf61-1bce9d3c9a71");
+        configureNicknameCharacterCheck(16);
+        given(settings.getProperty(HooksSettings.IGNORE_BEDROCK_NAME_CHECK)).willReturn(false);
+
+        // when / then
+        expectValidationExceptionWith(() -> onJoinVerifier.checkIsValidName("Tester!", playerId),
+            MessageKey.INVALID_NAME_CHARACTERS, "[a-zA-Z0-9]+");
+        verifyNoInteractions(floodgateService);
+    }
+
+    @Test
+    void shouldNotTreatBedrockLookingNameAsBedrockPlayer() {
+        // given
+        UUID playerId = UUID.fromString("753493c9-33ba-4a4a-bf61-1bce9d3c9a71");
+        configureNicknameCharacterCheck(16);
+        given(settings.getProperty(HooksSettings.IGNORE_BEDROCK_NAME_CHECK)).willReturn(true);
+        given(floodgateService.isFloodgatePlayer(playerId)).willReturn(false);
+
+        // when / then
+        expectValidationExceptionWith(() -> onJoinVerifier.checkIsValidName("Bedrock_Tester", playerId),
             MessageKey.INVALID_NAME_CHARACTERS, "[a-zA-Z0-9]+");
     }
 
@@ -550,6 +608,13 @@ class OnJoinVerifierTest {
 
         // then - IP ban is scheduled
         verify(bukkitService).runOnGlobalRegion(any(Runnable.class));
+    }
+
+    private void configureNicknameCharacterCheck(int maxLength) {
+        given(settings.getProperty(RestrictionSettings.MIN_NICKNAME_LENGTH)).willReturn(4);
+        given(settings.getProperty(RestrictionSettings.MAX_NICKNAME_LENGTH)).willReturn(maxLength);
+        given(settings.getProperty(RestrictionSettings.ALLOWED_NICKNAME_CHARACTERS)).willReturn("[a-zA-Z0-9]+");
+        onJoinVerifier.reload();
     }
 
     private static InetAddress createInetAddress(String ip) {

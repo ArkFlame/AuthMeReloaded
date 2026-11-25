@@ -776,7 +776,7 @@ class PlayerListenerTest {
 
         // then
         verify(validationService).isUnrestricted(name);
-        verify(onJoinVerifier).checkIsValidName(name);
+        verify(onJoinVerifier).checkIsValidName(name, uniqueId);
         verifyNoInteractions(dataSource);
         verifyNoModifyingCalls(preLoginEvent);
     }
@@ -876,7 +876,7 @@ class PlayerListenerTest {
         given(validationService.isUnrestricted(name)).willReturn(false);
         FailedVerificationException exception = new FailedVerificationException(
             MessageKey.INVALID_NAME_CHARACTERS, "[a-z]");
-        doThrow(exception).when(onJoinVerifier).checkIsValidName(name);
+        doThrow(exception).when(onJoinVerifier).checkIsValidName(name, uniqueId);
         String message = "Invalid characters!";
         given(messages.retrieveSingle(name, exception.getReason(), exception.getArgs())).willReturn(message);
 
@@ -885,7 +885,7 @@ class PlayerListenerTest {
 
         // then
         verify(validationService).isUnrestricted(name);
-        verify(onJoinVerifier).checkIsValidName(name);
+        verify(onJoinVerifier).checkIsValidName(name, uniqueId);
         // Check that we don't talk with the data source before performing checks that don't require it
         verifyNoInteractions(dataSource);
         verify(event).setKickMessage(message);
@@ -1178,7 +1178,6 @@ class PlayerListenerTest {
         // given
         HumanEntity player = mock(Player.class);
         InventoryView transaction = mock(InventoryView.class);
-        given(transaction.getTitle()).willReturn("Spawn");
         given(settings.getProperty(RestrictionSettings.UNRESTRICTED_INVENTORIES)).willReturn(Collections.emptySet());
         InventoryOpenEvent event = new InventoryOpenEvent(transaction);
         given(event.getPlayer()).willReturn(player);
@@ -1324,6 +1323,7 @@ class PlayerListenerTest {
         verify(event, atLeast(0)).getLoginResult();
         verify(event, atLeast(0)).getAddress();
         verify(event, atLeast(0)).getName();
+        verify(event, atLeast(0)).getUniqueId();
         verifyNoMoreInteractions(event);
     }
 

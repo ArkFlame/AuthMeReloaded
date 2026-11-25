@@ -42,6 +42,11 @@ public final class DatabaseSettings implements SettingsHolder {
     public static final Property<Boolean> MYSQL_ALLOW_PUBLIC_KEY_RETRIEVAL =
         newProperty( "DataSource.mySQLAllowPublicKeyRetrieval", true );
 
+    @Comment({"MariaDB-only SSL mode. Leave empty to keep the default behavior.",
+        "Valid values: disable, trust, verify_ca, verify_full"})
+    public static final Property<String> MARIADB_SSL_MODE =
+        newProperty("DataSource.mySQLMariaDbSslMode", "");
+
     @Comment("Username to connect to the MySQL database")
     public static final Property<String> MYSQL_USERNAME =
         newProperty("DataSource.mySQLUsername", "authme");

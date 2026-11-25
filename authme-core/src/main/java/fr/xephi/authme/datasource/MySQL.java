@@ -1,6 +1,7 @@
 package fr.xephi.authme.datasource;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.pool.HikariPool.PoolInitializationException;
 import fr.xephi.authme.ConsoleLogger;
@@ -41,6 +42,7 @@ public class MySQL extends AbstractSqlDataSource implements SqlConnectionSource 
     private boolean useSsl;
     private boolean serverCertificateVerification;
     private boolean allowPublicKeyRetrieval;
+    private String mariaDbSslMode;
     private String host;
     private String port;
     private String username;
@@ -121,6 +123,7 @@ public class MySQL extends AbstractSqlDataSource implements SqlConnectionSource 
         this.useSsl = settings.getProperty(DatabaseSettings.MYSQL_USE_SSL);
         this.serverCertificateVerification = settings.getProperty(DatabaseSettings.MYSQL_CHECK_SERVER_CERTIFICATE);
         this.allowPublicKeyRetrieval = settings.getProperty(DatabaseSettings.MYSQL_ALLOW_PUBLIC_KEY_RETRIEVAL);
+        this.mariaDbSslMode = settings.getProperty(DatabaseSettings.MARIADB_SSL_MODE);
     }
 
     /**
@@ -148,6 +151,8 @@ public class MySQL extends AbstractSqlDataSource implements SqlConnectionSource 
         // Migrated from deprecated useSSL + verifyServerCertificate (removed in Connector/J 9.x)
         String sslMode = !useSsl ? "DISABLED" : (!serverCertificateVerification ? "PREFERRED" : "VERIFY_CA");
         ds.addDataSourceProperty("sslMode", sslMode);
+        // Ported from HaHaWTH/AuthMeReReloaded
+        applyMariaDbSslMode(ds, this.getDriverClassName(), mariaDbSslMode);
 
         if (allowPublicKeyRetrieval) {
             ds.addDataSourceProperty("allowPublicKeyRetrieval", String.valueOf(true));
@@ -168,6 +173,22 @@ public class MySQL extends AbstractSqlDataSource implements SqlConnectionSource 
         ds.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
 
         logger.info("Connection arguments loaded, Hikari ConnectionPool ready!");
+    }
+
+    /**
+     * Overrides the SSL mode with the configured MariaDB value when a MariaDB driver is used.
+     *
+     * @param config the Hikari config to set the property on
+     * @param driverClassName the driver class name used by the data source
+     * @param value the configured MariaDB SSL mode, empty to leave the config unchanged
+     */
+    @VisibleForTesting
+    static void applyMariaDbSslMode(HikariConfig config, String driverClassName, String value) {
+        if (value == null || value.isEmpty() || driverClassName == null
+            || !driverClassName.toLowerCase(Locale.ROOT).contains("mariadb")) {
+            return;
+        }
+        config.addDataSourceProperty("sslMode", value);
     }
 
     @Override

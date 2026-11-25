@@ -19,6 +19,7 @@ class PlayerPreAuthEventTest {
         assertThat(event.getSource(), equalTo(PlayerPreAuthEvent.Source.PROXY));
         assertThat(event.isCancelled(), equalTo(false));
         assertThat(event.isForceLoginRequested(), equalTo(false));
+        assertThat(event.isAsynchronous(), equalTo(false));
         assertThat(event.getHandlers() == PlayerPreAuthEvent.getHandlerList(), equalTo(true));
     }
 

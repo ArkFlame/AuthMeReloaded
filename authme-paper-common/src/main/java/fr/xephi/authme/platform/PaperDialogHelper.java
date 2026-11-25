@@ -44,6 +44,14 @@ public final class PaperDialogHelper {
         player.showDialog(createInGameCommandDialog(dialog, createRegisterTemplate(type, secondArg)));
     }
 
+    static void showRecoveryCodeDialog(Player player, DialogWindowSpec dialog) {
+        player.showDialog(createInGameCommandDialog(dialog, "email code $(code)"));
+    }
+
+    static void showNewPasswordDialog(Player player, DialogWindowSpec dialog) {
+        player.showDialog(createInGameCommandDialog(dialog, "email setpassword $(password)"));
+    }
+
     public static Dialog createPreJoinLoginDialog(DialogWindowSpec dialog) {
         DialogBase base = DialogBase.builder(legacyComponent(dialog.title()))
             .inputs(createInputs(dialog))

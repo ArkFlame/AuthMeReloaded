@@ -46,6 +46,14 @@ public final class HooksSettings implements SettingsHolder {
     public static final Property<Boolean> FLOODGATE_AUTO_REGISTER =
         newProperty("Hooks.floodgate.autoRegister", false);
 
+    // Ported from HaHaWTH/AuthMeReReloaded (inspired by DongShaoNB/BedrockPlayerSupport).
+    @Comment({
+        "Allow Bedrock players connected through Floodgate to bypass the nickname character check.",
+        "Only players confirmed by Floodgate are exempt; Java players are always checked."
+    })
+    public static final Property<Boolean> IGNORE_BEDROCK_NAME_CHECK =
+        newProperty("Hooks.ignoreBedrockNameCheck", false);
+
     @Comment("Do we need to disable Essentials SocialSpy on join?")
     public static final Property<Boolean> DISABLE_SOCIAL_SPY =
         newProperty("Hooks.disableSocialSpy", false);

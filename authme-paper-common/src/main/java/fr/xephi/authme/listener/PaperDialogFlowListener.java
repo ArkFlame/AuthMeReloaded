@@ -9,6 +9,7 @@ import fr.xephi.authme.data.auth.PlayerCache;
 import fr.xephi.authme.data.captcha.LoginCaptchaManager;
 import fr.xephi.authme.data.captcha.RegistrationCaptchaManager;
 import fr.xephi.authme.datasource.DataSource;
+import fr.xephi.authme.events.PreJoinDialogEvent;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.message.Messages;
 import fr.xephi.authme.platform.DialogWindowSpec;
@@ -52,11 +53,15 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ConcurrentMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Handles Paper/Folia dialog flows that happen during the configuration phase.
  */
 public class PaperDialogFlowListener implements Listener {
+
+    private static final Logger LOGGER = Logger.getLogger(PaperDialogFlowListener.class.getName());
 
     private final ConcurrentMap<Long, CompletableFuture<String>> pendingLoginResponses = new ConcurrentHashMap<>();
     private final ConcurrentMap<Long, CompletableFuture<String>> pendingRegisterResponses = new ConcurrentHashMap<>();
@@ -261,6 +266,30 @@ public class PaperDialogFlowListener implements Listener {
         });
     }
 
+    /**
+     * Fires the dialog event on the configuration-phase thread (always asynchronous). Cancelling the
+     * event suppresses only this dialog; a listener exception is logged and must not stop the join.
+     *
+     * @return {@code true} if AuthMe should show the dialog, {@code false} if a listener cancelled it
+     */
+    private boolean shouldShowDialog(PreJoinDialogEvent.DialogType dialogType, String playerName,
+                                     PlayerConfigurationConnection connection) {
+        InetSocketAddress clientAddress = connection.getClientAddress();
+        PreJoinDialogEvent event = new PreJoinDialogEvent(playerName, connection.getProfile().getId(),
+            clientAddress == null ? null : clientAddress.getAddress(), dialogType,
+            dialogType == PreJoinDialogEvent.DialogType.LOGIN, true);
+        try {
+            if (bukkitService != null) {
+                bukkitService.callEvent(event);
+            } else {
+                Bukkit.getPluginManager().callEvent(event);
+            }
+        } catch (RuntimeException e) {
+            LOGGER.log(Level.WARNING, "A PreJoinDialogEvent listener threw an exception", e);
+        }
+        return !event.isCancelled();
+    }
+
     private void handleBlockingLoginDialog(PlayerConfigurationConnection connection, long sessionId, String playerName) {
         CompletableFuture<String> loginResponse = new CompletableFuture<>();
         closeDialogOnCompletion(loginResponse, connection);
@@ -285,8 +314,13 @@ public class PaperDialogFlowListener implements Listener {
         }
 
         if (!loginResponse.isDone()) {
-            connection.getAudience().showDialog(
-                PaperDialogHelper.createPreJoinLoginDialog(dialogWindowService.createPreJoinLoginDialog(playerName)));
+            if (shouldShowDialog(PreJoinDialogEvent.DialogType.LOGIN, playerName, connection)) {
+                connection.getAudience().showDialog(
+                    PaperDialogHelper.createPreJoinLoginDialog(dialogWindowService.createPreJoinLoginDialog(playerName)));
+            } else {
+                // Skipping the dialog must not authenticate the player: the normal post-join flow applies.
+                loginResponse.complete(null);
+            }
         }
         String kickMessage = loginResponse.join();
         pendingLoginResponses.remove(sessionId);
@@ -369,7 +403,12 @@ public class PaperDialogFlowListener implements Listener {
         }
         pendingRegisterResponses.put(sessionId, registerResponse);
 
-        connection.getAudience().showDialog(dialog);
+        if (shouldShowDialog(PreJoinDialogEvent.DialogType.REGISTER, playerName, connection)) {
+            connection.getAudience().showDialog(dialog);
+        } else {
+            // Skipping the dialog must not authenticate the player: the normal post-join flow applies.
+            registerResponse.complete(null);
+        }
         String kickMessage = registerResponse.join();
         pendingRegisterResponses.remove(sessionId);
 

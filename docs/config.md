@@ -30,6 +30,8 @@ DataSource:
     # Authorize client to retrieve RSA server public key.
     # Advanced option, ignore if you don't know what it means.
     mySQLAllowPublicKeyRetrieval: true
+    # MariaDB-only SSL mode. Leave empty to keep the default behavior. Valid values: disable, trust, verify_ca, verify_full
+    mySQLMariaDbSslMode: ''
     # Username to connect to the MySQL database
     mySQLUsername: authme
     # Password to connect to the MySQL database
@@ -267,6 +269,8 @@ settings:
         # - 'myCustomInventory1'
         # - 'myCustomInventory2'
         UnrestrictedInventories: []
+        # Should we check unrestricted inventories strictly? (Original behavior)
+        StrictUnrestrictedInventoriesCheck: false
     security:
         # Minimum length of password
         minPasswordLength: 5
@@ -332,6 +336,10 @@ settings:
             # When clicked, executes /email recover using the email entered in the recovery field.
             # Requires an email provider to be configured to be useful.
             showForgotPasswordButton: true
+            # Show follow-up dialogs after an e-mail recovery request: enter the recovery code
+            # and choose a new password. Requires a configured mail provider and dialog support.
+            # When disabled, the chat /email recovery flow is unchanged.
+            emailRecovery: false
             # Show a short description body in login, register, and two-factor dialogs.
             # The body text helps players understand what the dialog is asking them to do.
             showBody: true
@@ -400,6 +408,11 @@ settings:
     #     Without PacketEvents, premium auto-login is disabled (fail closed).
     # Players must use /premium to opt in.
     enablePremium: false
+    premium:
+        # Automatically register players with a verified premium identity who have no account yet.
+        # Requires enablePremium; verification is the same as for premium bypass.
+        # Existing accounts are never touched.
+        autoRegister: false
 GroupOptions:
     # Enables switching a player to defined permission groups before they log in.
     # See below for a detailed explanation.
@@ -484,6 +497,9 @@ Hooks:
         # Also register Bedrock players (Floodgate) that have no account yet,
         # with a random password, and log them in. Requires Hooks.floodgate.autoLogin.
         autoRegister: false
+    # Allow Bedrock players connected through Floodgate to bypass the nickname character check.
+    # Only players confirmed by Floodgate are exempt; Java players are always checked.
+    ignoreBedrockNameCheck: false
     # Do we need to disable Essentials SocialSpy on join?
     disableSocialSpy: false
     # Do we need to force /motd Essentials command on join?
@@ -603,6 +619,13 @@ Security:
         enableEmailMasking: false
         # Minutes after which a verification code will expire
         verificationCodeExpiration: 10
+3rdPartyFeature:
+    fixes:
+        loginLocationFix:
+            # Should we fix the location when players logged in the portal?
+            fixPortalStuck: false
+            # Should we fix the location when players logged underground?
+            fixGroundStuck: false
 # Before a user logs in, various properties are temporarily removed from the player,
 # such as OP status, ability to fly, and walk/fly speed.
 # Once the user is logged in, we add back the properties we previously saved.

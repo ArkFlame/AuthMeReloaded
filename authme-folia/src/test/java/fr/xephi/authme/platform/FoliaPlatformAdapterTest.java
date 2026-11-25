@@ -3,6 +3,7 @@ package fr.xephi.authme.platform;
 import fr.xephi.authme.AuthMe;
 import fr.xephi.authme.listener.BlockListener;
 import fr.xephi.authme.listener.DoubleLoginFixListener;
+import fr.xephi.authme.listener.LoginLocationFixListener;
 import fr.xephi.authme.listener.EntityAirChangeListener;
 import fr.xephi.authme.listener.EntityListener;
 import fr.xephi.authme.listener.EntityPickupItemListener;
@@ -88,6 +89,7 @@ public class FoliaPlatformAdapterTest {
             EntityListener.class,
             ServerListener.class,
             DoubleLoginFixListener.class,
+            LoginLocationFixListener.class,
             PlayerSwapHandItemsListener.class,
             EntityAirChangeListener.class,
             EntityPickupItemListener.class,

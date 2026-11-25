@@ -50,7 +50,20 @@ public class PremiumService implements HasCleanup {
     @Inject
     private PendingPremiumCache pendingPremiumCache;
 
+    @Inject
+    private PremiumAutoRegisterService premiumAutoRegisterService;
+
     PremiumService() {
+    }
+
+    /**
+     * Delegates the optional auto-registration of a verified premium player who has no account.
+     *
+     * @param player the joining player
+     * @return true if auto-registration was scheduled and the join flow should stop
+     */
+    public boolean tryAutoRegister(Player player) {
+        return premiumAutoRegisterService.tryAutoRegister(player);
     }
 
     /**

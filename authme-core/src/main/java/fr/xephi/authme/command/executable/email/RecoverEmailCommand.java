@@ -10,6 +10,7 @@ import fr.xephi.authme.mail.EmailService;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.service.CommonService;
+import fr.xephi.authme.service.EmailRecoveryDialogService;
 import fr.xephi.authme.service.PasswordRecoveryService;
 import fr.xephi.authme.service.RecoveryCodeService;
 import fr.xephi.authme.service.ValidationService;
@@ -50,8 +51,16 @@ public class RecoverEmailCommand extends PlayerCommand {
     @Inject
     private ValidationService validationService;
 
+    @Inject
+    private EmailRecoveryDialogService dialogRecoveryService;
+
     @Override
     protected void runCommand(Player player, List<String> arguments) {
+        if (dialogRecoveryService.isDialogFlowEnabled()) {
+            dialogRecoveryService.requestRecovery(player, arguments.get(0));
+            return;
+        }
+
         final String playerMail = arguments.get(0);
         final String playerName = player.getName();
 

@@ -50,6 +50,24 @@ public interface DialogAdapter {
     }
 
     /**
+     * Shows the dialog for entering an e-mail recovery code.
+     *
+     * @param player the player to show the dialog to
+     * @param dialog the resolved dialog text and UX options
+     */
+    default void showRecoveryCodeDialog(Player player, DialogWindowSpec dialog) {
+    }
+
+    /**
+     * Shows the dialog for choosing a new password after e-mail recovery.
+     *
+     * @param player the player to show the dialog to
+     * @param dialog the resolved dialog text and UX options
+     */
+    default void showNewPasswordDialog(Player player, DialogWindowSpec dialog) {
+    }
+
+    /**
      * Closes any open dialog for the given player (e.g. after a force-login via the API).
      * Has no effect if no dialog is currently open or if dialogs are not supported on this platform.
      *

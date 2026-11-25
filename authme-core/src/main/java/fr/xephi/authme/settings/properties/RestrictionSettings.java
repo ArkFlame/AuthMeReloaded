@@ -210,6 +210,11 @@ public final class RestrictionSettings implements SettingsHolder {
     public static final Property<Set<String>> UNRESTRICTED_INVENTORIES =
         newLowercaseStringSetProperty("settings.unrestrictions.UnrestrictedInventories");
 
+    // Port of HaHaWTH/AuthMeReReloaded @ 06f6035b0
+    @Comment("Should we check unrestricted inventories strictly? (Original behavior)")
+    public static final Property<Boolean> STRICT_UNRESTRICTED_INVENTORIES_CHECK =
+        newProperty("settings.unrestrictions.StrictUnrestrictedInventoriesCheck", false);
+
     private RestrictionSettings() {
     }
 

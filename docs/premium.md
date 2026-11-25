@@ -62,6 +62,10 @@ Players must opt in individually after the admin enables premium mode.
 AuthMe fetches the player's Mojang UUID on opt-in and stores it in the database.
 From the next login onward the player bypasses the password prompt.
 
+If `settings.premium.autoRegister` is enabled as well, a joining player with a verified premium
+identity and no account is registered automatically with an unusable random password and logged in.
+Existing accounts are never changed, and unverified players still get the normal register prompt.
+
 **Admin commands:**
 ```text
 /authme premium <player>    — enrol a player
@@ -204,6 +208,9 @@ settings:
   # If verification is unavailable, premium auto-login is disabled (fail closed).
   # Players must use /premium to opt in.
   enablePremium: false
+  premium:
+    # Automatically register verified premium players without an account (default false).
+    autoRegister: false
 ```
 
 ---

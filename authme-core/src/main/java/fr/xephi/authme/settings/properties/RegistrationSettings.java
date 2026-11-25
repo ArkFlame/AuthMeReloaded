@@ -142,6 +142,13 @@ public final class RegistrationSettings implements SettingsHolder {
         newProperty("settings.registration.dialog.showForgotPasswordButton", true);
 
     @Comment({
+        "Show follow-up dialogs after an e-mail recovery request: enter the recovery code",
+        "and choose a new password. Requires a configured mail provider and dialog support.",
+        "When disabled, the chat /email recovery flow is unchanged."})
+    public static final Property<Boolean> DIALOG_EMAIL_RECOVERY =
+        newProperty("settings.registration.dialog.emailRecovery", false);
+
+    @Comment({
         "Show a short description body in login, register, and two-factor dialogs.",
         "The body text helps players understand what the dialog is asking them to do."})
     public static final Property<Boolean> DIALOG_SHOW_BODY =

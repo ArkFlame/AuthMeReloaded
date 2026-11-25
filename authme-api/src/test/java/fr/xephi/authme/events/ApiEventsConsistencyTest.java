@@ -17,9 +17,9 @@ class ApiEventsConsistencyTest {
         AbstractTeleportEvent.class, AbstractUnregisterEvent.class, AuthMeAsyncPreLoginEvent.class,
         AuthMeAsyncPreRegisterEvent.class, AuthMeTeleportEvent.class, EmailChangedEvent.class,
         FailedLoginEvent.class, FirstSpawnTeleportEvent.class, LoginEvent.class, LogoutEvent.class,
-        PlayerPreAuthEvent.class, ProtectInventoryEvent.class, RegisterEvent.class, RestoreInventoryEvent.class,
-        RestoreSessionEvent.class, SpawnTeleportEvent.class, UnregisterByAdminEvent.class,
-        UnregisterByPlayerEvent.class
+        PlayerPreAuthEvent.class, PreJoinDialogEvent.class, ProtectInventoryEvent.class, RegisterEvent.class,
+        RestoreInventoryEvent.class, RestoreSessionEvent.class, SpawnTeleportEvent.class,
+        UnregisterByAdminEvent.class, UnregisterByPlayerEvent.class
     };
 
     @Test

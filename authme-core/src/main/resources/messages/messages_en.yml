@@ -179,6 +179,16 @@ dialog:
     body: '&7Enter your registered email address and a reset code will be sent to you.'
     email: '&fEmail Address'
     button: '&aSend Recovery Email'
+  recovery_code:
+    title: '&6Enter Recovery Code'
+    body: '&7Enter the recovery code we sent to your email address.'
+    code: '&fRecovery Code'
+    button: '&aVerify Code'
+  new_password:
+    title: '&6Choose New Password'
+    body: '&7Choose a new password for your account.'
+    password: '&fNew Password'
+    button: '&aChange Password'
 
   button:
     cancel: '&cCancel'
@@ -259,3 +269,9 @@ premium:
     pending: '&ePremium verification pending for %name. They must reconnect to confirm ownership of the Mojang account.'
   pending_kick: '&ePremium verification requested. Please reconnect to confirm ownership of your Mojang account.'
   pending_fail: '&cPremium verification failed. Please log in with your password.'
+
+# 3rd party features: Login Location Fix (ported from HaHaWTH/AuthMeReReloaded)
+login_location_fix:
+  fix_portal: '&aYou are stuck in portal during login.'
+  fix_underground: '&aYou are stuck underground during login.'
+  cannot_fix_underground: '&aYou are stuck underground during login, but we cant fix it.'

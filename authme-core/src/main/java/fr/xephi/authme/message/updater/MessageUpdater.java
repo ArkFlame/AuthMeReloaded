@@ -143,6 +143,7 @@ public class MessageUpdater {
             .put("misc", "Other messages")
             .put("session", "Session messages")
             .put("on_join_validation", "Error messages when joining")
+            .put("login_location_fix", "Login location fix")
             .put("email", "Email")
             .put("recovery", "Password recovery by email")
             .put("captcha", "Captcha")

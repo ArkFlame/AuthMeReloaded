@@ -8,6 +8,7 @@ import fr.xephi.authme.mail.EmailService;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.service.CommonService;
+import fr.xephi.authme.service.EmailRecoveryDialogService;
 import fr.xephi.authme.service.PasswordRecoveryService;
 import fr.xephi.authme.service.RecoveryCodeService;
 import fr.xephi.authme.service.ValidationService;
@@ -66,6 +67,9 @@ class RecoverEmailCommandTest {
 
     @Mock
     private ValidationService validationService;
+
+    @Mock
+    private EmailRecoveryDialogService dialogRecoveryService;
 
     @BeforeAll
     static void initLogger() {

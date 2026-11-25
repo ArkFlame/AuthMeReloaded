@@ -43,6 +43,19 @@ public enum MessageKey {
     /** You have been disconnected due to doubled login. */
     DOUBLE_LOGIN_FIX("on_join_validation.double_login_fix"),
 
+    // -------------------------------------------------------------------------
+    // Login location fix (opt-in 3rd party feature)
+    // -------------------------------------------------------------------------
+
+    /** You are stuck in a portal during login. */
+    LOCATION_FIX_PORTAL("login_location_fix.fix_portal"),
+
+    /** You are stuck underground during login. */
+    LOCATION_FIX_UNDERGROUND("login_location_fix.fix_underground"),
+
+    /** You are stuck underground during login, but we could not fix it. */
+    LOCATION_FIX_UNDERGROUND_CANT_FIX("login_location_fix.cannot_fix_underground"),
+
     /** You are not the owner of this account. Please choose another name! */
     NOT_OWNER_ERROR("on_join_validation.not_owner_error"),
 
@@ -588,6 +601,30 @@ public enum MessageKey {
 
     /** Password recovery dialog submit button label. */
     DIALOG_RECOVERY_BUTTON("dialog.recovery.button"),
+
+    /** Recovery code dialog title. */
+    DIALOG_RECOVERY_CODE_TITLE("dialog.recovery_code.title"),
+
+    /** Recovery code dialog body text shown below the title. */
+    DIALOG_RECOVERY_CODE_BODY("dialog.recovery_code.body"),
+
+    /** Recovery code dialog code field label. */
+    DIALOG_RECOVERY_CODE_INPUT("dialog.recovery_code.code"),
+
+    /** Recovery code dialog submit button label. */
+    DIALOG_RECOVERY_CODE_BUTTON("dialog.recovery_code.button"),
+
+    /** New password dialog title. */
+    DIALOG_NEW_PASSWORD_TITLE("dialog.new_password.title"),
+
+    /** New password dialog body text shown below the title. */
+    DIALOG_NEW_PASSWORD_BODY("dialog.new_password.body"),
+
+    /** New password dialog password field label. */
+    DIALOG_NEW_PASSWORD_INPUT("dialog.new_password.password"),
+
+    /** New password dialog submit button label. */
+    DIALOG_NEW_PASSWORD_BUTTON("dialog.new_password.button"),
 
     /** Generic dialog cancel button label. */
     DIALOG_CANCEL_BUTTON("dialog.button.cancel"),

@@ -11,8 +11,10 @@ import fr.xephi.authme.permission.PermissionsManager;
 import fr.xephi.authme.permission.PlayerStatePermission;
 import fr.xephi.authme.service.AntiBotService;
 import fr.xephi.authme.service.BukkitService;
+import fr.xephi.authme.service.FloodgateService;
 import fr.xephi.authme.service.ValidationService;
 import fr.xephi.authme.settings.Settings;
+import fr.xephi.authme.settings.properties.HooksSettings;
 import fr.xephi.authme.settings.properties.ProtectionSettings;
 import fr.xephi.authme.settings.properties.RegistrationSettings;
 import fr.xephi.authme.settings.properties.RestrictionSettings;
@@ -27,6 +29,7 @@ import javax.inject.Inject;
 import java.net.InetAddress;
 import java.util.Collection;
 import java.util.Locale;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 /**
@@ -50,6 +53,8 @@ public class OnJoinVerifier implements Reloadable {
     private ValidationService validationService;
     @Inject
     private BukkitService bukkitService;
+    @Inject
+    private FloodgateService floodgateService;
     @Inject
     private Server server;
 
@@ -121,13 +126,34 @@ public class OnJoinVerifier implements Reloadable {
      * @throws FailedVerificationException if the verification fails
      */
     public void checkIsValidName(String name) throws FailedVerificationException {
+        checkIsValidName(name, null);
+    }
+
+    /**
+     * Checks that the name adheres to the configured username restrictions. Bedrock players verified by
+     * Floodgate may skip the nickname character check when Hooks.ignoreBedrockNameCheck is enabled.
+     *
+     * @param name the name to verify
+     * @param playerId the UUID of the connecting player, or null if unavailable
+     * @throws FailedVerificationException if the verification fails
+     */
+    public void checkIsValidName(String name, UUID playerId) throws FailedVerificationException {
         if (name.length() > settings.getProperty(RestrictionSettings.MAX_NICKNAME_LENGTH)
             || name.length() < settings.getProperty(RestrictionSettings.MIN_NICKNAME_LENGTH)) {
             throw new FailedVerificationException(MessageKey.INVALID_NAME_LENGTH);
         }
-        if (!isValidName(name)) {
+        if (!shouldSkipNicknameCharacterCheck(playerId) && !isValidName(name)) {
             throw new FailedVerificationException(MessageKey.INVALID_NAME_CHARACTERS, nicknamePattern.pattern());
         }
+    }
+
+    // Ported from HaHaWTH/AuthMeReReloaded (inspired by DongShaoNB/BedrockPlayerSupport):
+    // Bedrock identity comes from Floodgate only, never from the player name.
+    private boolean shouldSkipNicknameCharacterCheck(UUID playerId) {
+        return playerId != null
+            && floodgateService != null
+            && settings.getProperty(HooksSettings.IGNORE_BEDROCK_NAME_CHECK)
+            && floodgateService.isFloodgatePlayer(playerId);
     }
 
     /**

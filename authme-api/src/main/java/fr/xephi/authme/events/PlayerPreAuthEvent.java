@@ -18,7 +18,10 @@ import org.bukkit.event.HandlerList;
  *       leave the player alone: no limbo, no prompt, no restrictions. The player is <b>not</b> marked as
  *       logged in, so use it only for players whose authentication is handled elsewhere.</li>
  * </ul>
- * The event is called on the thread that runs the join process; check {@link #isAsynchronous()}. It is
+ * The event is always dispatched synchronously on the player's owning thread: the main thread on
+ * Bukkit/Paper and the player's region thread on Folia. {@link #isAsynchronous()} is therefore always
+ * {@code false}, and listeners may safely interact with the player. AuthMe waits for every listener to
+ * return before continuing the asynchronous join, so the decision made here is final. The event is
  * never called when the player is not subject to authentication (for example unrestricted names).
  */
 public class PlayerPreAuthEvent extends CustomEvent implements Cancellable {
@@ -77,6 +80,9 @@ public class PlayerPreAuthEvent extends CustomEvent implements Cancellable {
      * Requests a passwordless login of the player. Only honored for registered players; for an
      * unregistered player the request is ignored because there is no account to log into.
      * Calling this clears a previous {@link #skipAuthentication()}.
+     * This mirrors AuthMe's own force login: the password check is skipped and a TOTP code is not
+     * required. AuthMe applies the login once this listener returns, on the asynchronous join
+     * continuation; if the player has left or is already logged in by then, nothing happens.
      */
     public void forceLogin() {
         this.forceLoginRequested = true;
