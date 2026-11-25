@@ -173,12 +173,60 @@ public class PreJoinDialogService {
         }
     }
 
-    public record PendingDialogState(String loginPassword, String recoveryEmail,
-                                     PendingRegistration registration, boolean skipPostJoinDialog,
-                                     boolean forceLogin, String kickMessage) {
+    public static final class PendingDialogState {
 
         public static final PendingDialogState NONE =
             new PendingDialogState(null, null, null, false, false, null);
+
+        private final String loginPassword;
+        private final String recoveryEmail;
+        private final PendingRegistration registration;
+        private final boolean skipPostJoinDialog;
+        private final boolean forceLogin;
+        private final String kickMessage;
+
+        public PendingDialogState(String loginPassword, String recoveryEmail, PendingRegistration registration,
+                                  boolean skipPostJoinDialog, boolean forceLogin, String kickMessage) {
+            this.loginPassword = loginPassword;
+            this.recoveryEmail = recoveryEmail;
+            this.registration = registration;
+            this.skipPostJoinDialog = skipPostJoinDialog;
+            this.forceLogin = forceLogin;
+            this.kickMessage = kickMessage;
+        }
+
+        public String loginPassword() { return loginPassword; }
+        public String recoveryEmail() { return recoveryEmail; }
+        public PendingRegistration registration() { return registration; }
+        public boolean skipPostJoinDialog() { return skipPostJoinDialog; }
+        public boolean forceLogin() { return forceLogin; }
+        public String kickMessage() { return kickMessage; }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            PendingDialogState that = (PendingDialogState) o;
+            return skipPostJoinDialog == that.skipPostJoinDialog && forceLogin == that.forceLogin
+                && Objects.equals(loginPassword, that.loginPassword)
+                && Objects.equals(recoveryEmail, that.recoveryEmail)
+                && Objects.equals(registration, that.registration)
+                && Objects.equals(kickMessage, that.kickMessage);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(loginPassword, recoveryEmail, registration, skipPostJoinDialog, forceLogin,
+                kickMessage);
+        }
+
+        @Override
+        public String toString() {
+            // never print the password
+            return "PendingDialogState[recoveryEmail=" + recoveryEmail + ", registration=" + registration
+                + ", skipPostJoinDialog=" + skipPostJoinDialog + ", forceLogin=" + forceLogin
+                + ", kickMessage=" + kickMessage + "]";
+        }
     }
 
     public static final class PendingRegistration {

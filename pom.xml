@@ -87,7 +87,8 @@
         <!-- Java libraries -->
         <dependencies.injector.version>1.0</dependencies.injector.version>
         <dependencies.string-similarity.version>1.0.0</dependencies.string-similarity.version>
-        <dependencies.geoip2.version>5.2.0</dependencies.geoip2.version>
+        <!-- geoip2 5.x needs Java 17 (records); core must stay Java 8 for the 1.8 module -->
+        <dependencies.geoip2.version>4.3.0</dependencies.geoip2.version>
         <dependencies.javatar.version>2.5</dependencies.javatar.version>
         <dependencies.commons-email.version>1.6.0</dependencies.commons-email.version>
         <dependencies.hikaricp.version>7.1.0</dependencies.hikaricp.version>

@@ -95,6 +95,79 @@ class LimboPlayerTaskManagerTest {
     }
 
     @Test
+    void shouldDelayFirstLoginMessageByConfiguredSeconds() {
+        // given
+        Player player = mock(Player.class);
+        LimboPlayer limboPlayer = mock(LimboPlayer.class);
+        given(messages.retrieveSingle(player, MessageKey.LOGIN_MESSAGE)).willReturn("Please login!");
+        given(settings.getProperty(RegistrationSettings.MESSAGE_INTERVAL)).willReturn(12);
+        given(settings.getProperty(RegistrationSettings.LOGIN_MESSAGE_DELAY)).willReturn(5);
+        CancellableTask handle = mock(CancellableTask.class);
+        given(bukkitService.runTaskTimer(eq(player), any(MessageTask.class), anyLong(), anyLong())).willReturn(handle);
+
+        // when
+        limboPlayerTaskManager.registerMessageTask(player, limboPlayer, LimboMessageType.LOG_IN);
+
+        // then: nothing is sent before the delay (the first run is scheduled 5s out), then every interval
+        verify(bukkitService).runTaskTimer(eq(player), any(MessageTask.class),
+            eq(5L * TICKS_PER_SECOND), eq(12L * TICKS_PER_SECOND));
+        // the handle is stored so that logging in or leaving cancels the pending message
+        verify(limboPlayer).setMessageTask(any(MessageTask.class), eq(handle));
+    }
+
+    @Test
+    void shouldKeepTwoSecondLoginMessageDelayByDefault() {
+        // given
+        Player player = mock(Player.class);
+        LimboPlayer limboPlayer = mock(LimboPlayer.class);
+        given(messages.retrieveSingle(player, MessageKey.LOGIN_MESSAGE)).willReturn("Please login!");
+        given(settings.getProperty(RegistrationSettings.MESSAGE_INTERVAL)).willReturn(5);
+        given(settings.getProperty(RegistrationSettings.LOGIN_MESSAGE_DELAY))
+            .willReturn(RegistrationSettings.LOGIN_MESSAGE_DELAY.getDefaultValue());
+
+        // when
+        limboPlayerTaskManager.registerMessageTask(player, limboPlayer, LimboMessageType.LOG_IN);
+
+        // then: identical to the previously hard-coded 2 second delay
+        verify(bukkitService).runTaskTimer(eq(player), any(MessageTask.class),
+            eq(2L * TICKS_PER_SECOND), eq(5L * TICKS_PER_SECOND));
+    }
+
+    @Test
+    void shouldSendLoginMessageImmediatelyForZeroOrNegativeDelay() {
+        // given
+        Player player = mock(Player.class);
+        LimboPlayer limboPlayer = mock(LimboPlayer.class);
+        given(messages.retrieveSingle(player, MessageKey.TWO_FACTOR_CODE_REQUIRED)).willReturn("Enter code");
+        given(settings.getProperty(RegistrationSettings.MESSAGE_INTERVAL)).willReturn(5);
+        given(settings.getProperty(RegistrationSettings.LOGIN_MESSAGE_DELAY)).willReturn(-3);
+
+        // when
+        limboPlayerTaskManager.registerMessageTask(player, limboPlayer, LimboMessageType.TOTP_CODE);
+
+        // then
+        verify(bukkitService).runTaskTimer(eq(player), any(MessageTask.class), eq(0L), eq(5L * TICKS_PER_SECOND));
+    }
+
+    @Test
+    void shouldNotUseLoginDelayForRegistrationMessages() {
+        // given
+        Player player = mock(Player.class);
+        LimboPlayer limboPlayer = mock(LimboPlayer.class);
+        given(messages.retrieveSingle(player, MessageKey.REGISTER_MESSAGE)).willReturn("Please register!");
+        given(settings.getProperty(RegistrationSettings.MESSAGE_INTERVAL)).willReturn(5);
+        given(settings.getProperty(RegistrationSettings.REGISTER_MESSAGE_DELAY)).willReturn(1);
+        given(bukkitService.runTaskLater(eq(player), any(Runnable.class), anyLong()))
+            .willReturn(mock(CancellableTask.class));
+
+        // when
+        limboPlayerTaskManager.registerMessageTask(player, limboPlayer, LimboMessageType.REGISTER);
+
+        // then
+        verify(settings, never()).getProperty(RegistrationSettings.LOGIN_MESSAGE_DELAY);
+    }
+
+    @Test
     void shouldSuppressDelayedRegistrationMessageWhenPlayerWasRegistered() {
         // given
         String name = "registered_during_delay";

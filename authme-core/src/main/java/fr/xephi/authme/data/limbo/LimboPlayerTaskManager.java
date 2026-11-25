@@ -62,10 +62,15 @@ class LimboPlayerTaskManager {
             MessageTask messageTask = new MessageTask(player, joinMessage);
             CancellableTask taskHandle = messageType == LimboMessageType.REGISTER
                 ? scheduleRegistrationMessageTask(player, messageTask, interval)
-                : bukkitService.runTaskTimer(player, messageTask, 2 * TICKS_PER_SECOND,
-                    interval * TICKS_PER_SECOND);
+                : bukkitService.runTaskTimer(player, messageTask, loginMessageDelayTicks(),
+                    interval * (long) TICKS_PER_SECOND);
             limbo.setMessageTask(messageTask, taskHandle);
         }
+    }
+
+    private long loginMessageDelayTicks() {
+        int configuredDelay = settings.getProperty(RegistrationSettings.LOGIN_MESSAGE_DELAY);
+        return Math.max(0, configuredDelay) * (long) TICKS_PER_SECOND;
     }
 
     private CancellableTask scheduleRegistrationMessageTask(Player player, MessageTask messageTask, int interval) {

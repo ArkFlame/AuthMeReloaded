@@ -21,6 +21,7 @@ import org.bukkit.plugin.messaging.Messenger;
 import org.bukkit.plugin.messaging.PluginMessageListener;
 
 import javax.inject.Inject;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -119,7 +120,7 @@ public class BungeeReceiver implements PluginMessageListener, SettingsDependent 
                 // Always send the list, even when it is empty: an empty list is authoritative and
                 // lets the proxy replace a stale premium cache. With premium disabled, stored
                 // premium names must not reach the proxy, or it keeps verifying those players.
-                List<String> premiumNames = premiumEnabled ? dataSource.getPremiumUsernames() : List.of();
+                List<String> premiumNames = premiumEnabled ? dataSource.getPremiumUsernames() : Collections.<String>emptyList();
                 bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(() -> {
                     // Re-fetch a carrier at send-time: the original player may have gone offline
                     // during the async DB query. Fall back to the triggering player so the list

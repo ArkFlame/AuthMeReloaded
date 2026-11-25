@@ -28,6 +28,13 @@ public final class RegistrationSettings implements SettingsHolder {
         newProperty("settings.registration.registerMessageDelay", 1);
 
     @Comment({
+        "Delay in seconds before showing the first login (and two-factor code) reminder.",
+        "Mirrors registerMessageDelay; the reminder then repeats every messageInterval seconds.",
+        "A pending reminder is cancelled if the player logs in or leaves first."})
+    public static final Property<Integer> LOGIN_MESSAGE_DELAY =
+        newProperty("settings.registration.loginMessageDelay", 2);
+
+    @Comment({
         "Only registered and logged in players can play.",
         "See restrictions for exceptions"})
     public static final Property<Boolean> FORCE =
