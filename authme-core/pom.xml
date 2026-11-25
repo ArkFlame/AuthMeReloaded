@@ -15,6 +15,11 @@
     <name>AuthMe Core</name>
     <description>AuthMe core business logic (not a standalone plugin)</description>
 
+    <properties>
+        <!-- Core stays Java 8 bytecode so the legacy 1.8 module can load it -->
+        <core.java.version>8</core.java.version>
+    </properties>
+
     <dependencies>
         <!-- Java Libraries -->
         <dependency>
