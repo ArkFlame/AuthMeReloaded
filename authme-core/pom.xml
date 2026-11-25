@@ -21,6 +21,11 @@
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>fr.xephi</groupId>
+            <artifactId>authme-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <!-- Java Libraries -->
         <dependency>
             <groupId>ch.jalu</groupId>

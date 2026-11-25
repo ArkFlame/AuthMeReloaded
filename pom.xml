@@ -55,6 +55,7 @@
     </licenses>
 
     <modules>
+        <module>authme-api</module>
         <module>authme-core</module>
         <module>authme-tools</module>
         <module>authme-spigot-1.8</module>

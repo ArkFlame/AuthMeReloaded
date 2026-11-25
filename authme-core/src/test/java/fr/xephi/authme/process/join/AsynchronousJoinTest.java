@@ -4,6 +4,7 @@ import fr.xephi.authme.TestHelper;
 import fr.xephi.authme.data.ProxySessionManager;
 import fr.xephi.authme.data.auth.PlayerCache;
 import fr.xephi.authme.data.limbo.LimboService;
+import fr.xephi.authme.events.PlayerPreAuthEvent;
 import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.platform.DialogAdapter;
 import fr.xephi.authme.platform.DialogInputSpec;
@@ -129,6 +130,7 @@ public class AsynchronousJoinTest {
         setBukkitServiceToRunTaskOptionallyAsync(bukkitService);
         setBukkitServiceToRunTaskLater(bukkitService);
         given(service.getProperty(PremiumSettings.ENABLE_PREMIUM)).willReturn(false);
+        givenEventsAreCalledWithoutListeners();
         given(preJoinDialogService.consumeSession(anyString()))
             .willReturn(PreJoinDialogService.PendingDialogState.NONE);
     }
@@ -474,6 +476,89 @@ public class AsynchronousJoinTest {
 
     private void givenPendingDialogState(PreJoinDialogService.PendingDialogState state) {
         given(preJoinDialogService.consumeSession("bobby")).willReturn(state);
+    }
+
+    @Test
+    public void shouldForceLoginWithoutPromptWhenListenerRequestsIt() {
+        // given - a listener (e.g. a premium plugin) calls event.forceLogin()
+        Player player = mockPlayer("Bobby");
+        setUpRegisteredJoin(player);
+        listenToPreAuth(PlayerPreAuthEvent::forceLogin);
+
+        // when
+        asynchronousJoin.processJoin(player);
+
+        // then - login is triggered in the same call, no limbo/prompt/session lookup
+        verify(asynchronousLogin).forceLogin(player);
+        verify(limboService, never()).createLimboPlayer(eq(player), anyBoolean());
+        verify(sessionService, never()).canResumeSession(player);
+    }
+
+    @Test
+    public void shouldSkipPromptWhenListenerCancelsPreAuthEvent() {
+        // given
+        Player player = mockPlayer("Bobby");
+        setUpRegisteredJoin(player);
+        listenToPreAuth(PlayerPreAuthEvent::skipAuthentication);
+
+        // when
+        asynchronousJoin.processJoin(player);
+
+        // then
+        verify(limboService, never()).createLimboPlayer(eq(player), anyBoolean());
+        verify(asynchronousLogin, never()).forceLogin(player);
+        verify(dialogAdapter, never()).showLoginDialog(eq(player), any(DialogWindowSpec.class));
+    }
+
+    @Test
+    public void shouldReportRegisteredFlagAndSourceToListeners() {
+        // given
+        Player player = mockPlayer("Bobby");
+        setUpRegisteredJoin(player);
+        given(bungeeSender.isEnabled()).willReturn(true);
+        AtomicReference<PlayerPreAuthEvent> seen = new AtomicReference<>();
+        listenToPreAuth(seen::set);
+
+        // when
+        asynchronousJoin.processJoin(player);
+
+        // then - not cancelled, so the normal flow continues
+        assertThat(seen.get().isRegistered(), is(true));
+        assertThat(seen.get().getSource(), is(PlayerPreAuthEvent.Source.PROXY));
+        verify(limboService).createLimboPlayer(player, true);
+    }
+
+    @Test
+    public void shouldShowPromptInSameCallWithoutAnyScheduledDelay() {
+        // given - fake clock: any delayed scheduling would go through runTaskLater, which is mocked to run
+        // immediately; we assert none is used for the prompt of a registered player without dialogs
+        Player player = mockPlayer("Bobby");
+        setUpRegisteredJoin(player);
+
+        // when
+        asynchronousJoin.processJoin(player);
+
+        // then - limbo (which starts the login message task) is created synchronously within processJoin
+        verify(limboService).createLimboPlayer(player, true);
+        verify(bukkitService, never()).runTaskLater(any(Player.class), any(Runnable.class), org.mockito.ArgumentMatchers.anyLong());
+    }
+
+    @SuppressWarnings("unchecked")
+    private void listenToPreAuth(java.util.function.Consumer<PlayerPreAuthEvent> listener) {
+        doAnswer(invocation -> {
+            org.bukkit.event.Event event = ((java.util.function.Function<Boolean, org.bukkit.event.Event>)
+                invocation.getArgument(0)).apply(false);
+            if (event instanceof PlayerPreAuthEvent) {
+                listener.accept((PlayerPreAuthEvent) event);
+            }
+            return event;
+        }).when(bukkitService).createAndCallEvent(any());
+    }
+
+    @SuppressWarnings("unchecked")
+    private void givenEventsAreCalledWithoutListeners() {
+        given(bukkitService.createAndCallEvent(any())).willAnswer(invocation ->
+            ((java.util.function.Function<Boolean, org.bukkit.event.Event>) invocation.getArgument(0)).apply(false));
     }
 
     private void setUpRegisteredJoin(Player player) {

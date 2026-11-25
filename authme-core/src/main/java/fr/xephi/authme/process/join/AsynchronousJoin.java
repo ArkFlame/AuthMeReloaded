@@ -6,6 +6,7 @@ import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.data.auth.PlayerCache;
 import fr.xephi.authme.data.limbo.LimboService;
 import fr.xephi.authme.datasource.DataSource;
+import fr.xephi.authme.events.PlayerPreAuthEvent;
 import fr.xephi.authme.events.ProtectInventoryEvent;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
@@ -195,6 +196,11 @@ public class AsynchronousJoin implements AsynchronousProcess {
 
         boolean isAuthAvailable = database.isAuthAvailable(name);
 
+        // Earliest possible hook for integrations: before session lookups, premium bypass, limbo and prompts
+        if (handlePreAuthEvent(player, isAuthAvailable)) {
+            return;
+        }
+
         if (isAuthAvailable) {
             // Protect inventory
             if (service.getProperty(PROTECT_INVENTORY_BEFORE_LOGIN)) {
@@ -294,6 +300,30 @@ public class AsynchronousJoin implements AsynchronousProcess {
         }
 
         processJoinSync(player, isAuthAvailable, pendingLoginPassword, pendingRecoveryEmail, pendingRegistration, shouldSkipPostJoinDialog, pendingForceLogin);
+    }
+
+    /**
+     * Fires {@link PlayerPreAuthEvent} and applies what listeners asked for.
+     *
+     * @param player the joining player
+     * @param registered whether the player has an account
+     * @return true if the join has been fully handled by a listener (forced login or skipped authentication)
+     */
+    private boolean handlePreAuthEvent(Player player, boolean registered) {
+        PlayerPreAuthEvent.Source source = bungeeSender.isEnabled()
+            ? PlayerPreAuthEvent.Source.PROXY : PlayerPreAuthEvent.Source.JOIN;
+        PlayerPreAuthEvent event = bukkitService.createAndCallEvent(
+            isAsync -> new PlayerPreAuthEvent(player, registered, source, isAsync));
+        if (event.isForceLoginRequested()) {
+            logger.fine("PlayerPreAuthEvent: forced login requested for " + player.getName());
+            bukkitService.runTaskOptionallyAsync(() -> asynchronousLogin.forceLogin(player));
+            return true;
+        }
+        if (event.isCancelled()) {
+            logger.fine("PlayerPreAuthEvent cancelled for " + player.getName() + ", skipping authentication");
+            return true;
+        }
+        return false;
     }
 
     /**
