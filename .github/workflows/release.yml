@@ -39,7 +39,7 @@ jobs:
           for jar in authme-*/target/AuthMeRemastered-"${VERSION}"-*.jar; do
             name="$(basename "$jar")"
             case "$name" in *-sources.jar|*-javadoc.jar|original-*) continue ;; esac
-            classifier="${name#AuthMeRemastered-${VERSION}-}"
+            classifier="${name#"AuthMeRemastered-${VERSION}-"}"
             cp "$jar" "dist/AuthMeRemastered-${VERSION}-${SHORT_SHA}-${classifier}"
           done
           cp "authme-api/target/authme-api-${VERSION}.jar" "dist/AuthMeRemastered-API-${VERSION}-${SHORT_SHA}.jar"
