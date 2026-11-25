@@ -2962,7 +2962,7 @@ Reconciles every issue and PR in both trackers against `master` of `ArkFlame/Aut
 | #2957 | issue | CLOSED | not-applicable | docs/INTEGRATION.md:8 (upstream/master ancestor of ultimate; no separate triage entry for this historical issue) |
 | #2958 | issue | CLOSED | not-applicable | docs/INTEGRATION.md:8 (upstream/master ancestor of ultimate; no separate triage entry for this historical issue) |
 | #2959 | PR | CLOSED | not-applicable | docs/INTEGRATION.md:8 (upstream PR closed without merge; no corresponding change in ultimate) |
-| #2960 | issue | OPEN | not-applicable | No triage decision in `docs/INTEGRATION.md` or `docs/triage/*`; see UNMAPPED below |
+| #2960 | issue | OPEN | not-applicable | Meta maintenance notice, decision recorded in docs/INTEGRATION.md |
 | #2962 | PR | CLOSED | integrated | docs/INTEGRATION.md:8 (upstream/master ancestor of ultimate; PR merged upstream) |
 | #2963 | PR | CLOSED | not-applicable | docs/INTEGRATION.md:8 (upstream PR closed without merge; no corresponding change in ultimate) |
 | #2964 | PR | CLOSED | not-applicable | docs/INTEGRATION.md:8 (upstream PR closed without merge; no corresponding change in ultimate) |

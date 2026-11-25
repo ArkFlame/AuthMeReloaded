@@ -39,6 +39,7 @@ permissions are unchanged; only display name/author/jar names are rebranded.
 | 3152 | feature | deferred (Brigadier per-permission completion), see `docs/triage/batch-B.md` | - |
 | 3112 | feature | Bedrock auto-login: covered by existing Floodgate auto-login (`FloodgateService.canAutoLogin`) | `AsynchronousJoinTest` |
 | 3121, 3071, 3060 | support | no code change (online-mode proxy / Mojang rate limit / config) | - |
+| 2960 | meta | not applicable: upstream soft-reset maintenance notice, no code change | - |
 | 3055, 3031 | invalid | working as intended (per-client language already supported) | - |
 | 3146 | bug | fixed: pre-join dialog closed when response future times out | `PaperDialogFlowListenerIssue3146Test` |
 | 3088 | bug | fixed: captcha-required registration rejected from dialog | `PaperDialogFlowListenerIssue3088Test` |
