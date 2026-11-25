@@ -3,6 +3,9 @@ package fr.xephi.authme.platform;
 import fr.xephi.authme.AuthMe;
 import fr.xephi.authme.command.CommandDescription;
 import fr.xephi.authme.command.CommandHandler;
+import fr.xephi.authme.listener.EntityAirChangeListener;
+import fr.xephi.authme.listener.EntityPickupItemListener;
+import fr.xephi.authme.listener.PlayerSwapHandItemsListener;
 import fr.xephi.authme.process.register.RegisterSecondaryArgument;
 import fr.xephi.authme.process.register.RegistrationType;
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
@@ -106,7 +109,9 @@ public abstract class AbstractPaperPlatformAdapter extends AbstractSpigotPlatfor
 
     @Override
     public List<Class<? extends Listener>> getListeners() {
-        return EventRegistrationAdapter.getCommonListeners();
+        return EventRegistrationAdapter.combineListeners(
+            EventRegistrationAdapter.getCommonListeners(),
+            List.of(PlayerSwapHandItemsListener.class, EntityAirChangeListener.class, EntityPickupItemListener.class));
     }
 
     @Override

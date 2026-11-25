@@ -208,10 +208,8 @@ class PlayerListenerTest {
         withServiceMock(listenerService)
             .check(listener::onPlayerShear, PlayerShearEntityEvent.class)
             .check(listener::onPlayerFish, PlayerFishEvent.class)
-            .check(listener::onPlayerSwapHandItems, PlayerSwapHandItemsEvent.class)
             .check(listener::onPlayerBedEnter, PlayerBedEnterEvent.class)
             .check(listener::onPlayerDropItem, PlayerDropItemEvent.class)
-            .check(listener::onPlayerAirChange, EntityAirChangeEvent.class)
             .check(listener::onPlayerHitPlayerEvent, EntityDamageByEntityEvent.class)
             .check(listener::onPlayerConsumeItem, PlayerItemConsumeEvent.class)
             .check(listener::onPlayerInteract, PlayerInteractEvent.class)
@@ -247,50 +245,6 @@ class PlayerListenerTest {
         // then
         verify(event, never()).setCancelled(anyBoolean());
         verifyNoInteractions(listenerService);
-    }
-
-    @Test
-    void shouldCancelPickupItemForUnauthenticatedPlayer() {
-        // given
-        Player player = mock(Player.class);
-        EntityPickupItemEvent event = mock(EntityPickupItemEvent.class);
-        given(event.getEntity()).willReturn(player);
-        given(listenerService.shouldCancelEvent(player)).willReturn(true);
-
-        // when
-        listener.onPlayerPickupItem(event);
-
-        // then
-        verify(event).setCancelled(true);
-    }
-
-    @Test
-    void shouldAllowPickupItemForAuthenticatedPlayer() {
-        // given
-        Player player = mock(Player.class);
-        EntityPickupItemEvent event = mock(EntityPickupItemEvent.class);
-        given(event.getEntity()).willReturn(player);
-        given(listenerService.shouldCancelEvent(player)).willReturn(false);
-
-        // when
-        listener.onPlayerPickupItem(event);
-
-        // then
-        verify(event, never()).setCancelled(anyBoolean());
-    }
-
-    @Test
-    void shouldIgnorePickupItemForNonPlayer() {
-        // given
-        EntityPickupItemEvent event = mock(EntityPickupItemEvent.class);
-        given(event.getEntity()).willReturn(mock(org.bukkit.entity.LivingEntity.class));
-
-        // when
-        listener.onPlayerPickupItem(event);
-
-        // then
-        verifyNoInteractions(listenerService);
-        verify(event, never()).setCancelled(anyBoolean());
     }
 
     @Test
