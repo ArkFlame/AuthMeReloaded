@@ -59,6 +59,7 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.InventoryView;
 
 import javax.inject.Inject;
+import java.util.Collection;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
@@ -288,12 +289,50 @@ public class PlayerListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onPlayerKick(PlayerKickEvent event) {
-        // Note #831: Especially for offline CraftBukkit, we need to catch players being kicked because of
-        // "logged in from another location" and to cancel their kick
-        if (settings.getProperty(RestrictionSettings.FORCE_SINGLE_SESSION)
-            && chatAdapter.getKickReason(event).contains("You logged in from another location")) {
+        if (!settings.getProperty(RestrictionSettings.FORCE_SINGLE_SESSION)) {
+            return;
+        }
+
+        // #3114: kick reasons are localized (and differ on Folia), so identify a duplicate login
+        // by the second online session instead of matching the English reason text.
+        if (isDuplicateLoginKick(event)) {
+            event.setCancelled(true);
+            return;
+        }
+
+        // #831: offline CraftBukkit may hide the second session, leaving only the legacy reason.
+        String reason = chatAdapter.getKickReason(event);
+        if (reason != null && reason.contains("You logged in from another location")) {
             event.setCancelled(true);
         }
+    }
+
+    private boolean isDuplicateLoginKick(PlayerKickEvent event) {
+        Collection<Player> onlinePlayers = bukkitService.getOnlinePlayers();
+        if (onlinePlayers == null || onlinePlayers.isEmpty()) {
+            return false;
+        }
+        Player kicked = event.getPlayer();
+        if (kicked == null) {
+            return false;
+        }
+        String name = kicked.getName();
+        if (name == null) {
+            return false;
+        }
+        boolean authenticated = playerCache.isAuthenticated(name);
+        boolean pending = limboService.hasLimboPlayer(kicked);
+
+        boolean kickedIsOnline = false;
+        boolean duplicateSession = false;
+        for (Player online : onlinePlayers) {
+            if (online == kicked) {
+                kickedIsOnline = true;
+            } else if (online != null && name.equalsIgnoreCase(online.getName())) {
+                duplicateSession = true;
+            }
+        }
+        return duplicateSession && (kickedIsOnline || authenticated || pending);
     }
 
     /*
@@ -393,8 +432,16 @@ public class PlayerListener implements Listener {
         if (spawn != null && spawn.getWorld() != null) {
             if (!player.getWorld().equals(spawn.getWorld())) {
                 teleportAdapter.teleportPlayer(player, spawn);
-            } else if (spawn.distance(player.getLocation()) > settings.getProperty(ALLOWED_MOVEMENT_RADIUS)) {
+                return;
+            }
+            double radius = settings.getProperty(ALLOWED_MOVEMENT_RADIUS);
+            Location current = player.getLocation() != null ? player.getLocation() : from;
+            if (spawn.distance(current) > radius) {
+                // Already outside the radius: there is no in-radius location to fall back to.
                 teleportAdapter.teleportPlayer(player, spawn);
+            } else if (spawn.distance(to) > radius) {
+                // #3081: prevent crossing the boundary without teleporting the player to spawn.
+                event.setTo(from);
             }
         }
     }

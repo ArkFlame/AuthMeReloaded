@@ -8,6 +8,8 @@ import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.StringReader;
+import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.mojang.brigadier.tree.CommandNode;
 import fr.xephi.authme.AuthMe;
 import fr.xephi.authme.command.CommandArgumentDescription;
@@ -17,11 +19,15 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.command.brigadier.argument.CustomArgumentType;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
+import org.bukkit.Bukkit;
+import org.bukkit.Server;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 
 /**
@@ -81,7 +87,7 @@ final class PaperBrigadierCommandRegistrar {
         if (isEmailAddCommand(command)) {
             builder.then(createFallbackArgument(FALLBACK_ARGUMENT_NAME));
         } else {
-            addArgumentChain(builder, command.getArguments());
+            addArgumentChain(builder, command.getArguments(), isForceLoginTarget(command));
         }
         if (command.getArguments().isEmpty()) {
             builder.then(createFallbackArgument(EXTRA_ARGUMENTS_NAME));
@@ -97,8 +103,13 @@ final class PaperBrigadierCommandRegistrar {
             && "verifyEmail".equals(arguments.get(1).getName());
     }
 
+    private static boolean isForceLoginTarget(CommandDescription command) {
+        return command.getLabels().stream().anyMatch(label -> "login".equals(label) || "forcelogin".equals(label))
+            && command.getArguments().stream().anyMatch(argument -> "player".equals(argument.getName()));
+    }
+
     private void addArgumentChain(ArgumentBuilder<CommandSourceStack, ?> parent,
-                                  List<CommandArgumentDescription> arguments) {
+                                  List<CommandArgumentDescription> arguments, boolean suggestOnlinePlayers) {
         if (arguments.isEmpty()) {
             return;
         }
@@ -112,12 +123,40 @@ final class PaperBrigadierCommandRegistrar {
                 RequiredArgumentBuilder.<CommandSourceStack, String>argument(argument.getName(),
                     isLastArgument ? StringArgumentType.greedyString() : anyWord())
                     .executes(this::executeInput);
+            if (isLastArgument && suggestOnlinePlayers) {
+                argBuilder.suggests(PaperBrigadierCommandRegistrar::suggestOnlinePlayerNames);
+            }
             if (innerChain != null) {
                 argBuilder.then(innerChain);
             }
             innerChain = argBuilder.build();
         }
         parent.then(innerChain);
+    }
+
+    private static CompletableFuture<Suggestions> suggestOnlinePlayerNames(CommandContext<CommandSourceStack> context,
+                                                                           SuggestionsBuilder builder) {
+        for (Player player : getOnlinePlayers(context)) {
+            builder.suggest(player.getName());
+        }
+        return builder.buildFuture();
+    }
+
+    private static Collection<? extends Player> getOnlinePlayers(CommandContext<CommandSourceStack> context) {
+        CommandSender sender = context.getSource().getSender();
+        Server server = sender == null ? null : sender.getServer();
+        if (server != null) {
+            Collection<? extends Player> players = server.getOnlinePlayers();
+            if (players != null) {
+                return players;
+            }
+        }
+        try {
+            Collection<? extends Player> players = Bukkit.getOnlinePlayers();
+            return players == null ? List.of() : players;
+        } catch (RuntimeException e) {
+            return List.of();
+        }
     }
 
     private RequiredArgumentBuilder<CommandSourceStack, String> createFallbackArgument(String name) {

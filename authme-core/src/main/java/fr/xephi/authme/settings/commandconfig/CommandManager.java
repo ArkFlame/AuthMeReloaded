@@ -17,7 +17,10 @@ import javax.inject.Inject;
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 
 import static fr.xephi.authme.util.lazytags.TagBuilder.createTag;
@@ -32,6 +35,7 @@ public class CommandManager implements Reloadable {
     private final GeoIpService geoIpService;
     private final CommandMigrationService commandMigrationService;
     private final List<Tag<Player>> availableTags = buildAvailableTags();
+    private final Set<String> playersWithLoginCommands = ConcurrentHashMap.newKeySet();
 
     private WrappedTagReplacer<Command, Player> onJoinCommands;
     private WrappedTagReplacer<OnLoginCommand, Player> onLoginCommands;
@@ -76,6 +80,9 @@ public class CommandManager implements Reloadable {
      * @param otherAccounts account names whose IP is the same as the player's
      */
     public void runCommandsOnLogin(Player player, List<String> otherAccounts) {
+        if (!playersWithLoginCommands.add(loginKey(player))) {
+            return;
+        }
         final int numberOfOtherAccounts = otherAccounts.size();
         executeCommands(player, onLoginCommands.getAdaptedItems(player),
             cmd -> shouldCommandBeRun(cmd, numberOfOtherAccounts));
@@ -108,6 +115,7 @@ public class CommandManager implements Reloadable {
      * @param player the player that has been unregistered
      */
     public void runCommandsOnUnregister(Player player) {
+        playersWithLoginCommands.remove(loginKey(player));
         executeCommands(player, onUnregisterCommands.getAdaptedItems(player));
     }
 
@@ -117,7 +125,12 @@ public class CommandManager implements Reloadable {
      * @param player the player that is no longer logged in
      */
     public void runCommandsOnLogout(Player player) {
+        playersWithLoginCommands.remove(loginKey(player));
         executeCommands(player, onLogoutCommands.getAdaptedItems(player));
+    }
+
+    private static String loginKey(Player player) {
+        return player.getName().toLowerCase(Locale.ROOT);
     }
 
     private void executeCommands(Player player, List<Command> commands) {

@@ -1,6 +1,7 @@
 package fr.xephi.authme.platform;
 
 import fr.xephi.authme.listener.BlockListener;
+import fr.xephi.authme.listener.DoubleLoginFixListener;
 import fr.xephi.authme.listener.EntityListener;
 import fr.xephi.authme.listener.PlayerListener;
 import fr.xephi.authme.listener.ServerListener;
@@ -29,7 +30,8 @@ public interface EventRegistrationAdapter {
             PlayerListener.class,
             BlockListener.class,
             EntityListener.class,
-            ServerListener.class));
+            ServerListener.class,
+            DoubleLoginFixListener.class));
     }
 
     @SafeVarargs

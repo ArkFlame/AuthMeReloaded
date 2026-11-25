@@ -148,7 +148,11 @@ public enum AdminPermission implements PermissionNode {
     /**
      * Administrator command to disable premium mode for a player.
      */
-    SET_FREEMIUM("authme.admin.setfreemium");
+    SET_FREEMIUM("authme.admin.setfreemium"),
+    /**
+     * Administrator command to view the UUIDs of a player.
+     */
+    UUID("authme.admin.uuid");
 
     /**
      * The permission node.

@@ -14,7 +14,6 @@ import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.service.CommonService;
 import fr.xephi.authme.settings.properties.RegistrationSettings;
 import fr.xephi.authme.settings.properties.RestrictionSettings;
-import fr.xephi.authme.util.InternetProtocolUtils;
 import fr.xephi.authme.util.PlayerUtils;
 import org.bukkit.entity.Player;
 
@@ -117,7 +116,7 @@ public class AsyncRegister implements AsynchronousProcess {
         int maxRegPerIp = service.getProperty(RestrictionSettings.MAX_REGISTRATION_PER_IP);
         String ip = PlayerUtils.getPlayerIp(player);
         if (maxRegPerIp > 0
-            && !InternetProtocolUtils.isLoopbackAddress(ip)
+            && !PlayerUtils.isPlayerIpLoopback(player)
             && !service.hasPermission(player, ALLOW_MULTIPLE_ACCOUNTS)) {
             List<String> otherAccounts = database.getAllAuthsByIp(ip);
             if (otherAccounts.size() >= maxRegPerIp) {

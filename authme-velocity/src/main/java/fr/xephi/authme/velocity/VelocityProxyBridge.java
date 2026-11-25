@@ -74,6 +74,7 @@ final class VelocityProxyBridge {
     private final VelocityAuthenticationStore authenticationStore;
     private final Map<String, AtomicInteger> pendingAutoLogins = new ConcurrentHashMap<>();
     private final Set<String> notifiedAuthServers = ConcurrentHashMap.newKeySet();
+    private final Set<String> handshakeRetriesPending = ConcurrentHashMap.newKeySet();
     private volatile Set<String> premiumUsernames = ConcurrentHashMap.newKeySet();
     private List<String> premiumListBuffer = new ArrayList<>();
     private int expectedPremiumListChunk = -1;
@@ -188,14 +189,28 @@ final class VelocityProxyBridge {
                 logger.info("Sent proxy.started handshake to auth server '{}'", serverName);
             } else {
                 deferred++;
-                logger.info("Deferred proxy.started handshake for '{}' (no connected players yet);"
-                    + " will retry on first player connection", serverName);
+                logger.info("Proxy.started handshake for '{}' could not be sent yet; retrying in background",
+                    serverName);
+                scheduleHandshakeRetry(server);
             }
         }
         if (notified > 0 || deferred > 0) {
-            logger.info("Proxy startup handshake: {} auth server(s) notified, {} deferred until first connection",
+            logger.info("Proxy startup handshake: {} auth server(s) notified, {} pending background retry",
                 notified, deferred);
         }
+    }
+
+    private void scheduleHandshakeRetry(RegisteredServer server) {
+        String serverName = server.getServerInfo().getName();
+        if (!handshakeRetriesPending.add(serverName)) {
+            return;
+        }
+        retryScheduler.schedule(() -> {
+            handshakeRetriesPending.remove(serverName);
+            if (!notifiedAuthServers.contains(serverName)) {
+                sendProxyStartedHandshakeIfPending(server);
+            }
+        }, 1, TimeUnit.SECONDS);
     }
 
     private byte[] createProxyStartedMessage() {
@@ -288,6 +303,11 @@ final class VelocityProxyBridge {
             logger.info("Auto-login ACK received for {} from server '{}'",
                 parsedMessage.playerName(), serverName);
             cancelPendingLogin(parsedMessage.playerName());
+            if (configuration.autoLoginEnabled()) {
+                // The backend completed the auto-login; without this the proxy keeps denying
+                // chat and commands even though the player is authenticated on the backend.
+                authenticationStore.markAuthenticated(parsedMessage.playerName());
+            }
         } else if (PREMIUM_SET_MESSAGE.equals(parsedMessage.typeId())) {
             premiumUsernames.add(parsedMessage.playerName());
             pendingPremiumUsernames.remove(parsedMessage.playerName());
@@ -418,14 +438,16 @@ final class VelocityProxyBridge {
             return;
         }
         RegisteredServer target = server.getServer();
-        // The pre-join dialog only appears on backends running AuthMe, i.e. auth servers.
-        if (!configuration.isAuthServer(target)) {
-            return;
-        }
-
         String normalizedName = normalizeName(event.player().getUsername());
         UUID verifiedPremiumUuid = premiumVerificationManager.getVerifiedPremiumUuid(normalizedName);
         boolean isPremiumJoin = verifiedPremiumUuid != null;
+        // The pre-join dialog only appears on backends running AuthMe, i.e. auth servers, but a
+        // proxy-verified premium player must carry the premium UUID to any backend they enter:
+        // with keepOfflineUuidCompatibility the backend sees the offline UUID and needs that
+        // UUID in perform.login to finalize the pending premium enrollment.
+        if (!configuration.isAuthServer(target) && !isPremiumJoin) {
+            return;
+        }
         if (!authenticationStore.isAuthenticated(normalizedName) && !isPremiumJoin) {
             return;
         }
@@ -463,14 +485,14 @@ final class VelocityProxyBridge {
         logger.info("onServerConnected: {} verifiedPremiumUuid={} connectingToAuthServer={}",
             normalizedName, verifiedPremiumUuid, connectingToAuthServer);
 
-        boolean isPremiumJoin = connectingToAuthServer && verifiedPremiumUuid != null;
+        boolean isPremiumJoin = verifiedPremiumUuid != null;
         if (!authenticationStore.isAuthenticated(normalizedName) && !isPremiumJoin) {
             logger.debug("Skipping auto-login for {} — not authenticated or proxy-verified premium", normalizedName);
             return;
         }
         if (isPremiumJoin) {
-            logger.debug("Proxy-verified premium player {} joining auth server — sending perform.login immediately",
-                normalizedName);
+            logger.debug("Proxy-verified premium player {} joining '{}' — sending perform.login with premium UUID {}",
+                normalizedName, newServer, verifiedPremiumUuid);
         }
 
         Optional<ServerConnection> currentServer = event.getPlayer().getCurrentServer();
@@ -645,15 +667,11 @@ final class VelocityProxyBridge {
             logger.info("Sent deferred proxy.started handshake to auth server '{}'", serverName);
         } else {
             notifiedAuthServers.remove(serverName);
-            // Only schedule a timer retry if players are connected; otherwise the next
-            // ServerConnectedEvent will re-attempt naturally, avoiding an infinite retry loop
-            // when a player immediately disconnects (e.g., dialog cancel).
-            if (!server.getPlayersConnected().isEmpty()) {
-                logger.info("Failed to send deferred proxy.started handshake to '{}'; scheduling retry", serverName);
-                retryScheduler.schedule(() -> sendProxyStartedHandshakeIfPending(server), 1, TimeUnit.SECONDS);
-            } else {
-                logger.debug("Deferred proxy.started handshake for '{}' pending until next player connection", serverName);
-            }
+            // Velocity cannot send to a backend with no player connected, but the retry must not
+            // depend on a player event: a player kicked before joining would leave the premium
+            // list unsynced forever. Keep retrying in the background until the send succeeds.
+            logger.info("Failed to send deferred proxy.started handshake to '{}'; scheduling retry", serverName);
+            scheduleHandshakeRetry(server);
         }
     }
 

@@ -13,12 +13,15 @@ import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.service.CommonService;
 import fr.xephi.authme.service.PendingEmailVerificationCache;
 import fr.xephi.authme.service.ValidationService;
+import fr.xephi.authme.settings.properties.RegistrationSettings;
 import fr.xephi.authme.util.RandomStringUtils;
 import fr.xephi.authme.util.Utils;
 import org.bukkit.entity.Player;
 
 import javax.inject.Inject;
 import java.util.Locale;
+
+import static fr.xephi.authme.process.register.RegisterSecondaryArgument.EMAIL_OPTIONAL;
 
 /**
  * Async task to add an email to an account.
@@ -53,8 +56,8 @@ public class AsyncAddEmail implements AsynchronousProcess {
 
     /**
      * Handles the request to add the given email to the player's account.
-     * If email sending is available, the address is held pending confirmation via
-     * {@code /email confirm <code>}. Otherwise it is saved directly.
+     * If email sending is available and email confirmation is required, the address is held pending
+     * confirmation via {@code /email confirm <code>}. Otherwise it is saved directly.
      *
      * @param player the player to add the email to
      * @param email the email to add
@@ -80,7 +83,7 @@ public class AsyncAddEmail implements AsynchronousProcess {
                     service.send(player, MessageKey.EMAIL_ADD_NOT_ALLOWED);
                     return;
                 }
-                if (emailService.hasAllInformation()) {
+                if (requiresEmailConfirmation()) {
                     sendConfirmationCode(player, email);
                 } else {
                     saveEmailDirectly(auth, player, email);
@@ -89,6 +92,17 @@ public class AsyncAddEmail implements AsynchronousProcess {
         } else {
             sendUnloggedMessage(player);
         }
+    }
+
+    /**
+     * Returns whether the given email must be confirmed before it is saved. Registration with
+     * {@code EMAIL_OPTIONAL} saves the email directly, so adding one later must do the same.
+     *
+     * @return true if a confirmation code should be sent
+     */
+    private boolean requiresEmailConfirmation() {
+        return emailService.hasAllInformation()
+            && service.getProperty(RegistrationSettings.REGISTER_SECOND_ARGUMENT) != EMAIL_OPTIONAL;
     }
 
     private void sendConfirmationCode(Player player, String email) {

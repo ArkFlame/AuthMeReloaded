@@ -43,6 +43,15 @@ public final class PluginSettings implements SettingsHolder {
         newProperty("settings.perPlayerLocale", true);
 
     @Comment({
+        "When enabled, messages containing MiniMessage tags (e.g. <red>text</red>)",
+        "are converted to legacy color codes. Requires the Adventure library,",
+        "which is loaded from plugin.yml libraries; on servers where it is",
+        "unavailable the legacy '&' color-code handling is used instead."
+    })
+    public static final Property<Boolean> MINIMESSAGE_ENABLED =
+        newProperty("settings.miniMessage.enabled", false);
+
+    @Comment({
         "Enables switching a player to defined permission groups before they log in.",
         "See below for a detailed explanation."
     })

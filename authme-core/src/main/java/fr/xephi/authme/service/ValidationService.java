@@ -50,6 +50,7 @@ public class ValidationService implements Reloadable {
     private GeoIpService geoIpService;
 
     private Pattern passwordRegex;
+    private Pattern emailRegex;
     private Multimap<String, String> restrictedNames;
 
     ValidationService() {
@@ -59,6 +60,7 @@ public class ValidationService implements Reloadable {
     @Override
     public void reload() {
         passwordRegex = Utils.safePatternCompile(settings.getProperty(RestrictionSettings.ALLOWED_PASSWORD_REGEX));
+        emailRegex = Utils.safePatternCompile(settings.getProperty(RestrictionSettings.ALLOWED_EMAIL_REGEX));
         restrictedNames = settings.getProperty(RestrictionSettings.ENABLE_RESTRICTED_USERS)
             ? loadNameRestrictions(settings.getProperty(RestrictionSettings.RESTRICTED_USERS))
             : HashMultimap.create();
@@ -94,7 +96,7 @@ public class ValidationService implements Reloadable {
      */
     public boolean validateEmail(String email) {
         if (Utils.isEmailEmpty(email) || !StringUtils.isInsideString('@', email)
-            || email.indexOf('@') != email.lastIndexOf('@')) {
+            || email.indexOf('@') != email.lastIndexOf('@') || !emailRegex.matcher(email).matches()) {
             return false;
         }
         final String emailDomain = email.substring(email.indexOf('@') + 1);

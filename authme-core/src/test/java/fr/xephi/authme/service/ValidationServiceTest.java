@@ -60,6 +60,7 @@ class ValidationServiceTest {
     @BeforeEach
     void callReload() {
         given(settings.getProperty(RestrictionSettings.ALLOWED_PASSWORD_REGEX)).willReturn("[a-zA-Z]+");
+        given(settings.getProperty(RestrictionSettings.ALLOWED_EMAIL_REGEX)).willReturn(".*");
         given(settings.getProperty(RestrictionSettings.ENABLE_RESTRICTED_USERS)).willReturn(false);
         validationService.reload();
     }
@@ -210,6 +211,25 @@ class ValidationServiceTest {
 
         // then
         assertThat(result, equalTo(false));
+    }
+
+    @Test
+    void shouldRejectEmailNotMatchingConfiguredRegex() {
+        // given
+        given(settings.getProperty(RestrictionSettings.ALLOWED_EMAIL_REGEX))
+            .willReturn("^[^@]+@example\\.org$");
+        validationService.reload();
+
+        // when / then
+        assertThat(validationService.validateEmail("user@example.com"), equalTo(false));
+        assertThat(validationService.validateEmail("user@example.org"), equalTo(true));
+    }
+
+    @Test
+    void shouldApplyDefaultRegexWithoutRestrictingLegacyEmails() {
+        // given: the @BeforeEach stub uses the default '.*' regex
+        // when / then
+        assertThat(validationService.validateEmail("some.user+tag@example.co.uk"), equalTo(true));
     }
 
     @Test

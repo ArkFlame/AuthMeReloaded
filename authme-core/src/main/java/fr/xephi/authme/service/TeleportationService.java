@@ -150,7 +150,7 @@ public class TeleportationService implements Reloadable {
         }
 
         logger.debug("Returning custom location for async join event for player `{0}`", playerName);
-        return spawnLoader.getSpawnLocation(world);
+        return getSpawnLocation(playerName, world);
     }
 
     /**
@@ -380,8 +380,60 @@ public class TeleportationService implements Reloadable {
     }
 
     private void teleportToSpawn(final Player player, final boolean isAuthenticated) {
-        final Location spawnLoc = spawnLoader.getSpawnLocation(player);
+        final Location spawnLoc = getSpawnLocation(player);
         performTeleportation(player, new SpawnTeleportEvent(player, spawnLoc, isAuthenticated));
+    }
+
+    /**
+     * Returns the spawn location for the player. For players who have never played on the server before,
+     * the AuthMe first spawn takes precedence over the regular spawn when AuthMe has priority.
+     *
+     * @param player the player to spawn
+     * @return the location to teleport to
+     */
+    private Location getSpawnLocation(final Player player) {
+        if (!player.hasPlayedBefore() || !isRegistered(player.getName())) {
+            final Location firstSpawn = getFirstSpawnIfPrioritized();
+            if (firstSpawn != null) {
+                return firstSpawn;
+            }
+        }
+        return spawnLoader.getSpawnLocation(player);
+    }
+
+    /**
+     * Same as {@link #getSpawnLocation(Player)} for hooks which run before the player object exists.
+     *
+     * @param playerName the player's name
+     * @param world the world the player is about to join in
+     * @return the location to teleport to
+     */
+    private Location getSpawnLocation(final String playerName, final World world) {
+        if (!isRegistered(playerName)) {
+            final Location firstSpawn = getFirstSpawnIfPrioritized();
+            if (firstSpawn != null) {
+                return firstSpawn;
+            }
+        }
+        return spawnLoader.getSpawnLocation(world);
+    }
+
+    private Location getFirstSpawnIfPrioritized() {
+        String spawnPriority = settings.getProperty(RestrictionSettings.SPAWN_PRIORITY);
+        if (spawnPriority == null || spawnPriority.trim().isEmpty()) {
+            return spawnLoader.getFirstSpawn();
+        }
+        String[] priorities = spawnPriority.split(",");
+        return "authme".equalsIgnoreCase(priorities[0].trim()) ? spawnLoader.getFirstSpawn() : null;
+    }
+
+    private boolean isRegistered(String playerName) {
+        String key = normalizePlayerName(playerName);
+        if (key == null) {
+            return false;
+        }
+        Boolean cached = preloadedAuthStatus.get(key);
+        return cached != null ? cached : dataSource.isAuthAvailable(playerName);
     }
 
     /**

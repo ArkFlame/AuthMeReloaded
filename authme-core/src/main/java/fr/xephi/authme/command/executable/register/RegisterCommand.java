@@ -3,6 +3,7 @@ package fr.xephi.authme.command.executable.register;
 import fr.xephi.authme.ConsoleLogger;
 import fr.xephi.authme.command.PlayerCommand;
 import fr.xephi.authme.data.captcha.RegistrationCaptchaManager;
+import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.mail.EmailService;
 import fr.xephi.authme.message.MessageKey;
@@ -14,6 +15,7 @@ import fr.xephi.authme.process.register.executors.PasswordRegisterParams;
 import fr.xephi.authme.process.register.executors.RegistrationMethod;
 import fr.xephi.authme.process.register.executors.TwoFactorRegisterParams;
 import fr.xephi.authme.security.HashAlgorithm;
+import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.service.CommonService;
 import fr.xephi.authme.service.ValidationService;
 import fr.xephi.authme.settings.properties.EmailSettings;
@@ -42,6 +44,12 @@ public class RegisterCommand extends PlayerCommand {
 
     @Inject
     private CommonService commonService;
+
+    @Inject
+    private BukkitService bukkitService;
+
+    @Inject
+    private DataSource dataSource;
 
     @Inject
     private EmailService emailService;
@@ -169,6 +177,17 @@ public class RegisterCommand extends PlayerCommand {
         } else if (isSecondArgValidForEmailRegistration(player, arguments)) {
             management.performRegister(RegistrationMethod.EMAIL_REGISTRATION,
                 EmailRegisterParams.of(player, email));
+            if (commonService.getProperty(RegistrationSettings.UNREGISTER_ON_EMAIL_VERIFICATION_FAILURE)
+                && commonService.getProperty(RegistrationSettings.UNREGISTER_AFTER_MINUTES) > 0) {
+                long delayTicks = 60L * 20L
+                    * commonService.getProperty(RegistrationSettings.UNREGISTER_AFTER_MINUTES);
+                bukkitService.runTaskLater(player, () -> {
+                    if (dataSource.getAuth(player.getName()) != null
+                        && dataSource.getAuth(player.getName()).getLastLogin() == null) {
+                        management.performUnregisterByAdmin(null, player.getName(), player);
+                    }
+                }, delayTicks);
+            }
         }
     }
 

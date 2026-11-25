@@ -5,7 +5,9 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.junit.jupiter.api.extension.ExtendWith;
 import fr.xephi.authme.TestHelper;
+import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.data.captcha.RegistrationCaptchaManager;
+import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.mail.EmailService;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.message.Messages;
@@ -17,6 +19,7 @@ import fr.xephi.authme.process.register.executors.PasswordRegisterParams;
 import fr.xephi.authme.process.register.executors.RegistrationMethod;
 import fr.xephi.authme.process.register.executors.TwoFactorRegisterParams;
 import fr.xephi.authme.security.HashAlgorithm;
+import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.service.CommonService;
 import fr.xephi.authme.service.ValidationService;
 import fr.xephi.authme.settings.properties.RegistrationSettings;
@@ -27,6 +30,7 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 
@@ -40,6 +44,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
@@ -72,6 +77,12 @@ public class RegisterCommandTest {
     @Mock
     private RegistrationCaptchaManager registrationCaptchaManager;
 
+    @Mock
+    private BukkitService bukkitService;
+
+    @Mock
+    private DataSource dataSource;
+
     @BeforeAll
     public static void setup() {
         TestHelper.setupLogger();
@@ -83,6 +94,9 @@ public class RegisterCommandTest {
         lenient().when(commonService.getProperty(RegistrationSettings.REGISTRATION_TYPE)).thenReturn(RegistrationType.PASSWORD);
         lenient().when(commonService.getProperty(RegistrationSettings.REGISTER_SECOND_ARGUMENT))
             .thenReturn(RegisterSecondaryArgument.NONE);
+        lenient().when(commonService.getProperty(RegistrationSettings.UNREGISTER_ON_EMAIL_VERIFICATION_FAILURE))
+            .thenReturn(false);
+        lenient().when(commonService.getProperty(RegistrationSettings.UNREGISTER_AFTER_MINUTES)).thenReturn(10L);
     }
 
     @Test
@@ -231,6 +245,77 @@ public class RegisterCommandTest {
         verify(emailService).hasAllInformation();
         verify(management).performRegister(eq(RegistrationMethod.EMAIL_REGISTRATION),
             argThat(hasEqualValuesOnAllFields(EmailRegisterParams.of(player, playerMail))));
+    }
+
+    @Test
+    public void shouldScheduleUnregisterForUnverifiedEmailAccount() {
+        // given
+        String email = "late@example.org";
+        given(validationService.validateEmail(email)).willReturn(true);
+        given(commonService.getProperty(RegistrationSettings.REGISTRATION_TYPE)).willReturn(RegistrationType.EMAIL);
+        given(commonService.getProperty(RegistrationSettings.REGISTER_SECOND_ARGUMENT))
+            .willReturn(RegisterSecondaryArgument.NONE);
+        given(emailService.hasAllInformation()).willReturn(true);
+        given(commonService.getProperty(RegistrationSettings.UNREGISTER_ON_EMAIL_VERIFICATION_FAILURE))
+            .willReturn(true);
+        given(commonService.getProperty(RegistrationSettings.UNREGISTER_AFTER_MINUTES)).willReturn(1L);
+        Player player = mockPlayerWithName("lateuser");
+        PlayerAuth auth = mock(PlayerAuth.class);
+        given(dataSource.getAuth("lateuser")).willReturn(auth);
+        given(auth.getLastLogin()).willReturn(null);
+
+        // when
+        command.executeCommand(player, Collections.singletonList(email));
+
+        // then
+        ArgumentCaptor<Runnable> task = ArgumentCaptor.forClass(Runnable.class);
+        verify(bukkitService).runTaskLater(eq(player), task.capture(), eq(1200L));
+        task.getValue().run();
+        verify(management).performUnregisterByAdmin(null, "lateuser", player);
+    }
+
+    @Test
+    public void shouldNotUnregisterEmailAccountThatHasLoggedIn() {
+        // given
+        String email = "verified@example.org";
+        given(validationService.validateEmail(email)).willReturn(true);
+        given(commonService.getProperty(RegistrationSettings.REGISTRATION_TYPE)).willReturn(RegistrationType.EMAIL);
+        given(commonService.getProperty(RegistrationSettings.REGISTER_SECOND_ARGUMENT))
+            .willReturn(RegisterSecondaryArgument.NONE);
+        given(emailService.hasAllInformation()).willReturn(true);
+        given(commonService.getProperty(RegistrationSettings.UNREGISTER_ON_EMAIL_VERIFICATION_FAILURE))
+            .willReturn(true);
+        given(commonService.getProperty(RegistrationSettings.UNREGISTER_AFTER_MINUTES)).willReturn(10L);
+        Player player = mockPlayerWithName("verifieduser");
+        PlayerAuth auth = mock(PlayerAuth.class);
+        given(dataSource.getAuth("verifieduser")).willReturn(auth);
+        given(auth.getLastLogin()).willReturn(123L);
+
+        // when
+        command.executeCommand(player, Collections.singletonList(email));
+
+        // then
+        ArgumentCaptor<Runnable> task = ArgumentCaptor.forClass(Runnable.class);
+        verify(bukkitService).runTaskLater(eq(player), task.capture(), eq(12000L));
+        task.getValue().run();
+        verify(management, never()).performUnregisterByAdmin(null, "verifieduser", player);
+    }
+
+    @Test
+    public void shouldNotScheduleUnregisterByDefault() {
+        // given
+        String email = "default@example.org";
+        given(validationService.validateEmail(email)).willReturn(true);
+        given(commonService.getProperty(RegistrationSettings.REGISTRATION_TYPE)).willReturn(RegistrationType.EMAIL);
+        given(commonService.getProperty(RegistrationSettings.REGISTER_SECOND_ARGUMENT))
+            .willReturn(RegisterSecondaryArgument.NONE);
+        given(emailService.hasAllInformation()).willReturn(true);
+
+        // when
+        command.executeCommand(mockPlayerWithName("defaultuser"), Collections.singletonList(email));
+
+        // then
+        verifyNoInteractions(bukkitService, dataSource);
     }
 
     @Test

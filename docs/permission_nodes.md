@@ -37,6 +37,7 @@ and Paper 1.21 builds.
 - **authme.admin.totpviewstatus** – Administrator command to see whether a player has enabled two-factor authentication.
 - **authme.admin.unregister** – Administrator command to unregister an existing user.
 - **authme.admin.updatemessages** – Permission to use the update messages command.
+- **authme.admin.uuid** – Administrator command to view the UUIDs of a player.
 - **authme.allowchatbeforelogin** – Permission to send chat messages before being logged in.
 - **authme.allowmultipleaccounts** – Permission to be able to register multiple accounts.
 - **authme.bypassantibot** – Permission node to bypass AntiBot protection.

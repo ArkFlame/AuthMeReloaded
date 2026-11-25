@@ -6,6 +6,7 @@ import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.permission.PermissionsManager;
 import fr.xephi.authme.settings.Settings;
 import fr.xephi.authme.settings.properties.PluginSettings;
+import fr.xephi.authme.util.StringUtils;
 import org.bukkit.entity.Player;
 
 import javax.annotation.PostConstruct;
@@ -61,18 +62,18 @@ class AuthGroupHandler implements Reloadable {
             case UNREGISTERED:
                 permissionsManager.addGroup(player, unregisteredGroup);
                 permissionsManager.removeGroup(player, registeredGroup);
-                permissionsManager.removeGroups(player, previousGroups);
+                removeGroups(player, previousGroups);
                 break;
 
             case REGISTERED_UNAUTHENTICATED:
                 permissionsManager.addGroup(player, registeredGroup);
                 permissionsManager.removeGroup(player, unregisteredGroup);
-                permissionsManager.removeGroups(player, previousGroups);
+                removeGroups(player, previousGroups);
 
                 break;
 
             case LOGGED_IN:
-                permissionsManager.addGroups(player, previousGroups);
+                addGroups(player, previousGroups);
                 permissionsManager.removeGroup(player, unregisteredGroup);
                 permissionsManager.removeGroup(player, registeredGroup);
                 break;
@@ -83,6 +84,51 @@ class AuthGroupHandler implements Reloadable {
 
         logger.debug(() -> player.getName() + " changed to "
             + groupType + ": has groups " + permissionsManager.getGroups(player));
+    }
+
+    /**
+     * Restores the groups recorded in the limbo player one by one. The snapshot may contain
+     * temporary groups (e.g. LuckPerms groups added with a time limit) which can no longer be
+     * applied. Such a group must not prevent the remaining, permanent groups from being restored.
+     *
+     * @param player the player
+     * @param groups the groups from the limbo player
+     */
+    private void addGroups(Player player, Collection<UserGroup> groups) {
+        for (UserGroup group : groups) {
+            if (!isValidGroup(group)) {
+                continue;
+            }
+            try {
+                permissionsManager.addGroup(player, group);
+            } catch (RuntimeException e) {
+                logger.logException("Unable to restore permission group '" + group.getGroupName() + "'", e);
+            }
+        }
+    }
+
+    /**
+     * Removes the groups recorded in the limbo player one by one, ignoring groups which the
+     * permissions system refuses or is no longer able to handle.
+     *
+     * @param player the player
+     * @param groups the groups from the limbo player
+     */
+    private void removeGroups(Player player, Collection<UserGroup> groups) {
+        for (UserGroup group : groups) {
+            if (!isValidGroup(group)) {
+                continue;
+            }
+            try {
+                permissionsManager.removeGroup(player, group);
+            } catch (RuntimeException e) {
+                logger.logException("Unable to remove permission group '" + group.getGroupName() + "'", e);
+            }
+        }
+    }
+
+    private static boolean isValidGroup(UserGroup group) {
+        return group != null && !StringUtils.isBlank(group.getGroupName());
     }
 
     /**

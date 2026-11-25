@@ -13,7 +13,7 @@
     <artifactId>authme-tools</artifactId>
     <packaging>jar</packaging>
     <name>AuthMe Tools</name>
-    <description>Development tooling for AuthMeReloaded</description>
+    <description>Development tooling for AuthMeRemastered</description>
 
     <dependencies>
         <dependency>

@@ -40,6 +40,9 @@ public enum MessageKey {
     /** The same username is already playing on the server! */
     USERNAME_ALREADY_ONLINE_ERROR("on_join_validation.same_nick_online"),
 
+    /** You have been disconnected due to doubled login. */
+    DOUBLE_LOGIN_FIX("on_join_validation.double_login_fix"),
+
     /** You are not the owner of this account. Please choose another name! */
     NOT_OWNER_ERROR("on_join_validation.not_owner_error"),
 
@@ -470,6 +473,21 @@ public enum MessageKey {
 
     /** %name's email: %email */
     ADMIN_EMAIL_SHOW("admin.email_show", "%name", "%email"),
+
+    /** Offline UUID of %name: %uuid */
+    ADMIN_UUID_OFFLINE("admin.uuid.offline", "%name", "%uuid"),
+
+    /** Mojang UUID of %name: %uuid */
+    ADMIN_UUID_MOJANG("admin.uuid.mojang", "%name", "%uuid"),
+
+    /** No known Mojang UUID for %name. */
+    ADMIN_UUID_MOJANG_UNKNOWN("admin.uuid.mojang_unknown", "%name"),
+
+    /** Floodgate UUID of %name: %uuid */
+    ADMIN_UUID_FLOODGATE("admin.uuid.floodgate", "%name", "%uuid"),
+
+    /** No known Floodgate UUID for %name. */
+    ADMIN_UUID_FLOODGATE_UNKNOWN("admin.uuid.floodgate_unknown", "%name"),
 
     /** Note: cannot change database type during /authme reload. */
     RELOAD_DB_TYPE_CHANGE("admin.reload.db_type_change"),

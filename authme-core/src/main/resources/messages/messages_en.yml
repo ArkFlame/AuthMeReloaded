@@ -76,6 +76,7 @@ on_join_validation:
   not_owner_error: 'You are not the owner of this account. Please choose another name!'
   kick_full_server: '&4The server is full, try again later!'
   same_nick_online: '&4The same username is already playing on the server!'
+  double_login_fix: '&cYou have been disconnected due to doubled login.'
   invalid_name_case: 'You should join using username %valid, not %invalid.'
   same_ip_online: 'A player with the same IP is already in game!'
   quick_command: 'You used a command too fast! Please, join the server again and wait more before using any command.'
@@ -215,6 +216,12 @@ admin:
     single_account: '&2%name is a single account player.'
     no_last_ip: '&cNo known last IP address for player.'
   email_show: '&2%name''s email: %email'
+  uuid:
+    offline: '&2Offline UUID of %name: %uuid'
+    mojang: '&2Mojang UUID of %name: %uuid'
+    mojang_unknown: '&eNo known Mojang UUID for %name.'
+    floodgate: '&2Floodgate UUID of %name: %uuid'
+    floodgate_unknown: '&eNo known Floodgate UUID for %name.'
   antibot:
     status: '&2AntiBot status: %status'
     override_enabled: '&2AntiBot Manual Override: enabled!'

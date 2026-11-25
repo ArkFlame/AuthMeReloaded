@@ -5,7 +5,7 @@ Run a converter with `/authme converter <name>` (requires `authme.admin.converte
 
 ---
 
-AuthMeReloaded currently ships the **Auth+**, **LibreLogin**, **LimboAuth**, **NexAuth**, **nLogin**, **OpeNLogin**, and **tiAuth** converters, plus the built-in database migration helpers below.
+AuthMeRemastered currently ships the **Auth+**, **LibreLogin**, **LimboAuth**, **NexAuth**, **nLogin**, **OpeNLogin**, and **tiAuth** converters, plus the built-in database migration helpers below.
 
 ---
 

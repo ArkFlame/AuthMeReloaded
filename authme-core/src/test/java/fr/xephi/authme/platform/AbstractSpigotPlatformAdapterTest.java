@@ -3,6 +3,7 @@ package fr.xephi.authme.platform;
 import fr.xephi.authme.data.auth.PlayerCache;
 import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.listener.BlockListener;
+import fr.xephi.authme.listener.DoubleLoginFixListener;
 import fr.xephi.authme.listener.EntityAirChangeListener;
 import fr.xephi.authme.listener.EntityListener;
 import fr.xephi.authme.listener.EntityPickupItemListener;
@@ -101,6 +102,7 @@ class AbstractSpigotPlatformAdapterTest {
             BlockListener.class,
             EntityListener.class,
             ServerListener.class,
+            DoubleLoginFixListener.class,
             LegacyPlayerLoginListener.class,
             LegacyPlayerPickupItemListener.class));
 
@@ -125,6 +127,7 @@ class AbstractSpigotPlatformAdapterTest {
             BlockListener.class,
             EntityListener.class,
             ServerListener.class,
+            DoubleLoginFixListener.class,
             LegacyPlayerLoginListener.class,
             LegacyPlayerPickupItemListener.class,
             LegacyPlayerSpawnLocationListener.class,
@@ -149,6 +152,7 @@ class AbstractSpigotPlatformAdapterTest {
             BlockListener.class,
             EntityListener.class,
             ServerListener.class,
+            DoubleLoginFixListener.class,
             LegacyPlayerLoginListener.class,
             LegacyPlayerPickupItemListener.class,
             LegacyPlayerSpawnLocationListener.class,
@@ -174,6 +178,7 @@ class AbstractSpigotPlatformAdapterTest {
             BlockListener.class,
             EntityListener.class,
             ServerListener.class,
+            DoubleLoginFixListener.class,
             LegacyPlayerLoginListener.class,
             LegacyPlayerSpawnLocationListener.class,
             PlayerSwapHandItemsListener.class,

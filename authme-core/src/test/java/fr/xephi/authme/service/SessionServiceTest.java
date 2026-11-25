@@ -54,7 +54,7 @@ class SessionServiceTest {
     @BeforeEach
     void createSessionService() {
         given(commonService.getProperty(PluginSettings.SESSIONS_ENABLED)).willReturn(true);
-        sessionService = new SessionService(commonService, bukkitService, dataSource, permissionsManager);
+        sessionService = new SessionService(commonService, bukkitService, dataSource, permissionsManager, null);
     }
 
     @Test

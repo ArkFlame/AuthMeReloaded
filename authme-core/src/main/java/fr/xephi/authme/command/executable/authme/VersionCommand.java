@@ -24,7 +24,8 @@ public class VersionCommand implements ExecutableCommand {
         sender.sendMessage(ChatColor.GOLD + "==========[ " + AuthMe.getPluginName() + " ABOUT ]==========");
         sender.sendMessage(ChatColor.GOLD + "Version: " + ChatColor.WHITE + AuthMe.getPluginName()
             + " v" + AuthMe.getPluginVersion() + ChatColor.GRAY + " (build: " + AuthMe.getPluginBuildNumber() + ")");
-        sender.sendMessage(ChatColor.GOLD + "Authors:");
+        sender.sendMessage(ChatColor.GOLD + "Maintained by: " + ChatColor.WHITE + AuthMe.getPluginAuthor());
+        sender.sendMessage(ChatColor.GOLD + "Original authors:");
         Collection<Player> onlinePlayers = bukkitService.getOnlinePlayers();
         printDeveloper(sender, "Gabriele C.", "sgdc3", "Project manager, Contributor", onlinePlayers);
         printDeveloper(sender, "Lucas J.", "ljacqu", "Main Developer", onlinePlayers);
@@ -37,7 +38,7 @@ public class VersionCommand implements ExecutableCommand {
         printDeveloper(sender, "DNx5", "DNx5", "Developer, Retired", onlinePlayers);
         printDeveloper(sender, "Tim Visee", "timvisee", "Developer, Retired", onlinePlayers);
         sender.sendMessage(ChatColor.GOLD + "Website: " + ChatColor.WHITE
-            + "https://github.com/AuthMe/AuthMeReloaded");
+            + "https://github.com/ArkFlame/AuthMeReloaded");
         sender.sendMessage(ChatColor.GOLD + "License: " + ChatColor.WHITE + "GNU GPL v3.0"
             + ChatColor.GRAY + ChatColor.ITALIC + " (See LICENSE file)");
         sender.sendMessage(ChatColor.GOLD + "Copyright: " + ChatColor.WHITE

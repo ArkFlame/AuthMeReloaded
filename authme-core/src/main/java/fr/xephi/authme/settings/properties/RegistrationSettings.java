@@ -29,10 +29,11 @@ public final class RegistrationSettings implements SettingsHolder {
 
     @Comment({
         "Delay in seconds before showing the first login (and two-factor code) reminder.",
-        "Mirrors registerMessageDelay; the reminder then repeats every messageInterval seconds.",
+        "0 (default) shows the prompt immediately on join; older versions waited a fixed 2 seconds.",
+        "The reminder then repeats every messageInterval seconds.",
         "A pending reminder is cancelled if the player logs in or leaves first."})
     public static final Property<Integer> LOGIN_MESSAGE_DELAY =
-        newProperty("settings.registration.loginMessageDelay", 2);
+        newProperty("settings.registration.loginMessageDelay", 0);
 
     @Comment({
         "Only registered and logged in players can play.",
@@ -58,6 +59,18 @@ public final class RegistrationSettings implements SettingsHolder {
     public static final Property<RegisterSecondaryArgument> REGISTER_SECOND_ARGUMENT =
         newProperty(RegisterSecondaryArgument.class, "settings.registration.secondArg",
             RegisterSecondaryArgument.CONFIRMATION);
+
+    @Comment({
+        "Should we unregister a player who did not verify their email address?",
+        "This only works with email registration and is disabled by default."})
+    public static final Property<Boolean> UNREGISTER_ON_EMAIL_VERIFICATION_FAILURE =
+        newProperty("settings.registration.email.unregisterOnEmailVerificationFailure", false);
+
+    @Comment({
+        "How many minutes to wait before unregistering a player who did not",
+        "verify their email address? Requires unregisterOnEmailVerificationFailure."})
+    public static final Property<Long> UNREGISTER_AFTER_MINUTES =
+        newProperty("settings.registration.email.unregisterAfterMinutes", 10L);
 
     @Comment({
         "Do we force kick a player after a successful registration?",

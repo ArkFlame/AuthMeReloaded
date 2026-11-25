@@ -7,7 +7,9 @@ import fr.xephi.authme.mail.EmailService;
 import fr.xephi.authme.platform.BukkitCompatibilityAdapter;
 import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.settings.Settings;
+import fr.xephi.authme.settings.properties.PluginSettings;
 import fr.xephi.authme.util.expiring.Duration;
+import fr.xephi.authme.util.message.MiniMessageConverter;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -143,7 +145,8 @@ public class Messages {
      */
     private String retrieveMessage(MessageKey key, CommandSender sender) {
         String language = PlayerLocaleResolver.resolveLanguage(settings, sender, compatibilityAdapter);
-        String message = messagesFileHandler.getMessage(key.getKey(), language);
+        String message = MiniMessageConverter.convert(
+            messagesFileHandler.getMessage(key.getKey(), language), isMiniMessageEnabled());
         String displayName = sender instanceof Player ? ((Player) sender).getDisplayName() : sender.getName();
         return ChatColor.translateAlternateColorCodes('&', message)
                 .replace(NEWLINE_TAG, "\n")
@@ -159,8 +162,9 @@ public class Messages {
      * @return The message from the file
      */
     private String retrieveMessage(MessageKey key, String name) {
-        String message = messagesFileHandler.getMessage(key.getKey());
-        
+        String message = MiniMessageConverter.convert(
+            messagesFileHandler.getMessage(key.getKey()), isMiniMessageEnabled());
+
         return ChatColor.translateAlternateColorCodes('&', message)
                 .replace(NEWLINE_TAG, "\n")
                 .replace(USERNAME_TAG, name)
@@ -211,6 +215,10 @@ public class Messages {
             logger.warning("Invalid number of replacements for message key '" + key + "'");
         }
         return message;
+    }
+
+    private boolean isMiniMessageEnabled() {
+        return settings != null && Boolean.TRUE.equals(settings.getProperty(PluginSettings.MINIMESSAGE_ENABLED));
     }
 
     private void runOnSenderThread(CommandSender sender, Runnable action) {

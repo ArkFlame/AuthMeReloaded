@@ -125,9 +125,33 @@ public class OnJoinVerifier implements Reloadable {
             || name.length() < settings.getProperty(RestrictionSettings.MIN_NICKNAME_LENGTH)) {
             throw new FailedVerificationException(MessageKey.INVALID_NAME_LENGTH);
         }
-        if (!nicknamePattern.matcher(name).matches()) {
+        if (!isValidName(name)) {
             throw new FailedVerificationException(MessageKey.INVALID_NAME_CHARACTERS, nicknamePattern.pattern());
         }
+    }
+
+    /**
+     * Checks a name against the configured nickname pattern. Patterns meant to allow every character
+     * (e.g. {@code .} or {@code .*}) must accept names of any length, including non-ASCII Bedrock
+     * names, so when the whole name doesn't match, each individual character is checked instead.
+     *
+     * @param name the name to check
+     *
+     * @return true if the name satisfies the configured pattern
+     */
+    private boolean isValidName(String name) {
+        if (nicknamePattern.matcher(name).matches()) {
+            return true;
+        }
+        if (name.isEmpty()) {
+            return false;
+        }
+        for (int i = 0; i < name.length(); ++i) {
+            if (!nicknamePattern.matcher(String.valueOf(name.charAt(i))).matches()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

@@ -504,7 +504,7 @@ Protection:
         # The MaxMind licenseKey used to download the GeoIp database.
         licenseKey: ''
     # Countries allowed to join the server and register. For country codes, see
-    # https://dev.maxmind.com/geoip/legacy/codes/iso3166/
+    # https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2
     # Use "LOCALHOST" for local addresses.
     # PLEASE USE QUOTES!
     countries: 

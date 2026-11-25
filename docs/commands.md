@@ -7,7 +7,7 @@ brackets; optional arguments are enclosed in square brackets (`[ ]`).
 
 The command tree is shared across the current Spigot Legacy, Spigot 1.21, and Paper 1.21 builds.
 
-- **/authme**: The main AuthMeReloaded command. The root for all admin commands.
+- **/authme**: The main AuthMeRemastered command. The root for all admin commands.
 - **/authme register** &lt;player> &lt;password>: Register the specified player with the specified password.
   <br />Requires `authme.admin.register`
 - **/authme unregister** &lt;player>: Unregister the specified player.
@@ -26,6 +26,8 @@ The command tree is shared across the current Spigot Legacy, Spigot 1.21, and Pa
   <br />Requires `authme.admin.changemail`
 - **/authme getip** &lt;player>: Get the IP address of the specified online player.
   <br />Requires `authme.admin.getip`
+- **/authme uuid** &lt;player>: Show the offline, Mojang and Floodgate UUID of the specified player.
+  <br />Requires `authme.admin.uuid`
 - **/authme totp** &lt;player>: Returns whether the specified player has enabled two-factor authentication.
   <br />Requires `authme.admin.totpviewstatus`
 - **/authme disabletotp** &lt;player>: Disable two-factor authentication for a player.
@@ -38,7 +40,7 @@ The command tree is shared across the current Spigot Legacy, Spigot 1.21, and Pa
   <br />Requires `authme.admin.firstspawn`
 - **/authme setfirstspawn**: Change the first player's spawn to your current position.
   <br />Requires `authme.admin.setfirstspawn`
-- **/authme purge** &lt;days>: Purge old AuthMeReloaded data longer than the specified number of days ago.
+- **/authme purge** &lt;days>: Purge old AuthMeRemastered data longer than the specified number of days ago.
   <br />Requires `authme.admin.purge`
 - **/authme purgeplayer** &lt;player> [options]: Purges data of the given player.
   <br />Requires `authme.admin.purgeplayer`
@@ -46,13 +48,13 @@ The command tree is shared across the current Spigot Legacy, Spigot 1.21, and Pa
   <br />Requires `authme.admin.backup`
 - **/authme resetpos** &lt;player/*>: Purge the last know position of the specified player or all of them.
   <br />Requires `authme.admin.purgelastpos`
-- **/authme purgebannedplayers**: Purge all AuthMeReloaded data for banned players.
+- **/authme purgebannedplayers**: Purge all AuthMeRemastered data for banned players.
   <br />Requires `authme.admin.purgebannedplayers`
 - **/authme switchantibot** [mode]: Switch or toggle the AntiBot mode to the specified state.
   <br />Requires `authme.admin.switchantibot`
-- **/authme reload**: Reload the AuthMeReloaded plugin.
+- **/authme reload**: Reload the AuthMeRemastered plugin.
   <br />Requires `authme.admin.reload`
-- **/authme version**: Show detailed information about the installed AuthMeReloaded version, the developers, contributors, and license.
+- **/authme version**: Show detailed information about the installed AuthMeRemastered version, the developers, contributors, and license.
 - **/authme converter** [job]: Converter command for AuthMeReloaded.
   <br />Requires `authme.admin.converter`
 - **/authme messages**: Adds missing texts to the current help messages file.
@@ -66,7 +68,7 @@ The command tree is shared across the current Spigot Legacy, Spigot 1.21, and Pa
 - **/authme debug** [child] [arg] [arg]: Allows various operations for debugging.
   <br />Requires `authme.debug.command`
 - **/authme help** [query]: View detailed help for /authme commands.
-- **/email**: The AuthMeReloaded email command base.
+- **/email**: The AuthMeRemastered email command base.
 - **/email show**: Show your current email address.
   <br />Requires `authme.player.email.see`
 - **/email add** &lt;email> &lt;verifyEmail>: Add a new email address to your account.

@@ -1,6 +1,7 @@
 package fr.xephi.authme.platform;
 
 import fr.xephi.authme.listener.BlockListener;
+import fr.xephi.authme.listener.DoubleLoginFixListener;
 import fr.xephi.authme.listener.EntityAirChangeListener;
 import fr.xephi.authme.listener.EntityListener;
 import fr.xephi.authme.listener.EntityPickupItemListener;
@@ -63,6 +64,7 @@ public class SpigotPlatformAdapterTest {
             BlockListener.class,
             EntityListener.class,
             ServerListener.class,
+            DoubleLoginFixListener.class,
             LegacyPlayerLoginListener.class,
             LegacyPlayerSpawnLocationListener.class,
             PlayerSwapHandItemsListener.class,

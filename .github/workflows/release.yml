@@ -1,0 +1,62 @@
+name: Release
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: '27'
+          cache: maven
+
+      - name: Build and test
+        run: mvn -B clean package
+
+      - name: Collect release assets
+        id: assets
+        run: |
+          set -euo pipefail
+          SHORT_SHA="$(git rev-parse --short=7 HEAD)"
+          VERSION="$(mvn -B -q -DforceStdout help:evaluate -Dexpression=project.version | tail -n1)"
+          mkdir -p dist
+          for jar in authme-*/target/AuthMeRemastered-"${VERSION}"-*.jar; do
+            name="$(basename "$jar")"
+            case "$name" in *-sources.jar|*-javadoc.jar|original-*) continue ;; esac
+            classifier="${name#AuthMeRemastered-${VERSION}-}"
+            cp "$jar" "dist/AuthMeRemastered-${VERSION}-${SHORT_SHA}-${classifier}"
+          done
+          cp "authme-api/target/authme-api-${VERSION}.jar" "dist/AuthMeRemastered-API-${VERSION}-${SHORT_SHA}.jar"
+          ls -l dist
+          echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          name: AuthMeRemastered ${{ steps.assets.outputs.version }} (${{ steps.assets.outputs.short_sha }})
+          body: |
+            Automated build of commit ${{ github.sha }}.
+            Plugin jars are named `AuthMeRemastered-<version>-<shortsha>-<platform>.jar`; the developer API is
+            `AuthMeRemastered-API-<version>-<shortsha>.jar`.
+          files: dist/*.jar
+          make_latest: true
+          fail_on_unmatched_files: true

@@ -116,7 +116,7 @@ class LimboPlayerTaskManagerTest {
     }
 
     @Test
-    void shouldKeepTwoSecondLoginMessageDelayByDefault() {
+    void shouldShowLoginPromptImmediatelyByDefault() {
         // given
         Player player = mock(Player.class);
         LimboPlayer limboPlayer = mock(LimboPlayer.class);
@@ -128,9 +128,10 @@ class LimboPlayerTaskManagerTest {
         // when
         limboPlayerTaskManager.registerMessageTask(player, limboPlayer, LimboMessageType.LOG_IN);
 
-        // then: identical to the previously hard-coded 2 second delay
+        // then: fake-clock assertion - first prompt is scheduled at tick 0 (the old fixed 2s = 40 tick wait is gone)
+        assertThat(RegistrationSettings.LOGIN_MESSAGE_DELAY.getDefaultValue(), org.hamcrest.Matchers.equalTo(0));
         verify(bukkitService).runTaskTimer(eq(player), any(MessageTask.class),
-            eq(2L * TICKS_PER_SECOND), eq(5L * TICKS_PER_SECOND));
+            eq(0L), eq(5L * TICKS_PER_SECOND));
     }
 
     @Test

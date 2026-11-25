@@ -7,6 +7,7 @@ import fr.xephi.authme.data.TempbanManager;
 import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.data.auth.PlayerCache;
 import fr.xephi.authme.data.captcha.LoginCaptchaManager;
+import fr.xephi.authme.data.captcha.RegistrationCaptchaManager;
 import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.message.Messages;
@@ -102,6 +103,9 @@ public class PaperDialogFlowListener implements Listener {
 
     @Inject
     private LoginCaptchaManager loginCaptchaManager;
+
+    @Inject
+    private RegistrationCaptchaManager registrationCaptchaManager;
 
     @Inject
     private TempbanManager tempbanManager;
@@ -244,8 +248,22 @@ public class PaperDialogFlowListener implements Listener {
         }
     }
 
+    // A timeout completes the future off the configuration thread, so the dialog must be closed
+    // from the completion itself; waiting until join() returns leaves custom (Bedrock) UIs open.
+    private static void closeDialogOnCompletion(CompletableFuture<String> response,
+                                                PlayerConfigurationConnection connection) {
+        response.whenComplete((kickMessage, throwable) -> {
+            try {
+                connection.getAudience().closeDialog();
+            } catch (RuntimeException ignored) {
+                // The connection may already be gone when the timeout fires.
+            }
+        });
+    }
+
     private void handleBlockingLoginDialog(PlayerConfigurationConnection connection, long sessionId, String playerName) {
         CompletableFuture<String> loginResponse = new CompletableFuture<>();
+        closeDialogOnCompletion(loginResponse, connection);
         int timeoutSeconds = commonService.getProperty(RestrictionSettings.LOGIN_TIMEOUT);
         if (timeoutSeconds > 0) {
             loginResponse.completeOnTimeout(
@@ -274,7 +292,6 @@ public class PaperDialogFlowListener implements Listener {
         pendingLoginResponses.remove(sessionId);
         preJoinDialogService.unregisterPreJoinFuture(sessionId);
 
-        connection.getAudience().closeDialog();
         if (kickMessage != null) {
             connection.disconnect(LegacyComponentSerializer.legacySection().deserialize(kickMessage));
         }
@@ -344,6 +361,7 @@ public class PaperDialogFlowListener implements Listener {
     private void handleBlockingRegisterDialog(PlayerConfigurationConnection connection, long sessionId,
                                               String playerName, Dialog dialog) {
         CompletableFuture<String> registerResponse = new CompletableFuture<>();
+        closeDialogOnCompletion(registerResponse, connection);
         int timeoutSeconds = commonService.getProperty(RestrictionSettings.REGISTER_TIMEOUT);
         if (timeoutSeconds > 0) {
             registerResponse.completeOnTimeout(
@@ -355,7 +373,6 @@ public class PaperDialogFlowListener implements Listener {
         String kickMessage = registerResponse.join();
         pendingRegisterResponses.remove(sessionId);
 
-        connection.getAudience().closeDialog();
         if (kickMessage != null) {
             connection.disconnect(LegacyComponentSerializer.legacySection().deserialize(kickMessage));
         }
@@ -365,6 +382,14 @@ public class PaperDialogFlowListener implements Listener {
                                           String playerName, DialogResponseView dialogResponseView) {
         if (dialogResponseView == null) {
             completeRegisterResponse(sessionId, null);
+            return;
+        }
+
+        // Registration through the dialog must not bypass the registration captcha requirement
+        if (registrationCaptchaManager != null && registrationCaptchaManager.isCaptchaRequired(playerName)) {
+            String code = registrationCaptchaManager.getCaptchaCodeOrGenerateNew(playerName);
+            showRegisterDialogWithError(connection, playerName,
+                messages.retrieveSingle(playerName, MessageKey.CAPTCHA_FOR_REGISTRATION_REQUIRED, code));
             return;
         }
 

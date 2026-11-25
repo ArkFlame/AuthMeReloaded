@@ -28,6 +28,7 @@ import fr.xephi.authme.command.executable.authme.TotpDisableAdminCommand;
 import fr.xephi.authme.command.executable.authme.TotpViewStatusCommand;
 import fr.xephi.authme.command.executable.authme.UnregisterAdminCommand;
 import fr.xephi.authme.command.executable.authme.UpdateHelpMessagesCommand;
+import fr.xephi.authme.command.executable.authme.UuidCommand;
 import fr.xephi.authme.command.executable.authme.VersionCommand;
 import fr.xephi.authme.command.executable.authme.debug.DebugCommand;
 import fr.xephi.authme.command.executable.captcha.CaptchaCommand;
@@ -208,11 +209,11 @@ public class CommandInitializer {
      * @return the authme base command description
      */
     private CommandDescription buildAuthMeBaseCommand() {
-        // Register the base AuthMe Reloaded command
+        // Register the base AuthMeRemastered command
         CommandDescription authmeBase = CommandDescription.builder()
             .labels("authme")
             .description("AuthMe op commands")
-            .detailedDescription("The main AuthMeReloaded command. The root for all admin commands.")
+            .detailedDescription("The main AuthMeRemastered command. The root for all admin commands.")
             .executableCommand(AuthMeCommand.class)
             .register();
 
@@ -318,6 +319,17 @@ public class CommandInitializer {
             .executableCommand(GetIpCommand.class)
             .register();
 
+        // Register the uuid command
+        CommandDescription.builder()
+            .parent(authmeBase)
+            .labels("uuid")
+            .description("Show player's UUIDs")
+            .detailedDescription("Show the offline, Mojang and Floodgate UUID of the specified player.")
+            .withArgument("player", "Player name", MANDATORY)
+            .permission(AdminPermission.UUID)
+            .executableCommand(UuidCommand.class)
+            .register();
+
         // Register totp command
         CommandDescription.builder()
             .parent(authmeBase)
@@ -385,7 +397,7 @@ public class CommandInitializer {
             .parent(authmeBase)
             .labels("purge", "delete")
             .description("Purge old data")
-            .detailedDescription("Purge old AuthMeReloaded data longer than the specified number of days ago.")
+            .detailedDescription("Purge old AuthMeRemastered data longer than the specified number of days ago.")
             .withArgument("days", "Number of days", MANDATORY)
             .permission(AdminPermission.PURGE)
             .executableCommand(PurgeCommand.class)
@@ -430,7 +442,7 @@ public class CommandInitializer {
             .parent(authmeBase)
             .labels("purgebannedplayers", "purgebannedplayer", "deletebannedplayers", "deletebannedplayer")
             .description("Purge banned players data")
-            .detailedDescription("Purge all AuthMeReloaded data for banned players.")
+            .detailedDescription("Purge all AuthMeRemastered data for banned players.")
             .permission(AdminPermission.PURGE_BANNED_PLAYERS)
             .executableCommand(PurgeBannedPlayersCommand.class)
             .register();
@@ -451,7 +463,7 @@ public class CommandInitializer {
             .parent(authmeBase)
             .labels("reload", "rld")
             .description("Reload plugin")
-            .detailedDescription("Reload the AuthMeReloaded plugin.")
+            .detailedDescription("Reload the AuthMeRemastered plugin.")
             .permission(AdminPermission.RELOAD)
             .executableCommand(ReloadCommand.class)
             .register();
@@ -461,7 +473,7 @@ public class CommandInitializer {
             .parent(authmeBase)
             .labels("version", "ver", "v", "about", "info")
             .description("Version info")
-            .detailedDescription("Show detailed information about the installed AuthMeReloaded version, the "
+            .detailedDescription("Show detailed information about the installed AuthMeRemastered version, the "
                 + "developers, contributors, and license.")
             .executableCommand(VersionCommand.class)
             .register();
@@ -540,7 +552,7 @@ public class CommandInitializer {
             .parent(null)
             .labels("email")
             .description("Add email or recover password")
-            .detailedDescription("The AuthMeReloaded email command base.")
+            .detailedDescription("The AuthMeRemastered email command base.")
             .executableCommand(EmailBaseCommand.class)
             .register();
 

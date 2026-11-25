@@ -19,6 +19,16 @@ public final class SecuritySettings implements SettingsHolder {
     public static final Property<Boolean> STOP_SERVER_ON_PROBLEM =
         newProperty("Security.SQLProblem.stopServer", true);
 
+    @Comment("Enable the anti-ghost listener which kicks players logged in twice?")
+    public static final Property<Boolean> ANTI_GHOST_PLAYERS =
+        newProperty("3rdPartyFeature.fixes.antiGhostPlayer", false);
+
+    @Comment({
+        "Require a verified email address before /changepassword is allowed",
+        "when the email feature is enabled. The default keeps the original behaviour."})
+    public static final Property<Boolean> CHANGE_PASSWORD_EMAIL_VERIFICATION_REQUIRED =
+        newProperty("Security.account.emailVerification.required", true);
+
     @Comment("Copy AuthMe log output in a separate file as well?")
     public static final Property<Boolean> USE_LOGGING =
         newProperty("Security.console.logConsole", true);

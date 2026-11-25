@@ -57,7 +57,8 @@ import static fr.xephi.authme.service.BukkitService.TICKS_PER_MINUTE;
 public class AuthMe extends JavaPlugin {
 
     // Constants
-    private static final String PLUGIN_NAME = "AuthMeReloaded";
+    private static final String PLUGIN_NAME = "AuthMeRemastered";
+    private static final String PLUGIN_AUTHOR = "ArkFlame Studios";
     private static final String LOG_FILENAME = "authme.log";
     private static final int CLEANUP_INTERVAL = 5 * TICKS_PER_MINUTE;
 
@@ -95,6 +96,15 @@ public class AuthMe extends JavaPlugin {
      */
     public static String getPluginName() {
         return PLUGIN_NAME;
+    }
+
+    /**
+     * Gets the display author of this distribution.
+     *
+     * @return the author shown in messages and logs
+     */
+    public static String getPluginAuthor() {
+        return PLUGIN_AUTHOR;
     }
 
     /**
@@ -175,7 +185,7 @@ public class AuthMe extends JavaPlugin {
         OnStartupTasks.sendMetrics(this, settings);
 
         // Successful message
-        logger.info("AuthMe " + getPluginVersion() + " build n." + getPluginBuildNumber() + " successfully enabled!");
+        logger.info(getPluginName() + " by " + getPluginAuthor() + " " + getPluginVersion() + " build n." + getPluginBuildNumber() + " successfully enabled!");
 
         // Purge on start if enabled
         PurgeService purgeService = injector.getSingleton(PurgeService.class);

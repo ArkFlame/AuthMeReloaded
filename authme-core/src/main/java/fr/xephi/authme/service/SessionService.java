@@ -28,11 +28,14 @@ public class SessionService implements Reloadable {
     private final DataSource database;
     private final PermissionsManager permissionsManager;
 
+    private final PendingPremiumCache pendingPremiumCache;
+
     private boolean isEnabled;
 
     @Inject
     SessionService(CommonService service, BukkitService bukkitService, DataSource database,
-                   PermissionsManager permissionsManager) {
+                   PermissionsManager permissionsManager, PendingPremiumCache pendingPremiumCache) {
+        this.pendingPremiumCache = pendingPremiumCache;
         this.service = service;
         this.bukkitService = bukkitService;
         this.database = database;
@@ -48,6 +51,9 @@ public class SessionService implements Reloadable {
      */
     public boolean canResumeSession(Player player) {
         final String name = player.getName();
+        if (pendingPremiumCache != null && pendingPremiumCache.isPending(name)) {
+            return false;
+        }
         if (isEnabled && database.hasSession(name)) {
             database.setUnlogged(name);
             database.revokeSession(name);

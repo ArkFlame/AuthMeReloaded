@@ -12,9 +12,11 @@ import fr.xephi.authme.process.Management;
 import fr.xephi.authme.service.CommonService;
 import fr.xephi.authme.service.ValidationService;
 import fr.xephi.authme.service.ValidationService.ValidationResult;
+import fr.xephi.authme.settings.properties.SecuritySettings;
 import org.bukkit.command.BlockCommandSender;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -61,6 +63,12 @@ public class ChangePasswordCommandTest {
 
     @Mock
     private Messages messages;
+
+    @BeforeEach
+    public void requireVerificationByDefault() {
+        given(commonService.getProperty(SecuritySettings.CHANGE_PASSWORD_EMAIL_VERIFICATION_REQUIRED))
+            .willReturn(true);
+    }
 
     @Test
     public void shouldRejectNonPlayerSender() {
@@ -120,6 +128,39 @@ public class ChangePasswordCommandTest {
         verify(commonService, never()).send(eq(player), any(MessageKey.class));
         verify(management).performPasswordChange(player, oldPass, newPass);
         verify(codeManager).isVerificationRequired(player);
+    }
+
+    @Test
+    public void shouldRejectUnverifiedPlayerWhenVerificationIsRequired() {
+        // given
+        Player player = initPlayerWithName("unverified", true);
+        given(codeManager.isVerificationRequired(player)).willReturn(true);
+
+        // when
+        command.executeCommand(player, Arrays.asList("oldPass", "newPass"));
+
+        // then
+        verify(codeManager).codeExistOrGenerateNew("unverified");
+        verify(commonService).send(player, MessageKey.VERIFICATION_CODE_REQUIRED);
+        verify(validationService, never()).validatePassword("newPass", "unverified");
+        verify(management, never()).performPasswordChange(player, "oldPass", "newPass");
+    }
+
+    @Test
+    public void shouldAllowUnverifiedPlayerWhenVerificationIsDisabled() {
+        // given
+        Player player = initPlayerWithName("unverified", true);
+        given(commonService.getProperty(SecuritySettings.CHANGE_PASSWORD_EMAIL_VERIFICATION_REQUIRED))
+            .willReturn(false);
+        given(codeManager.isVerificationRequired(player)).willReturn(true);
+        given(validationService.validatePassword("newPass", "unverified")).willReturn(new ValidationResult());
+
+        // when
+        command.executeCommand(player, Arrays.asList("oldPass", "newPass"));
+
+        // then
+        verify(codeManager, never()).codeExistOrGenerateNew(org.mockito.ArgumentMatchers.anyString());
+        verify(management).performPasswordChange(player, "oldPass", "newPass");
     }
 
     @Test

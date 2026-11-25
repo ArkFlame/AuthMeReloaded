@@ -1,0 +1,135 @@
+package fr.xephi.authme.service;
+
+import fr.xephi.authme.data.auth.PlayerCache;
+import fr.xephi.authme.datasource.DataSource;
+import fr.xephi.authme.platform.PlatformAdapter;
+import fr.xephi.authme.settings.Settings;
+import fr.xephi.authme.settings.SpawnLoader;
+import fr.xephi.authme.settings.properties.RegistrationSettings;
+import fr.xephi.authme.settings.properties.RestrictionSettings;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.entity.Player;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import static fr.xephi.authme.service.BukkitServiceTestHelper.setBukkitServiceToScheduleSyncEntityTaskFromOptionallyAsyncTask;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+
+/**
+ * Tests that first-time players are spawned at the configured first spawn (issue #3094).
+ */
+@ExtendWith(MockitoExtension.class)
+@org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
+class TeleportationServiceFirstSpawnTest {
+
+    @InjectMocks
+    private TeleportationService teleportationService;
+
+    @Mock
+    private Settings settings;
+
+    @Mock
+    private BukkitService bukkitService;
+
+    @Mock
+    private SpawnLoader spawnLoader;
+
+    @Mock
+    private PlayerCache playerCache;
+
+    @Mock
+    private DataSource dataSource;
+
+    @Mock
+    private PlatformAdapter platformAdapter;
+
+    @org.junit.jupiter.api.BeforeEach
+    void stubDefaults() {
+        given(settings.getProperty(RestrictionSettings.NO_TELEPORT)).willReturn(false);
+    }
+
+    @Test
+    void shouldSendNewPlayerToFirstSpawnOnJoin() {
+        // given
+        given(settings.getProperty(RestrictionSettings.SPAWN_PRIORITY)).willReturn("authme,essentials,default");
+        given(settings.getProperty(RestrictionSettings.TELEPORT_UNAUTHED_TO_SPAWN)).willReturn(true);
+        given(settings.getProperty(RegistrationSettings.FORCE)).willReturn(true);
+        Player player = mock(Player.class);
+        given(player.hasPlayedBefore()).willReturn(false);
+        given(player.isOnline()).willReturn(true);
+        Location firstSpawn = new Location(mock(World.class), 10.0, 64.0, -20.0);
+        given(spawnLoader.getFirstSpawn()).willReturn(firstSpawn);
+        setBukkitServiceToScheduleSyncEntityTaskFromOptionallyAsyncTask(bukkitService);
+
+        // when
+        teleportationService.teleportOnJoin(player);
+
+        // then
+        verify(platformAdapter).teleportPlayer(player, firstSpawn);
+    }
+
+    @Test
+    void shouldUseFirstSpawnForNewPlayerInAsyncJoinHook() {
+        // given
+        given(settings.getProperty(RestrictionSettings.SPAWN_PRIORITY)).willReturn("authme,essentials,default");
+        given(settings.getProperty(RestrictionSettings.TELEPORT_UNAUTHED_TO_SPAWN)).willReturn(true);
+        given(settings.getProperty(RegistrationSettings.FORCE)).willReturn(true);
+        World world = mock(World.class);
+        Location firstSpawn = new Location(world, 10.0, 64.0, -20.0);
+        given(spawnLoader.getFirstSpawn()).willReturn(firstSpawn);
+
+        // when
+        Location result = teleportationService.prepareOnJoinSpawnLocation("Newbie", world);
+
+        // then
+        assertThat(result, equalTo(firstSpawn));
+        verify(spawnLoader, never()).getSpawnLocation(any(World.class));
+    }
+
+    @Test
+    void shouldKeepRegularSpawnForReturningPlayerWhenAuthmeHasPriority() {
+        // given
+        given(settings.getProperty(RestrictionSettings.SPAWN_PRIORITY)).willReturn("authme,essentials,default");
+        given(settings.getProperty(RestrictionSettings.TELEPORT_UNAUTHED_TO_SPAWN)).willReturn(true);
+        given(settings.getProperty(RegistrationSettings.FORCE)).willReturn(true);
+        World world = mock(World.class);
+        Location regularSpawn = new Location(world, 1.0, 2.0, 3.0);
+        given(dataSource.isAuthAvailable("Veteran")).willReturn(true);
+        given(spawnLoader.getSpawnLocation(world)).willReturn(regularSpawn);
+
+        // when
+        Location result = teleportationService.prepareOnJoinSpawnLocation("Veteran", world);
+
+        // then
+        assertThat(result, equalTo(regularSpawn));
+        verify(spawnLoader, never()).getFirstSpawn();
+    }
+
+    @Test
+    void shouldNotOverrideSpawnPriorityWhenAuthmeIsNotFirst() {
+        // given
+        given(settings.getProperty(RestrictionSettings.SPAWN_PRIORITY)).willReturn("essentials,authme,default");
+        given(settings.getProperty(RestrictionSettings.TELEPORT_UNAUTHED_TO_SPAWN)).willReturn(true);
+        given(settings.getProperty(RegistrationSettings.FORCE)).willReturn(true);
+        World world = mock(World.class);
+        Location regularSpawn = new Location(world, 1.0, 2.0, 3.0);
+        given(spawnLoader.getSpawnLocation(world)).willReturn(regularSpawn);
+
+        // when
+        Location result = teleportationService.prepareOnJoinSpawnLocation("Newbie", world);
+
+        // then
+        assertThat(result, equalTo(regularSpawn));
+        verify(spawnLoader, never()).getFirstSpawn();
+    }
+}

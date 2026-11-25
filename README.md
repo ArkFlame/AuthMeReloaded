@@ -1,4 +1,4 @@
-# AuthMeReloaded
+# AuthMeRemastered
 **"The best authentication plugin for the Bukkit modding API!"**
 
 <img src="wallpaper.png?raw=true" alt="AuthMeLogo"/>
@@ -9,12 +9,28 @@
 | **Jenkins CI:**   | [![Jenkins Status](https://img.shields.io/website-up-down-green-red/http/shields.io.svg?label=ci.codemc.org)](https://ci.codemc.org/) [![Build Status](https://ci.codemc.org/buildStatus/icon?job=AuthMe/AuthMeReloaded)](https://ci.codemc.org/job/AuthMe/job/AuthMeReloaded) ![Jenkins Tests](https://img.shields.io/jenkins/tests?jobUrl=https%3A%2F%2Fci.codemc.io%2Fjob%2FAuthMe%2Fjob%2FAuthMeReloaded) |
 | **Other CIs:**    | [![Build Status](https://www.travis-ci.com/AuthMe/AuthMeReloaded.svg?branch=master)](https://www.travis-ci.com/AuthMe/AuthMeReloaded)                                                                                                                                                                                                                                                             |
 
+## Download
+
+Every commit to `master` is built and published automatically:
+**[Latest release](../../releases/latest)** (tag `build-<run number>`).
+
+| File | For |
+|------|-----|
+| `AuthMeRemastered-<version>-<sha>-Spigot-1.21.jar` | Spigot 1.20-1.21 |
+| `AuthMeRemastered-<version>-<sha>-Paper.jar` / `-Folia.jar` | Paper / Folia 1.21+ |
+| `AuthMeRemastered-<version>-<sha>-Spigot-Legacy.jar` / `-Spigot-1.8.jar` | Spigot 1.16-1.19 / 1.8 |
+| `AuthMeRemastered-<version>-<sha>-Bungee.jar` / `-Velocity.jar` | Proxies |
+| `AuthMeRemastered-API-<version>-<sha>.jar` | Developer API (events only), see [docs/API.md](docs/API.md) |
+
+AuthMeRemastered is a distribution by **ArkFlame Studios**; the plugin id/name stays `AuthMe`, so existing
+configs, permissions and databases keep working.
+
 ## Description
 
 Prevent username stealing on your server!<br>
 Use it to secure your Offline mode server or to increase your Online mode server's protection!
 
-AuthMeReloaded disallows players who aren't authenticated to do actions like placing blocks, moving,<br>
+AuthMeRemastered disallows players who aren't authenticated to do actions like placing blocks, moving,<br>
 typing commands or using the inventory. It can also kick players with uncommonly long or short player names or kick players from banned countries.
 
 With the Session Login feature, you don't have to execute the authentication command every time you connect to the server!
@@ -28,7 +44,7 @@ You can also create your own translation file and, if you want, you can share it
   <li>Native proxy plugins for <strong>BungeeCord</strong> and <strong>Velocity</strong></li>
   <li><strong>E-Mail Recovery System!</strong></li>
   <li>Username spoofing protection.</li>
-  <li>Countries Whitelist/Blacklist! <a href="https://dev.maxmind.com/geoip/legacy/codes/iso3166/">(country codes)</a></li>
+  <li>Countries Whitelist/Blacklist! <a href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2">(country codes)</a></li>
   <li><strong>Built-in AntiBot System!</strong></li>
   <li><strong>ForceLogin Feature: Admins can login with all account via console command!</strong></li>
   <li><strong>Avoid the "Logged in from another location" message!</strong></li>
