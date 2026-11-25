@@ -40,8 +40,16 @@ permissions are unchanged; only display name/author/jar names are rebranded.
 | 3112 | feature | Bedrock auto-login: covered by existing Floodgate auto-login (`FloodgateService.canAutoLogin`) | `AsynchronousJoinTest` |
 | 3121, 3071, 3060 | support | no code change (online-mode proxy / Mojang rate limit / config) | - |
 | 3055, 3031 | invalid | working as intended | - |
-| 3156, 3146, 3088, 3072, 3159, 3116, 3090 | bug/feature | worker batches - see "Workers" below for final state | see below |
-| 3142, 3126, 3117, 3100, 3056 | large features | classified `deferred` with design in docs/triage; not required for correctness | - |
+| 3146 | bug | fixed: pre-join dialog closed when response future times out | `PaperDialogFlowListenerIssue3146Test` |
+| 3088 | bug | fixed: captcha-required registration rejected from dialog | `PaperDialogFlowListenerIssue3088Test` |
+| 3072 | bug | fixed: login/forcelogin suggest all online players | Paper Brigadier registrar test |
+| 3159, 3116, 3090 | bug | fixed in `VelocityProxyBridge` | `VelocityIssue3159Test`, `VelocityIssue3116Test`, `VelocityIssue3090Test` |
+| 3156 | feature | e-mail recovery dialog: classified feature, not implemented (needs new dialog UI) | - |
+| 3056 | feature | force e-mail verification: HaHaWTH `unregisterOnEmailVerificationFailure` port covers the sound part | `RegisterCommandTest` |
+| 3142 | invalid | online-count on proxy is a proxy-plugin concern, out of scope | - |
+| 3126 | bug (deferred) | Velocity offline-UUID compat vs /premium pets/skins; needs live proxy to reproduce | - |
+| 3152 | invalid | concerns the unrelated OutMe plugin | - |
+| 3117, 3100 | feature | deferred: auto-register premium and a pre-join-dialog prompt event are sound features but not implemented in this pass | - |
 
 Details: `docs/triage/batch-A.md`, `docs/triage/batch-B.md`.
 
