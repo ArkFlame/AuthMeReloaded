@@ -16,7 +16,7 @@
     <description>AuthMe proxy bridge for Velocity</description>
 
     <properties>
-        <module.java.version>21</module.java.version>
+        <module.java.version>25</module.java.version>
         <module.classifier>Velocity</module.classifier>
     </properties>
 
