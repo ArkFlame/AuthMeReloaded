@@ -404,47 +404,6 @@ final class VelocityProxyBridge {
     }
 
     /**
-     * Sends the auto-login {@code perform.login} as soon as an already-authenticated player is about to enter
-     * the configuration phase during a server switch, before the backend decides whether to show its blocking
-     * pre-join login dialog. The regular {@link #onServerConnected(ServerConnectedEvent)} path fires only after
-     * the configuration phase completes — too late to suppress that dialog.
-     * <p>
-     * During a switch the player is in the "null window" (neither the old nor the new server is set as the
-     * current one), so {@link PlayerEnteredConfigurationEvent} cannot reach the target backend. This event
-     * fires earlier with the in-flight target connection.
-     * <p>
-     * This is sent to all servers (not just auth servers) so that a non-auth server running AuthMe
-     * also receives the auto-login signal early enough to suppress its login dialog.
-     */
-    void onPlayerEnterConfiguration(PlayerEnterConfigurationEvent event) {
-        if (!configuration.autoLoginEnabled()) {
-            return;
-        }
-        ServerConnection server = event.server();
-        if (server == null) {
-            return;
-        }
-
-        String normalizedName = normalizeName(event.player().getUsername());
-        UUID verifiedPremiumUuid = premiumVerificationManager.getVerifiedPremiumUuid(normalizedName);
-        boolean isPremiumJoin = verifiedPremiumUuid != null;
-        if (!authenticationStore.isAuthenticated(normalizedName) && !isPremiumJoin) {
-            return;
-        }
-
-        boolean sent = server.sendPluginMessage(
-            AUTHME_CHANNEL, createPerformLoginMessage(normalizedName, verifiedPremiumUuid));
-        if (sent) {
-            logger.info("Sent config-phase auto-login to server '{}' for player {} (verifiedPremiumUuid={})",
-                server.getServer().getServerInfo().getName(), normalizedName, verifiedPremiumUuid);
-            initiatePendingLogin(normalizedName);
-        } else {
-            logger.debug("Config-phase auto-login send to '{}' for {} returned false; onServerConnected will retry",
-                server.getServer().getServerInfo().getName(), normalizedName);
-        }
-    }
-
-    /**
      * Sends the auto-login {@code perform.login} as soon as an already-authenticated player enters the
      * configuration phase on an auth server, before the backend decides whether to show its blocking
      * pre-join login dialog. The regular {@link #onServerConnected(ServerConnectedEvent)} path fires only

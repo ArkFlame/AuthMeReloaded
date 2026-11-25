@@ -703,7 +703,7 @@ public class PaperDialogFlowListenerTest {
 
         try (var bukkit = mockStatic(Bukkit.class)) {
             listener.onPlayerConnectionClose(new PlayerConnectionCloseEvent(
-                UUID.randomUUID(), "Bobby", InetAddress.getLoopbackAddress(), false));
+                UUID.randomUUID(), "Bobby", new java.net.InetSocketAddress(InetAddress.getLoopbackAddress(), 25565), false));
         }
 
         verify(preJoinDialogService).retireSession(SESSION_ID);
@@ -723,7 +723,7 @@ public class PaperDialogFlowListenerTest {
 
         try (var bukkit = mockStatic(Bukkit.class)) {
             listener.onPlayerConnectionClose(new PlayerConnectionCloseEvent(
-                UUID.randomUUID(), "Bobby", InetAddress.getLoopbackAddress(), false));
+                UUID.randomUUID(), "Bobby", new java.net.InetSocketAddress(InetAddress.getLoopbackAddress(), 25565), false));
         }
 
         verify(proxySessionManager).removeLoginRequest("Bobby");
@@ -738,7 +738,7 @@ public class PaperDialogFlowListenerTest {
         try (var bukkit = mockStatic(Bukkit.class)) {
             bukkit.when(() -> Bukkit.getPlayerExact("Bobby")).thenReturn(mock(Player.class));
             listener.onPlayerConnectionClose(new PlayerConnectionCloseEvent(
-                UUID.randomUUID(), "Bobby", InetAddress.getLoopbackAddress(), false));
+                UUID.randomUUID(), "Bobby", new java.net.InetSocketAddress(InetAddress.getLoopbackAddress(), 25565), false));
         }
 
         verify(proxySessionManager, never()).removeLoginRequest(anyString());

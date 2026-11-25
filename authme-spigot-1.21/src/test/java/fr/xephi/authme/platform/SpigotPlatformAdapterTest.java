@@ -8,6 +8,7 @@ import fr.xephi.authme.listener.LegacyPlayerLoginListener;
 import fr.xephi.authme.listener.LegacyPlayerSpawnLocationListener;
 import fr.xephi.authme.listener.PlayerListener;
 import fr.xephi.authme.listener.PlayerSignOpenListener;
+import fr.xephi.authme.listener.PlayerPickupArrowListener;
 import fr.xephi.authme.listener.PlayerSwapHandItemsListener;
 import fr.xephi.authme.listener.ServerListener;
 import fr.xephi.authme.process.register.RegisterSecondaryArgument;
@@ -67,6 +68,7 @@ public class SpigotPlatformAdapterTest {
             PlayerSwapHandItemsListener.class,
             EntityAirChangeListener.class,
             EntityPickupItemListener.class,
+            PlayerPickupArrowListener.class,
             PlayerSignOpenListener.class));
     }
 

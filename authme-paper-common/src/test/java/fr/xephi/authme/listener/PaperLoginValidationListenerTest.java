@@ -185,7 +185,7 @@ public class PaperLoginValidationListenerTest {
     @Test
     public void shouldReleaseStaleClaimOnConnectionClose() {
         PlayerConnectionCloseEvent event = new PlayerConnectionCloseEvent(
-            UUID.randomUUID(), "Bobby", InetAddress.getLoopbackAddress(), false);
+            UUID.randomUUID(), "Bobby", new java.net.InetSocketAddress(InetAddress.getLoopbackAddress(), 25565), false);
 
         listener.onPlayerConnectionClose(event);
 
