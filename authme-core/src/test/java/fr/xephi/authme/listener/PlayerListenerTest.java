@@ -49,7 +49,6 @@ import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerKickEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
-import org.bukkit.event.player.PlayerPickupArrowEvent;
 import org.bukkit.event.player.PlayerPortalEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
@@ -215,8 +214,7 @@ class PlayerListenerTest {
             .check(listener::onPlayerInteract, PlayerInteractEvent.class)
             .check(listener::onPlayerInteractEntity, PlayerInteractEntityEvent.class)
             .check(listener::onPlayerHeldItem, PlayerItemHeldEvent.class)
-            .check(listener::onPlayerPortal, PlayerPortalEvent.class)
-            .check(listener::onPlayerPickupArrow, PlayerPickupArrowEvent.class);
+            .check(listener::onPlayerPortal, PlayerPortalEvent.class);
     }
 
     @Test

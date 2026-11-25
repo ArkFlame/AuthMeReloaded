@@ -142,7 +142,8 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
             {"org.spigotmc.event.player.PlayerSpawnLocationEvent", "fr.xephi.authme.listener.LegacyPlayerSpawnLocationListener"},
             {"org.bukkit.event.player.PlayerSwapHandItemsEvent", "fr.xephi.authme.listener.PlayerSwapHandItemsListener"},
             {"org.bukkit.event.entity.EntityAirChangeEvent", "fr.xephi.authme.listener.EntityAirChangeListener"},
-            {"org.bukkit.event.entity.EntityPickupItemEvent", "fr.xephi.authme.listener.EntityPickupItemListener"}
+            {"org.bukkit.event.entity.EntityPickupItemEvent", "fr.xephi.authme.listener.EntityPickupItemListener"},
+            {"org.bukkit.event.player.PlayerPickupArrowEvent", "fr.xephi.authme.listener.PlayerPickupArrowListener"}
         };
         for (String[] entry : optionalListeners) {
             String apiClass = entry[0];

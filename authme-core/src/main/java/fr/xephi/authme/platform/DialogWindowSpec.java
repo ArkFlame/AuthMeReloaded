@@ -18,10 +18,12 @@ public final class DialogWindowSpec {
     private final boolean canCloseWithEscape;
     private final String secondaryButtonCommand;
     private final String body;
+    private final boolean stackButtonsVertically;
 
     public DialogWindowSpec(String title, List<DialogInputSpec> inputs, String primaryButtonLabel,
                             String secondaryButtonLabel, boolean showSecondaryButton,
-                            boolean canCloseWithEscape, String secondaryButtonCommand, String body) {
+                            boolean canCloseWithEscape, String secondaryButtonCommand, String body,
+                            boolean stackButtonsVertically) {
         this.title = Objects.requireNonNull(title, "title");
         Objects.requireNonNull(inputs, "inputs");
         this.inputs = Collections.unmodifiableList(new ArrayList<DialogInputSpec>(inputs));
@@ -31,6 +33,7 @@ public final class DialogWindowSpec {
         this.canCloseWithEscape = canCloseWithEscape;
         this.secondaryButtonCommand = secondaryButtonCommand;
         this.body = body;
+        this.stackButtonsVertically = stackButtonsVertically;
     }
 
     /** Convenience constructor without body text (body = null). */
@@ -53,6 +56,7 @@ public final class DialogWindowSpec {
     public boolean canCloseWithEscape() { return canCloseWithEscape; }
     public String secondaryButtonCommand() { return secondaryButtonCommand; }
     public String body() { return body; }
+    public boolean stackButtonsVertically() { return stackButtonsVertically; }
 
     /** Returns a copy of this spec with the given body text (may be null). */
     public DialogWindowSpec withBody(String newBody) {
@@ -76,13 +80,14 @@ public final class DialogWindowSpec {
             && Objects.equals(primaryButtonLabel, that.primaryButtonLabel)
             && Objects.equals(secondaryButtonLabel, that.secondaryButtonLabel)
             && Objects.equals(secondaryButtonCommand, that.secondaryButtonCommand)
+            && stackButtonsVertically == that.stackButtonsVertically
             && Objects.equals(body, that.body);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(title, inputs, primaryButtonLabel, secondaryButtonLabel,
-            showSecondaryButton, canCloseWithEscape, secondaryButtonCommand, body);
+            showSecondaryButton, canCloseWithEscape, secondaryButtonCommand, body, stackButtonsVertically);
     }
 
     @Override
@@ -91,6 +96,7 @@ public final class DialogWindowSpec {
             + ", primaryButtonLabel=" + primaryButtonLabel + ", secondaryButtonLabel="
             + secondaryButtonLabel + ", showSecondaryButton=" + showSecondaryButton
             + ", canCloseWithEscape=" + canCloseWithEscape + ", secondaryButtonCommand="
-            + secondaryButtonCommand + ", body=" + body + "]";
+            + secondaryButtonCommand + ", body=" + body
+            + ", stackButtonsVertically=" + stackButtonsVertically + "]";
     }
 }
