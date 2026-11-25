@@ -351,7 +351,7 @@ public class AsynchronousLogin implements AsynchronousProcess {
             // makes player loggedin
             playerCache.updatePlayer(auth);
             dataSource.setLogged(name);
-            sessionService.grantSession(name);
+            sessionService.grantSession(player);
 
             if (!player.isOnline()) {
                 playerCache.removePlayer(name);

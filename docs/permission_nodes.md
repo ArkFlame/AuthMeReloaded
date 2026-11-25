@@ -76,8 +76,8 @@ and Paper 1.21 builds.
 - **authme.player.totpadd** – Permission to enable two-factor authentication.
 - **authme.player.totpremove** – Permission to disable two-factor authentication.
 - **authme.player.unregister** – Command permission to unregister.
+- **authme.session.disable** – Disables sessions for the player, requiring authentication on every join.
 - **authme.vip** – When the server is full and someone with this permission joins the server, someone will be kicked.
-
 
 ---
 
