@@ -19,6 +19,7 @@ import fr.xephi.authme.security.PasswordSecurity;
 import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.service.CommonService;
 import fr.xephi.authme.service.DialogWindowService;
+import fr.xephi.authme.service.FloodgateService;
 import fr.xephi.authme.service.PendingPremiumCache;
 import fr.xephi.authme.service.PreJoinDialogService;
 import fr.xephi.authme.service.PremiumLoginVerifier;
@@ -97,6 +98,9 @@ public class PaperDialogFlowListener implements Listener {
     private PremiumLoginVerifier premiumLoginVerifier;
 
     @Inject
+    private FloodgateService floodgateService;
+
+    @Inject
     private LoginCaptchaManager loginCaptchaManager;
 
     @Inject
@@ -134,6 +138,11 @@ public class PaperDialogFlowListener implements Listener {
         connectionSessions.put(connection, sessionId);
 
         PlayerAuth auth = dataSource.getAuth(normalizedName);
+        // Bedrock players (Floodgate) are logged in or registered on join, without a password
+        if (auth != null ? floodgateService.canAutoLogin(playerId) : floodgateService.canAutoRegister(playerId)) {
+            preJoinDialogService.markSkipPostJoinDialog(sessionId);
+            return;
+        }
         if (auth != null) {
             if (shouldSkipPreJoinDialogForPremium(auth, playerName, playerId)) {
                 preJoinDialogService.markSkipPostJoinDialog(sessionId);
