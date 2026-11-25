@@ -81,7 +81,8 @@ public class DataSourceProvider implements Provider<DataSource> {
         }
 
         if (settings.getProperty(DatabaseSettings.USE_CACHING)) {
-            dataSource = new CacheDataSource(dataSource, playerCache);
+            dataSource = new CacheDataSource(dataSource, playerCache,
+                settings.getProperty(DatabaseSettings.USE_VIRTUAL_THREADS));
         }
         if (DataSourceType.SQLITE.equals(dataSourceType)) {
             checkDataSourceSize(dataSource);

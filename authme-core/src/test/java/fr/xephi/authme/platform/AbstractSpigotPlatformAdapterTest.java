@@ -2,6 +2,7 @@ package fr.xephi.authme.platform;
 
 import fr.xephi.authme.data.auth.PlayerCache;
 import fr.xephi.authme.datasource.DataSource;
+import fr.xephi.authme.listener.AdvancedShulkerFixListener;
 import fr.xephi.authme.listener.BlockListener;
 import fr.xephi.authme.listener.DoubleLoginFixListener;
 import fr.xephi.authme.listener.EntityAirChangeListener;
@@ -105,6 +106,7 @@ class AbstractSpigotPlatformAdapterTest {
             ServerListener.class,
             DoubleLoginFixListener.class,
             LoginLocationFixListener.class,
+            AdvancedShulkerFixListener.class,
             LegacyPlayerLoginListener.class,
             LegacyPlayerPickupItemListener.class));
 
@@ -113,6 +115,16 @@ class AbstractSpigotPlatformAdapterTest {
         assertThat(listeners, not(hasItem(PlayerSwapHandItemsListener.class)));
         assertThat(listeners, not(hasItem(EntityAirChangeListener.class)));
         assertThat(listeners, not(hasItem(EntityPickupItemListener.class)));
+    }
+
+    @Test
+    void shouldNotIncludeAdvancedShulkerFixWhenPlayerCommandSendIsAvailable() {
+        // 1.13+: the 1.8-only shulker fix must not register
+        Set<String> caps = new HashSet<>();
+        caps.add("org.bukkit.event.player.PlayerCommandSendEvent");
+        AbstractSpigotPlatformAdapter adapter = new CapabilityControlledAdapter(caps);
+
+        assertThat(adapter.getListeners(), not(hasItem(AdvancedShulkerFixListener.class)));
     }
 
     @Test
@@ -131,6 +143,7 @@ class AbstractSpigotPlatformAdapterTest {
             ServerListener.class,
             DoubleLoginFixListener.class,
             LoginLocationFixListener.class,
+            AdvancedShulkerFixListener.class,
             LegacyPlayerLoginListener.class,
             LegacyPlayerPickupItemListener.class,
             LegacyPlayerSpawnLocationListener.class,
@@ -157,6 +170,7 @@ class AbstractSpigotPlatformAdapterTest {
             ServerListener.class,
             DoubleLoginFixListener.class,
             LoginLocationFixListener.class,
+            AdvancedShulkerFixListener.class,
             LegacyPlayerLoginListener.class,
             LegacyPlayerPickupItemListener.class,
             LegacyPlayerSpawnLocationListener.class,
@@ -184,6 +198,7 @@ class AbstractSpigotPlatformAdapterTest {
             ServerListener.class,
             DoubleLoginFixListener.class,
             LoginLocationFixListener.class,
+            AdvancedShulkerFixListener.class,
             LegacyPlayerLoginListener.class,
             LegacyPlayerSpawnLocationListener.class,
             PlayerSwapHandItemsListener.class,

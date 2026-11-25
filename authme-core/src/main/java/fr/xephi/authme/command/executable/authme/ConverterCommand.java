@@ -7,12 +7,15 @@ import fr.xephi.authme.ConsoleLogger;
 import fr.xephi.authme.command.ExecutableCommand;
 import fr.xephi.authme.datasource.converter.AuthPlusConverter;
 import fr.xephi.authme.datasource.converter.Converter;
+import fr.xephi.authme.datasource.converter.CrazyLoginConverter;
 import fr.xephi.authme.datasource.converter.LibreLoginConverter;
 import fr.xephi.authme.datasource.converter.LimboAuthConverter;
+import fr.xephi.authme.datasource.converter.LoginSecurityConverter;
 import fr.xephi.authme.datasource.converter.MySqlToSqlite;
 import fr.xephi.authme.datasource.converter.NexAuthConverter;
 import fr.xephi.authme.datasource.converter.NLoginConverter;
 import fr.xephi.authme.datasource.converter.OpeNLoginConverter;
+import fr.xephi.authme.datasource.converter.RoyalAuthConverter;
 import fr.xephi.authme.datasource.converter.SqliteToSql;
 import fr.xephi.authme.datasource.converter.TiAuthConverter;
 import fr.xephi.authme.message.MessageKey;
@@ -84,11 +87,14 @@ public class ConverterCommand implements ExecutableCommand {
     private static Map<String, Class<? extends Converter>> getConverters() {
         return ImmutableSortedMap.<String, Class<? extends Converter>>naturalOrder()
             .put("authplus", AuthPlusConverter.class)
+            .put("crazylogin", CrazyLoginConverter.class)
             .put("librelogin", LibreLoginConverter.class)
             .put("limboauth", LimboAuthConverter.class)
+            .put("loginsecurity", LoginSecurityConverter.class)
             .put("nexauth", NexAuthConverter.class)
             .put("nlogin", NLoginConverter.class)
             .put("openlogin", OpeNLoginConverter.class)
+            .put("royalauth", RoyalAuthConverter.class)
             .put("tiauth", TiAuthConverter.class)
             .put("sqlitetosql", SqliteToSql.class)
             .put("mysqltosqlite", MySqlToSqlite.class)

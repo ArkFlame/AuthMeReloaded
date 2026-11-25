@@ -23,6 +23,11 @@ public final class SecuritySettings implements SettingsHolder {
     public static final Property<Boolean> ANTI_GHOST_PLAYERS =
         newProperty("3rdPartyFeature.fixes.antiGhostPlayer", false);
 
+    @Comment({"Enable the advanced shulker fix (Minecraft 1.8 only)",
+        "Cancels dispensers at invalid world heights to prevent the shulker crash"})
+    public static final Property<Boolean> ADVANCED_SHULKER_FIX =
+        newProperty("3rdPartyFeature.fixes.advancedShulkerFix", false);
+
     @Comment("Should we fix the location when players logged in the portal?")
     public static final Property<Boolean> LOGIN_LOC_FIX_SUB_PORTAL =
         newProperty("3rdPartyFeature.fixes.loginLocationFix.fixPortalStuck", false);

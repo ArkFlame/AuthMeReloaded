@@ -5,7 +5,7 @@ Run a converter with `/authme converter <name>` (requires `authme.admin.converte
 
 ---
 
-AuthMeRemastered currently ships the **Auth+**, **LibreLogin**, **LimboAuth**, **NexAuth**, **nLogin**, **OpeNLogin**, and **tiAuth** converters, plus the built-in database migration helpers below.
+AuthMeRemastered currently ships the **Auth+**, **CrazyLogin**, **LibreLogin**, **LimboAuth**, **LoginSecurity**, **NexAuth**, **nLogin**, **OpeNLogin**, **RoyalAuth**, and **tiAuth** converters, plus the built-in database migration helpers below.
 
 ---
 
@@ -189,6 +189,48 @@ Migrates accounts from the **tiAuth** plugin.
 
 **Notes:**
 - Players already present in AuthMe's database are skipped automatically.
+
+---
+
+### CrazyLogin → `crazylogin`
+
+Migrates accounts from the **CrazyLogin** plugin.
+
+**Source file:** `plugins/AuthMe/accounts.db` by default; change the file name with the `Converter.CrazyLogin.fileName` setting if CrazyLogin wrote it elsewhere. Each line must be pipe-separated (`name|password|...`); lines without a separator and the `name|...` header are skipped.
+
+**Warning:** CrazyLogin stores passwords in **plain text**. The converter imports that value verbatim as the stored hash, so it does not become secure by being imported. After running it, require every imported player to change their password immediately (for example by clearing the imported accounts and letting players re-register).
+
+---
+
+### LoginSecurity → `loginsecurity`
+
+Migrates accounts from the **LoginSecurity** plugin.
+
+**Source:** `plugins/LoginSecurity/LoginSecurity.db` when `Converter.loginSecurity.useSqlite` is `true` (the default). Otherwise the converter connects to MySQL using `Converter.loginSecurity.mySql.host`, `.database`, `.user` and `.password`; configure these before running it.
+
+**Source tables:** `ls_players` joined with `ls_locations` on `id`.
+
+**Before running:**
+1. Set `passwordHash` to `BCRYPT` in AuthMe's `config.yml`
+2. Add `BCRYPT` to `legacyHashes` under `settings.security` in `config.yml` (the converter announces this when it finishes)
+
+**Notes:**
+- Names, passwords, last IP, last login, registration date, UUID and quit location are migrated.
+- Players already present in AuthMe's database are skipped automatically.
+
+---
+
+### RoyalAuth → `royalauth`
+
+Migrates accounts from the **RoyalAuth** plugin.
+
+**Requirement:** RoyalAuth must have been installed on the same server; the converter reads `plugins/RoyalAuth/userdata/<name>.yml` for each offline player.
+
+**Before running**, set `passwordHash` to `ROYALAUTH` in AuthMe's `config.yml` — RoyalAuth hashes are directly compatible.
+
+**Notes:**
+- Names, passwords and last-login timestamps are migrated.
+- Players already present in AuthMe's database, and players without a RoyalAuth data file, are skipped.
 
 ---
 

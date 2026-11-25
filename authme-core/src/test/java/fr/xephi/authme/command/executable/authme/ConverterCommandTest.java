@@ -3,6 +3,9 @@ package fr.xephi.authme.command.executable.authme;
 import ch.jalu.injector.factory.Factory;
 import fr.xephi.authme.TestHelper;
 import fr.xephi.authme.datasource.converter.Converter;
+import fr.xephi.authme.datasource.converter.CrazyLoginConverter;
+import fr.xephi.authme.datasource.converter.LoginSecurityConverter;
+import fr.xephi.authme.datasource.converter.RoyalAuthConverter;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.service.CommonService;
@@ -98,6 +101,14 @@ class ConverterCommandTest {
             assertThat("Converter class is unique for each entry",
                 classes.add(entry.getValue()), equalTo(true));
         }
+    }
+
+    @Test
+    void shouldHaveLegacyConverters() {
+        // given / when / then
+        assertThat(ConverterCommand.CONVERTERS.get("crazylogin"), equalTo(CrazyLoginConverter.class));
+        assertThat(ConverterCommand.CONVERTERS.get("loginsecurity"), equalTo(LoginSecurityConverter.class));
+        assertThat(ConverterCommand.CONVERTERS.get("royalauth"), equalTo(RoyalAuthConverter.class));
     }
 
     @Test

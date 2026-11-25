@@ -17,6 +17,9 @@ DataSource:
     # Enable the database caching system, should be disabled on bungeecord environments
     # or when a website integration is being used.
     caching: true
+    # Use virtual threads for the cache loader when running on Java 21+.
+    # Falls back to a cached thread pool on older Java versions. Default: false.
+    useVirtualThreadsCache: false
     # Database host address
     mySQLHost: 127.0.0.1
     # Database port
@@ -621,6 +624,9 @@ Security:
         verificationCodeExpiration: 10
 3rdPartyFeature:
     fixes:
+        # Enable the advanced shulker fix (Minecraft 1.8 only)
+        # Cancels dispensers at invalid world heights to prevent the shulker crash
+        advancedShulkerFix: false
         loginLocationFix:
             # Should we fix the location when players logged in the portal?
             fixPortalStuck: false

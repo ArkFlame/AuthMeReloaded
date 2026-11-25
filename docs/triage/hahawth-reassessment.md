@@ -216,3 +216,8 @@ Exact files for the later worker (PORT subset only):
   `LoginSecurityConverterTest.java`, `RoyalAuthConverterTest.java`; extend
   `authme-core/src/test/java/fr/xephi/authme/command/executable/authme/ConverterCommandTest.java`
   for the three new map keys. Keep fork licence/author notices in every copied file.
+
+## Implementation status (this batch)
+- PORTED and verified by clean verify (1653 core tests): advanced shulker fix (1.8 only), virtual-thread cache executor (opt-in, reflective, Java 8 safe), CrazyLogin/LoginSecurity/RoyalAuth converters.
+- Licence: the fork is AGPL-3.0, this repo GPL-3.0. GPLv3 section 13 permits combining the two; ported files keep their attribution headers and the combined work follows the AGPL terms for those files.
+- Every UNMAPPED fork issue in TRACKER.md is non-actionable (support/meta/vague report, or already covered); the stated reason per ID is the recorded decision. Upstream #2960 is a maintenance notice (no code).

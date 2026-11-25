@@ -16,6 +16,7 @@ import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.security.crypts.HashedPassword;
 import fr.xephi.authme.util.Utils;
 
+import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Collection;
@@ -23,6 +24,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -43,15 +45,21 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
      * @param playerCache the player cache
      */
     public CacheDataSource(DataSource source, PlayerCache playerCache) {
+        this(source, playerCache, false);
+    }
+
+    /**
+     * Constructor for CacheDataSource.
+     *
+     * @param source the source
+     * @param playerCache the player cache
+     * @param useVirtualThreads whether to attempt the use of virtual threads
+     */
+    public CacheDataSource(DataSource source, PlayerCache playerCache, boolean useVirtualThreads) {
         this.source = source;
         this.playerCache = playerCache;
 
-        executorService = MoreExecutors.listeningDecorator(
-            Executors.newCachedThreadPool(new ThreadFactoryBuilder()
-                .setDaemon(true)
-                .setNameFormat("AuthMe-CacheLoader")
-                .build())
-        );
+        executorService = createExecutorService(useVirtualThreads, Executors.class);
         cachedAuths = CacheBuilder.newBuilder()
             .refreshAfterWrite(5, TimeUnit.MINUTES)
             .expireAfterAccess(15, TimeUnit.MINUTES)
@@ -66,6 +74,35 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
                     return executorService.submit(() -> load(key));
                 }
             });
+    }
+
+    // Adapted from HaHaWTH/AuthMeReReloaded: virtual-thread cache executor.
+    /**
+     * Creates the executor for asynchronous cache reloads. Kept static and package-private so the
+     * fallback can be tested without depending on the JDK version of the test JVM.
+     *
+     * @param useVirtualThreads whether a virtual-thread executor should be attempted
+     * @param executorsClass the class to inspect reflectively (Executors.class in production)
+     * @return the listening executor service
+     */
+    static ListeningExecutorService createExecutorService(
+            boolean useVirtualThreads, Class<?> executorsClass) {
+        if (useVirtualThreads) {
+            try {
+                Method method = executorsClass.getMethod("newVirtualThreadPerTaskExecutor");
+                method.setAccessible(true);
+                ExecutorService executor = (ExecutorService) method.invoke(null);
+                return MoreExecutors.listeningDecorator(executor);
+            } catch (Exception e) {
+                // Java < 21 or a restricted JDK: fall through to the cached pool
+            }
+        }
+        return MoreExecutors.listeningDecorator(
+            Executors.newCachedThreadPool(new ThreadFactoryBuilder()
+                .setDaemon(true)
+                .setNameFormat("AuthMe-CacheLoader")
+                .build())
+        );
     }
 
     public LoadingCache<String, Optional<PlayerAuth>> getCachedAuths() {

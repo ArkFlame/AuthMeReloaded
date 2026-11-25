@@ -19,6 +19,11 @@ public final class DatabaseSettings implements SettingsHolder {
     public static final Property<Boolean> USE_CACHING =
         newProperty("DataSource.caching", true);
 
+    @Comment({"Use virtual threads for the cache loader when running on Java 21+.",
+        "Falls back to a cached thread pool on older Java versions. Default: false."})
+    public static final Property<Boolean> USE_VIRTUAL_THREADS =
+        newProperty("DataSource.useVirtualThreadsCache", false);
+
     @Comment("Database host address")
     public static final Property<String> MYSQL_HOST =
         newProperty("DataSource.mySQLHost", "127.0.0.1");

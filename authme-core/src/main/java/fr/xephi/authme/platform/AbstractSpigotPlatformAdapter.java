@@ -1,6 +1,7 @@
 package fr.xephi.authme.platform;
 
 import fr.xephi.authme.AuthMe;
+import fr.xephi.authme.listener.AdvancedShulkerFixListener;
 import fr.xephi.authme.listener.LegacyPlayerLoginListener;
 import fr.xephi.authme.listener.LegacyPlayerPickupItemListener;
 import fr.xephi.authme.data.auth.PlayerCache;
@@ -158,6 +159,10 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
                     throw new IllegalStateException("Missing listener class: " + listenerClass, e);
                 }
             }
+        }
+        // PlayerCommandSendEvent arrived in 1.13; the shulker fix is for 1.8 only.
+        if (!isClassAvailable("org.bukkit.event.player.PlayerCommandSendEvent")) {
+            listeners.add(AdvancedShulkerFixListener.class);
         }
         return Collections.unmodifiableList(new ArrayList<>(listeners));
     }
