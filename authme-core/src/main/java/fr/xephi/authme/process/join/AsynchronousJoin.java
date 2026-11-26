@@ -234,7 +234,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
         // had a chance to take priority and return early. If perform.login arrived in time, the
         // player was already auto-logged in above and pendingKick is silently discarded.
         if (pendingKick != null) {
-            kickPlayer(player, pendingKick);
+            ProcessSharedActions.kickPlayer(bukkitService, player, pendingKick);
             return;
         }
 
@@ -563,21 +563,21 @@ public class AsynchronousJoin implements AsynchronousProcess {
 
     private void processPendingEmailRecovery(Player player, String name, String submittedEmail) {
         if (!emailService.hasAllInformation()) {
-            kickPlayer(player, service.retrieveSingleMessage(player, MessageKey.INCOMPLETE_EMAIL_SETTINGS));
+            ProcessSharedActions.kickPlayer(bukkitService, player, service.retrieveSingleMessage(player, MessageKey.INCOMPLETE_EMAIL_SETTINGS));
             return;
         }
         if (!validationService.validateEmail(submittedEmail)) {
-            kickPlayer(player, service.retrieveSingleMessage(player, MessageKey.INVALID_EMAIL));
+            ProcessSharedActions.kickPlayer(bukkitService, player, service.retrieveSingleMessage(player, MessageKey.INVALID_EMAIL));
             return;
         }
         ch.jalu.datasourcecolumns.data.DataSourceValue<String> emailResult = database.getEmail(name);
         if (!emailResult.rowExists()) {
-            kickPlayer(player, service.retrieveSingleMessage(player, MessageKey.USAGE_REGISTER));
+            ProcessSharedActions.kickPlayer(bukkitService, player, service.retrieveSingleMessage(player, MessageKey.USAGE_REGISTER));
             return;
         }
         String registeredEmail = emailResult.getValue();
         if (Utils.isEmailEmpty(registeredEmail) || !registeredEmail.equalsIgnoreCase(submittedEmail)) {
-            kickPlayer(player, service.retrieveSingleMessage(player, MessageKey.INVALID_EMAIL));
+            ProcessSharedActions.kickPlayer(bukkitService, player, service.retrieveSingleMessage(player, MessageKey.INVALID_EMAIL));
             return;
         }
         if (recoveryCodeService.isRecoveryCodeNeeded()) {
@@ -586,16 +586,6 @@ public class AsynchronousJoin implements AsynchronousProcess {
             passwordRecoveryService.generateAndSendNewPassword(player, registeredEmail);
         }
         // Player stays in limbo to use the recovery code or new password
-    }
-
-    /**
-     * Kicks the player on its owning thread with an already resolved message.
-     *
-     * @param player the player to kick
-     * @param kickMessage the message to show
-     */
-    private void kickPlayer(Player player, String kickMessage) {
-        bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, () -> player.kickPlayer(kickMessage));
     }
 
     /**

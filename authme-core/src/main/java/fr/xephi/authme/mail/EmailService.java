@@ -86,10 +86,10 @@ public class EmailService {
      * @return true if email could be sent, false otherwise
      */
     public boolean sendVerificationMail(String name, String mailAddress, String code) {
-        return sendVerificationCodeMail(
+        HtmlEmail mail = initializeCheckedMail(mailAddress,
             "Cannot send verification email: not all email settings are complete",
-            "Failed to create verification email with the given settings:",
-            name, mailAddress, code,
+            "Failed to create verification email with the given settings:");
+        return mail != null && sendCodeMail(mail, name, code, "<generatedcode />", "<minutesvalid />",
             settings.getProperty(SecuritySettings.VERIFICATION_CODE_EXPIRATION_MINUTES),
             settings.getVerificationEmailMessage());
     }
@@ -104,39 +104,11 @@ public class EmailService {
      */
     public boolean sendEmailConfirmationMail(String name, String email, String code) {
         // TTL matches PendingEmailVerificationCache.TTL_MS (10 minutes)
-        return sendVerificationCodeMail(
+        HtmlEmail mail = initializeCheckedMail(email,
             "Cannot send email confirmation: not all email settings are complete",
-            "Failed to create email confirmation mail with the given settings:",
-            name, email, code, 10, settings.getEmailConfirmationMessage());
-    }
-
-    /**
-     * Sends a mail with a verification code once all email settings are complete.
-     *
-     * @param warning warning to log when email settings are incomplete
-     * @param errorMessage message to log when the mail cannot be initialized
-     * @param name the name of the player
-     * @param mailAddress the recipient address
-     * @param code the verification code
-     * @param minutesValid number of minutes the code stays valid
-     * @param message the mail template
-     * @return true if the mail could be sent, false otherwise
-     */
-    private boolean sendVerificationCodeMail(String warning, String errorMessage, String name, String mailAddress,
-                                             String code, int minutesValid, String message) {
-        if (!hasAllInformation()) {
-            logger.warning(warning);
-            return false;
-        }
-
-        HtmlEmail email = initializeMail(mailAddress, errorMessage);
-        if (email == null) {
-            return false;
-        }
-
-        String mailText = replaceTags(message, name,
-            "<generatedcode />", code, "<minutesvalid />", String.valueOf(minutesValid));
-        return sendMailSsl.sendEmail(mailText, email);
+            "Failed to create email confirmation mail with the given settings:");
+        return mail != null && sendCodeMail(mail, name, code, "<generatedcode />", "<minutesvalid />", 10,
+            settings.getEmailConfirmationMessage());
     }
 
     /**
@@ -148,15 +120,26 @@ public class EmailService {
      * @return true if email could be sent, false otherwise
      */
     public boolean sendRecoveryCode(String name, String email, String code) {
-        HtmlEmail htmlEmail = initializeMail(email, "Failed to create email for recovery code:");
-        if (htmlEmail == null) {
-            return false;
-        }
+        HtmlEmail mail = initializeMail(email, "Failed to create email for recovery code:");
+        return mail != null && sendCodeMail(mail, name, code, "<recoverycode />", "<hoursvalid />",
+            settings.getProperty(SecuritySettings.RECOVERY_CODE_HOURS_VALID),
+            settings.getRecoveryCodeEmailMessage());
+    }
 
-        String message = replaceTags(settings.getRecoveryCodeEmailMessage(), name,
-            "<recoverycode />", code,
-            "<hoursvalid />", String.valueOf(settings.getProperty(SecuritySettings.RECOVERY_CODE_HOURS_VALID)));
-        return sendMailSsl.sendEmail(message, htmlEmail);
+    /** Initializes a mail after verifying that all email settings are complete. */
+    private HtmlEmail initializeCheckedMail(String address, String warning, String errorMessage) {
+        if (!hasAllInformation()) {
+            logger.warning(warning);
+            return null;
+        }
+        return initializeMail(address, errorMessage);
+    }
+
+    /** Replaces the code tags in the template and sends the given mail. */
+    private boolean sendCodeMail(HtmlEmail mail, String name, String code, String codeTag,
+                                 String validityTag, int validFor, String template) {
+        String text = replaceTags(template, name, codeTag, code, validityTag, String.valueOf(validFor));
+        return sendMailSsl.sendEmail(text, mail);
     }
 
     /**

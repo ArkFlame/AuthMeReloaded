@@ -1,7 +1,6 @@
 package fr.xephi.authme.events;
 
 import org.bukkit.entity.Player;
-import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
 /**
@@ -26,17 +25,13 @@ public class FailedLoginEvent extends CustomEvent {
     /**
      * Return the player who entered a wrong password.
      *
-     * @return The player entering a wrong password
+     * @return The player entering a wrong password, never {@code null}
      */
     public Player getPlayer() {
         return player;
     }
 
-    /**
-     * Return the list of handlers, equivalent to {@link #getHandlers()} and required by {@link Event}.
-     *
-     * @return The list of handlers
-     */
+    /** Returns this event's handler list; never {@code null}. */
     public static HandlerList getHandlerList() {
         return handlers;
     }

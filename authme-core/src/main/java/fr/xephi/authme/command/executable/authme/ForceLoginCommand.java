@@ -1,5 +1,6 @@
 package fr.xephi.authme.command.executable.authme;
 
+import fr.xephi.authme.command.CommandUtils;
 import fr.xephi.authme.command.ExecutableCommand;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.message.Messages;
@@ -38,7 +39,7 @@ public class ForceLoginCommand implements ExecutableCommand {
 
     @Override
     public void executeCommand(CommandSender sender, List<String> arguments) {
-        String playerName = CommandArguments.getTargetPlayerName(sender, arguments);
+        String playerName = CommandUtils.getTargetPlayerName(sender, arguments);
 
         Player player = bukkitService.getPlayerExact(playerName);
         if (player == null || !player.isOnline()) {

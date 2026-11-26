@@ -15,7 +15,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.util.Arrays;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -29,7 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * handshake with connecting clients so that the backend can independently verify premium identity
  * via Mojang's {@code hasJoined} session endpoint — without relying on the proxy.</p>
  *
- * <p>Thread-safety: all state maps are {@link ConcurrentHashMap}; RSA operations use a
+ * <p>Thread-safety: all state is held in concurrent maps; RSA operations use a
  * per-call {@link Cipher} instance.</p>
  */
 public class PremiumLoginVerifier {
@@ -47,7 +46,7 @@ public class PremiumLoginVerifier {
     /** Keyed by connection address (ip:port). */
     private final ConcurrentHashMap<String, PendingVerification> pending = new ConcurrentHashMap<>();
     /** Keyed by lowercase username; entries expire after {@link #VERIFIED_TTL_MS}. */
-    private final ConcurrentHashMap<String, VerifiedSession> verified = new ConcurrentHashMap<>();
+    private final ExpiringPendingCache<UUID> verified = new ExpiringPendingCache<>(VERIFIED_TTL_MS);
 
     @Inject
     PremiumLoginVerifier(MojangApiService mojangApiService, BukkitService bukkitService) {
@@ -76,7 +75,7 @@ public class PremiumLoginVerifier {
      */
     public byte[] startVerification(String connectionKey, String username, UUID playerUUID) {
         evictStalePendingEntries();
-        verified.remove(username.toLowerCase(Locale.ROOT));
+        verified.remove(username);
         byte[] verifyToken = new byte[4];
         secureRandom.nextBytes(verifyToken);
         pending.put(connectionKey, new PendingVerification(username, playerUUID, verifyToken, System.currentTimeMillis()));
@@ -165,8 +164,7 @@ public class PremiumLoginVerifier {
      * Retrieved later by {@link #getVerifiedUuid} during the join flow.
      */
     public void storeVerified(String username, UUID mojangUuid) {
-        verified.put(username.toLowerCase(Locale.ROOT),
-            new VerifiedSession(mojangUuid, System.currentTimeMillis()));
+        verified.put(username, mojangUuid);
     }
 
     /**
@@ -174,25 +172,14 @@ public class PremiumLoginVerifier {
      * session exists, or {@code null} otherwise.
      */
     public UUID getVerifiedUuid(String username) {
-        String key = username.toLowerCase(Locale.ROOT);
-        VerifiedSession session = verified.get(key);
-        if (session == null) {
-            return null;
-        }
-        if (System.currentTimeMillis() - session.verifiedAt() > VERIFIED_TTL_MS) {
-            verified.remove(key);
-            return null;
-        }
-        return session.mojangUuid();
+        return verified.get(username);
     }
 
     /**
      * Same as {@link #getVerifiedUuid}, but also removes the verification.
      */
     public UUID consumeVerifiedUuid(String username) {
-        UUID verifiedUuid = getVerifiedUuid(username);
-        verified.remove(username.toLowerCase(Locale.ROOT));
-        return verifiedUuid;
+        return verified.remove(username);
     }
 
     /**
@@ -201,7 +188,7 @@ public class PremiumLoginVerifier {
      * @param username the username whose verification should be discarded
      */
     public void removeVerified(String username) {
-        verified.remove(username.toLowerCase(Locale.ROOT));
+        verified.remove(username);
     }
 
     private byte[] rsaDecrypt(byte[] encrypted) throws GeneralSecurityException {
@@ -240,18 +227,5 @@ public class PremiumLoginVerifier {
         UUID playerUUID() { return playerUUID; }
         byte[] verifyToken() { return verifyToken; }
         long startedAt() { return startedAt; }
-    }
-
-    static final class VerifiedSession {
-        private final UUID mojangUuid;
-        private final long verifiedAt;
-
-        VerifiedSession(UUID mojangUuid, long verifiedAt) {
-            this.mojangUuid = mojangUuid;
-            this.verifiedAt = verifiedAt;
-        }
-
-        UUID mojangUuid() { return mojangUuid; }
-        long verifiedAt() { return verifiedAt; }
     }
 }

@@ -1,7 +1,6 @@
 package fr.xephi.authme.events;
 
 import org.bukkit.entity.Player;
-import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
 /**
@@ -25,17 +24,13 @@ public class RestoreInventoryEvent extends AbstractCancellableEvent {
     /**
      * Return the player whose inventory will be restored.
      *
-     * @return Player
+     * @return The player, never {@code null}
      */
     public Player getPlayer() {
         return player;
     }
 
-    /**
-     * Return the list of handlers, equivalent to {@link #getHandlers()} and required by {@link Event}.
-     *
-     * @return The list of handlers
-     */
+    /** Returns this event's handler list; never {@code null}. */
     public static HandlerList getHandlerList() {
         return handlers;
     }

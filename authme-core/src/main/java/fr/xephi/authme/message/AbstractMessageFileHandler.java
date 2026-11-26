@@ -186,9 +186,8 @@ public abstract class AbstractMessageFileHandler implements Reloadable {
 
         if (FileUtils.copyFileFromResource(file, defaultFile)) {
             return file;
-        } else {
-            logger.warning("Wanted to copy default messages file '" + defaultFile + "' from JAR but it didn't exist");
-            return null;
         }
+        logger.warning("Wanted to copy default messages file '" + defaultFile + "' from JAR but it didn't exist");
+        return null;
     }
 }

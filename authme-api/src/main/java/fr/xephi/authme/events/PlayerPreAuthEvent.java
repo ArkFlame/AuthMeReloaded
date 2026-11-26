@@ -50,7 +50,7 @@ public class PlayerPreAuthEvent extends AbstractCancellableEvent {
     /**
      * Returns the joining player.
      *
-     * @return the player
+     * @return the player, never {@code null}
      */
     public Player getPlayer() {
         return player;
@@ -118,11 +118,7 @@ public class PlayerPreAuthEvent extends AbstractCancellableEvent {
         }
     }
 
-    /**
-     * Returns the list of handlers, required by {@link org.bukkit.event.Event}.
-     *
-     * @return the list of handlers
-     */
+    /** Returns this event's handler list; never {@code null}. */
     public static HandlerList getHandlerList() {
         return handlers;
     }

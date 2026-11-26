@@ -9,7 +9,7 @@ public class UserGroup {
     private Map<String, String> contextMap;
 
     public UserGroup(String groupName) {
-        this.groupName = groupName;
+        this(groupName, null);
     }
 
     public UserGroup(String groupName, Map<String, String> contextMap) {

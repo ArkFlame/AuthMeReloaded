@@ -67,49 +67,18 @@ fail to load, and picks the first whose `getCompatibilityError()` is null.
 Delayed and repeating methods return a `CancellableTask` handle so callers can cancel them
 uniformly; the immediate global/entity methods and the thread checks are `void`/`boolean`.
 
-Scheduler implementations:
+`SchedulerProvider` (core, Java 8) is the shared runtime layer for global and async work.
+`SchedulerProviders.current()` detects the server once at startup by probing for Folia's
+`GlobalRegionScheduler`: Folia gets `FoliaSchedulerProvider` (all Folia calls are reflective, so core
+stays Java 8 and Spigot 1.8 safe), every other server gets `BukkitSchedulerProvider`.
+`AbstractSpigotPlatformAdapter` delegates global/async work to that provider and maps entity work onto
+the global thread; `FoliaPlatformAdapter` uses it for global/async work and `FoliaTaskScheduler` for
+entity-owned tasks. The 1.8 jar reaches the same core provider through its Spigot adapter.
 
-- `AbstractSpigotPlatformAdapter` (core, Java 8) maps every context onto the classic
-  `BukkitScheduler` — the baseline for the 1.8 jar and for `SpigotLegacyPlatformAdapter`.
-- `SpigotLegacyPlatformAdapter` (`authme-spigot`, Java 17) uses that classic scheduler for Spigot
-  1.16+; `Spigot121PlatformAdapter` (Java 21) adds dialog support on Spigot 1.20.5+/1.21.
-- `AbstractPaperPlatformAdapter` (`authme-paper`, Java 21) extends it and routes player-bound work
-  through Paper's per-entity scheduler.
-- `FoliaPlatformAdapter` (`authme-paper`, Java 21, selected only on Folia via `RegionizedServer`)
-  implements the full region model: entity scheduler, `Bukkit.getGlobalRegionScheduler()`,
-  `Bukkit.getAsyncScheduler()` and ownership checks.
+The 1.8 jar keeps the Java 8 floor, and the merged Spigot jar selects its compatible adapter at
+startup; no config keys, messages, permissions or the plugin id changed in the merge.
 
-The two-pass compile keeps both Spigot bytecode levels in one jar and startup selects the compatible
-adapter. The 1.8 jar is still a separate Java 8 build, and scheduling knowledge remains repeated
-across version modules.
-
-## Platform capability detection (design direction)
-
-[MODULES.md](MODULES.md) details the consolidation history; this page records the shipped state. The
-Spigot merge is complete via the two-pass compile above, not via a single Java 8 jar. The Java 8 floor
-is the separate `authme-spigot-1.8` jar; the merged Spigot jar needs Java 17+ and carries Java 21
-bytecode for its dialog path. One direction for future platform support is runtime capability
-detection instead of additional build-time module selection, with scheduling behind the existing
-`SchedulingAdapter` contract as a small provider stack:
-
-```
-SchedulingAdapter (stable API, Java 8)
-        |
-        v
-SchedulerProvider  -- global, entity, region and async task operations
-        +-- BukkitSchedulerProvider   (classic BukkitScheduler, Java 8)
-        +-- PaperSchedulerProvider    (per-entity scheduler via reflection)
-        +-- FoliaSchedulerProvider    (region/global/async schedulers via reflection)
-```
-
-Selection would happen once at startup, following the `FoliaAPI` pattern in `../EssentialsLite`: probe
-for Folia's `RegionizedServer` and scheduler accessors first, then Paper's entity scheduler, otherwise
-fall back to Bukkit. Reflective method handles are cached, and no provider links Paper or Folia types
-at compile time, so this approach keeps a jar free of hard optional dependencies. Each provider only
-overrides what the platform improves: Paper refines entity-owned tasks, Folia also replaces global
-and async work, and both inherit the Bukkit fallbacks.
-
-### Folia safety rules
+## Folia safety rules
 
 - Never touch an entity or world from a thread that does not own its region: check
   `isOwnedByCurrentThread` first, otherwise dispatch with `runOnEntityThread` or the region scheduler.

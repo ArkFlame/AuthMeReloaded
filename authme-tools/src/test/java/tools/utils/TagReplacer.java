@@ -46,18 +46,8 @@ public final class TagReplacer {
                 throw new IllegalStateException("Unknown tag value type");
             }
         }
-        return applyReplacements(result);
-    }
-
-    /**
-     * Apply the default tag replacements.
-     *
-     * @param template The template to process
-     * @return The filled template
-     */
-    public static String applyReplacements(String template) {
         String curDate = new Date().toString();
-        return template
+        return result
             .replace("{gen_date}", curDate)
             .replace("{gen_warning}", "AUTO-GENERATED FILE! Do not edit this directly")
             .replace("{gen_footer}", "---\n\nThis page was automatically generated on the"

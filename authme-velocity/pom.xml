@@ -22,6 +22,12 @@
 
     <dependencies>
         <dependency>
+            <groupId>fr.xephi</groupId>
+            <artifactId>authme-core</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
             <groupId>com.velocitypowered</groupId>
             <artifactId>velocity-api</artifactId>
             <scope>provided</scope>

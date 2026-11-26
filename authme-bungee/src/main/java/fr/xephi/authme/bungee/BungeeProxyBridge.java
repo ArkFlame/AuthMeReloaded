@@ -8,6 +8,7 @@ import fr.xephi.authme.bungee.events.AuthMeBungeeLogoutEvent;
 import fr.xephi.authme.bungee.premium.BungeePremiumOnlineModeHandler;
 import fr.xephi.authme.bungee.premium.PremiumVerificationManager;
 import fr.xephi.authme.bungee.premium.PremiumVerificationManagers;
+import fr.xephi.authme.proxy.ProxyMessages;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.ProxyServer;
@@ -444,7 +445,12 @@ public final class BungeeProxyBridge implements Listener {
     }
 
     private void sendPerformLogin(String normalizedName, ServerInfo serverInfo, UUID verifiedPremiumUuid) {
-        serverInfo.sendData(AUTHME_CHANNEL, createPerformLoginMessage(normalizedName, verifiedPremiumUuid), false);
+        long timestamp = System.currentTimeMillis();
+        String hmac = ProxyMessageSecurity.computeHmac(
+            configuration.sharedSecret(), normalizedName, timestamp, verifiedPremiumUuid);
+        byte[] payload = ProxyMessages.performLogin(ProxyMessageType.PERFORM_LOGIN.id(),
+            normalizedName, timestamp, verifiedPremiumUuid, hmac);
+        serverInfo.sendData(AUTHME_CHANNEL, payload, false);
     }
 
     private ParsedPluginMessage parsePluginMessage(byte[] data) {
@@ -507,19 +513,6 @@ public final class BungeeProxyBridge implements Listener {
         }
 
         player.connect(targetServer);
-    }
-
-    private byte[] createPerformLoginMessage(String normalizedName, UUID verifiedPremiumUuid) {
-        long timestamp = System.currentTimeMillis();
-        String hmac = ProxyMessageSecurity.computeHmac(
-            configuration.sharedSecret(), normalizedName, timestamp, verifiedPremiumUuid);
-        ByteArrayDataOutput output = ByteStreams.newDataOutput();
-        output.writeUTF(ProxyMessageType.PERFORM_LOGIN.id());
-        output.writeUTF(normalizedName);
-        output.writeLong(timestamp);
-        output.writeUTF(verifiedPremiumUuid == null ? "" : verifiedPremiumUuid.toString());
-        output.writeUTF(hmac);
-        return output.toByteArray();
     }
 
     private record ParsedPluginMessage(ProxyMessageType type, String playerName) {

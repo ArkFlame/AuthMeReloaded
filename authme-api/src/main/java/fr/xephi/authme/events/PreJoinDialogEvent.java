@@ -1,6 +1,5 @@
 package fr.xephi.authme.events;
 
-import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
 import java.net.InetAddress;
@@ -146,11 +145,7 @@ public class PreJoinDialogEvent extends AbstractCancellableEvent {
         return registered;
     }
 
-    /**
-     * Return the list of handlers, equivalent to {@link #getHandlers()} and required by {@link Event}.
-     *
-     * @return the list of handlers
-     */
+    /** Returns this event's handler list; never {@code null}. */
     public static HandlerList getHandlerList() {
         return handlers;
     }

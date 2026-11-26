@@ -1,5 +1,6 @@
 package fr.xephi.authme.command.executable.authme;
 
+import fr.xephi.authme.command.CommandUtils;
 import fr.xephi.authme.command.ExecutableCommand;
 import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.datasource.DataSource;
@@ -34,7 +35,7 @@ public class UuidCommand implements ExecutableCommand {
 
     @Override
     public void executeCommand(CommandSender sender, List<String> arguments) {
-        String playerName = CommandArguments.getTargetPlayerName(sender, arguments);
+        String playerName = CommandUtils.getTargetPlayerName(sender, arguments);
         String offlineName = playerName.toLowerCase(Locale.ROOT);
         UUID offlineUuid = UUID.nameUUIDFromBytes(("OfflinePlayer:" + offlineName)
             .getBytes(StandardCharsets.UTF_8));

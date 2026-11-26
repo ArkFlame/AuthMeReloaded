@@ -218,8 +218,7 @@ public class AsynchronousLogin implements AsynchronousProcess {
         if (tempbanManager.shouldTempban(ip)) {
             tempbanManager.tempbanPlayer(player);
         } else if (service.getProperty(RestrictionSettings.KICK_ON_WRONG_PASSWORD)) {
-            bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player,
-                () -> player.kickPlayer(service.retrieveSingleMessage(player, MessageKey.WRONG_PASSWORD)));
+            ProcessSharedActions.kickPlayer(bukkitService, player, service.retrieveSingleMessage(player, MessageKey.WRONG_PASSWORD));
         } else {
             service.send(player, MessageKey.WRONG_PASSWORD);
 

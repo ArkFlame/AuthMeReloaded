@@ -23,6 +23,7 @@ import com.velocitypowered.api.proxy.server.RegisteredServer;
 import fr.xephi.authme.velocity.events.AuthMeVelocityLoginEvent;
 import fr.xephi.authme.velocity.events.AuthMeVelocityLogoutEvent;
 import fr.xephi.authme.velocity.premium.VelocityPremiumVerificationManager;
+import fr.xephi.authme.proxy.ProxyMessages;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.slf4j.Logger;
@@ -597,13 +598,9 @@ final class VelocityProxyBridge {
         long timestamp = System.currentTimeMillis();
         String hmac = ProxyMessageSecurity.computeHmac(
             configuration.sharedSecret(), normalizedName, timestamp, verifiedPremiumUuid);
-        ByteArrayDataOutput output = ByteStreams.newDataOutput();
-        output.writeUTF(ProxyMessageType.PERFORM_LOGIN.id());
-        output.writeUTF(normalizedName);
-        output.writeLong(timestamp);
-        output.writeUTF(verifiedPremiumUuid == null ? "" : verifiedPremiumUuid.toString());
-        output.writeUTF(hmac);
-        return server.sendPluginMessage(AUTHME_CHANNEL, output.toByteArray());
+        byte[] payload = ProxyMessages.performLogin(ProxyMessageType.PERFORM_LOGIN.id(),
+            normalizedName, timestamp, verifiedPremiumUuid, hmac);
+        return server.sendPluginMessage(AUTHME_CHANNEL, payload);
     }
 
     private void redirectToLoginServer(String normalizedPlayerName) {

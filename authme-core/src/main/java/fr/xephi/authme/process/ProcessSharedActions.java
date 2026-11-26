@@ -47,4 +47,9 @@ public final class ProcessSharedActions {
         return service.hasPermission(player, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS)
             || InternetProtocolUtils.isLoopbackAddress(ip);
     }
+
+    /** Kicks the player on its owning thread with an already resolved message. */
+    public static void kickPlayer(BukkitService bukkitService, Player player, String kickMessage) {
+        bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, () -> player.kickPlayer(kickMessage));
+    }
 }

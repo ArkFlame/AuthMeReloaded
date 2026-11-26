@@ -20,11 +20,7 @@ public class UnregisterByPlayerEvent extends AbstractUnregisterEvent {
         super(player, isAsync);
     }
 
-    /**
-     * Return the list of handlers, equivalent to {@link #getHandlers()} and required by {@link org.bukkit.event.Event}.
-     *
-     * @return The list of handlers
-     */
+    /** Returns this event's handler list; never {@code null}. */
     public static HandlerList getHandlerList() {
         return handlers;
     }

@@ -51,18 +51,34 @@ public abstract class AbstractSqlDataSource implements DataSource {
     protected String findLoggedWithEmptyEmailSql;
     protected String findRecentLoginsSql;
     protected String updateTotpSql;
+    private String findAuthSql;
+    private String findRecordsToPurgeSql;
 
     /**
      * Initializes the SQL strings shared by all SQL data sources. Must be called once the
      * table name and the column names have been assigned.
+     *
+     * @param authNameCondition the dialect-specific condition for matching a name in a lookup
+     * @param purgeFunction the SQL aggregate used to pick the latest activity timestamp when purging
      */
-    protected void initSqlStrings() {
+    protected void initSqlStrings(String authNameCondition, String purgeFunction) {
         findAllSql = "SELECT * FROM " + tableName + ";";
         deleteByNameSql = "DELETE FROM " + tableName + " WHERE " + col.NAME + "=?;";
         findLoggedWithEmptyEmailSql = "SELECT " + col.REAL_NAME + " FROM " + tableName + " WHERE "
             + col.IS_LOGGED + " = 1 AND (" + col.EMAIL + " = 'your@email.com' OR " + col.EMAIL + " IS NULL);";
         findRecentLoginsSql = "SELECT * FROM " + tableName + " ORDER BY " + col.LAST_LOGIN + " DESC LIMIT 10;";
         updateTotpSql = "UPDATE " + tableName + " SET " + col.TOTP_KEY + " = ? WHERE " + col.NAME + " = ?";
+        findAuthSql = "SELECT * FROM " + tableName + " WHERE " + authNameCondition + ";";
+        findRecordsToPurgeSql = "SELECT " + col.NAME + " FROM " + tableName + " WHERE "
+            + purgeFunction + "( COALESCE(" + col.LAST_LOGIN + ", 0), COALESCE(" + col.REGISTRATION_DATE + ", 0)) < ?;";
+    }
+
+    protected String getFindAuthSql() {
+        return findAuthSql;
+    }
+
+    protected String getFindRecordsToPurgeSql() {
+        return findRecordsToPurgeSql;
     }
 
     @Override

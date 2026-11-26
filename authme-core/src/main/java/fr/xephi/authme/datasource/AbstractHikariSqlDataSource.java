@@ -29,8 +29,6 @@ import static fr.xephi.authme.datasource.SqlDataSourceUtils.logSqlException;
  */
 public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource implements SqlConnectionSource {
 
-    private String findAuthSql;
-    private String findRecordsToPurgeSql;
     private String updateOtherUsernamesSql;
 
     private String host;
@@ -57,7 +55,7 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
         this.sqlExtension = extensionsFactory.buildExtension(col);
         this.poolSize = settings.getProperty(DatabaseSettings.MYSQL_POOL_SIZE);
         this.maxLifetime = settings.getProperty(DatabaseSettings.MYSQL_CONNECTION_MAX_LIFETIME);
-        initSqlStrings();
+        initSqlStrings(col.NAME + "=?", "GREATEST");
     }
 
     protected String getHost() {
@@ -89,13 +87,8 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
     }
 
     @Override
-    protected void initSqlStrings() {
-        super.initSqlStrings();
-        findAuthSql = "SELECT * FROM " + tableName + " WHERE " + col.NAME + "=?;";
-        findRecordsToPurgeSql = "SELECT " + col.NAME + " FROM " + tableName + " WHERE GREATEST("
-            + " COALESCE(" + col.LAST_LOGIN + ", 0),"
-            + " COALESCE(" + col.REGISTRATION_DATE + ", 0)"
-            + ") < ?;";
+    protected void initSqlStrings(String authNameCondition, String purgeFunction) {
+        super.initSqlStrings(authNameCondition, purgeFunction);
         updateOtherUsernamesSql = buildOtherUsernamesUpdateSql();
     }
 
@@ -157,7 +150,7 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
 
     @Override
     public PlayerAuth getAuth(String user) {
-        try (Connection con = getConnection(); PreparedStatement pst = con.prepareStatement(findAuthSql)) {
+        try (Connection con = getConnection(); PreparedStatement pst = con.prepareStatement(getFindAuthSql())) {
             pst.setString(1, user.toLowerCase(Locale.ROOT));
             try (ResultSet rs = pst.executeQuery()) {
                 if (rs.next()) {
@@ -200,7 +193,7 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
     @Override
     public Set<String> getRecordsToPurge(long until) {
         try (Connection con = getConnection()) {
-            return findRecordsToPurge(con, findRecordsToPurgeSql, until);
+            return findRecordsToPurge(con, getFindRecordsToPurgeSql(), until);
         } catch (SQLException ex) {
             logSqlException(ex);
         }

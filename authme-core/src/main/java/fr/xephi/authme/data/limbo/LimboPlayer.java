@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -168,23 +167,23 @@ public class LimboPlayer {
     }
 
     /**
-     * Returns the entity UUIDs of ender pearls in flight for this player,
-     * used to restore stasis chambers after a reconnect.
+     * Returns the entity UUIDs of ender pearls in flight for this player, used to restore stasis
+     * chambers after a reconnect. Backed by the pearl map; treat as read-only.
      *
-     * @return snapshot of the ender pearl entity UUIDs (never null)
+     * @return view of the ender pearl entity UUIDs (never null)
      */
     public Set<UUID> getEnderPearlUuids() {
-        return new HashSet<>(enderPearls.keySet());
+        return enderPearls.keySet();
     }
 
     /**
-     * Returns the tracked ender pearls for this player, including the data required
-     * to recreate them if the original entity can no longer be found.
+     * Returns the tracked ender pearls for this player, including the data required to recreate
+     * them if the original entity can no longer be found. Backed by the pearl map; read-only.
      *
-     * @return tracked ender pearls for this player
+     * @return view of the tracked ender pearls for this player
      */
     public Collection<EnderPearlRestoreData> getEnderPearls() {
-        return new ArrayList<>(enderPearls.values());
+        return enderPearls.values();
     }
 
     /**

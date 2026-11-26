@@ -19,11 +19,7 @@ public final class FileIoUtils {
     public static void generateFileFromTemplate(String templateFile, String destinationFile, TagValueHolder tags) {
         String template = readFromFile(templateFile);
         String result = TagReplacer.applyReplacements(template, tags);
-        writeToFile(destinationFile, result);
-    }
-
-    public static void writeToFile(String outputFile, String contents) {
-        writeToFile(Paths.get(outputFile), contents);
+        writeToFile(Paths.get(destinationFile), result);
     }
 
     /**

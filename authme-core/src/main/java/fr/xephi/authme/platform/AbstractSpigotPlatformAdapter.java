@@ -38,37 +38,44 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
     private static final Method BLOCK_IS_PASSABLE_METHOD;
 
     static {
-        Method direct = null;
+        Method direct = findMethod(Player.class, "getLocale");
         Method spigot = null;
         Method spigotLocale = null;
-        Method passable = null;
-        try {
-            direct = Player.class.getMethod("getLocale");
-        } catch (NoSuchMethodException ignored) {
-            // direct Player#getLocale not available (pre-1.12)
-        }
         if (direct == null) {
             try {
                 spigot = Player.class.getMethod("spigot");
-                spigotLocale = spigot.getReturnType().getMethod("getLocale");
+                spigotLocale = findMethod(spigot.getReturnType(), "getLocale");
             } catch (Exception ignored) {
                 spigot = null;
                 spigotLocale = null;
             }
         }
-        try {
-            passable = Block.class.getMethod("isPassable");
-        } catch (NoSuchMethodException ignored) {
-            // Block#isPassable not available (pre-1.13)
-        }
         PLAYER_GET_LOCALE_METHOD = direct;
         PLAYER_SPIGOT_METHOD = spigot;
         SPIGOT_GET_LOCALE_METHOD = spigotLocale;
-        BLOCK_IS_PASSABLE_METHOD = passable;
+        BLOCK_IS_PASSABLE_METHOD = findMethod(Block.class, "isPassable");
+    }
+
+    private static Method findMethod(Class<?> owner, String name) {
+        try {
+            return owner.getMethod(name);
+        } catch (NoSuchMethodException ignored) {
+            return null;
+        }
     }
 
     /** The scheduler matching the running server; keeps Spigot and Folia scheduling consistent. */
     private final SchedulerProvider scheduler = SchedulerProviders.current();
+
+    /**
+     * Returns the scheduler provider resolved for the running server. Subclasses can delegate
+     * global and asynchronous work here instead of keeping a second provider instance.
+     *
+     * @return the shared scheduler provider
+     */
+    protected SchedulerProvider getScheduler() {
+        return scheduler;
+    }
 
     @Override
     public Optional<String> getPlayerLocale(Player player) {
@@ -88,10 +95,7 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
                     }
                 }
             }
-            if (locale == null || locale.trim().isEmpty()) {
-                return Optional.empty();
-            }
-            return Optional.of(locale);
+            return locale == null || locale.trim().isEmpty() ? Optional.empty() : Optional.of(locale);
         } catch (Exception ignored) {
             return Optional.empty();
         }
@@ -101,14 +105,7 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
     public int getSpawnRadius(World world) {
         try {
             String value = world.getGameRuleValue("spawnRadius");
-            if (value == null) {
-                return 0;
-            }
-            int radius = Integer.parseInt(value);
-            if (radius <= 0) {
-                return 0;
-            }
-            return radius;
+            return value == null ? 0 : Math.max(0, Integer.parseInt(value));
         } catch (Exception ignored) {
             return 0;
         }
@@ -165,7 +162,7 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
         if (!isClassAvailable("org.bukkit.event.player.PlayerCommandSendEvent")) {
             listeners.add(AdvancedShulkerFixListener.class);
         }
-        return Collections.unmodifiableList(new ArrayList<>(listeners));
+        return Collections.unmodifiableList(listeners);
     }
 
     @Override

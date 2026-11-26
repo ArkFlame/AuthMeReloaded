@@ -1,5 +1,6 @@
 package fr.xephi.authme.command.executable.authme;
 
+import fr.xephi.authme.command.CommandUtils;
 import fr.xephi.authme.data.auth.PlayerAuth;
 import org.bukkit.command.CommandSender;
 
@@ -12,7 +13,7 @@ public class PurgeLastPositionCommand extends AbstractPlayerAuthCommand {
 
     @Override
     public void executeCommand(CommandSender sender, List<String> arguments) {
-        String playerName = CommandArguments.getTargetPlayerName(sender, arguments);
+        String playerName = CommandUtils.getTargetPlayerName(sender, arguments);
 
         if ("*".equals(playerName)) {
             for (PlayerAuth auth : getDataSource().getAllAuths()) {

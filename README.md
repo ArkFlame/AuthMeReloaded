@@ -35,8 +35,8 @@ deliverables because they target different APIs. Paper and Folia are already con
 selected at startup when `RegionizedServer` is present. Spigot 1.16–1.21.x is now consolidated too:
 `authme-spigot` produces a single `-Spigot.jar` that runs on Java 17+ and enables the dialog adapter
 on Java 21. Until the Java 8 single-jar consolidation lands, the per-platform jars listed above
-continue to ship. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the target design and
-[docs/MODULES.md](docs/MODULES.md) for module details.
+continue to ship. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the platform adapters and the
+runtime-selected `SchedulerProvider`, and [docs/MODULES.md](docs/MODULES.md) for module details.
 
 **Current status — the Spigot merge is complete.** The old `-Spigot-Legacy` and `-Spigot-1.21` jars
 have been replaced by one `-Spigot.jar` covering Spigot 1.16 through 1.21.x. It is built in two passes

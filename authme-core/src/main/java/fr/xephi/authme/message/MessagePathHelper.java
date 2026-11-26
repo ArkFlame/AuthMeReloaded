@@ -59,10 +59,7 @@ public final class MessagePathHelper {
      */
     public static String getLanguageIfIsMessagesFile(String filename) {
         Matcher matcher = MESSAGE_FILE_PATTERN.matcher(filename);
-        if (matcher.matches()) {
-            return matcher.group(1);
-        }
-        return null;
+        return matcher.matches() ? matcher.group(1) : null;
     }
 
     /**

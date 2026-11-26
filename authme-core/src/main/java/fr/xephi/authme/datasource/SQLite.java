@@ -38,8 +38,6 @@ public class SQLite extends AbstractSqlDataSource {
     private final File dataFolder;
     private final String database;
     private Connection con;
-    private String findAuthSql;
-    private String findRecordsToPurgeSql;
 
     /**
      * Constructor for SQLite.
@@ -55,7 +53,7 @@ public class SQLite extends AbstractSqlDataSource {
         this.database = settings.getProperty(DatabaseSettings.MYSQL_DATABASE);
         this.tableName = settings.getProperty(DatabaseSettings.MYSQL_TABLE);
         this.col = new Columns(settings);
-        initSqlStrings();
+        initSqlStrings("LOWER(" + col.NAME + ")=LOWER(?)", "MAX");
 
         try {
             this.connect();
@@ -74,17 +72,9 @@ public class SQLite extends AbstractSqlDataSource {
         this.database = settings.getProperty(DatabaseSettings.MYSQL_DATABASE);
         this.tableName = settings.getProperty(DatabaseSettings.MYSQL_TABLE);
         this.col = new Columns(settings);
-        initSqlStrings();
+        initSqlStrings("LOWER(" + col.NAME + ")=LOWER(?)", "MAX");
         this.con = connection;
         this.columnsHandler = AuthMeColumnsHandler.createForSqlite(con, settings);
-    }
-
-    @Override
-    protected void initSqlStrings() {
-        super.initSqlStrings();
-        findAuthSql = "SELECT * FROM " + tableName + " WHERE LOWER(" + col.NAME + ")=LOWER(?);";
-        findRecordsToPurgeSql = "SELECT " + col.NAME + " FROM " + tableName
-            + " WHERE MAX( COALESCE(" + col.LAST_LOGIN + ", 0), COALESCE(" + col.REGISTRATION_DATE + ", 0)) < ?;";
     }
 
     /**
@@ -202,7 +192,7 @@ public class SQLite extends AbstractSqlDataSource {
 
     @Override
     public synchronized PlayerAuth getAuth(String user) {
-        try (PreparedStatement pst = con.prepareStatement(findAuthSql)) {
+        try (PreparedStatement pst = con.prepareStatement(getFindAuthSql())) {
             pst.setString(1, user);
             try (ResultSet rs = pst.executeQuery()) {
                 if (rs.next()) {
@@ -218,7 +208,7 @@ public class SQLite extends AbstractSqlDataSource {
     @Override
     public synchronized Set<String> getRecordsToPurge(long until) {
         try {
-            return findRecordsToPurge(con, findRecordsToPurgeSql, until);
+            return findRecordsToPurge(con, getFindRecordsToPurgeSql(), until);
         } catch (SQLException ex) {
             logSqlException(ex);
         }

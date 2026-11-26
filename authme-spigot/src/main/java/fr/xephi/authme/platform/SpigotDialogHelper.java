@@ -32,11 +32,9 @@ final class SpigotDialogHelper {
         DialogBase base = newDialogBase(dialog);
 
         List<ActionButton> buttons = new ArrayList<>();
-        buttons.add(new ActionButton(toTextComponent(dialog.primaryButtonLabel()),
-            new RunCommandAction("login $(password)")));
+        buttons.add(newActionButton(dialog.primaryButtonLabel(), "login $(password)"));
         if (dialog.showSecondaryButton() && dialog.secondaryButtonCommand() != null) {
-            buttons.add(new ActionButton(toTextComponent(dialog.secondaryButtonLabel()),
-                new RunCommandAction(dialog.secondaryButtonCommand())));
+            buttons.add(newActionButton(dialog.secondaryButtonLabel(), dialog.secondaryButtonCommand()));
         }
         player.showDialog(new MultiActionDialog(base, buttons.toArray(new ActionButton[0]))
             .columns(dialog.buttonColumns()));
@@ -68,8 +66,11 @@ final class SpigotDialogHelper {
 
     /** Builds the common single-button dialog used by every dialog except the multi-button login dialog. */
     private static MultiActionDialog newSingleActionDialog(DialogBase base, String buttonLabel, String commandTemplate) {
-        return new MultiActionDialog(base,
-            new ActionButton(toTextComponent(buttonLabel), new RunCommandAction(commandTemplate)));
+        return new MultiActionDialog(base, newActionButton(buttonLabel, commandTemplate));
+    }
+
+    private static ActionButton newActionButton(String label, String command) {
+        return new ActionButton(toTextComponent(label), new RunCommandAction(command));
     }
 
     static void closeDialog(Player player) {
@@ -99,21 +100,16 @@ final class SpigotDialogHelper {
     }
 
     private static String createRegisterTemplate(RegistrationType type, RegisterSecondaryArgument secondArg) {
-        if (type == RegistrationType.EMAIL) {
-            if (secondArg == RegisterSecondaryArgument.CONFIRMATION) {
-                return "register $(email) $(confirm)";
-            }
-            return "register $(email)";
-        }
-
+        boolean email = type == RegistrationType.EMAIL;
+        String field = email ? "$(email)" : "$(password)";
         if (secondArg == RegisterSecondaryArgument.CONFIRMATION) {
-            return "register $(password) $(confirm)";
+            return "register " + field + " $(confirm)";
         }
-        if (secondArg == RegisterSecondaryArgument.EMAIL_MANDATORY
-            || secondArg == RegisterSecondaryArgument.EMAIL_OPTIONAL) {
-            return "register $(password) $(email)";
+        if (!email && (secondArg == RegisterSecondaryArgument.EMAIL_MANDATORY
+            || secondArg == RegisterSecondaryArgument.EMAIL_OPTIONAL)) {
+            return "register " + field + " $(email)";
         }
-        return "register $(password)";
+        return "register " + field;
     }
 
     private static TextComponent toTextComponent(String text) {

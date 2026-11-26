@@ -63,10 +63,6 @@ public class Messages {
         this.compatibilityAdapter = compatibilityAdapter;
     }
 
-    Messages(MessagesFileHandler messagesFileHandler, BukkitService bukkitService, Settings settings) {
-        this(messagesFileHandler, bukkitService, settings, null);
-    }
-
     Messages(MessagesFileHandler messagesFileHandler) {
         this(messagesFileHandler, null, null, null);
     }
@@ -162,16 +158,14 @@ public class Messages {
             : message;
         // String.replace allocates regex machinery even when the tag is absent, so only
         // apply a conversion when its tag is actually present in the message.
-        if (formatted.contains(NEWLINE_TAG)) {
-            formatted = formatted.replace(NEWLINE_TAG, "\n");
-        }
-        if (formatted.contains(USERNAME_TAG)) {
-            formatted = formatted.replace(USERNAME_TAG, name);
-        }
-        if (formatted.contains(DISPLAYNAME_TAG)) {
-            formatted = formatted.replace(DISPLAYNAME_TAG, displayName);
-        }
+        formatted = replaceIfPresent(formatted, NEWLINE_TAG, "\n");
+        formatted = replaceIfPresent(formatted, USERNAME_TAG, name);
+        formatted = replaceIfPresent(formatted, DISPLAYNAME_TAG, displayName);
         return formatted;
+    }
+
+    private static String replaceIfPresent(String message, String tag, String value) {
+        return message.contains(tag) ? message.replace(tag, value) : message;
     }
 
     /**

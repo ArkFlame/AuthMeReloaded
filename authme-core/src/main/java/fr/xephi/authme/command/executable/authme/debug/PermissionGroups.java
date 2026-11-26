@@ -1,5 +1,6 @@
 package fr.xephi.authme.command.executable.authme.debug;
 
+import fr.xephi.authme.command.CommandUtils;
 import fr.xephi.authme.data.limbo.UserGroup;
 import fr.xephi.authme.permission.DebugSectionPermissions;
 import fr.xephi.authme.permission.PermissionNode;
@@ -34,7 +35,7 @@ class PermissionGroups implements DebugSection {
     @Override
     public void execute(CommandSender sender, List<String> arguments) {
         sendTitle(sender, "permission groups");
-        String name = arguments.isEmpty() ? sender.getName() : arguments.get(0);
+        String name = CommandUtils.getTargetPlayerName(sender, arguments);
         Player player = Bukkit.getPlayer(name);
         if (player == null) {
             sender.sendMessage("Player " + name + " could not be found");

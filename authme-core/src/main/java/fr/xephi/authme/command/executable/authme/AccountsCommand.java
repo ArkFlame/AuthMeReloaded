@@ -1,5 +1,6 @@
 package fr.xephi.authme.command.executable.authme;
 
+import fr.xephi.authme.command.CommandUtils;
 import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.service.BukkitService;
@@ -26,7 +27,7 @@ public class AccountsCommand extends AbstractPlayerAuthCommand {
             sender.sendMessage("Usage: /authme accounts <player|ip>");
             return;
         }
-        final String playerName = CommandArguments.getTargetPlayerName(sender, arguments);
+        final String playerName = CommandUtils.getTargetPlayerName(sender, arguments);
 
         // Assumption: a player name cannot contain '.'
         if (playerName.contains(".")) {

@@ -2,6 +2,7 @@ package fr.xephi.authme.command;
 
 import com.google.common.collect.Lists;
 import org.bukkit.ChatColor;
+import org.bukkit.command.CommandSender;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -9,11 +10,22 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Utility functions for {@link CommandDescription} objects.
+ * Utility functions for AuthMe commands and their {@link CommandDescription} objects.
  */
 public final class CommandUtils {
 
     private CommandUtils() {
+    }
+
+    /**
+     * Returns the player name supplied as first argument, or the sender's own name if none was given.
+     *
+     * @param sender the command sender
+     * @param arguments the command arguments
+     * @return the name of the targeted player
+     */
+    public static String getTargetPlayerName(CommandSender sender, List<String> arguments) {
+        return arguments.isEmpty() ? sender.getName() : arguments.get(0);
     }
 
     /**

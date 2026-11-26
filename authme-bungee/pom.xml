@@ -22,6 +22,12 @@
 
     <dependencies>
         <dependency>
+            <groupId>fr.xephi</groupId>
+            <artifactId>authme-core</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
             <groupId>net.md-5</groupId>
             <artifactId>bungeecord-api</artifactId>
             <scope>provided</scope>

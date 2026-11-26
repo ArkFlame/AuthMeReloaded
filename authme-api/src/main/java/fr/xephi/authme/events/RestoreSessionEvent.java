@@ -25,17 +25,13 @@ public class RestoreSessionEvent extends AbstractCancellableEvent {
     /**
      * Return the player whose session is about to be restored.
      *
-     * @return the player for which the session will be enabled
+     * @return the player for which the session will be enabled, never {@code null}
      */
     public Player getPlayer() {
         return player;
     }
 
-    /**
-     * Return the list of handlers, equivalent to {@link #getHandlers()} and required by {@link org.bukkit.event.Event}.
-     *
-     * @return The list of handlers
-     */
+    /** Returns this event's handler list; never {@code null}. */
     public static HandlerList getHandlerList() {
         return handlers;
     }
