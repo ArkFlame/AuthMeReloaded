@@ -41,9 +41,6 @@ public class DataSourceProvider implements Provider<DataSource> {
     @Inject
     private MySqlExtensionsFactory mySqlExtensionsFactory;
 
-    DataSourceProvider() {
-    }
-
     @Override
     public DataSource get() {
         try {

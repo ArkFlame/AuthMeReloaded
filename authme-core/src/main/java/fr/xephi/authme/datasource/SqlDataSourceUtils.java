@@ -112,20 +112,15 @@ public final class SqlDataSourceUtils {
      */
     public static boolean isNotNullColumn(DatabaseMetaData metaData, String tableName,
                                           String columnName) throws SQLException {
-        try (ResultSet rs = metaData.getColumns(null, null, tableName, columnName)) {
-            if (!rs.next()) {
-                throw new IllegalStateException("Did not find meta data for column '"
-                    + columnName + "' while checking for not-null constraint");
-            }
-
+        return readColumnData(metaData, tableName, columnName, "while checking for not-null constraint", rs -> {
             int nullableCode = rs.getInt("NULLABLE");
             if (nullableCode == DatabaseMetaData.columnNoNulls) {
                 return true;
             } else if (nullableCode == DatabaseMetaData.columnNullableUnknown) {
                 logger.warning("Unknown nullable status for column '" + columnName + "'");
             }
-        }
-        return false;
+            return false;
+        });
     }
 
     /**
@@ -139,13 +134,8 @@ public final class SqlDataSourceUtils {
      */
     public static Object getColumnDefaultValue(DatabaseMetaData metaData, String tableName,
                                                String columnName) throws SQLException {
-        try (ResultSet rs = metaData.getColumns(null, null, tableName, columnName)) {
-            if (!rs.next()) {
-                throw new IllegalStateException("Did not find meta data for column '"
-                    + columnName + "' while checking its default value");
-            }
-            return rs.getObject("COLUMN_DEF");
-        }
+        return readColumnData(metaData, tableName, columnName, "while checking its default value",
+            rs -> rs.getObject("COLUMN_DEF"));
     }
 
     /**
@@ -159,12 +149,26 @@ public final class SqlDataSourceUtils {
      */
     public static int getColumnSize(DatabaseMetaData metaData, String tableName,
                                          String columnName) throws SQLException {
+        return readColumnData(metaData, tableName, columnName, "while checking its size",
+            rs -> rs.getInt("COLUMN_SIZE"));
+    }
+
+    /**
+     * Reads a column's metadata row, closing the result set whether the read succeeds or fails.
+     */
+    private static <T> T readColumnData(DatabaseMetaData metaData, String tableName, String columnName,
+                                        String purpose, ColumnDataReader<T> reader) throws SQLException {
         try (ResultSet rs = metaData.getColumns(null, null, tableName, columnName)) {
             if (!rs.next()) {
-                throw new IllegalStateException("Did not find meta data for column '"
-                    + columnName + "' while checking its size");
+                throw new IllegalStateException("Did not find meta data for column '" + columnName + "' " + purpose);
             }
-            return rs.getInt("COLUMN_SIZE");
+            return reader.read(rs);
         }
+    }
+
+    @FunctionalInterface
+    private interface ColumnDataReader<T> {
+
+        T read(ResultSet rs) throws SQLException;
     }
 }

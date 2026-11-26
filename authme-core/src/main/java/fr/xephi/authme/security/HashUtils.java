@@ -1,5 +1,6 @@
 package fr.xephi.authme.security;
 
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
@@ -84,6 +85,23 @@ public final class HashUtils {
     }
 
     /**
+     * Creates a {@link Mac} initialized with the given key. Callers keep the checked exceptions so they
+     * can report a failure with their own message.
+     *
+     * @param algorithm the MAC algorithm, e.g. {@code HmacSHA256}
+     * @param key the secret key bytes
+     * @return the initialized MAC
+     * @throws NoSuchAlgorithmException if the algorithm is not available
+     * @throws InvalidKeyException if the key cannot be used with the algorithm
+     */
+    public static Mac createMac(String algorithm, byte[] key)
+        throws NoSuchAlgorithmException, InvalidKeyException {
+        Mac mac = Mac.getInstance(algorithm);
+        mac.init(new SecretKeySpec(key, algorithm));
+        return mac;
+    }
+
+    /**
      * Compute the HMAC-SHA256 of the given message using the given secret key,
      * and return the result as a lowercase hexadecimal string.
      *
@@ -93,10 +111,8 @@ public final class HashUtils {
      */
     public static String hmacSha256(String secret, String message) {
         try {
-            Mac mac = Mac.getInstance("HmacSHA256");
-            mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
-            byte[] digest = mac.doFinal(message.getBytes(StandardCharsets.UTF_8));
-            return toHex(digest);
+            return toHex(createMac("HmacSHA256", secret.getBytes(StandardCharsets.UTF_8))
+                .doFinal(message.getBytes(StandardCharsets.UTF_8)));
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
             throw new UnsupportedOperationException("HmacSHA256 is not available on this system", e);
         }
@@ -144,6 +160,18 @@ public final class HashUtils {
     }
 
     /**
+     * Hash the message with the given algorithm, converting the message with the given charset.
+     *
+     * @param message the message to hash
+     * @param algorithm the algorithm to hash the message with
+     * @param charset the charset used to convert the message into bytes
+     * @return the digest in its hexadecimal representation
+     */
+    public static String hash(String message, MessageDigestAlgorithm algorithm, Charset charset) {
+        return hash(message, getDigest(algorithm), charset);
+    }
+
+    /**
      * Hash the message with the given algorithm and return the hash in its hexadecimal notation.
      *
      * @param message The message to hash
@@ -151,9 +179,12 @@ public final class HashUtils {
      * @return The digest in its hexadecimal representation
      */
     public static String hash(String message, MessageDigest algorithm) {
+        return hash(message, algorithm, Charset.defaultCharset());
+    }
+
+    private static String hash(String message, MessageDigest algorithm, Charset charset) {
         algorithm.reset();
-        algorithm.update(message.getBytes());
-        byte[] digest = algorithm.digest();
-        return toHex(digest);
+        algorithm.update(message.getBytes(charset));
+        return toHex(algorithm.digest());
     }
 }

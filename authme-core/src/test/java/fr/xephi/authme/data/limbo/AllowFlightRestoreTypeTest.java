@@ -2,7 +2,16 @@ package fr.xephi.authme.data.limbo;
 
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.stream.Stream;
+
+import static fr.xephi.authme.data.limbo.AllowFlightRestoreType.DISABLE;
+import static fr.xephi.authme.data.limbo.AllowFlightRestoreType.ENABLE;
+import static fr.xephi.authme.data.limbo.AllowFlightRestoreType.NOTHING;
+import static fr.xephi.authme.data.limbo.AllowFlightRestoreType.RESTORE;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -13,72 +22,35 @@ import static org.mockito.Mockito.verifyNoInteractions;
  */
 class AllowFlightRestoreTypeTest {
 
-    @Test
-    void shouldRestoreValue() {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("restoreTypes")
+    void shouldRestoreAllowFlight(AllowFlightRestoreType type, boolean expectedWithFly,
+                                  boolean expectedWithoutFly, boolean interactsWithPlayer) {
         // given
         LimboPlayer limboWithFly = newLimboWithAllowFlight(true);
         LimboPlayer limboWithoutFly = newLimboWithAllowFlight(false);
-        Player player1 = mock(Player.class);
-        Player player2 = mock(Player.class);
+        Player playerWithFly = mock(Player.class);
+        Player playerWithoutFly = mock(Player.class);
 
         // when
-        AllowFlightRestoreType.RESTORE.restoreAllowFlight(player1, limboWithFly);
-        AllowFlightRestoreType.RESTORE.restoreAllowFlight(player2, limboWithoutFly);
+        type.restoreAllowFlight(playerWithFly, limboWithFly);
+        type.restoreAllowFlight(playerWithoutFly, limboWithoutFly);
 
         // then
-        verify(player1).setAllowFlight(true);
-        verify(player2).setAllowFlight(false);
+        if (interactsWithPlayer) {
+            verify(playerWithFly).setAllowFlight(expectedWithFly);
+            verify(playerWithoutFly).setAllowFlight(expectedWithoutFly);
+        } else {
+            verifyNoInteractions(playerWithFly, playerWithoutFly);
+        }
     }
 
-    @Test
-    void shouldEnableFlight() {
-        // given
-        LimboPlayer limboWithFly = newLimboWithAllowFlight(true);
-        LimboPlayer limboWithoutFly = newLimboWithAllowFlight(false);
-        Player player1 = mock(Player.class);
-        Player player2 = mock(Player.class);
-
-        // when
-        AllowFlightRestoreType.ENABLE.restoreAllowFlight(player1, limboWithFly);
-        AllowFlightRestoreType.ENABLE.restoreAllowFlight(player2, limboWithoutFly);
-
-        // then
-        verify(player1).setAllowFlight(true);
-        verify(player2).setAllowFlight(true);
-    }
-
-
-    @Test
-    void shouldDisableFlight() {
-        // given
-        LimboPlayer limboWithFly = newLimboWithAllowFlight(true);
-        LimboPlayer limboWithoutFly = newLimboWithAllowFlight(false);
-        Player player1 = mock(Player.class);
-        Player player2 = mock(Player.class);
-
-        // when
-        AllowFlightRestoreType.DISABLE.restoreAllowFlight(player1, limboWithFly);
-        AllowFlightRestoreType.DISABLE.restoreAllowFlight(player2, limboWithoutFly);
-
-        // then
-        verify(player1).setAllowFlight(false);
-        verify(player2).setAllowFlight(false);
-    }
-
-    @Test
-    void shouldNotInteractWithPlayer() {
-        // given
-        LimboPlayer limboWithFly = newLimboWithAllowFlight(true);
-        LimboPlayer limboWithoutFly = newLimboWithAllowFlight(false);
-        Player player1 = mock(Player.class);
-        Player player2 = mock(Player.class);
-
-        // when
-        AllowFlightRestoreType.NOTHING.restoreAllowFlight(player1, limboWithFly);
-        AllowFlightRestoreType.NOTHING.restoreAllowFlight(player2, limboWithoutFly);
-
-        // then
-        verifyNoInteractions(player1, player2);
+    private static Stream<Arguments> restoreTypes() {
+        return Stream.of(
+            Arguments.of(RESTORE, true, false, true),
+            Arguments.of(ENABLE, true, true, true),
+            Arguments.of(DISABLE, false, false, true),
+            Arguments.of(NOTHING, false, false, false));
     }
 
     @Test

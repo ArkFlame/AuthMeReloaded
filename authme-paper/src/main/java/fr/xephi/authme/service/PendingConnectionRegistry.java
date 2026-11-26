@@ -13,9 +13,6 @@ public class PendingConnectionRegistry {
 
     private final Map<String, Claim> claims = new ConcurrentHashMap<>();
 
-    public PendingConnectionRegistry() {
-    }
-
     public boolean tryClaim(String name, PlayerConnection connection, long ttlMillis) {
         String connectionKey = connectionKey(connection);
         long expiresAt = System.currentTimeMillis() + ttlMillis;

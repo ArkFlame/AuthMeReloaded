@@ -2,6 +2,7 @@ package fr.xephi.authme.command.executable.register;
 
 import fr.xephi.authme.ConsoleLogger;
 import fr.xephi.authme.command.PlayerCommand;
+import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.data.captcha.RegistrationCaptchaManager;
 import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.mail.EmailService;
@@ -106,7 +107,7 @@ public class RegisterCommand extends PlayerCommand {
     }
 
     private void handlePasswordRegistration(Player player, List<String> arguments) {
-        if (isSecondArgValidForPasswordRegistration(player, arguments)) {
+        if (isSecondArgValid(player, arguments, false)) {
             final String password = arguments.get(0);
             final String email = getEmailIfAvailable(arguments);
 
@@ -135,40 +136,47 @@ public class RegisterCommand extends PlayerCommand {
     }
 
     /**
-     * Verifies that the second argument is valid (based on the configuration)
-     * to perform a password registration. The player is informed if the check
-     * is unsuccessful.
+     * Verifies that the second argument is valid (based on the configuration) for either
+     * registration flow. The player is informed if the check is unsuccessful.
      *
      * @param player the player to register
      * @param arguments the provided arguments
+     * @param emailRegistration whether this is an email registration rather than a password registration
      * @return true if valid, false otherwise
      */
-    private boolean isSecondArgValidForPasswordRegistration(Player player, List<String> arguments) {
+    private boolean isSecondArgValid(Player player, List<String> arguments, boolean emailRegistration) {
         RegisterSecondaryArgument secondArgType = commonService.getProperty(REGISTER_SECOND_ARGUMENT);
         if (isSecondArgNotRequired(arguments, secondArgType)) {
             return true;
-        } else if (arguments.size() < 2) {
+        }
+        if (arguments.size() < 2) {
             commonService.send(player, MessageKey.USAGE_REGISTER);
             return false;
         }
 
-        if (secondArgType == CONFIRMATION) {
-            if (arguments.get(0).equals(arguments.get(1))) {
-                return true;
-            } else {
-                commonService.send(player, MessageKey.PASSWORD_MATCH_ERROR);
-                return false;
+        if (emailRegistration) {
+            if (secondArgType == EMAIL_OPTIONAL || secondArgType == EMAIL_MANDATORY
+                || secondArgType == CONFIRMATION) {
+                return checkArgumentsMatch(player, arguments, MessageKey.USAGE_REGISTER);
             }
+        } else if (secondArgType == CONFIRMATION) {
+            return checkArgumentsMatch(player, arguments, MessageKey.PASSWORD_MATCH_ERROR);
         } else if (secondArgType == EMAIL_MANDATORY || secondArgType == EMAIL_OPTIONAL) {
             if (validationService.validateEmail(arguments.get(1))) {
                 return true;
-            } else {
-                commonService.send(player, MessageKey.INVALID_EMAIL);
-                return false;
             }
-        } else {
-            throw new IllegalStateException("Unknown secondary argument type '" + secondArgType + "'");
+            commonService.send(player, MessageKey.INVALID_EMAIL);
+            return false;
         }
+        throw new IllegalStateException("Unknown secondary argument type '" + secondArgType + "'");
+    }
+
+    private boolean checkArgumentsMatch(Player player, List<String> arguments, MessageKey errorMessage) {
+        if (arguments.get(0).equals(arguments.get(1))) {
+            return true;
+        }
+        commonService.send(player, errorMessage);
+        return false;
     }
 
     private void handleEmailRegistration(Player player, List<String> arguments) {
@@ -182,7 +190,7 @@ public class RegisterCommand extends PlayerCommand {
         final String email = arguments.get(0);
         if (!validationService.validateEmail(email)) {
             commonService.send(player, MessageKey.INVALID_EMAIL);
-        } else if (isSecondArgValidForEmailRegistration(player, arguments)) {
+        } else if (isSecondArgValid(player, arguments, true)) {
             management.performRegister(RegistrationMethod.EMAIL_REGISTRATION,
                 EmailRegisterParams.of(player, email));
             if (commonService.getProperty(RegistrationSettings.UNREGISTER_ON_EMAIL_VERIFICATION_FAILURE)
@@ -190,42 +198,12 @@ public class RegisterCommand extends PlayerCommand {
                 long delayTicks = 60L * 20L
                     * commonService.getProperty(RegistrationSettings.UNREGISTER_AFTER_MINUTES);
                 bukkitService.runTaskLater(player, () -> {
-                    if (dataSource.getAuth(player.getName()) != null
-                        && dataSource.getAuth(player.getName()).getLastLogin() == null) {
+                    PlayerAuth auth = dataSource.getAuth(player.getName());
+                    if (auth != null && auth.getLastLogin() == null) {
                         management.performUnregisterByAdmin(null, player.getName(), player);
                     }
                 }, delayTicks);
             }
-        }
-    }
-
-    /**
-     * Verifies that the second argument is valid (based on the configuration)
-     * to perform an email registration. The player is informed if the check
-     * is unsuccessful.
-     *
-     * @param player the player to register
-     * @param arguments the provided arguments
-     * @return true if valid, false otherwise
-     */
-    private boolean isSecondArgValidForEmailRegistration(Player player, List<String> arguments) {
-        RegisterSecondaryArgument secondArgType = commonService.getProperty(REGISTER_SECOND_ARGUMENT);
-        if (isSecondArgNotRequired(arguments, secondArgType)) {
-            return true;
-        } else if (arguments.size() < 2) {
-            commonService.send(player, MessageKey.USAGE_REGISTER);
-            return false;
-        }
-
-        if (secondArgType == EMAIL_OPTIONAL || secondArgType == EMAIL_MANDATORY || secondArgType == CONFIRMATION) {
-            if (arguments.get(0).equals(arguments.get(1))) {
-                return true;
-            } else {
-                commonService.send(player, MessageKey.USAGE_REGISTER);
-                return false;
-            }
-        } else {
-            throw new IllegalStateException("Unknown secondary argument type '" + secondArgType + "'");
         }
     }
 }

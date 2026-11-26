@@ -6,116 +6,78 @@ import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.security.crypts.HashedPassword;
 import fr.xephi.authme.util.UuidUtils;
-import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import javax.inject.Inject;
-import java.io.File;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Locale;
 import java.util.UUID;
 
-import static fr.xephi.authme.util.Utils.logAndSendMessage;
-
 /**
- * Converts data from nLogin to AuthMe.
- * <p>
- * The storage backend is determined by reading {@code plugins/nLogin/config.yml}:
- * <ul>
- *   <li><b>SQLite</b> ({@code database.type: SQLite}) — reads {@code plugins/nLogin/nlogin.db}
- *       directly.</li>
- *   <li><b>MySQL / MariaDB</b> — uses AuthMe's existing connection pool; nLogin must share
- *       the same database as AuthMe.</li>
- * </ul>
- * The account table name is read from {@code database.table.account.table-name} (default:
- * {@code nlogin}).
- * <p>
- * nLogin reuses AuthMe's password hash formats for BCrypt, SHA-256 and SHA-512, so hashes are
- * copied as-is. Configure AuthMe's {@code passwordHash} to match nLogin's algorithm (default:
- * {@code BCRYPT}). Argon2 (argon2id) hashes are supported via {@code ARGON2ID}.
+ * Converts data from nLogin to AuthMe. Reads {@code plugins/nLogin/config.yml}:
+ * {@code database.type: SQLite} uses {@code plugins/nLogin/nlogin.db}, any other value uses the
+ * shared SQL pool. The account table comes from {@code database.table.account.table-name}
+ * (default {@code nlogin}). Hashes are copied as-is (BCrypt, SHA-256, SHA-512, Argon2); set
+ * AuthMe's {@code passwordHash} to match (default {@code BCRYPT}).
  */
-public class NLoginConverter implements Converter {
+public class NLoginConverter extends AbstractYamlPluginConverter {
 
     private static final String CONFIG_PATH = "plugins/nLogin/config.yml";
     private static final String SQLITE_DB_PATH = "plugins/nLogin/nlogin.db";
     private static final String DEFAULT_TABLE = "nlogin";
 
     private static final ConsoleLogger logger = ConsoleLoggerFactory.get(NLoginConverter.class);
-    private final DataSource dataSource;
 
     @Inject
     NLoginConverter(DataSource dataSource) {
-        this.dataSource = dataSource;
+        super(dataSource, CONFIG_PATH, SQLITE_DB_PATH, "nLogin", logger);
     }
 
     @Override
-    public void execute(CommandSender sender) {
-        File configFile = new File(CONFIG_PATH);
-        if (!configFile.exists()) {
-            logAndSendMessage(sender, "nLogin conversion failed: config not found at " + CONFIG_PATH);
-            return;
-        }
-
-        YamlConfiguration nLoginConfig = YamlConfiguration.loadConfiguration(configFile);
-        String dbType = nLoginConfig.getString("database.type", "SQLite");
-        String table = nLoginConfig.getString("database.table.account.table-name", DEFAULT_TABLE);
-        String query = "SELECT last_name, password, last_ip, email, creation_date, last_seen, unique_id FROM " + table;
-
-        if ("SQLite".equalsIgnoreCase(dbType)) {
-            new SqliteImportTask(dataSource, new File(SQLITE_DB_PATH), query, "nLogin", logger,
-                importer(sender), "nLogin conversion failed: SQLite database not found at " + SQLITE_DB_PATH)
-                .execute(sender);
-        } else {
-            new SqlImportTask(dataSource, query, "nLogin", logger, importer(sender)).execute(sender);
-        }
+    protected Backend getBackend(YamlConfiguration config) {
+        return "SQLite".equalsIgnoreCase(config.getString("database.type", "SQLite"))
+            ? Backend.SQLITE
+            : Backend.SQL;
     }
 
-    private ResultSetImporter importer(CommandSender sender) {
-        return rs -> importRows(rs, dataSource, sender);
+    @Override
+    protected String getQuery(YamlConfiguration config) {
+        String table = config.getString("database.table.account.table-name", DEFAULT_TABLE);
+        return "SELECT last_name, password, last_ip, email, creation_date, last_seen, unique_id FROM " + table;
     }
 
-    private static void importRows(ResultSet rs, DataSource dataSource, CommandSender sender) throws SQLException {
-        long imported = 0;
-        long skipped = 0;
-        while (rs.next()) {
-            String realName = rs.getString("last_name");
-            if (realName == null || realName.isEmpty()) {
-                continue;
-            }
-            String name = realName.toLowerCase(Locale.ROOT);
+    @Override
+    protected String unsupportedMessage(YamlConfiguration config) {
+        return "nLogin conversion: database type '" + config.getString("database.type", "SQLite")
+            + "' is not supported.";
+    }
 
-            if (dataSource.isAuthAvailable(name)) {
-                ++skipped;
-                continue;
-            }
+    @Override
+    protected String getName(ResultSet rs) throws SQLException {
+        String realName = rs.getString("last_name");
+        return realName == null || realName.isEmpty() ? null : realName.toLowerCase(Locale.ROOT);
+    }
 
-            String hash = rs.getString("password");
-            if (hash == null || hash.isEmpty()) {
-                logger.warning("No password for player '" + name + "', skipping");
-                continue;
-            }
-
-            long creationDate = rs.getLong("creation_date");
-            long lastLogin = rs.getLong("last_seen");
-
-            PlayerAuth auth = PlayerAuth.builder()
-                .name(name)
-                .realName(realName)
-                .password(new HashedPassword(hash))
-                .lastIp(rs.getString("last_ip"))
-                .email(rs.getString("email"))
-                .registrationDate(creationDate)
-                .lastLogin(lastLogin > 0 ? lastLogin : null)
-                .uuid(parseNLoginUuid(rs.getString("unique_id")))
-                .build();
-
-            dataSource.saveAuth(auth);
-            ++imported;
+    @Override
+    protected PlayerAuth buildAuth(ResultSet rs, String name) throws SQLException {
+        String hash = rs.getString("password");
+        if (hash == null || hash.isEmpty()) {
+            logger.warning("No password for player '" + name + "', skipping");
+            return null;
         }
-
-        logAndSendMessage(sender, "nLogin conversion: " + imported + " account(s) imported, "
-            + skipped + " skipped (already exist)");
+        long creationDate = rs.getLong("creation_date");
+        long lastLogin = rs.getLong("last_seen");
+        return PlayerAuth.builder()
+            .name(name)
+            .realName(rs.getString("last_name"))
+            .password(new HashedPassword(hash))
+            .lastIp(rs.getString("last_ip"))
+            .email(rs.getString("email"))
+            .registrationDate(creationDate)
+            .lastLogin(lastLogin > 0 ? lastLogin : null)
+            .uuid(parseNLoginUuid(rs.getString("unique_id")))
+            .build();
     }
 
     /**

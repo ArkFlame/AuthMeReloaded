@@ -1,5 +1,6 @@
 package fr.xephi.authme.data.limbo;
 
+import ch.jalu.configme.properties.Property;
 import fr.xephi.authme.TestHelper;
 import fr.xephi.authme.data.auth.PlayerCache;
 import fr.xephi.authme.data.captcha.RegistrationCaptchaManager;
@@ -368,29 +369,21 @@ class LimboPlayerTaskManagerTest {
 
     @Test
     void shouldNotRegisterTimeoutTaskForZeroLoginTimeout() {
-        // given
-        Player player = mock(Player.class);
-        LimboPlayer limboPlayer = mock(LimboPlayer.class);
-        given(settings.getProperty(RestrictionSettings.LOGIN_TIMEOUT)).willReturn(0);
-
-        // when
-        limboPlayerTaskManager.registerTimeoutTask(player, limboPlayer, LimboMessageType.LOG_IN);
-
-        // then
-        verifyNoInteractions(limboPlayer, bukkitService);
+        assertNoTimeoutTask(RestrictionSettings.LOGIN_TIMEOUT, LimboMessageType.LOG_IN);
     }
 
     @Test
     void shouldNotRegisterTimeoutTaskForZeroRegisterTimeout() {
-        // given
+        assertNoTimeoutTask(RestrictionSettings.REGISTER_TIMEOUT, LimboMessageType.REGISTER);
+    }
+
+    private void assertNoTimeoutTask(Property<Integer> timeoutProperty, LimboMessageType type) {
         Player player = mock(Player.class);
         LimboPlayer limboPlayer = mock(LimboPlayer.class);
-        given(settings.getProperty(RestrictionSettings.REGISTER_TIMEOUT)).willReturn(0);
+        given(settings.getProperty(timeoutProperty)).willReturn(0);
 
-        // when
-        limboPlayerTaskManager.registerTimeoutTask(player, limboPlayer, LimboMessageType.REGISTER);
+        limboPlayerTaskManager.registerTimeoutTask(player, limboPlayer, type);
 
-        // then
         verifyNoInteractions(limboPlayer, bukkitService);
     }
 

@@ -3,11 +3,6 @@ package fr.xephi.authme.service.bungeecord;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 import fr.xephi.authme.AuthMe;
-
-import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
-import java.util.stream.Collectors;
 import fr.xephi.authme.ConsoleLogger;
 import fr.xephi.authme.initialization.SettingsDependent;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
@@ -18,11 +13,16 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.messaging.Messenger;
 
 import javax.inject.Inject;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class BungeeSender implements SettingsDependent {
 
     private static final String BUNGEE_CHANNEL = "BungeeCord";
     private static final String AUTHME_CHANNEL = MessageType.CHANNEL;
+    private static final int PREMIUM_LIST_CHUNK_SIZE = 1000;
 
     private final ConsoleLogger logger = ConsoleLoggerFactory.get(BungeeSender.class);
     private final AuthMe plugin;
@@ -31,9 +31,6 @@ public class BungeeSender implements SettingsDependent {
     private boolean isEnabled;
     private String destinationServerOnLogin;
 
-    /*
-     * Constructor.
-     */
     @Inject
     BungeeSender(AuthMe plugin, BukkitService bukkitService, Settings settings) {
         this.plugin = plugin;
@@ -95,8 +92,8 @@ public class BungeeSender implements SettingsDependent {
     /**
      * Sends a message to the AuthMe plugin messaging channel, if enabled.
      *
-     * @param player     The player related to the message
-     * @param type       The message type, See {@link MessageType}
+     * @param player the player related to the message
+     * @param type the message type, see {@link MessageType}
      */
     public void sendAuthMeBungeecordMessage(Player player, MessageType type) {
         if (!isEnabled) {
@@ -171,16 +168,15 @@ public class BungeeSender implements SettingsDependent {
         List<String> normalizedUsernames = premiumUsernames.stream()
             .map(name -> name.toLowerCase(Locale.ROOT))
             .collect(Collectors.toList());
-        int chunkSize = 1000;
         int total = normalizedUsernames.size();
         if (total == 0) {
             sendPremiumListChunk(carrier, 0, true, "");
             return;
         }
-        int numChunks = (total + chunkSize - 1) / chunkSize;
+        int numChunks = (total + PREMIUM_LIST_CHUNK_SIZE - 1) / PREMIUM_LIST_CHUNK_SIZE;
         for (int i = 0; i < numChunks; i++) {
-            int fromIndex = i * chunkSize;
-            int toIndex = Math.min(fromIndex + chunkSize, total);
+            int fromIndex = i * PREMIUM_LIST_CHUNK_SIZE;
+            int toIndex = Math.min(fromIndex + PREMIUM_LIST_CHUNK_SIZE, total);
             String csv = String.join(",", normalizedUsernames.subList(fromIndex, toIndex));
             sendPremiumListChunk(carrier, i, i == numChunks - 1, csv);
         }

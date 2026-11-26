@@ -51,7 +51,8 @@ final class ProxyPremiumLoginVerifier {
         verified.clear();
     }
 
-    private static String normalize(String username) {
+    /** Shared name normalizer for the Velocity premium package; keep it here so callers agree on casing. */
+    static String normalize(String username) {
         return username.toLowerCase(Locale.ROOT);
     }
 

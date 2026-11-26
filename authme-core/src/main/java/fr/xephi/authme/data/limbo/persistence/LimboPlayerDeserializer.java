@@ -57,8 +57,9 @@ class LimboPlayerDeserializer implements JsonDeserializer<LimboPlayer> {
     private static final String GROUP_LEGACY = "group";
     private static final String CONTEXT_MAP = "contextMap";
     private static final String GROUP_NAME = "groupName";
+    private static final Gson GSON = new Gson();
 
-    private BukkitService bukkitService;
+    private final BukkitService bukkitService;
 
     LimboPlayerDeserializer(BukkitService bukkitService) {
         this.bukkitService = bukkitService;
@@ -187,7 +188,7 @@ class LimboPlayerDeserializer implements JsonDeserializer<LimboPlayer> {
                     JsonElement contextMapJson = jsonGroup.get(CONTEXT_MAP);
                     Type type = new TypeToken<Map<String, String>>() {
                     }.getType();
-                    contextMap = new Gson().fromJson(contextMapJson.getAsString(), type);
+                    contextMap = GSON.fromJson(contextMapJson.getAsString(), type);
                 }
 
                 String groupName = jsonGroup.get(GROUP_NAME).getAsString();

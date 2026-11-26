@@ -23,7 +23,7 @@ import static java.util.stream.Collectors.toList;
  */
 public class VaultHandler implements PermissionHandler {
 
-    private Permission vaultProvider;
+    private final Permission vaultProvider;
 
     public VaultHandler(Server server) throws PermissionHandlerException {
         this.vaultProvider = getVaultPermission(server);

@@ -27,10 +27,6 @@ abstract class AbstractSqlPluginConverter implements Converter {
         this.dataSource = dataSource;
     }
 
-    protected DataSource getDataSource() {
-        return dataSource;
-    }
-
     /**
      * Returns a connection from AuthMe's existing HikariCP pool.
      *

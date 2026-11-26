@@ -7,6 +7,7 @@ import ch.jalu.datasourcecolumns.data.DataSourceValues;
 import ch.jalu.datasourcecolumns.predicate.AlwaysTruePredicate;
 import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.datasource.columnshandler.AuthMeColumns;
+import fr.xephi.authme.datasource.columnshandler.DataSourceColumn;
 import fr.xephi.authme.datasource.mysqlextensions.MySqlExtension;
 import fr.xephi.authme.datasource.columnshandler.AuthMeColumnsHandler;
 import fr.xephi.authme.security.crypts.HashedPassword;
@@ -87,13 +88,7 @@ public abstract class AbstractSqlDataSource implements DataSource {
 
     @Override
     public boolean hasSession(String user) {
-        try {
-            DataSourceValue<Integer> result = columnsHandler.retrieve(user, AuthMeColumns.HAS_SESSION);
-            return result.rowExists() && Integer.valueOf(1).equals(result.getValue());
-        } catch (SQLException e) {
-            logSqlException(e);
-            return false;
-        }
+        return isFlagSet(user, AuthMeColumns.HAS_SESSION);
     }
 
     @Override
@@ -142,13 +137,7 @@ public abstract class AbstractSqlDataSource implements DataSource {
 
     @Override
     public boolean isLogged(String user) {
-        try {
-            DataSourceValue<Integer> result = columnsHandler.retrieve(user, AuthMeColumns.IS_LOGGED);
-            return result.rowExists() && Integer.valueOf(1).equals(result.getValue());
-        } catch (SQLException e) {
-            logSqlException(e);
-            return false;
-        }
+        return isFlagSet(user, AuthMeColumns.IS_LOGGED);
     }
 
     @Override
@@ -208,6 +197,19 @@ public abstract class AbstractSqlDataSource implements DataSource {
         } catch (SQLException e) {
             logSqlException(e);
             return DataSourceValueImpl.unknownRow();
+        }
+    }
+
+    /**
+     * Returns whether the given integer flag column is set to 1 for the user.
+     */
+    private boolean isFlagSet(String user, DataSourceColumn<Integer> column) {
+        try {
+            DataSourceValue<Integer> result = columnsHandler.retrieve(user, column);
+            return result.rowExists() && Integer.valueOf(1).equals(result.getValue());
+        } catch (SQLException e) {
+            logSqlException(e);
+            return false;
         }
     }
 

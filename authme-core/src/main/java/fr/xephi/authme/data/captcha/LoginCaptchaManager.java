@@ -8,7 +8,6 @@ import fr.xephi.authme.util.expiring.TimedCounter;
 import org.bukkit.entity.Player;
 
 import javax.inject.Inject;
-import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -37,14 +36,13 @@ public class LoginCaptchaManager implements CaptchaManager, SettingsDependent, H
      */
     public void increaseLoginFailureCount(String name) {
         if (isEnabled) {
-            String playerLower = name.toLowerCase(Locale.ROOT);
-            playerCounts.increment(playerLower);
+            playerCounts.increment(CaptchaCodeStorage.normalize(name));
         }
     }
 
     @Override
     public boolean isCaptchaRequired(String playerName) {
-        return isEnabled && playerCounts.get(playerName.toLowerCase(Locale.ROOT)) >= threshold;
+        return isEnabled && playerCounts.get(CaptchaCodeStorage.normalize(playerName)) >= threshold;
     }
 
     @Override
@@ -54,7 +52,7 @@ public class LoginCaptchaManager implements CaptchaManager, SettingsDependent, H
 
     @Override
     public boolean checkCode(Player player, String code) {
-        String nameLower = player.getName().toLowerCase(Locale.ROOT);
+        String nameLower = CaptchaCodeStorage.normalize(player.getName());
         boolean isCodeCorrect = captchaCodeStorage.checkCode(nameLower, code);
         if (isCodeCorrect) {
             playerCounts.remove(nameLower);
@@ -69,19 +67,18 @@ public class LoginCaptchaManager implements CaptchaManager, SettingsDependent, H
      */
     public void resetLoginFailureCount(String name) {
         if (isEnabled) {
-            playerCounts.remove(name.toLowerCase(Locale.ROOT));
+            playerCounts.remove(CaptchaCodeStorage.normalize(name));
         }
     }
 
     @Override
     public void reload(Settings settings) {
+        // The code expiration and the failure count use the same timeout property.
         int expirationInMinutes = settings.getProperty(SecuritySettings.CAPTCHA_COUNT_MINUTES_BEFORE_RESET);
         captchaCodeStorage.setExpirationInMinutes(expirationInMinutes);
         int captchaLength = settings.getProperty(SecuritySettings.CAPTCHA_LENGTH);
         captchaCodeStorage.setCaptchaLength(captchaLength);
-
-        int countTimeout = settings.getProperty(SecuritySettings.CAPTCHA_COUNT_MINUTES_BEFORE_RESET);
-        playerCounts.setExpiration(countTimeout, TimeUnit.MINUTES);
+        playerCounts.setExpiration(expirationInMinutes, TimeUnit.MINUTES);
 
         isEnabled = settings.getProperty(SecuritySettings.ENABLE_LOGIN_FAILURE_CAPTCHA);
         threshold = settings.getProperty(SecuritySettings.MAX_LOGIN_TRIES_BEFORE_CAPTCHA);

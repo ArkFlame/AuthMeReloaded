@@ -49,11 +49,16 @@ public class CaptchaCommand extends PlayerCommand {
         }
 
         if (loginCaptchaManager.isCaptchaRequired(name)) {
-            checkLoginCaptcha(player, arguments.get(0));
+            if (checkCaptcha(player, arguments.get(0), loginCaptchaManager,
+                MessageKey.CAPTCHA_SUCCESS, MessageKey.LOGIN_MESSAGE)) {
+                limboService.unmuteMessageTask(player);
+            }
         } else {
             final boolean isPlayerRegistered = dataSource.isAuthAvailable(name);
             if (!isPlayerRegistered && registrationCaptchaManager.isCaptchaRequired(name)) {
-                checkRegisterCaptcha(player, arguments.get(0));
+                checkCaptcha(player, arguments.get(0), registrationCaptchaManager,
+                    MessageKey.REGISTER_CAPTCHA_SUCCESS, MessageKey.REGISTER_MESSAGE);
+                limboService.resetMessageTask(player, LimboMessageType.REGISTER);
             } else {
                 MessageKey errorMessage = isPlayerRegistered ? MessageKey.USAGE_LOGIN : MessageKey.USAGE_REGISTER;
                 commonService.send(player, errorMessage);
@@ -61,26 +66,15 @@ public class CaptchaCommand extends PlayerCommand {
         }
     }
 
-    private void checkLoginCaptcha(Player player, String captchaCode) {
-        final boolean isCorrectCode = loginCaptchaManager.checkCode(player, captchaCode);
-        if (isCorrectCode) {
-            commonService.send(player, MessageKey.CAPTCHA_SUCCESS);
-            commonService.send(player, MessageKey.LOGIN_MESSAGE);
-            limboService.unmuteMessageTask(player);
-        } else {
-            sendWrongCaptchaError(player, loginCaptchaManager);
+    private boolean checkCaptcha(Player player, String captchaCode, CaptchaManager captchaManager,
+                                 MessageKey successMessage, MessageKey nextStepMessage) {
+        if (captchaManager.checkCode(player, captchaCode)) {
+            commonService.send(player, successMessage);
+            commonService.send(player, nextStepMessage);
+            return true;
         }
-    }
-
-    private void checkRegisterCaptcha(Player player, String captchaCode) {
-        final boolean isCorrectCode = registrationCaptchaManager.checkCode(player, captchaCode);
-        if (isCorrectCode) {
-            commonService.send(player, MessageKey.REGISTER_CAPTCHA_SUCCESS);
-            commonService.send(player, MessageKey.REGISTER_MESSAGE);
-        } else {
-            sendWrongCaptchaError(player, registrationCaptchaManager);
-        }
-        limboService.resetMessageTask(player, LimboMessageType.REGISTER);
+        sendWrongCaptchaError(player, captchaManager);
+        return false;
     }
 
     private void sendWrongCaptchaError(Player player, CaptchaManager captchaManager) {

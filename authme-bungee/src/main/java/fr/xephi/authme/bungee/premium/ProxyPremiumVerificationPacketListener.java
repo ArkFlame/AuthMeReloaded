@@ -18,7 +18,6 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.net.InetSocketAddress;
 import java.security.GeneralSecurityException;
-import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -78,7 +77,7 @@ final class ProxyPremiumVerificationPacketListener extends PacketListenerAbstrac
             return;
         }
 
-        String normalizedName = username.toLowerCase(Locale.ROOT);
+        String normalizedName = ProxyPremiumLoginVerifier.normalize(username);
         if (!requiresVerification.test(normalizedName)) {
             return;
         }
@@ -221,7 +220,7 @@ final class ProxyPremiumVerificationPacketListener extends PacketListenerAbstrac
 
     private void handlePendingVerificationFailure(String username, boolean pendingPremiumEnrollment) {
         if (pendingPremiumEnrollment && username != null) {
-            pendingVerificationFailureHandler.accept(username.toLowerCase(Locale.ROOT));
+            pendingVerificationFailureHandler.accept(ProxyPremiumLoginVerifier.normalize(username));
         }
     }
 

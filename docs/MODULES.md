@@ -13,6 +13,14 @@ Guardrails for every step: no behavior change; no configuration key/default, mes
 plugin id/name, main class or package change; `authme-core` stays at Java 8 bytecode; Spigot 1.8
 remains supported; Folia safety is preserved.
 
+**Current status: the Spigot merge is blocked, not implemented.** The reactor still builds all nine
+modules (five by default, four in the `java21-modules` profile), including the three Spigot jars
+below. Two blockers keep them separate: (1) all three register the same service class
+`fr.xephi.authme.platform.SpigotPlatformAdapter`, and two classes with the same name cannot coexist
+in one jar; (2) their bytecode levels — Java 8 for 1.8, Java 17 for legacy, Java 21 for 1.21 —
+cannot come from one standard module without dropping Spigot 1.16–1.19 support. The merge plan and
+the bytecode caveat (§4) below describe how to clear both blockers.
+
 ## 1. Side-by-side diff
 
 ### Coordinates and packaging

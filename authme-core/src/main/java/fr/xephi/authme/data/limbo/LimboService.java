@@ -18,7 +18,6 @@ import org.bukkit.util.Vector;
 import javax.inject.Inject;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -168,12 +167,7 @@ public class LimboService {
 
         if (limbo == null) {
             logger.debug("No LimboPlayer found for `{0}` - cannot restore", lowerName);
-            if (player.getWalkSpeed() < 0.01f) {
-                player.setWalkSpeed(LimboPlayer.DEFAULT_WALK_SPEED);
-            }
-            if (player.getFlySpeed() < 0.01f) {
-                player.setFlySpeed(LimboPlayer.DEFAULT_FLY_SPEED);
-            }
+            restoreDefaultSpeedsIfZero(player);
         } else {
             player.setOp(limbo.isOperator());
             restoreSpeedAndFlight(player, limbo);
@@ -207,12 +201,7 @@ public class LimboService {
         } else {
             // No snapshot: only correct stale zero speed persisted by a previous crash
             // (do not touch allowFlight — original value is unknown without a limbo snapshot)
-            if (player.getWalkSpeed() < 0.01f) {
-                player.setWalkSpeed(LimboPlayer.DEFAULT_WALK_SPEED);
-            }
-            if (player.getFlySpeed() < 0.01f) {
-                player.setFlySpeed(LimboPlayer.DEFAULT_FLY_SPEED);
-            }
+            restoreDefaultSpeedsIfZero(player);
         }
         persistence.removeLimboPlayer(player);
     }
@@ -244,6 +233,26 @@ public class LimboService {
         settings.getProperty(RESTORE_ALLOW_FLIGHT).restoreAllowFlight(player, limbo);
         settings.getProperty(RESTORE_FLY_SPEED).restoreFlySpeed(player, limbo);
         settings.getProperty(RESTORE_WALK_SPEED).restoreWalkSpeed(player, limbo);
+    }
+
+    /** Corrects zero walk/fly speeds that may have been persisted while a player was unauthenticated. */
+    private static void restoreDefaultSpeedsIfZero(Player player) {
+        if (player.getWalkSpeed() < 0.01f) {
+            player.setWalkSpeed(LimboPlayer.DEFAULT_WALK_SPEED);
+        }
+        if (player.getFlySpeed() < 0.01f) {
+            player.setFlySpeed(LimboPlayer.DEFAULT_FLY_SPEED);
+        }
+    }
+
+    /** Returns the player's persisted limbo, or a fresh one capturing his current state if none exists. */
+    private LimboPlayer getOrCreateLimbo(Player player) {
+        LimboPlayer limbo = persistence.getLimboPlayer(player);
+        if (limbo == null) {
+            limbo = new LimboPlayer(null, false, Collections.emptyList(), player.getAllowFlight(),
+                player.getWalkSpeed(), player.getFlySpeed());
+        }
+        return limbo;
     }
 
     /**
@@ -325,11 +334,7 @@ public class LimboService {
      * @param pearls tracked ender pearls of the player's in-flight ender pearls
      */
     public void saveEnderPearlsForPlayer(Player player, Collection<EnderPearlRestoreData> pearls) {
-        LimboPlayer limbo = persistence.getLimboPlayer(player);
-        if (limbo == null) {
-            limbo = new LimboPlayer(null, false, Collections.emptyList(), player.getAllowFlight(),
-                player.getWalkSpeed(), player.getFlySpeed());
-        }
+        LimboPlayer limbo = getOrCreateLimbo(player);
         limbo.setEnderPearls(pearls);
         persistence.saveLimboPlayer(player, limbo);
         logger.debug("Saved {0} ender pearl(s) to disk for `{1}`",
@@ -343,7 +348,7 @@ public class LimboService {
      * @param player     the authenticated player who is quitting
      * @param pearlUuids entity UUIDs of the player's in-flight ender pearls
      */
-    public void saveEnderPearlsForPlayer(Player player, java.util.Set<UUID> pearlUuids) {
+    public void saveEnderPearlsForPlayer(Player player, Set<UUID> pearlUuids) {
         saveEnderPearlsForPlayer(player, pearlUuids.stream()
             .map(uuid -> new EnderPearlRestoreData(uuid, null, null))
             .collect(Collectors.toList()));
@@ -358,11 +363,7 @@ public class LimboService {
      * @param vehicleType the entity type of the vehicle
      */
     public void saveVehicleForPlayer(Player player, UUID vehicleUuid, EntityType vehicleType) {
-        LimboPlayer limbo = persistence.getLimboPlayer(player);
-        if (limbo == null) {
-            limbo = new LimboPlayer(null, false, Collections.emptyList(), player.getAllowFlight(),
-                player.getWalkSpeed(), player.getFlySpeed());
-        }
+        LimboPlayer limbo = getOrCreateLimbo(player);
         limbo.setVehicle(vehicleUuid, vehicleType);
         persistence.saveLimboPlayer(player, limbo);
         logger.debug("Saved vehicle {0} ({1}) to disk for `{2}`",
@@ -386,10 +387,7 @@ public class LimboService {
 
     private void doRestoreEntities(Player player, LimboPlayer limbo) {
         String name = player.getName().toLowerCase(Locale.ROOT);
-        Map<UUID, EnderPearlRestoreData> pendingPearls = new HashMap<>();
-        for (EnderPearlRestoreData pearl : limbo.getEnderPearls()) {
-            pendingPearls.put(pearl.getUuid(), pearl);
-        }
+        Map<UUID, EnderPearlRestoreData> pendingPearls = limbo.copyEnderPearlsByUuid();
         UUID vehicleUuid = limbo.getVehicleUuid();
         EntityType vehicleType = limbo.getVehicleType();
 

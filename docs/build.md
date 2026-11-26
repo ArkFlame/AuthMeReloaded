@@ -4,6 +4,12 @@ This page documents the main build, test, and tooling commands used in this repo
 current module layout and the single-jar remaster direction, see [ARCHITECTURE.md](ARCHITECTURE.md)
 and [MODULES.md](MODULES.md).
 
+The reactor comprises **nine modules**: five built by default and four added by the
+`java21-modules` profile (listed under Requirements below). The three Spigot modules are not yet
+merged — the merge is blocked by their shared `SpigotPlatformAdapter` service class name and by
+conflicting Java 8 / 17 / 21 bytecode levels — so all three jars continue to be built. See
+[MODULES.md](MODULES.md) for the staged plan.
+
 ## Requirements
 
 - JDK 17+ for the default reactor modules: `authme-api`, `authme-core`, `authme-tools`,

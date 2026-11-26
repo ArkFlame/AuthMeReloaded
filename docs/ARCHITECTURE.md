@@ -1,7 +1,8 @@
 # Architecture
 
-AuthMeRemastered is a Maven reactor (`authme-parent`). This page records the module layout in the
-tree today and the roadmap to a single server jar. The consolidation is a plan, not current code:
+AuthMeRemastered is a Maven reactor (`authme-parent`) with **nine modules**: five built by default
+and four added by the `java21-modules` profile. This page records the module layout in the tree
+today and the roadmap to a single server jar. The consolidation is a plan, not current code:
 `authme-core` stays at Java 8 bytecode so the 1.8 jar keeps working on Spigot 1.8+, and the proxy
 plugins remain separate deliverables. No configuration keys, messages, permissions, plugin id or
 package names are changed by that roadmap.
@@ -30,6 +31,13 @@ adapter when `RegionizedServer` is present. There is no separate Folia jar.
 Server jars differ mostly in packaging and in which platform adapter they bundle; the reusable code
 lives in core and the public surface in api. The different compiler levels are why old and new
 server jars currently ship as separate artifacts.
+
+**Spigot merge blocker.** The three Spigot jars (`authme-spigot-1.8`, `authme-spigot-legacy`,
+`authme-spigot-1.21`) still ship separately. They cannot be merged into one jar yet because all
+three register the same service class `fr.xephi.authme.platform.SpigotPlatformAdapter` (duplicate
+class names cannot share a jar) and because their Java 8 / 17 / 21 bytecode levels conflict with
+running on Spigot 1.16–1.19. [MODULES.md](MODULES.md) records the staged plan and the two compiler
+executions needed to clear the bytecode blocker.
 
 ## Platform abstraction today
 

@@ -40,4 +40,24 @@ public abstract class AbstractTotpPlayerCommand extends PlayerCommand {
     protected final PlayerCache getPlayerCache() {
         return playerCache;
     }
+
+    /**
+     * Applies the result of a TOTP key update in the database to the player's auth state.
+     *
+     * @param player the player whose two-factor authentication was updated
+     * @param auth the authentication state of that player
+     * @param databaseUpdated whether the database update succeeded
+     * @param newTotpKey the key to set on the auth object, or null to remove it
+     * @param successMessage message to send to the player on success
+     */
+    protected final void applyTotpKeyUpdate(Player player, PlayerAuth auth, boolean databaseUpdated,
+                                            String newTotpKey, MessageKey successMessage) {
+        if (databaseUpdated) {
+            auth.setTotpKey(newTotpKey);
+            getPlayerCache().updatePlayerIfPresent(auth);
+            messages.send(player, successMessage);
+        } else {
+            messages.send(player, MessageKey.ERROR);
+        }
+    }
 }

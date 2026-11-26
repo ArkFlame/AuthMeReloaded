@@ -66,7 +66,7 @@ final class ProxyPremiumLoginVerifier {
 
     byte[] startVerification(String connectionKey, String username, UUID playerUuid, boolean pendingPremiumEnrollment) {
         evictStalePendingEntries();
-        verified.remove(username.toLowerCase(Locale.ROOT));
+        verified.remove(normalize(username));
         byte[] verifyToken = new byte[4];
         secureRandom.nextBytes(verifyToken);
         pending.put(connectionKey,
@@ -126,11 +126,11 @@ final class ProxyPremiumLoginVerifier {
     }
 
     void storeVerified(String username, UUID mojangUuid) {
-        verified.put(username.toLowerCase(Locale.ROOT), new VerifiedSession(mojangUuid, System.currentTimeMillis()));
+        verified.put(normalize(username), new VerifiedSession(mojangUuid, System.currentTimeMillis()));
     }
 
     UUID getVerifiedUuid(String username) {
-        String normalizedName = username.toLowerCase(Locale.ROOT);
+        String normalizedName = normalize(username);
         VerifiedSession verifiedSession = verified.get(normalizedName);
         if (verifiedSession == null) {
             return null;
@@ -143,13 +143,18 @@ final class ProxyPremiumLoginVerifier {
     }
 
     void clearVerified(String username) {
-        verified.remove(username.toLowerCase(Locale.ROOT));
+        verified.remove(normalize(username));
     }
 
     void shutdown() {
         verificationExecutor.shutdownNow();
         pending.clear();
         verified.clear();
+    }
+
+    /** Shared name normalizer for the Bungee premium package; keep it here so callers agree on casing. */
+    static String normalize(String username) {
+        return username.toLowerCase(Locale.ROOT);
     }
 
     private void evictStalePendingEntries() {

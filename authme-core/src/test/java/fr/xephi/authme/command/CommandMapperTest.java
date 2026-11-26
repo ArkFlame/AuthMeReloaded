@@ -31,7 +31,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 /**
@@ -49,6 +48,9 @@ class CommandMapperTest {
 
     @Mock
     private CommandInitializer commandInitializer;
+
+    @Mock
+    private CommandSender sender;
 
     @BeforeAll
     static void setUpCommandHandler() {
@@ -68,8 +70,7 @@ class CommandMapperTest {
     void shouldMapPartsToLoginChildCommand() {
         // given
         List<String> parts = asList("authme", "login", "test1");
-        CommandSender sender = mock(CommandSender.class);
-        given(permissionsManager.hasPermission(eq(sender), any(PermissionNode.class))).willReturn(true);
+        allowAnyPermission();
 
         // when
         FoundCommandResult result = mapper.mapPartsToCommand(sender, parts);
@@ -80,15 +81,13 @@ class CommandMapperTest {
         assertThat(result.getArguments(), contains("test1"));
         assertThat(result.getDifference(), equalTo(0.0));
         assertThat(result.getLabels(), equalTo(parts.subList(0, 2)));
-        assertThat(result.getArguments(), contains(parts.get(2)));
     }
 
     @Test
     void shouldMapPartsToCommandWithNoCaseSensitivity() {
         // given
         List<String> parts = asList("Authme", "REG", "arg1", "arg2");
-        CommandSender sender = mock(CommandSender.class);
-        given(permissionsManager.hasPermission(eq(sender), any(PermissionNode.class))).willReturn(true);
+        allowAnyPermission();
 
         // when
         FoundCommandResult result = mapper.mapPartsToCommand(sender, parts);
@@ -105,7 +104,6 @@ class CommandMapperTest {
     void shouldRejectCommandWithTooManyArguments() {
         // given
         List<String> parts = asList("authme", "register", "pass123", "pass123", "pass123");
-        CommandSender sender = mock(CommandSender.class);
 
         // when
         FoundCommandResult result = mapper.mapPartsToCommand(sender, parts);
@@ -123,7 +121,6 @@ class CommandMapperTest {
     void shouldRejectCommandWithTooFewArguments() {
         // given
         List<String> parts = asList("authme", "Reg");
-        CommandSender sender = mock(CommandSender.class);
 
         // when
         FoundCommandResult result = mapper.mapPartsToCommand(sender, parts);
@@ -141,7 +138,6 @@ class CommandMapperTest {
     void shouldSuggestCommandWithSimilarLabel() {
         // given
         List<String> parts = asList("authme", "reh", "pass123", "pass123");
-        CommandSender sender = mock(CommandSender.class);
 
         // when
         FoundCommandResult result = mapper.mapPartsToCommand(sender, parts);
@@ -160,7 +156,6 @@ class CommandMapperTest {
     void shouldSuggestMostSimilarCommand() {
         // given
         List<String> parts = asList("authme", "asdfawetawty4asdca");
-        CommandSender sender = mock(CommandSender.class);
 
         // when
         FoundCommandResult result = mapper.mapPartsToCommand(sender, parts);
@@ -178,7 +173,6 @@ class CommandMapperTest {
     void shouldHandleBaseWithWrongArguments() {
         // given
         List<String> parts = singletonList("unregister");
-        CommandSender sender = mock(CommandSender.class);
 
         // when
         FoundCommandResult result = mapper.mapPartsToCommand(sender, parts);
@@ -196,7 +190,6 @@ class CommandMapperTest {
     void shouldHandleUnknownBase() {
         // given
         List<String> parts = asList("bogus", "label1", "arg1");
-        CommandSender sender = mock(CommandSender.class);
 
         // when
         FoundCommandResult result = mapper.mapPartsToCommand(sender, parts);
@@ -210,7 +203,7 @@ class CommandMapperTest {
     @Test
     void shouldHandleNullInput() {
         // given / when
-        FoundCommandResult result = mapper.mapPartsToCommand(mock(CommandSender.class), null);
+        FoundCommandResult result = mapper.mapPartsToCommand(sender, null);
 
         // then
         assertThat(result.getResultStatus(), equalTo(FoundResultStatus.MISSING_BASE_COMMAND));
@@ -221,8 +214,7 @@ class CommandMapperTest {
     void shouldMapToBaseWithProperArguments() {
         // given
         List<String> parts = asList("Unreg", "player1");
-        CommandSender sender = mock(CommandSender.class);
-        given(permissionsManager.hasPermission(eq(sender), any(PermissionNode.class))).willReturn(true);
+        allowAnyPermission();
 
         // when
         FoundCommandResult result = mapper.mapPartsToCommand(sender, parts);
@@ -239,7 +231,6 @@ class CommandMapperTest {
     void shouldReturnChildlessBaseCommandWithArgCountError() {
         // given
         List<String> parts = asList("unregistER", "player1", "wrongArg");
-        CommandSender sender = mock(CommandSender.class);
 
         // when
         FoundCommandResult result = mapper.mapPartsToCommand(sender, parts);
@@ -257,7 +248,6 @@ class CommandMapperTest {
     void shouldPassCommandPathAsArgumentsToHelpCommand() {
         // given
         List<String> parts = asList("email", "helptest", "arg1");
-        CommandSender sender = mock(CommandSender.class);
         given(permissionsManager.hasPermission(eq(sender), isNull())).willReturn(true);
 
         // when
@@ -275,8 +265,7 @@ class CommandMapperTest {
     void shouldRecognizeMissingPermissionForCommand() {
         // given
         List<String> parts = asList("authme", "login", "test1");
-        CommandSender sender = mock(CommandSender.class);
-        given(permissionsManager.hasPermission(eq(sender), any(PermissionNode.class))).willReturn(false);
+        denyAnyPermission();
 
         // when
         FoundCommandResult result = mapper.mapPartsToCommand(sender, parts);
@@ -287,15 +276,13 @@ class CommandMapperTest {
         assertThat(result.getArguments(), contains("test1"));
         assertThat(result.getDifference(), equalTo(0.0));
         assertThat(result.getLabels(), equalTo(parts.subList(0, 2)));
-        assertThat(result.getArguments(), contains(parts.get(2)));
     }
 
     @Test
     void shouldSupportAuthMePrefix() {
         // given
         List<String> parts = asList("authme:unregister", "Betty");
-        CommandSender sender = mock(CommandSender.class);
-        given(permissionsManager.hasPermission(eq(sender), any(PermissionNode.class))).willReturn(true);
+        allowAnyPermission();
 
         // when
         FoundCommandResult result = mapper.mapPartsToCommand(sender, parts);
@@ -313,6 +300,14 @@ class CommandMapperTest {
         // then
         assertThat(commandClasses, containsInAnyOrder(ExecutableCommand.class, HelpCommand.class,
             TestLoginCommand.class, TestRegisterCommand.class, TestUnregisterCommand.class));
+    }
+
+    private void allowAnyPermission() {
+        given(permissionsManager.hasPermission(eq(sender), any(PermissionNode.class))).willReturn(true);
+    }
+
+    private void denyAnyPermission() {
+        given(permissionsManager.hasPermission(eq(sender), any(PermissionNode.class))).willReturn(false);
     }
 
 }

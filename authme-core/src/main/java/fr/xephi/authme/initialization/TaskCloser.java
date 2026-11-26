@@ -6,11 +6,11 @@ import fr.xephi.authme.datasource.DataSource;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitWorker;
 
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  * Waits for asynchronous tasks to complete before closing the data source
@@ -81,15 +81,10 @@ public class TaskCloser implements Runnable {
     }
 
     private List<Integer> getPendingTasks() {
-        List<Integer> pendingTasks = new ArrayList<>();
-        //returns only the async tasks
-        for (BukkitWorker pendingTask : scheduler.getActiveWorkers()) {
-            if (pendingTask.getOwner().equals(plugin)
-                //it's not a periodic task
-                && !scheduler.isQueued(pendingTask.getTaskId())) {
-                pendingTasks.add(pendingTask.getTaskId());
-            }
-        }
-        return pendingTasks;
+        // Only asynchronous, non-periodic tasks owned by this plugin need to be waited for.
+        return scheduler.getActiveWorkers().stream()
+            .filter(worker -> worker.getOwner().equals(plugin) && !scheduler.isQueued(worker.getTaskId()))
+            .map(BukkitWorker::getTaskId)
+            .collect(Collectors.toList());
     }
 }

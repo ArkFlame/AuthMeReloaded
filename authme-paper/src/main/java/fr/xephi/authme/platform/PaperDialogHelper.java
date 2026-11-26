@@ -32,24 +32,28 @@ public final class PaperDialogHelper {
     }
 
     static void showLoginDialog(Player player, DialogWindowSpec dialog) {
-        player.showDialog(createInGameCommandDialog(dialog, "login $(password)"));
+        showCommandDialog(player, dialog, "login $(password)");
     }
 
     static void showTotpDialog(Player player, DialogWindowSpec dialog) {
-        player.showDialog(createInGameCommandDialog(dialog, "2fa code $(code)"));
+        showCommandDialog(player, dialog, "2fa code $(code)");
     }
 
     static void showRegisterDialog(Player player, RegistrationType type, RegisterSecondaryArgument secondArg,
                                    DialogWindowSpec dialog) {
-        player.showDialog(createInGameCommandDialog(dialog, createRegisterTemplate(type, secondArg)));
+        showCommandDialog(player, dialog, createRegisterTemplate(type, secondArg));
     }
 
     static void showRecoveryCodeDialog(Player player, DialogWindowSpec dialog) {
-        player.showDialog(createInGameCommandDialog(dialog, "email code $(code)"));
+        showCommandDialog(player, dialog, "email code $(code)");
     }
 
     static void showNewPasswordDialog(Player player, DialogWindowSpec dialog) {
-        player.showDialog(createInGameCommandDialog(dialog, "email setpassword $(password)"));
+        showCommandDialog(player, dialog, "email setpassword $(password)");
+    }
+
+    private static void showCommandDialog(Player player, DialogWindowSpec dialog, String commandTemplate) {
+        player.showDialog(createInGameCommandDialog(dialog, commandTemplate));
     }
 
     public static Dialog createPreJoinLoginDialog(DialogWindowSpec dialog) {

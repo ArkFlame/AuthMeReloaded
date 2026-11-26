@@ -49,13 +49,11 @@ public class ConfirmTotpCommand extends AbstractTotpPlayerCommand {
     }
 
     private void insertTotpKeyIntoDatabase(Player player, PlayerAuth auth, TotpGenerationResult totpDetails) {
-        if (dataSource.setTotpKey(player.getName(), totpDetails.getTotpKey())) {
-            messages.send(player, MessageKey.TWO_FACTOR_ENABLE_SUCCESS);
-            auth.setTotpKey(totpDetails.getTotpKey());
-            getPlayerCache().updatePlayerIfPresent(auth);
+        String totpKey = totpDetails.getTotpKey();
+        boolean updated = dataSource.setTotpKey(player.getName(), totpKey);
+        applyTotpKeyUpdate(player, auth, updated, totpKey, MessageKey.TWO_FACTOR_ENABLE_SUCCESS);
+        if (updated) {
             logger.info("Player '" + player.getName() + "' has successfully added a TOTP key to their account");
-        } else {
-            messages.send(player, MessageKey.ERROR);
         }
     }
 }

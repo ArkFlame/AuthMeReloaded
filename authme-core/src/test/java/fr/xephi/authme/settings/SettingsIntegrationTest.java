@@ -91,7 +91,7 @@ class SettingsIntegrationTest {
             .put(TestConfiguration.RATIO_FIELDS, Arrays.asList("Australia", "Burundi", "Colombia"))
             .put(TestConfiguration.VERSION_NUMBER, 32046)
             .put(TestConfiguration.SKIP_BORING_FEATURES, false)
-            .put(TestConfiguration.BORING_COLORS, Collections.EMPTY_LIST)
+            .put(TestConfiguration.BORING_COLORS, Collections.emptyList())
             .put(TestConfiguration.DUST_LEVEL, -1)
             .put(TestConfiguration.USE_COOL_FEATURES, false)
             .put(TestConfiguration.COOL_OPTIONS, Arrays.asList("Dinosaurs", "Explosions", "Big trucks"))

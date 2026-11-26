@@ -302,7 +302,7 @@ class MessagesIntegrationTest {
 
         // then - should get Russian message, not English
         assertThat(result, arrayWithSize(1));
-        assertThat(result[0], equalTo("§2Вы успешно вошли!")); // §2Вы успешно вошли!
+        assertThat(result[0], equalTo("§2Вы успешно вошли!"));
     }
 
     @Test

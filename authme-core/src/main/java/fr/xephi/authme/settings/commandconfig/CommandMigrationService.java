@@ -26,12 +26,9 @@ class CommandMigrationService implements MigrationService {
     @Inject
     private SettingsMigrationService settingsMigrationService;
 
-    CommandMigrationService() {
-    }
-
     @Override
     public boolean checkAndMigrate(PropertyReader reader, ConfigurationData configurationData) {
-        final CommandConfig commandConfig = CommandSettingsHolder.COMMANDS.determineValue(reader).getValue();
+        CommandConfig commandConfig = CommandSettingsHolder.COMMANDS.determineValue(reader).getValue();
         if (moveOtherAccountsConfig(commandConfig) || isAnyCommandMissing(reader)) {
             configurationData.setValue(CommandSettingsHolder.COMMANDS, commandConfig);
             return true;
@@ -40,18 +37,18 @@ class CommandMigrationService implements MigrationService {
     }
 
     private boolean moveOtherAccountsConfig(CommandConfig commandConfig) {
-        if (settingsMigrationService.hasOldOtherAccountsCommand()) {
-            OnLoginCommand command = new OnLoginCommand();
-            command.setCommand(replaceOldPlaceholdersWithNew(settingsMigrationService.getOldOtherAccountsCommand()));
-            command.setExecutor(Executor.CONSOLE);
-            command.setIfNumberOfAccountsAtLeast(
-                Optional.of(settingsMigrationService.getOldOtherAccountsCommandThreshold()));
-
-            Map<String, OnLoginCommand> onLoginCommands = commandConfig.getOnLogin();
-            onLoginCommands.put(RandomStringUtils.generate(10), command);
-            return true;
+        if (!settingsMigrationService.hasOldOtherAccountsCommand()) {
+            return false;
         }
-        return false;
+        OnLoginCommand command = new OnLoginCommand();
+        command.setCommand(replaceOldPlaceholdersWithNew(settingsMigrationService.getOldOtherAccountsCommand()));
+        command.setExecutor(Executor.CONSOLE);
+        command.setIfNumberOfAccountsAtLeast(
+            Optional.of(settingsMigrationService.getOldOtherAccountsCommandThreshold()));
+
+        Map<String, OnLoginCommand> onLoginCommands = commandConfig.getOnLogin();
+        onLoginCommands.put(RandomStringUtils.generate(10), command);
+        return true;
     }
 
     private static String replaceOldPlaceholdersWithNew(String oldOtherAccountsCommand) {

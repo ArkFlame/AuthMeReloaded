@@ -42,9 +42,6 @@ public class OnStartupTasks {
     @Inject
     private Messages messages;
 
-    OnStartupTasks() {
-    }
-
     /**
      * Sends bstats metrics.
      *

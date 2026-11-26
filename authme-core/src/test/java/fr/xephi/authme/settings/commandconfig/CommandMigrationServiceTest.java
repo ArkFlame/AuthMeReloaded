@@ -47,8 +47,6 @@ class CommandMigrationServiceTest {
 
     @Test
     void shouldRewriteForEmptyFile() {
-        // given
-        // when
         boolean result = checkAndMigrate("commands.empty.yml");
 
         // then
@@ -57,8 +55,6 @@ class CommandMigrationServiceTest {
 
     @Test
     void shouldRewriteIncompleteFile() {
-        // given
-        // when
         boolean result = checkAndMigrate("commands.incomplete.yml");
 
         // then
@@ -67,8 +63,6 @@ class CommandMigrationServiceTest {
 
     @Test
     void shouldNotChangeCompleteFile() {
-        // given
-        // when
         boolean result = checkAndMigrate("commands.complete.yml");
 
         // then

@@ -5,6 +5,7 @@ import fr.xephi.authme.command.executable.HelpCommand;
 import fr.xephi.authme.permission.AdminPermission;
 import fr.xephi.authme.permission.PermissionNode;
 import fr.xephi.authme.permission.PlayerPermission;
+import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 
 import java.util.Collection;
@@ -95,7 +96,7 @@ public final class TestCommandsUtil {
             .detailedDescription("'" + labels.get(0) + "' test command")
             .executableCommand(commandClass);
 
-        if (arguments != null && arguments.length > 0) {
+        if (arguments != null) {
             for (CommandArgumentDescription argument : arguments) {
                 command.withArgument(argument.getName(), argument.getDescription(), argument.isOptional());
             }
@@ -107,6 +108,14 @@ public final class TestCommandsUtil {
     /* Shortcut command to initialize a new argument description. */
     private static CommandArgumentDescription newArgument(String label, boolean isOptional) {
         return new CommandArgumentDescription(label, "'" + label + "' argument description", isOptional);
+    }
+
+    /** Removes all color and formatting codes from the given text. */
+    public static String removeColors(String text) {
+        for (ChatColor color : ChatColor.values()) {
+            text = text.replace(color.toString(), "");
+        }
+        return text;
     }
 
     public static class TestLoginCommand implements ExecutableCommand {

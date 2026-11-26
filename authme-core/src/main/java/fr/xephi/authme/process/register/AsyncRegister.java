@@ -7,6 +7,7 @@ import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.events.AuthMeAsyncPreRegisterEvent;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.process.AsynchronousProcess;
+import fr.xephi.authme.process.ProcessSharedActions;
 import fr.xephi.authme.process.register.executors.RegistrationExecutor;
 import fr.xephi.authme.process.register.executors.RegistrationMethod;
 import fr.xephi.authme.process.register.executors.RegistrationParameters;
@@ -14,15 +15,12 @@ import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.service.CommonService;
 import fr.xephi.authme.settings.properties.RegistrationSettings;
 import fr.xephi.authme.settings.properties.RestrictionSettings;
-import fr.xephi.authme.util.InternetProtocolUtils;
 import fr.xephi.authme.util.PlayerUtils;
 import org.bukkit.entity.Player;
 
 import javax.inject.Inject;
 import java.util.List;
 import java.util.Locale;
-
-import static fr.xephi.authme.permission.PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS;
 
 /**
  * Asynchronous processing of a request for registration.
@@ -113,7 +111,7 @@ public class AsyncRegister implements AsynchronousProcess {
         }
 
         String ip = PlayerUtils.getPlayerIp(player);
-        if (InternetProtocolUtils.isLoopbackAddress(ip) || service.hasPermission(player, ALLOW_MULTIPLE_ACCOUNTS)) {
+        if (ProcessSharedActions.isExemptFromIpLimit(service, player, ip)) {
             return true;
         }
 

@@ -67,55 +67,72 @@ final class PreJoinRegisterProcessor {
             return;
         }
 
-        InetSocketAddress clientAddress = connection.getClientAddress();
-        if (clientAddress != null) {
-            String ip = clientAddress.getAddress().getHostAddress();
-            int maxRegPerIp = commonService.getProperty(RestrictionSettings.MAX_REGISTRATION_PER_IP);
-            if (maxRegPerIp > 0 && !InternetProtocolUtils.isLoopbackAddress(ip)) {
-                List<String> otherAccounts = dataSource.getAllAuthsByIp(ip);
-                if (otherAccounts.size() >= maxRegPerIp) {
-                    String kickMessage = messages.retrieveSingle(playerName, MessageKey.MAX_REGISTER_EXCEEDED,
-                        Integer.toString(maxRegPerIp), Integer.toString(otherAccounts.size()),
-                        String.join(", ", otherAccounts));
-                    PaperDialogSessionSupport.completeResponse(pendingResponses, sessionId, kickMessage);
-                    return;
-                }
-            }
+        if (exceedsRegistrationLimit(connection, playerName, sessionId)) {
+            return;
         }
 
         RegistrationType registrationType = commonService.getProperty(RegistrationSettings.REGISTRATION_TYPE);
         RegisterSecondaryArgument secondArg = commonService.getProperty(RegistrationSettings.REGISTER_SECOND_ARGUMENT);
         if (registrationType == RegistrationType.EMAIL) {
-            String email = dialogResponseView.getText("email");
-            String confirm = dialogResponseView.getText("confirm");
-            if (email == null || email.isBlank() || !validationService.validateEmail(email)) {
-                showRegisterDialogWithError(connection, playerName,
-                    messages.retrieveSingle(playerName, MessageKey.INVALID_EMAIL));
-                return;
-            }
-            if (secondArg == RegisterSecondaryArgument.CONFIRMATION && !email.equals(confirm)) {
-                showRegisterDialogWithError(connection, playerName,
-                    messages.retrieveSingle(playerName, MessageKey.PASSWORD_MATCH_ERROR));
-                return;
-            }
-            preJoinDialogService.storePendingEmailRegistration(sessionId, email);
-            PaperDialogSessionSupport.completeResponse(pendingResponses, sessionId, null);
+            storeEmailRegistration(connection, sessionId, playerName, secondArg, dialogResponseView);
+        } else {
+            storePasswordRegistration(connection, sessionId, playerName, secondArg, dialogResponseView);
+        }
+    }
+
+    private boolean exceedsRegistrationLimit(PlayerConfigurationConnection connection, String playerName,
+                                             long sessionId) {
+        InetSocketAddress clientAddress = connection.getClientAddress();
+        if (clientAddress == null) {
+            return false;
+        }
+        String ip = clientAddress.getAddress().getHostAddress();
+        int maxRegPerIp = commonService.getProperty(RestrictionSettings.MAX_REGISTRATION_PER_IP);
+        if (maxRegPerIp <= 0 || InternetProtocolUtils.isLoopbackAddress(ip)) {
+            return false;
+        }
+        List<String> otherAccounts = dataSource.getAllAuthsByIp(ip);
+        if (otherAccounts.size() < maxRegPerIp) {
+            return false;
+        }
+        PaperDialogSessionSupport.completeResponse(pendingResponses, sessionId,
+            messages.retrieveSingle(playerName, MessageKey.MAX_REGISTER_EXCEEDED,
+                Integer.toString(maxRegPerIp), Integer.toString(otherAccounts.size()),
+                String.join(", ", otherAccounts)));
+        return true;
+    }
+
+    private void storeEmailRegistration(PlayerConfigurationConnection connection, long sessionId, String playerName,
+                                        RegisterSecondaryArgument secondArg, DialogResponseView view) {
+        String email = view.getText("email");
+        String confirm = view.getText("confirm");
+        if (email == null || email.isBlank() || !validationService.validateEmail(email)) {
+            showRegisterDialogWithError(connection, playerName,
+                messages.retrieveSingle(playerName, MessageKey.INVALID_EMAIL));
             return;
         }
+        if (secondArg == RegisterSecondaryArgument.CONFIRMATION && !email.equals(confirm)) {
+            showRegisterDialogWithError(connection, playerName,
+                messages.retrieveSingle(playerName, MessageKey.PASSWORD_MATCH_ERROR));
+            return;
+        }
+        preJoinDialogService.storePendingEmailRegistration(sessionId, email);
+        PaperDialogSessionSupport.completeResponse(pendingResponses, sessionId, null);
+    }
 
-        String password = dialogResponseView.getText("password");
+    private void storePasswordRegistration(PlayerConfigurationConnection connection, long sessionId,
+                                           String playerName, RegisterSecondaryArgument secondArg,
+                                           DialogResponseView view) {
+        String password = view.getText("password");
         if (password == null || password.isBlank()) {
             showRegisterDialogWithError(connection, playerName,
                 messages.retrieveSingle(playerName, MessageKey.INVALID_PASSWORD_LENGTH));
             return;
         }
-        if (secondArg == RegisterSecondaryArgument.CONFIRMATION) {
-            String confirm = dialogResponseView.getText("confirm");
-            if (!password.equals(confirm)) {
-                showRegisterDialogWithError(connection, playerName,
-                    messages.retrieveSingle(playerName, MessageKey.PASSWORD_MATCH_ERROR));
-                return;
-            }
+        if (secondArg == RegisterSecondaryArgument.CONFIRMATION && !password.equals(view.getText("confirm"))) {
+            showRegisterDialogWithError(connection, playerName,
+                messages.retrieveSingle(playerName, MessageKey.PASSWORD_MATCH_ERROR));
+            return;
         }
         ValidationService.ValidationResult passwordResult = validationService.validatePassword(password, playerName);
         if (passwordResult.hasError()) {
@@ -123,15 +140,10 @@ final class PreJoinRegisterProcessor {
                 messages.retrieveSingle(playerName, passwordResult.getMessageKey(), passwordResult.getArgs()));
             return;
         }
-        if (secondArg == RegisterSecondaryArgument.CONFIRMATION) {
-            preJoinDialogService.storePendingPasswordRegistration(sessionId, password, null);
-            PaperDialogSessionSupport.completeResponse(pendingResponses, sessionId, null);
-            return;
-        }
-
+        String email = null;
         if (secondArg == RegisterSecondaryArgument.EMAIL_MANDATORY
             || secondArg == RegisterSecondaryArgument.EMAIL_OPTIONAL) {
-            String email = dialogResponseView.getText("email");
+            email = view.getText("email");
             if (secondArg == RegisterSecondaryArgument.EMAIL_MANDATORY && (email == null || email.isBlank())) {
                 showRegisterDialogWithError(connection, playerName,
                     messages.retrieveSingle(playerName, MessageKey.INVALID_EMAIL));
@@ -142,12 +154,8 @@ final class PreJoinRegisterProcessor {
                     messages.retrieveSingle(playerName, MessageKey.INVALID_EMAIL));
                 return;
             }
-            preJoinDialogService.storePendingPasswordRegistration(sessionId, password, email);
-            PaperDialogSessionSupport.completeResponse(pendingResponses, sessionId, null);
-            return;
         }
-
-        preJoinDialogService.storePendingPasswordRegistration(sessionId, password, null);
+        preJoinDialogService.storePendingPasswordRegistration(sessionId, password, email);
         PaperDialogSessionSupport.completeResponse(pendingResponses, sessionId, null);
     }
 

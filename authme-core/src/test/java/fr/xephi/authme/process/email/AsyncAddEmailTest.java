@@ -198,31 +198,22 @@ class AsyncAddEmailTest {
 
     @Test
     void shouldShowLoginMessage() {
-        // given
-        given(player.getName()).willReturn("Username12");
-        given(playerCache.isAuthenticated("username12")).willReturn(false);
-        given(dataSource.isAuthAvailable("Username12")).willReturn(true);
-
-        // when
-        asyncAddEmail.addEmail(player, "test@mail.com");
-
-        // then
-        verify(service).send(player, MessageKey.LOGIN_MESSAGE);
-        verify(playerCache, never()).updatePlayerIfPresent(any(PlayerAuth.class));
+        assertUnauthenticatedOutcome("Username12", true, MessageKey.LOGIN_MESSAGE);
     }
 
     @Test
     void shouldShowRegisterMessage() {
-        // given
-        given(player.getName()).willReturn("user");
-        given(playerCache.isAuthenticated("user")).willReturn(false);
-        given(dataSource.isAuthAvailable("user")).willReturn(false);
+        assertUnauthenticatedOutcome("user", false, MessageKey.REGISTER_MESSAGE);
+    }
 
-        // when
+    private void assertUnauthenticatedOutcome(String name, boolean isRegistered, MessageKey expectedMessage) {
+        given(player.getName()).willReturn(name);
+        given(playerCache.isAuthenticated(name.toLowerCase())).willReturn(false);
+        given(dataSource.isAuthAvailable(name)).willReturn(isRegistered);
+
         asyncAddEmail.addEmail(player, "test@mail.com");
 
-        // then
-        verify(service).send(player, MessageKey.REGISTER_MESSAGE);
+        verify(service).send(player, expectedMessage);
         verify(playerCache, never()).updatePlayerIfPresent(any(PlayerAuth.class));
     }
 

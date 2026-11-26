@@ -172,9 +172,4 @@ public enum AdminPermission implements PermissionNode {
     public String getNode() {
         return node;
     }
-
-    @Override
-    public DefaultPermission getDefaultPermission() {
-        return DefaultPermission.OP_ONLY;
-    }
 }

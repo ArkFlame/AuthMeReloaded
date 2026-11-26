@@ -1,3 +1,9 @@
+/*
+ * Ported from HaHaWTH/AuthMeReReloaded (AGPL-3.0), file
+ * src/main/java/fr/xephi/authme/datasource/converter/TiAuthConverter.java.
+ * Copyright (c) HaHaWTH contributors. Original licence retained; not relicensed.
+ */
+
 package fr.xephi.authme.datasource.converter;
 
 import fr.xephi.authme.ConsoleLogger;
@@ -5,36 +11,21 @@ import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.security.crypts.HashedPassword;
-import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import javax.inject.Inject;
-import java.io.File;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Locale;
 
-import static fr.xephi.authme.util.Utils.logAndSendMessage;
-
 /**
- * Converts data from tiAuth to AuthMe.
- * <p>
- * The storage backend is determined by reading {@code plugins/tiAuth/config.yml}:
- * <ul>
- *   <li><b>SQLite</b> ({@code database.type: SQLITE}) — reads {@code plugins/tiAuth/auth.db}
- *       directly.</li>
- *   <li><b>MySQL / PostgreSQL</b> — uses AuthMe's existing connection pool; tiAuth must share
- *       the same database as AuthMe.</li>
- *   <li><b>H2</b> (default) — not supported; reconfigure tiAuth to use SQLite or MySQL and
- *       migrate the data before running this converter.</li>
- * </ul>
- * <p>
- * tiAuth BCrypt hashes ({@code $2a$...}) are compatible with AuthMe's {@code BCRYPT} algorithm.
- * tiAuth SHA-256 hashes are stored as {@code $SHA$<salt>$<hash>}, which is identical to AuthMe's
- * {@code SHA256} format. Configure {@code passwordHash} in AuthMe's {@code config.yml} to match
- * the algorithm used in tiAuth before running the conversion.
+ * Converts data from tiAuth to AuthMe. Reads {@code plugins/tiAuth/config.yml}:
+ * {@code database.type: SQLITE} uses {@code plugins/tiAuth/auth.db},
+ * {@code MYSQL}/{@code POSTGRESQL} use the shared pool; {@code H2} is unsupported.
+ * BCrypt ({@code $2a$...}) and {@code $SHA$<salt>$<hash>} map to AuthMe's {@code BCRYPT}/{@code SHA256};
+ * set {@code passwordHash} in AuthMe's {@code config.yml} accordingly.
  */
-public class TiAuthConverter implements Converter {
+public class TiAuthConverter extends AbstractYamlPluginConverter {
 
     private static final String CONFIG_PATH = "plugins/tiAuth/config.yml";
     private static final String SQLITE_DB_PATH = "plugins/tiAuth/auth.db";
@@ -42,84 +33,63 @@ public class TiAuthConverter implements Converter {
         "SELECT username, realName, password, lastIp, lastLogin, regDate FROM auth_users";
 
     private static final ConsoleLogger logger = ConsoleLoggerFactory.get(TiAuthConverter.class);
-    private final DataSource dataSource;
 
     @Inject
     TiAuthConverter(DataSource dataSource) {
-        this.dataSource = dataSource;
+        super(dataSource, CONFIG_PATH, SQLITE_DB_PATH, "tiAuth", logger);
     }
 
     @Override
-    public void execute(CommandSender sender) {
-        File configFile = new File(CONFIG_PATH);
-        if (!configFile.exists()) {
-            logAndSendMessage(sender, "tiAuth conversion failed: config not found at " + CONFIG_PATH);
-            return;
-        }
-
-        YamlConfiguration tiAuthConfig = YamlConfiguration.loadConfiguration(configFile);
-        String dbType = tiAuthConfig.getString("database.type", "H2").toUpperCase(Locale.ROOT);
-
-        switch (dbType) {
+    protected Backend getBackend(YamlConfiguration config) {
+        switch (readDbType(config)) {
             case "SQLITE":
-                new SqliteImportTask(dataSource, new File(SQLITE_DB_PATH), QUERY, "tiAuth", logger,
-                    importer(sender), "tiAuth conversion failed: SQLite database not found at " + SQLITE_DB_PATH)
-                    .execute(sender);
-                break;
+                return Backend.SQLITE;
             case "MYSQL":
             case "POSTGRESQL":
-                new SqlImportTask(dataSource, QUERY, "tiAuth", logger, importer(sender)).execute(sender);
-                break;
+                return Backend.SQL;
             default:
-                logAndSendMessage(sender,
-                    "tiAuth conversion: database type '" + dbType + "' is not supported. "
-                    + "Reconfigure tiAuth to use SQLite or MySQL/PostgreSQL, migrate the data, "
-                    + "then re-run the conversion.");
+                return Backend.UNSUPPORTED;
         }
     }
 
-    private ResultSetImporter importer(CommandSender sender) {
-        return rs -> importRows(rs, dataSource, sender);
+    @Override
+    protected String getQuery(YamlConfiguration config) {
+        return QUERY;
     }
 
-    private static void importRows(ResultSet rs, DataSource dataSource, CommandSender sender) throws SQLException {
-        long imported = 0;
-        long skipped = 0;
-        while (rs.next()) {
-            String realName = rs.getString("realName");
-            if (realName == null || realName.isEmpty()) {
-                continue;
-            }
-            String name = realName.toLowerCase(Locale.ROOT);
+    @Override
+    protected String unsupportedMessage(YamlConfiguration config) {
+        return "tiAuth conversion: database type '" + readDbType(config) + "' is not supported. "
+            + "Reconfigure tiAuth to use SQLite or MySQL/PostgreSQL, migrate the data, "
+            + "then re-run the conversion.";
+    }
 
-            if (dataSource.isAuthAvailable(name)) {
-                ++skipped;
-                continue;
-            }
+    private static String readDbType(YamlConfiguration config) {
+        return config.getString("database.type", "H2").toUpperCase(Locale.ROOT);
+    }
 
-            String hash = rs.getString("password");
-            if (hash == null || hash.isEmpty()) {
-                logger.warning("No password for player '" + name + "', skipping");
-                continue;
-            }
+    @Override
+    protected String getName(ResultSet rs) throws SQLException {
+        String realName = rs.getString("realName");
+        return realName == null || realName.isEmpty() ? null : realName.toLowerCase(Locale.ROOT);
+    }
 
-            long lastLogin = rs.getLong("lastLogin");
-            long regDate = rs.getLong("regDate");
-
-            PlayerAuth auth = PlayerAuth.builder()
-                .name(name)
-                .realName(realName)
-                .password(new HashedPassword(hash))
-                .lastIp(rs.getString("lastIp"))
-                .registrationDate(regDate)
-                .lastLogin(lastLogin > 0 ? lastLogin : null)
-                .build();
-
-            dataSource.saveAuth(auth);
-            ++imported;
+    @Override
+    protected PlayerAuth buildAuth(ResultSet rs, String name) throws SQLException {
+        String hash = rs.getString("password");
+        if (hash == null || hash.isEmpty()) {
+            logger.warning("No password for player '" + name + "', skipping");
+            return null;
         }
-
-        logAndSendMessage(sender, "tiAuth conversion: " + imported + " account(s) imported, "
-            + skipped + " skipped (already exist)");
+        long lastLogin = rs.getLong("lastLogin");
+        long regDate = rs.getLong("regDate");
+        return PlayerAuth.builder()
+            .name(name)
+            .realName(rs.getString("realName"))
+            .password(new HashedPassword(hash))
+            .lastIp(rs.getString("lastIp"))
+            .registrationDate(regDate)
+            .lastLogin(lastLogin > 0 ? lastLogin : null)
+            .build();
     }
 }

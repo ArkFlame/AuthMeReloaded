@@ -36,7 +36,16 @@ selected at startup when `RegionizedServer` is present. Until the Java 8 single-
 the per-platform jars listed above continue to ship. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 for the target design and [docs/MODULES.md](docs/MODULES.md) for the staged Spigot merge plan.
 
+**Current status — the Spigot merge is blocked.** Only Paper/Folia has been consolidated; the three
+Spigot jars (`-Spigot-1.8`, `-Spigot-Legacy`, `-Spigot-1.21`) still build and ship separately. They
+cannot share one jar yet because all three register the same service class
+`fr.xephi.authme.platform.SpigotPlatformAdapter` (two classes with the same name cannot coexist in a
+jar) and because their Java 8 / 17 / 21 bytecode levels conflict with keeping Spigot 1.16–1.19
+support. [docs/MODULES.md](docs/MODULES.md) records the staged plan for clearing both blockers.
+
 ### Modules
+
+The reactor builds **nine modules**: five by default and four through the `java21-modules` profile.
 
 | Module | Artifact | Target |
 | --- | --- | --- |

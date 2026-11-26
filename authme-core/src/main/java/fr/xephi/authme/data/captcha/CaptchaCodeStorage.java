@@ -12,9 +12,19 @@ import java.util.concurrent.TimeUnit;
 public class CaptchaCodeStorage {
 
     /** Map of captcha codes (with player name as key, case-insensitive). */
-    private ExpiringMap<String, String> captchaCodes;
+    private final ExpiringMap<String, String> captchaCodes;
     /** Number of characters newly generated captcha codes should have. */
     private int captchaLength;
+
+    /**
+     * Returns the case-insensitive key used for a player's captcha code.
+     *
+     * @param name the player's name
+     * @return the normalized name
+     */
+    static String normalize(String name) {
+        return name.toLowerCase(Locale.ROOT);
+    }
 
     /**
      * Constructor.
@@ -52,19 +62,21 @@ public class CaptchaCodeStorage {
      * @return the code the player is required to enter
      */
     public String getCodeOrGenerateNew(String name) {
-        String code = captchaCodes.get(name.toLowerCase(Locale.ROOT));
-        return code == null ? generateCode(name) : code;
+        String key = normalize(name);
+        String code = captchaCodes.get(key);
+        // Pass the already normalized key so no second lowercase string is allocated.
+        return code == null ? generateCode(key) : code;
     }
 
     /**
-     * Generates a code for the player and returns it.
+     * Generates a code for the given normalized key and returns it.
      *
-     * @param name the name of the player to generate a code for
+     * @param key the normalized name of the player to generate a code for
      * @return the generated code
      */
-    private String generateCode(String name) {
+    private String generateCode(String key) {
         String code = RandomStringUtils.generate(captchaLength);
-        captchaCodes.put(name.toLowerCase(Locale.ROOT), code);
+        captchaCodes.put(key, code);
         return code;
     }
 
@@ -77,14 +89,13 @@ public class CaptchaCodeStorage {
      * @return true if the code matches, false otherwise
      */
     public boolean checkCode(String name, String code) {
-        String nameLowerCase = name.toLowerCase(Locale.ROOT);
-        String savedCode = captchaCodes.get(nameLowerCase);
+        String key = normalize(name);
+        String savedCode = captchaCodes.get(key);
         if (savedCode != null && savedCode.equalsIgnoreCase(code)) {
-            captchaCodes.remove(nameLowerCase);
+            captchaCodes.remove(key);
             return true;
-        } else {
-            generateCode(name);
         }
+        generateCode(key);
         return false;
     }
 

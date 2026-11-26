@@ -21,6 +21,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -267,8 +269,9 @@ class LimboServiceTest {
         assertThat(limboService.getLimboPlayer(player).getLocation(), equalTo(rememberedJoinLocation));
     }
 
-    @Test
-    void shouldRevokeOperatorOnJoinAndKeepItInLimboOfRegisteredPlayer() {
+    @ParameterizedTest(name = "registered={0}")
+    @ValueSource(booleans = {true, false})
+    void shouldKeepRevokedOperatorOnlyForRegisteredPlayer(boolean registered) {
         // given
         Player player = newPlayer("Bobby", true, 0.2f, false, 0.1f);
         given(player.isOp()).willReturn(true, false);
@@ -280,32 +283,11 @@ class LimboServiceTest {
 
         // when
         limboService.revokeOperatorOnJoin(player);
-        limboService.createLimboPlayer(player, true);
+        limboService.createLimboPlayer(player, registered);
         limboService.restorePendingOperator(player);
 
         // then
-        assertThat(limboService.getLimboPlayer(player).isOperator(), equalTo(true));
-        verify(player, never()).setOp(true);
-    }
-
-    @Test
-    void shouldNotKeepRevokedOperatorInLimboOfUnregisteredPlayer() {
-        // given
-        Player player = newPlayer("Bobby", true, 0.2f, false, 0.1f);
-        given(player.isOp()).willReturn(true, false);
-        given(spawnLoader.getPlayerLocationOrSpawn(player)).willReturn(mock(Location.class));
-        given(settings.getProperty(LimboSettings.RESTORE_ALLOW_FLIGHT)).willReturn(AllowFlightRestoreType.ENABLE);
-        given(settings.getProperty(RestrictionSettings.ALLOW_UNAUTHED_MOVEMENT)).willReturn(false);
-        given(teleportationService.consumeOriginalJoinLocation(anyString(), any(Location.class)))
-            .willAnswer(invocation -> invocation.getArgument(1));
-
-        // when
-        limboService.revokeOperatorOnJoin(player);
-        limboService.createLimboPlayer(player, false);
-        limboService.restorePendingOperator(player);
-
-        // then
-        assertThat(limboService.getLimboPlayer(player).isOperator(), equalTo(false));
+        assertThat(limboService.getLimboPlayer(player).isOperator(), equalTo(registered));
         verify(player, never()).setOp(true);
     }
 
@@ -398,25 +380,6 @@ class LimboServiceTest {
         // Disk limbo must always be removed even when no in-memory entry exists (race condition: player
         // disconnected before createLimboPlayer ran, leaving a stale disk entry from a previous session)
         verify(limboPersistence).removeLimboPlayer(player);
-    }
-
-    @Test
-    void shouldRemoveDiskLimboEvenWhenNoInMemoryLimboExists() {
-        // given - simulates race condition: player quit before createLimboPlayer ran
-        Player player = newPlayer("Speedy");
-        // no entry in memory map for this player
-
-        // when
-        limboService.restoreData(player);
-
-        // then
-        verify(player).getName();
-        verify(player).getWalkSpeed();
-        verify(player).setWalkSpeed(LimboPlayer.DEFAULT_WALK_SPEED);
-        verify(player).getFlySpeed();
-        verify(player).setFlySpeed(LimboPlayer.DEFAULT_FLY_SPEED);
-        verify(limboPersistence).removeLimboPlayer(player);
-        verify(authGroupHandler).setGroup(player, null, AuthGroupType.LOGGED_IN);
     }
 
     @Test

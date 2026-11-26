@@ -73,13 +73,10 @@ public class PurgeExecutor {
      * @param cleared the players whose data should be cleared
      */
     synchronized void purgeAntiXray(Collection<String> cleared) {
-        if (!settings.getProperty(PurgeSettings.REMOVE_ANTI_XRAY_FILE)) {
-            return;
+        if (settings.getProperty(PurgeSettings.REMOVE_ANTI_XRAY_FILE)) {
+            File dataFolder = new File(makePath(".", "plugins", "AntiXRayData", "PlayerData"));
+            logRemovedFiles(deleteFilesMatching(dataFolder, cleared, Function.identity()), "AntiXRayData Files");
         }
-
-        File dataFolder = new File(makePath(".", "plugins", "AntiXRayData", "PlayerData"));
-        logger.info("AutoPurge: Removed "
-            + deleteFilesMatching(dataFolder, cleared, Function.identity()) + " AntiXRayData Files");
     }
 
     /**
@@ -99,14 +96,15 @@ public class PurgeExecutor {
      * @param cleared the players whose data should be cleared
      */
     synchronized void purgeLimitedCreative(Collection<String> cleared) {
-        if (!settings.getProperty(PurgeSettings.REMOVE_LIMITED_CREATIVE_INVENTORIES)) {
-            return;
+        if (settings.getProperty(PurgeSettings.REMOVE_LIMITED_CREATIVE_INVENTORIES)) {
+            File dataFolder = new File(makePath(".", "plugins", "LimitedCreative", "inventories"));
+            logRemovedFiles(deleteFilesMatching(dataFolder, cleared, PurgeExecutor::inventoryOwner),
+                "LimitedCreative Survival, Creative and Adventure files");
         }
+    }
 
-        File dataFolder = new File(makePath(".", "plugins", "LimitedCreative", "inventories"));
-        logger.info("AutoPurge: Removed "
-            + deleteFilesMatching(dataFolder, cleared, PurgeExecutor::inventoryOwner)
-            + " LimitedCreative Survival, Creative and Adventure files");
+    private void logRemovedFiles(int count, String description) {
+        logger.info("AutoPurge: Removed " + count + " " + description);
     }
 
     /**
@@ -153,14 +151,11 @@ public class PurgeExecutor {
      * @param cleared list of players to clear
      */
     synchronized void purgeDat(Collection<OfflinePlayer> cleared) {
-        if (!settings.getProperty(PurgeSettings.REMOVE_PLAYER_DAT)) {
-            return;
+        if (settings.getProperty(PurgeSettings.REMOVE_PLAYER_DAT)) {
+            File dataFolder = new File(server.getWorldContainer(),
+                makePath(settings.getProperty(PurgeSettings.DEFAULT_WORLD), "players"));
+            logRemovedFiles(deletePlayerFiles(cleared, dataFolder, ".dat"), ".dat Files");
         }
-
-        File dataFolder = new File(server.getWorldContainer(),
-            makePath(settings.getProperty(PurgeSettings.DEFAULT_WORLD), "players"));
-        logger.info("AutoPurge: Removed "
-            + deletePlayerFiles(cleared, dataFolder, ".dat") + " .dat Files");
     }
 
     /**
@@ -184,8 +179,7 @@ public class PurgeExecutor {
             return;
         }
 
-        logger.info("AutoPurge: Removed "
-            + deletePlayerFiles(cleared, userDataFolder, ".yml") + " EssentialsFiles");
+        logRemovedFiles(deletePlayerFiles(cleared, userDataFolder, ".yml"), "EssentialsFiles");
     }
 
     /**

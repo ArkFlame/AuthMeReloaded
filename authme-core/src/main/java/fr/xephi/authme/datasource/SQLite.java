@@ -123,29 +123,16 @@ public class SQLite extends AbstractSqlDataSource {
 
             DatabaseMetaData md = con.getMetaData();
 
-            if (isColumnMissing(md, col.REAL_NAME)) {
-                addColumn(st, col.REAL_NAME, "VARCHAR(255) NOT NULL DEFAULT 'Player';");
-            }
-
-            if (isColumnMissing(md, col.PASSWORD)) {
-                addColumn(st, col.PASSWORD, "VARCHAR(255) NOT NULL DEFAULT '';");
-            }
+            addColumnIfAbsent(md, st, col.REAL_NAME, "VARCHAR(255) NOT NULL DEFAULT 'Player';");
+            addColumnIfAbsent(md, st, col.PASSWORD, "VARCHAR(255) NOT NULL DEFAULT '';");
 
             if (!col.SALT.isEmpty() && isColumnMissing(md, col.SALT)) {
                 addColumn(st, col.SALT, "VARCHAR(255);");
             }
 
-            if (isColumnMissing(md, col.LAST_IP)) {
-                addColumn(st, col.LAST_IP, "VARCHAR(40);");
-            }
-
-            if (isColumnMissing(md, col.LAST_LOGIN)) {
-                addColumn(st, col.LAST_LOGIN, "TIMESTAMP;");
-            }
-
-            if (isColumnMissing(md, col.REGISTRATION_IP)) {
-                addColumn(st, col.REGISTRATION_IP, "VARCHAR(40);");
-            }
+            addColumnIfAbsent(md, st, col.LAST_IP, "VARCHAR(40);");
+            addColumnIfAbsent(md, st, col.LAST_LOGIN, "TIMESTAMP;");
+            addColumnIfAbsent(md, st, col.REGISTRATION_IP, "VARCHAR(40);");
 
             if (isColumnMissing(md, col.REGISTRATION_DATE)) {
                 addRegistrationDateColumn(st);
@@ -157,33 +144,13 @@ public class SQLite extends AbstractSqlDataSource {
                 addColumn(st, col.LASTLOC_Z, "DOUBLE NOT NULL DEFAULT '0.0';");
             }
 
-            if (isColumnMissing(md, col.LASTLOC_WORLD)) {
-                addColumn(st, col.LASTLOC_WORLD, "VARCHAR(255) NOT NULL DEFAULT 'world';");
-            }
-
-            if (isColumnMissing(md, col.LASTLOC_YAW)) {
-                addColumn(st, col.LASTLOC_YAW, "FLOAT;");
-            }
-
-            if (isColumnMissing(md, col.LASTLOC_PITCH)) {
-                addColumn(st, col.LASTLOC_PITCH, "FLOAT;");
-            }
-
-            if (isColumnMissing(md, col.EMAIL)) {
-                addColumn(st, col.EMAIL, "VARCHAR(255);");
-            }
-
-            if (isColumnMissing(md, col.IS_LOGGED)) {
-                addColumn(st, col.IS_LOGGED, "INT NOT NULL DEFAULT '0';");
-            }
-
-            if (isColumnMissing(md, col.HAS_SESSION)) {
-                addColumn(st, col.HAS_SESSION, "INT NOT NULL DEFAULT '0';");
-            }
-
-            if (isColumnMissing(md, col.TOTP_KEY)) {
-                addColumn(st, col.TOTP_KEY, "VARCHAR(32);");
-            }
+            addColumnIfAbsent(md, st, col.LASTLOC_WORLD, "VARCHAR(255) NOT NULL DEFAULT 'world';");
+            addColumnIfAbsent(md, st, col.LASTLOC_YAW, "FLOAT;");
+            addColumnIfAbsent(md, st, col.LASTLOC_PITCH, "FLOAT;");
+            addColumnIfAbsent(md, st, col.EMAIL, "VARCHAR(255);");
+            addColumnIfAbsent(md, st, col.IS_LOGGED, "INT NOT NULL DEFAULT '0';");
+            addColumnIfAbsent(md, st, col.HAS_SESSION, "INT NOT NULL DEFAULT '0';");
+            addColumnIfAbsent(md, st, col.TOTP_KEY, "VARCHAR(32);");
 
             if (!col.PLAYER_UUID.isEmpty() && isColumnMissing(md, col.PLAYER_UUID)) {
                 addColumn(st, col.PLAYER_UUID, "VARCHAR(36)");
@@ -198,6 +165,13 @@ public class SQLite extends AbstractSqlDataSource {
 
     private void addColumn(Statement st, String column, String definition) throws SQLException {
         st.executeUpdate("ALTER TABLE " + tableName + " ADD COLUMN " + column + " " + definition);
+    }
+
+    private void addColumnIfAbsent(DatabaseMetaData md, Statement st, String column, String definition)
+        throws SQLException {
+        if (isColumnMissing(md, column)) {
+            addColumn(st, column, definition);
+        }
     }
 
     /**
@@ -220,7 +194,7 @@ public class SQLite extends AbstractSqlDataSource {
 
     @Override
     public synchronized void reload() {
-        close(con);
+        closeConnection();
         try {
             this.connect();
             this.setup();
@@ -382,16 +356,6 @@ public class SQLite extends AbstractSqlDataSource {
     @Override
     String getJdbcUrl(String dataPath, String ignored, String database) {
         return "jdbc:sqlite:" + dataPath + File.separator + database + ".db";
-    }
-
-    private static void close(Connection con) {
-        if (con != null) {
-            try {
-                con.close();
-            } catch (SQLException ex) {
-                logSqlException(ex);
-            }
-        }
     }
 
     // ---------------------------------------------------------------------------

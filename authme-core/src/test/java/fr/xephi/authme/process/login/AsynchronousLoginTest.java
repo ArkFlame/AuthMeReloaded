@@ -34,6 +34,8 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -203,19 +205,20 @@ class AsynchronousLoginTest {
         verify(asynchronousLogin).hasReachedMaxLoggedInPlayersForIp(player, ip);
     }
 
-    @Test
-    void shouldPassMaxLoginPerIpCheck() {
+    @ParameterizedTest(name = "checked IP {0}")
+    @CsvSource({"1.1.1.1, false", "2.2.2.2, true"})
+    void shouldEvaluateMaxLoginPerIpCheck(String checkedIp, boolean expectedExceeded) {
         // given
         Player player = mock(Player.class);
         given(commonService.getProperty(RestrictionSettings.MAX_LOGIN_PER_IP)).willReturn(2);
         given(commonService.hasPermission(player, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS)).willReturn(false);
-        mockOnlinePlayersInBukkitService("1.1.1.1");
+        mockOnlinePlayersInBukkitService(checkedIp);
 
         // when
-        boolean result = asynchronousLogin.hasReachedMaxLoggedInPlayersForIp(player, "1.1.1.1");
+        boolean result = asynchronousLogin.hasReachedMaxLoggedInPlayersForIp(player, checkedIp);
 
         // then
-        assertThat(result, equalTo(false));
+        assertThat(result, equalTo(expectedExceeded));
         verify(commonService).hasPermission(player, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS);
         verify(bukkitService).getOnlinePlayers();
     }
@@ -248,23 +251,6 @@ class AsynchronousLoginTest {
         assertThat(result, equalTo(false));
         verify(commonService).hasPermission(player, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS);
         verifyNoInteractions(bukkitService);
-    }
-
-    @Test
-    void shouldFailIpCheckForIpWithTooManyPlayersOnline() {
-        // given
-        Player player = mock(Player.class);
-        given(commonService.getProperty(RestrictionSettings.MAX_LOGIN_PER_IP)).willReturn(2);
-        given(commonService.hasPermission(player, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS)).willReturn(false);
-        mockOnlinePlayersInBukkitService("2.2.2.2");
-
-        // when
-        boolean result = asynchronousLogin.hasReachedMaxLoggedInPlayersForIp(player, "2.2.2.2");
-
-        // then
-        assertThat(result, equalTo(true));
-        verify(commonService).hasPermission(player, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS);
-        verify(bukkitService).getOnlinePlayers();
     }
 
     @Test

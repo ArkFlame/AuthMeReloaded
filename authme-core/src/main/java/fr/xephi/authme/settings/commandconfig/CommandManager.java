@@ -19,7 +19,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
@@ -63,7 +62,7 @@ public class CommandManager implements Reloadable {
      * @param player the joining player
      */
     public void runCommandsOnJoin(Player player) {
-        executeCommands(player, onJoinCommands.getAdaptedItems(player));
+        runCommands(player, onJoinCommands);
     }
 
     /**
@@ -72,7 +71,7 @@ public class CommandManager implements Reloadable {
      * @param player the player who has registered
      */
     public void runCommandsOnRegister(Player player) {
-        executeCommands(player, onRegisterCommands.getAdaptedItems(player));
+        runCommands(player, onRegisterCommands);
     }
 
     /**
@@ -85,9 +84,7 @@ public class CommandManager implements Reloadable {
         if (!playersWithLoginCommands.add(loginKey(player))) {
             return;
         }
-        final int numberOfOtherAccounts = otherAccounts.size();
-        executeCommands(player, onLoginCommands.getAdaptedItems(player),
-            cmd -> shouldCommandBeRun(cmd, numberOfOtherAccounts));
+        runLoginCommands(player, onLoginCommands, otherAccounts);
     }
 
     /**
@@ -96,7 +93,7 @@ public class CommandManager implements Reloadable {
      * @param player the player that logged in
      */
     public void runCommandsOnSessionLogin(Player player) {
-        executeCommands(player, onSessionLoginCommands.getAdaptedItems(player));
+        runCommands(player, onSessionLoginCommands);
     }
 
     /**
@@ -106,9 +103,7 @@ public class CommandManager implements Reloadable {
      * @param otherAccounts account names whose IP is the same as the player's
      */
     public void runCommandsOnFirstLogin(Player player, List<String> otherAccounts) {
-        final int numberOfOtherAccounts = otherAccounts.size();
-        executeCommands(player, onFirstLoginCommands.getAdaptedItems(player),
-            cmd -> shouldCommandBeRun(cmd, numberOfOtherAccounts));
+        runLoginCommands(player, onFirstLoginCommands, otherAccounts);
     }
 
     /**
@@ -117,8 +112,7 @@ public class CommandManager implements Reloadable {
      * @param player the player that has been unregistered
      */
     public void runCommandsOnUnregister(Player player) {
-        playersWithLoginCommands.remove(loginKey(player));
-        executeCommands(player, onUnregisterCommands.getAdaptedItems(player));
+        clearLoginStateAndRunCommands(player, onUnregisterCommands);
     }
 
     /**
@@ -127,12 +121,27 @@ public class CommandManager implements Reloadable {
      * @param player the player that is no longer logged in
      */
     public void runCommandsOnLogout(Player player) {
-        playersWithLoginCommands.remove(loginKey(player));
-        executeCommands(player, onLogoutCommands.getAdaptedItems(player));
+        clearLoginStateAndRunCommands(player, onLogoutCommands);
     }
 
     private static String loginKey(Player player) {
         return player.getName().toLowerCase(Locale.ROOT);
+    }
+
+    private void runCommands(Player player, WrappedTagReplacer<Command, Player> commands) {
+        executeCommands(player, commands.getAdaptedItems(player));
+    }
+
+    private <T extends OnLoginCommand> void runLoginCommands(Player player, WrappedTagReplacer<T, Player> commands,
+                                                            List<String> otherAccounts) {
+        int numberOfOtherAccounts = otherAccounts.size();
+        executeCommands(player, commands.getAdaptedItems(player),
+            cmd -> shouldCommandBeRun(cmd, numberOfOtherAccounts));
+    }
+
+    private void clearLoginStateAndRunCommands(Player player, WrappedTagReplacer<Command, Player> commands) {
+        playersWithLoginCommands.remove(loginKey(player));
+        runCommands(player, commands);
     }
 
     private void executeCommands(Player player, List<Command> commands) {
@@ -161,10 +170,10 @@ public class CommandManager implements Reloadable {
     }
 
     private static boolean shouldCommandBeRun(OnLoginCommand command, int numberOfOtherAccounts) {
-        Optional<Integer> atLeast = command.getIfNumberOfAccountsAtLeast();
-        Optional<Integer> lessThan = command.getIfNumberOfAccountsLessThan();
-        return (!atLeast.isPresent() || atLeast.get() <= numberOfOtherAccounts)
-            && (!lessThan.isPresent() || lessThan.get() > numberOfOtherAccounts);
+        return command.getIfNumberOfAccountsAtLeast()
+            .map(threshold -> threshold <= numberOfOtherAccounts).orElse(true)
+            && command.getIfNumberOfAccountsLessThan()
+            .map(threshold -> threshold > numberOfOtherAccounts).orElse(true);
     }
 
     @Override

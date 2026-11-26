@@ -27,6 +27,7 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
 
     private String findAuthSql;
     private String findRecordsToPurgeSql;
+    private String updateOtherUsernamesSql;
 
     @Override
     protected void initSqlStrings() {
@@ -36,6 +37,24 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
             + " COALESCE(" + col.LAST_LOGIN + ", 0),"
             + " COALESCE(" + col.REGISTRATION_DATE + ", 0)"
             + ") < ?;";
+        updateOtherUsernamesSql = buildOtherUsernamesUpdateSql();
+    }
+
+    /**
+     * Builds the single UPDATE statement for all configured extra username columns, or null if none are configured.
+     */
+    private String buildOtherUsernamesUpdateSql() {
+        if (columnOthers.isEmpty()) {
+            return null;
+        }
+        StringBuilder sql = new StringBuilder("UPDATE ").append(tableName).append(" SET ");
+        for (int i = 0; i < columnOthers.size(); ++i) {
+            if (i > 0) {
+                sql.append(", ");
+            }
+            sql.append(columnOthers.get(i)).append("=?");
+        }
+        return sql.append(" WHERE ").append(col.NAME).append("=?;").toString();
     }
 
     @Override
@@ -73,17 +92,8 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
         super.saveAuth(auth);
 
         try (Connection con = getConnection()) {
-            if (!columnOthers.isEmpty()) {
-                // One UPDATE for all configured username columns instead of one per column.
-                StringBuilder sql = new StringBuilder("UPDATE ").append(tableName).append(" SET ");
-                for (int i = 0; i < columnOthers.size(); ++i) {
-                    if (i > 0) {
-                        sql.append(", ");
-                    }
-                    sql.append(columnOthers.get(i)).append("=?");
-                }
-                sql.append(" WHERE ").append(col.NAME).append("=?;");
-                try (PreparedStatement pst = con.prepareStatement(sql.toString())) {
+            if (updateOtherUsernamesSql != null) {
+                try (PreparedStatement pst = con.prepareStatement(updateOtherUsernamesSql)) {
                     int index = 1;
                     for (String ignored : columnOthers) {
                         pst.setString(index++, auth.getRealName());

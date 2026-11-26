@@ -5,7 +5,6 @@ import com.velocitypowered.api.event.player.GameProfileRequestEvent;
 import com.velocitypowered.api.util.UuidUtils;
 import org.slf4j.Logger;
 
-import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -52,7 +51,7 @@ public final class VelocityPremiumVerificationManager {
         if (!event.getResult().isAllowed()) {
             return;
         }
-        String normalizedName = normalize(event.getUsername());
+        String normalizedName = ProxyPremiumLoginVerifier.normalize(event.getUsername());
         if (isPendingVerification.test(normalizedName) && !pendingVerificationAttempted.add(normalizedName)) {
             // Velocity fires no event when Mojang rejects a forced online-mode login, so a pending
             // player showing up again means the previous attempt failed: cancel the enrollment and
@@ -66,7 +65,7 @@ public final class VelocityPremiumVerificationManager {
     }
 
     public void onGameProfileRequest(GameProfileRequestEvent event) {
-        String normalizedName = normalize(event.getUsername());
+        String normalizedName = ProxyPremiumLoginVerifier.normalize(event.getUsername());
         if (!requiresVerification.test(normalizedName) || !event.isOnlineMode()) {
             return;
         }
@@ -108,9 +107,5 @@ public final class VelocityPremiumVerificationManager {
         }
         registered = false;
         loginVerifier.shutdown();
-    }
-
-    private static String normalize(String username) {
-        return username.toLowerCase(Locale.ROOT);
     }
 }

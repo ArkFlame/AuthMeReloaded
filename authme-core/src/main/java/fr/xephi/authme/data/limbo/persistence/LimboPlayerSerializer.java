@@ -52,14 +52,7 @@ class LimboPlayerSerializer implements JsonSerializer<LimboPlayer> {
 
         Location loc = limboPlayer.getLocation();
         if (loc != null && loc.getWorld() != null) {
-            JsonObject locationObject = new JsonObject();
-            locationObject.addProperty(LOC_WORLD, loc.getWorld().getName());
-            locationObject.addProperty(LOC_X, loc.getX());
-            locationObject.addProperty(LOC_Y, loc.getY());
-            locationObject.addProperty(LOC_Z, loc.getZ());
-            locationObject.addProperty(LOC_YAW, loc.getYaw());
-            locationObject.addProperty(LOC_PITCH, loc.getPitch());
-            obj.add(LOCATION, locationObject);
+            obj.add(LOCATION, serializeLocation(loc));
         }
 
         JsonArray jsonGroups = new JsonArray();

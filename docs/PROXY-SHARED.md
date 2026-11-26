@@ -1,64 +1,83 @@
-# Shared proxy module candidates
+# Shared-source plan for the proxy modules
 
-The BungeeCord (`authme-bungee`) and Velocity (`authme-velocity`) proxies implement the
-same AuthMe bridge protocol. They currently carry parallel copies of the platform-neutral
-logic. This page records what could move into a shared proxy module. Nothing here is
-implemented yet: the two modules remain self-contained, and each keeps a single local
-copy of the logic it uses.
+`authme-bungee` and `authme-velocity` are two independently deployed plugins. They speak the
+same wire protocol to backend AuthMe servers and already contain several copies of the same
+logic, but they cannot simply be merged into one jar: BungeeCord and Velocity have incompatible
+APIs, different plugin descriptors, and different package/plugin identifiers that are part of the
+public contract. This document records how the duplicated logic can be shared without changing
+any of that, and what is being done now versus later.
 
-## Candidates
+## 1. Goals and non-goals
 
-### 1. HMAC signing and shared-secret handling
+Goals:
 
-- `ProxyMessageSecurity` in both modules is byte-for-byte identical: the same
-  `HmacSHA256` computation over `playerName:timestamp:premiumUuid`, the same hex output,
-  and the same `generateSecret()` helper used to populate an empty secret.
-- `HmacSecretMigrationService` in both modules only wires that generator into the
-  `proxySharedSecret` config property; the migration is otherwise identical.
-- Candidate: a platform-neutral `ProxyMessageSecurity` (signing plus secret generation)
-  and a shared migration base parameterized by the shared-secret property. Keep the
-  property declaration in each module's config class so config keys and defaults do not
-  change.
+- one copy of each piece of platform-independent proxy logic;
+- identical wire behaviour on both proxies, enforced by compiling the same source into both jars;
+- no new runtime dependency on the other proxy module.
 
-### 2. Message identifiers
+Non-goals (must stay module-local):
 
-- `ProxyMessageType` is an enum in each module with the same ten wire ids
-  (`login`, `logout`, `perform.login`, `perform.login.ack`, `proxy.started`,
-  `premium.set`, `premium.unset`, `premium.list`, `premium.list.chunk`,
-  `premium.pending.set`) and the same `fromId` lookup.
-- Candidate: a single enum in the shared module. The ids are part of the wire protocol,
-  so a shared definition removes the risk of the two proxies drifting apart.
+- platform-facing classes that take or return `ProxiedPlayer`/`ServerInfo` (Bungee) or
+  `Player`/`RegisteredServer`/Velocity events (Velocity);
+- plugin descriptors, plugin ids, command names, permission nodes, event classes and packages;
+- config keys and defaults, messages, and the `authme:main` channel name;
+- the Java release level of any module (`authme-core` stays at Java 8).
 
-### 3. Authentication session store
+## 2. Duplication inventory
 
-- `BungeeAuthenticationStore` and `VelocityAuthenticationStore` have identical
-  `Set` backed state and the same case-insensitive name normalization. Only the player
-  argument type differs (`ProxiedPlayer` versus Velocity `Player`).
-- Candidate: a shared store keyed by normalized name. The bridges would keep their own
-  thin player-type adapters, and the shared store would expose `markAuthenticated`,
-  `markLoggedOut`, `isAuthenticated`, and `clear` on names.
+| Concern | Bungee | Velocity | Shareable as-is? |
+| --- | --- | --- | --- |
+| Wire message ids | `bungee/ProxyMessageType.java` | `velocity/ProxyMessageType.java` | Yes — byte-for-byte except the javadoc link |
+| HMAC signing and secret generation | `bungee/ProxyMessageSecurity.java` | `velocity/ProxyMessageSecurity.java` | Yes — byte-for-byte except the package |
+| Secret migration | `bungee/HmacSecretMigrationService.java` | `velocity/HmacSecretMigrationService.java` | Yes, if the shared class is handed the config property |
+| `perform.login` payload | `createPerformLoginMessage` in `BungeeProxyBridge` | `createPerformLoginMessage` in `VelocityProxyBridge` | Yes — same fields and order |
+| `proxy.started` payload | `createProxyStartedMessage` in the bridge | `createProxyStartedMessage` in the bridge | Yes, apart from the `PROXY_IDENTITY` value |
+| Inbound parse / `ParsedMessage` | `parsePluginMessage` + `ParsedPluginMessage` | `parseMessage` + `ParsedMessage` | Yes — same type filter and normalization rules |
+| Premium-name cache I/O | `loadPremiumNamesCache` / `savePremiumNamesAsync` | same methods | Yes, with a logger abstraction |
+| Chunked premium-list assembly | `handlePremiumListChunk` / `replacePremiumNames` / `addNormalizedPremiumNames` | same methods | Yes |
+| Auth-state bookkeeping | `BungeeAuthenticationStore` | `VelocityAuthenticationStore` | Yes — only the `Player` type differs |
+| Config snapshot + alias normalization | `BungeeProxyConfiguration` | `VelocityProxyConfiguration` | Mostly: platform type in `isAuthServer` stays local |
+| Startup config logging | `logConfigurationDetails` in the bridge | same method | Yes, with a logger abstraction |
+| Retry scheduler | `retryScheduler` + `scheduleRetry` | same fields/methods | Yes, with a platform send callback |
+| Premium name normalization | `ProxyPremiumLoginVerifier.normalize` | `ProxyPremiumLoginVerifier.normalize` | Single helper per module's premium package (done) |
 
-### 4. Configuration snapshot and normalization
+The two premium verification implementations are deliberately *different* and are not part of
+this plan: Velocity resolves premium sessions natively through `PreLoginEvent` and
+`GameProfileRequestEvent`, while Bungee runs a PacketEvents-backed `hasJoined` handshake.
 
-- `BungeeProxyConfiguration` and `VelocityProxyConfiguration` hold the same fields and
-  apply the same normalization: server names are trimmed and lowercased, command aliases
-  are trimmed, prefixed with `/`, and lowercased, and empty entries are dropped.
-- `BungeeConfigManager` and `VelocityConfigManager` share the same configme setup and
-  reload flow. The config properties in both modules already use the same keys and
-  defaults.
-- Candidate: a shared immutable config snapshot plus the normalization helpers, with
-  each module supplying its own `SettingsHolder` and platform-specific server lookup.
+## 3. Proposed mechanism
 
-## What should stay per module
+1. Add a plain source root, for example `proxy-shared/src/main/java`, with package
+   `fr.xephi.authme.proxy.shared`. It has no plugin descriptor and is not published as a jar.
+2. In each proxy pom, add a `build-helper-maven-plugin:add-source` execution for that directory.
+   Both modules then compile the same files into their own jars; nothing is shaded or relocated.
+3. Compile the shared sources at the *lower* of the two module release levels (currently Java 21),
+   so Velocity (Java 25) and Bungee (Java 21) can both consume them. Keep `authme-core` at Java 8.
+4. Give shared classes package-private or public static APIs only; pass platform objects in as
+   interfaces/callbacks (e.g. a `Consumer<String>` for logging and a `Predicate<String>` for
+   server classification) instead of importing Bungee or Velocity types.
+5. Keep the existing package-private classes in each module as thin wrappers where callers or
+   tests depend on their names, delegating to the shared implementation.
 
-- Plugin entry points, lifecycle, channel registration, and event listeners.
-- Platform event types, logging APIs, scheduler, and connection objects.
-- Premium verification that depends on proxy-specific handshake events.
-- Plugin descriptors and resource files.
+## 4. Migration phases
 
-## Constraints for a future shared module
+- **Phase 0 (done in this change):** remove *local* duplicates. The Velocity and Bungee premium
+  packages now each use one shared `normalize(String)` helper instead of repeating
+  `toLowerCase(Locale.ROOT)` in every class. No wire, config or API change.
+- **Phase 1:** move `ProxyMessageType`, `ProxyMessageSecurity` and the secret-migration logic to
+  the shared root; leave module-local wrappers if existing tests reference the old names.
+- **Phase 2:** move the message parse result, `perform.login`/`proxy.started` builders and the
+  premium-list chunk assembler; keep the wire ids and field order unchanged.
+- **Phase 3:** move the premium cache and config snapshot logic behind logger/classifier callbacks;
+  keep config keys, defaults and comments identical.
+- **Phase 4:** move the retry scheduler and startup logging; keep platform sends in the bridges.
 
-- Keep the core artifact at Java 8 bytecode; the proxy modules may target a newer Java
-  level, so a shared module must declare its own target explicitly.
-- Do not change config keys, defaults, messages, permissions, or plugin identifiers.
-- Preserve the wire protocol and the current Spigot 1.8+ and Folia compatibility.
+## 5. Acceptance checklist
+
+For every phase, verify on both proxies that:
+
+- the message ids, payload field order and HMAC input are unchanged;
+- config keys/defaults, messages, permissions, command names, plugin ids and packages are unchanged;
+- no `authme-core` source or Java 8 bytecode level is affected;
+- Folia/Spigot behaviour is untouched (these are proxy-only modules);
+- test assertion counts are unchanged — refactors may dedupe setup, never drop assertions.

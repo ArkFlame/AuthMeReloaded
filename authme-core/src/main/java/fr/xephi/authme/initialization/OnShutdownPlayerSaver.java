@@ -40,9 +40,6 @@ public class OnShutdownPlayerSaver {
     @Inject
     private LimboService limboService;
 
-    OnShutdownPlayerSaver() {
-    }
-
     /**
      * Saves the data of all online players.
      */

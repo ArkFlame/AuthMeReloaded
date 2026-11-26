@@ -5,8 +5,6 @@ import fr.xephi.authme.security.crypts.description.AsciiRestricted;
 import fr.xephi.authme.security.crypts.description.Recommendation;
 import fr.xephi.authme.security.crypts.description.Usage;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -20,10 +18,8 @@ public class PhpFusion extends HexSeparateSaltMethod {
         String algo = "HmacSHA256";
         String keyString = HashUtils.sha1(salt);
         try {
-            SecretKeySpec key = new SecretKeySpec(keyString.getBytes(StandardCharsets.UTF_8), algo);
-            Mac mac = Mac.getInstance(algo);
-            mac.init(key);
-            byte[] bytes = mac.doFinal(password.getBytes(StandardCharsets.US_ASCII));
+            byte[] bytes = HashUtils.createMac(algo, keyString.getBytes(StandardCharsets.UTF_8))
+                .doFinal(password.getBytes(StandardCharsets.US_ASCII));
             return HashUtils.toHex(bytes);
         } catch (InvalidKeyException | NoSuchAlgorithmException e) {
             throw new UnsupportedOperationException("Cannot create PHPFUSION hash for " + name, e);

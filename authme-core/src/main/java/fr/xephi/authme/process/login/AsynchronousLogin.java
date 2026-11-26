@@ -18,9 +18,9 @@ import fr.xephi.authme.mail.EmailService;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.permission.AdminPermission;
 import fr.xephi.authme.permission.PlayerPermission;
-import fr.xephi.authme.permission.PlayerStatePermission;
 import fr.xephi.authme.platform.DialogAdapter;
 import fr.xephi.authme.process.AsynchronousProcess;
+import fr.xephi.authme.process.ProcessSharedActions;
 import fr.xephi.authme.process.SyncProcessManager;
 import fr.xephi.authme.security.PasswordSecurity;
 import fr.xephi.authme.service.BukkitService;
@@ -29,14 +29,12 @@ import fr.xephi.authme.service.DialogStateService;
 import fr.xephi.authme.service.DialogWindowService;
 import fr.xephi.authme.service.SessionService;
 import fr.xephi.authme.service.bungeecord.BungeeSender;
-import fr.xephi.authme.service.bungeecord.MessageType;
 import fr.xephi.authme.settings.properties.DatabaseSettings;
 import fr.xephi.authme.settings.properties.EmailSettings;
 import fr.xephi.authme.settings.properties.HooksSettings;
 import fr.xephi.authme.settings.properties.PluginSettings;
 import fr.xephi.authme.settings.properties.RegistrationSettings;
 import fr.xephi.authme.settings.properties.RestrictionSettings;
-import fr.xephi.authme.util.InternetProtocolUtils;
 import fr.xephi.authme.util.PlayerUtils;
 import fr.xephi.authme.util.Utils;
 import org.bukkit.ChatColor;
@@ -366,12 +364,7 @@ public class AsynchronousLogin implements AsynchronousProcess {
                 return;
             }
 
-            if (bungeeSender.isEnabled()) {
-                // As described at https://www.spigotmc.org/wiki/bukkit-bungee-plugin-messaging-channel/
-                // "Keep in mind that you can't send plugin messages directly after a player joins."
-                bukkitService.scheduleSyncDelayedTask(player, () ->
-                    bungeeSender.sendAuthMeBungeecordMessage(player, MessageType.LOGIN), 5L);
-            }
+            ProcessSharedActions.sendLoginMessageToProxy(bukkitService, bungeeSender, player);
 
             // As the scheduling executes the Task most likely after the current
             // task, we schedule it in the end
@@ -449,9 +442,7 @@ public class AsynchronousLogin implements AsynchronousProcess {
     boolean hasReachedMaxLoggedInPlayersForIp(Player player, String ip) {
         int maxLoggedInPerIp = service.getProperty(RestrictionSettings.MAX_LOGIN_PER_IP);
         // Do not perform the check if player has multiple accounts permission or if IP is localhost
-        if (maxLoggedInPerIp <= 0
-            || service.hasPermission(player, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS)
-            || InternetProtocolUtils.isLoopbackAddress(ip)) {
+        if (maxLoggedInPerIp <= 0 || ProcessSharedActions.isExemptFromIpLimit(service, player, ip)) {
             return false;
         }
 

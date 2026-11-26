@@ -8,7 +8,6 @@ import fr.xephi.authme.command.CommandDescription;
 import fr.xephi.authme.command.CommandMapper;
 import fr.xephi.authme.command.FoundCommandResult;
 import fr.xephi.authme.command.help.HelpProvider;
-import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -23,6 +22,7 @@ import static fr.xephi.authme.command.FoundResultStatus.INCORRECT_ARGUMENTS;
 import static fr.xephi.authme.command.FoundResultStatus.MISSING_BASE_COMMAND;
 import static fr.xephi.authme.command.FoundResultStatus.SUCCESS;
 import static fr.xephi.authme.command.FoundResultStatus.UNKNOWN_LABEL;
+import static fr.xephi.authme.command.TestCommandsUtil.removeColors;
 import static fr.xephi.authme.command.help.HelpProvider.SHOW_ALTERNATIVES;
 import static fr.xephi.authme.command.help.HelpProvider.SHOW_CHILDREN;
 import static fr.xephi.authme.command.help.HelpProvider.SHOW_COMMAND;
@@ -158,12 +158,6 @@ public class HelpCommandTest {
         return parent;
     }
 
-    private static String removeColors(String str) {
-        for (ChatColor color : ChatColor.values()) {
-            str = str.replace(color.toString(), "");
-        }
-        return str;
-    }
 }
 
 

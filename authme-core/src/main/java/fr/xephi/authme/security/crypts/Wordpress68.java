@@ -1,5 +1,6 @@
 package fr.xephi.authme.security.crypts;
 
+import fr.xephi.authme.security.HashUtils;
 import fr.xephi.authme.security.crypts.description.HasSalt;
 import fr.xephi.authme.security.crypts.description.Recommendation;
 import fr.xephi.authme.security.crypts.description.SaltType;
@@ -9,9 +10,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
-
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 
 import static fr.xephi.authme.security.crypts.BCryptHasher.SALT_LENGTH_ENCODED;
 
@@ -79,9 +77,8 @@ public class Wordpress68 implements EncryptionMethod {
      */
     private static String preHash(String password) {
         try {
-            Mac mac = Mac.getInstance("HmacSHA384");
-            mac.init(new SecretKeySpec(HMAC_KEY.getBytes(StandardCharsets.UTF_8), "HmacSHA384"));
-            return Base64.getEncoder().encodeToString(mac.doFinal(password.getBytes(StandardCharsets.UTF_8)));
+            return Base64.getEncoder().encodeToString(HashUtils.createMac("HmacSHA384",
+                HMAC_KEY.getBytes(StandardCharsets.UTF_8)).doFinal(password.getBytes(StandardCharsets.UTF_8)));
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
             throw new UnsupportedOperationException("HmacSHA384 is not available on this system", e);
         }

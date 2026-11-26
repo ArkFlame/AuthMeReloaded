@@ -9,7 +9,6 @@ import fr.xephi.authme.permission.DefaultPermission;
 import fr.xephi.authme.permission.PermissionsManager;
 import fr.xephi.authme.platform.BukkitCompatibilityAdapter;
 import fr.xephi.authme.settings.Settings;
-import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,6 +27,7 @@ import java.util.Locale;
 import java.util.stream.Collectors;
 
 import static fr.xephi.authme.command.TestCommandsUtil.getCommandWithLabel;
+import static fr.xephi.authme.command.TestCommandsUtil.removeColors;
 import static fr.xephi.authme.command.help.HelpProvider.ALL_OPTIONS;
 import static fr.xephi.authme.command.help.HelpProvider.SHOW_ALTERNATIVES;
 import static fr.xephi.authme.command.help.HelpProvider.SHOW_ARGUMENTS;
@@ -438,17 +438,16 @@ class HelpProviderTest {
         return new FoundCommandResult(command, labels, Collections.emptyList(), 0.0, FoundResultStatus.SUCCESS);
     }
 
-    private static String removeColors(String str) {
-        for (ChatColor color : ChatColor.values()) {
-            str = str.replace(color.toString(), "");
-        }
-        return str;
-    }
-
     private static List<String> getLines(CommandSender sender) {
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
         verify(sender, atLeastOnce()).sendMessage(captor.capture());
         return captor.getAllValues().stream().map(s -> removeColors(s)).collect(Collectors.toList());
+    }
+
+    /** Builds the human-readable test text for an enum constant, e.g. SHOW_COMMAND becomes "Show command". */
+    private static String displayText(Enum<?> value) {
+        String text = value.name().replace("_", " ").toLowerCase(Locale.ROOT);
+        return text.substring(0, 1).toUpperCase(Locale.ROOT) + text.substring(1);
     }
 
     private static void setDefaultHelpMessages(HelpMessagesService helpMessagesService) {
@@ -457,20 +456,17 @@ class HelpProviderTest {
         lenient().when(helpMessagesService.buildLocalizedDescription(any(CommandDescription.class), isNull()))
             .thenAnswer(new ReturnsArgumentAt(0));
         for (HelpMessage key : HelpMessage.values()) {
-            String text = key.name().replace("_", " ").toLowerCase(Locale.ROOT);
-            String returnValue = text.substring(0, 1).toUpperCase(Locale.ROOT) + text.substring(1);
+            String returnValue = displayText(key);
             lenient().when(helpMessagesService.getMessage(key)).thenReturn(returnValue);
             lenient().when(helpMessagesService.getMessage(eq(key), isNull())).thenReturn(returnValue);
         }
         for (DefaultPermission permission : DefaultPermission.values()) {
-            String text = permission.name().replace("_", " ").toLowerCase(Locale.ROOT);
-            String returnValue = text.substring(0, 1).toUpperCase(Locale.ROOT) + text.substring(1);
+            String returnValue = displayText(permission);
             lenient().when(helpMessagesService.getMessage(permission)).thenReturn(returnValue);
             lenient().when(helpMessagesService.getMessage(eq(permission), isNull())).thenReturn(returnValue);
         }
         for (HelpSection section : HelpSection.values()) {
-            String text = section.name().replace("_", " ").toLowerCase(Locale.ROOT);
-            String returnValue = text.substring(0, 1).toUpperCase(Locale.ROOT) + text.substring(1);
+            String returnValue = displayText(section);
             lenient().when(helpMessagesService.getMessage(section)).thenReturn(returnValue);
             lenient().when(helpMessagesService.getMessage(eq(section), isNull())).thenReturn(returnValue);
         }

@@ -89,12 +89,8 @@ public class BungeeReceiver implements PluginMessageListener, SettingsDependent 
         }
 
         ByteArrayDataInput in = ByteStreams.newDataInput(data);
-
-        String typeId;
-        try {
-            typeId = in.readUTF();
-        } catch (IllegalStateException e) {
-            logger.warning("Received malformed AuthMe plugin message on authme:main");
+        String typeId = readField(in, "Received malformed AuthMe plugin message on authme:main");
+        if (typeId == null) {
             return;
         }
 
@@ -103,19 +99,16 @@ public class BungeeReceiver implements PluginMessageListener, SettingsDependent 
             logger.debug("Received unsupported AuthMe plugin message type: {0}", typeId);
             return;
         }
+        MessageType messageType = type.get();
 
-        String argument;
-        try {
-            argument = in.readUTF();
-        } catch (IllegalStateException e) {
-            logger.warning("Received invalid AuthMe plugin message of type " + type.get().name() + ": argument is missing!");
+        String argument = readField(in,
+            "Received invalid AuthMe plugin message of type " + messageType.name() + ": argument is missing!");
+        if (argument == null) {
             return;
         }
 
-        if (type.get() == MessageType.PROXY_STARTED) {
+        if (messageType == MessageType.PROXY_STARTED) {
             logger.info("Proxy plugin '" + argument + "' has started and registered the authme:main channel");
-            final String proxyName = argument;
-            final Player triggeringPlayer = player;
             bukkitService.runTaskAsynchronously(() -> {
                 // Always send the list, even when it is empty: an empty list is authoritative and
                 // lets the proxy replace a stale premium cache. With premium disabled, stored
@@ -128,25 +121,39 @@ public class BungeeReceiver implements PluginMessageListener, SettingsDependent 
                     // the login phase) or the single online player disconnected mid-query.
                     Player freshCarrier = bukkitService.getOnlinePlayers().stream()
                         .findFirst().orElse(null);
-                    Player carrier = freshCarrier != null ? freshCarrier : triggeringPlayer;
+                    Player carrier = freshCarrier != null ? freshCarrier : player;
                     if (carrier != null) {
                         bungeeSender.sendPremiumList(carrier, premiumNames);
-                        logger.info("Sent premium list (" + premiumNames.size() + " player(s)) to proxy '" + proxyName + "'");
+                        logger.info("Sent premium list (" + premiumNames.size() + " player(s)) to proxy '" + argument + "'");
                     } else {
-                        logger.warning("Cannot send premium list to proxy '" + proxyName
+                        logger.warning("Cannot send premium list to proxy '" + argument
                             + "': no online player available as carrier.");
                     }
                 });
             });
-            return;
-        }
-
-        if (type.get() == MessageType.PERFORM_LOGIN) {
+        } else if (messageType == MessageType.PERFORM_LOGIN) {
             VerifiedProxyLogin verified = parseAndVerifyPerformLogin(in, argument);
-            if (verified == null) {
-                return;
+            if (verified != null) {
+                performLogin(verified.name, verified.verifiedPremiumUuid);
             }
-            performLogin(verified.name, verified.verifiedPremiumUuid);
+        }
+    }
+
+    /**
+     * Reads a UTF field from a plugin message, optionally logging a warning when the field is absent.
+     *
+     * @param in the data input
+     * @param missingFieldWarning warning to log if the field cannot be read, or {@code null} to log nothing
+     * @return the field value, or {@code null} if it was missing
+     */
+    private String readField(ByteArrayDataInput in, String missingFieldWarning) {
+        try {
+            return in.readUTF();
+        } catch (IllegalStateException e) {
+            if (missingFieldWarning != null) {
+                logger.warning(missingFieldWarning);
+            }
+            return null;
         }
     }
 
@@ -202,14 +209,12 @@ public class BungeeReceiver implements PluginMessageListener, SettingsDependent 
             return null;
         }
         ByteArrayDataInput in = ByteStreams.newDataInput(data);
-        String argument;
-        try {
-            String typeId = in.readUTF();
-            if (!MessageType.PERFORM_LOGIN.getId().equals(typeId)) {
-                return null;
-            }
-            argument = in.readUTF();
-        } catch (IllegalStateException e) {
+        String typeId = readField(in, null);
+        if (typeId == null || !MessageType.PERFORM_LOGIN.getId().equals(typeId)) {
+            return null;
+        }
+        String argument = readField(in, null);
+        if (argument == null) {
             return null;
         }
         VerifiedProxyLogin verified = parseAndVerifyPerformLogin(in, argument);

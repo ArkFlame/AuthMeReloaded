@@ -37,7 +37,7 @@ class MessageFilePlaceholderTest {
     void shouldHaveAllPlaceholders(File messagesFile, String messagesFilename) {
         // given
         PropertyReader reader = new YamlFileReader(messagesFile);
-        List<String> errors = new ArrayList<>(0);
+        List<String> errors = new ArrayList<>();
 
         // when
         for (MessageKey key : MessageKey.values()) {

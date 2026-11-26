@@ -22,6 +22,8 @@ import org.bukkit.potion.PotionEffect;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -106,8 +108,9 @@ class AsynchronousUnregisterTest {
         verifyNoInteractions(passwordSecurity, dataSource, service);
     }
 
-    @Test
-    void shouldPerformUnregister() {
+    @ParameterizedTest(name = "blind effect={0}")
+    @ValueSource(booleans = {true, false})
+    void shouldPerformUnregister(boolean applyBlindEffect) {
         // given
         Player player = mock(Player.class);
         String name = "Frank21";
@@ -117,10 +120,12 @@ class AsynchronousUnregisterTest {
         given(passwordSecurity.comparePassword(userPassword, password, name)).willReturn(true);
         given(dataSource.removeAuth(name)).willReturn(true);
         given(service.getProperty(RegistrationSettings.FORCE)).willReturn(true);
-        given(service.getProperty(RegistrationSettings.APPLY_BLIND_EFFECT)).willReturn(true);
-        given(service.getProperty(RestrictionSettings.REGISTER_TIMEOUT)).willReturn(21);
+        given(service.getProperty(RegistrationSettings.APPLY_BLIND_EFFECT)).willReturn(applyBlindEffect);
         setBukkitServiceToScheduleSyncEntityTaskFromOptionallyAsyncTask(bukkitService);
-        given(bukkitService.createBlindnessEffect(21 * 20)).willReturn(mock(PotionEffect.class));
+        if (applyBlindEffect) {
+            given(service.getProperty(RestrictionSettings.REGISTER_TIMEOUT)).willReturn(21);
+            given(bukkitService.createBlindnessEffect(21 * 20)).willReturn(mock(PotionEffect.class));
+        }
 
         // when
         asynchronousUnregister.unregister(player, userPassword);
@@ -133,34 +138,9 @@ class AsynchronousUnregisterTest {
         verify(teleportationService).teleportOnJoin(player);
         verifyCalledUnregisterEventFor(player);
         verify(commandManager).runCommandsOnUnregister(player);
-    }
-
-    @Test
-    void shouldPerformUnregisterAndNotApplyBlindEffect() {
-        // given
-        Player player = mock(Player.class);
-        String name = "Frank21";
-        HashedPassword password = givenRegisteredPlayer(player, name);
-        given(player.isOnline()).willReturn(true);
-        String userPassword = "pass";
-        given(passwordSecurity.comparePassword(userPassword, password, name)).willReturn(true);
-        given(dataSource.removeAuth(name)).willReturn(true);
-        given(service.getProperty(RegistrationSettings.FORCE)).willReturn(true);
-        given(service.getProperty(RegistrationSettings.APPLY_BLIND_EFFECT)).willReturn(false);
-        setBukkitServiceToScheduleSyncEntityTaskFromOptionallyAsyncTask(bukkitService);
-
-        // when
-        asynchronousUnregister.unregister(player, userPassword);
-
-        // then
-        verify(service).send(player, MessageKey.UNREGISTERED_SUCCESS);
-        verify(passwordSecurity).comparePassword(userPassword, password, name);
-        verify(dataSource).removeAuth(name);
-        verify(playerCache).removePlayer(name);
-        verify(teleportationService).teleportOnJoin(player);
-        verifyCalledUnregisterEventFor(player);
-        verify(commandManager).runCommandsOnUnregister(player);
-        verify(player, never()).addPotionEffect(any(PotionEffect.class));
+        if (!applyBlindEffect) {
+            verify(player, never()).addPotionEffect(any(PotionEffect.class));
+        }
     }
 
     @Test

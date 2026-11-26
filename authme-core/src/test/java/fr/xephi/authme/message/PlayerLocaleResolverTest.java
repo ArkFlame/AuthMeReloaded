@@ -16,6 +16,7 @@ import java.util.Optional;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
@@ -63,12 +64,17 @@ class PlayerLocaleResolverTest {
         return settings;
     }
 
+    private static BukkitCompatibilityAdapter adapterReturningLocale(String locale) {
+        BukkitCompatibilityAdapter adapter = mock(BukkitCompatibilityAdapter.class);
+        given(adapter.getPlayerLocale(any(Player.class))).willReturn(Optional.of(locale));
+        return adapter;
+    }
+
     @Test
     void shouldResolveLanguageForPlayerWithPerPlayerLocaleEnabled() {
         // given
         Player player = mock(Player.class);
-        BukkitCompatibilityAdapter adapter = mock(BukkitCompatibilityAdapter.class);
-        given(adapter.getPlayerLocale(player)).willReturn(Optional.of("fr_fr"));
+        BukkitCompatibilityAdapter adapter = adapterReturningLocale("fr_fr");
         Settings settings = settingsWithPerPlayerLocale(true);
 
         // when / then
@@ -79,8 +85,7 @@ class PlayerLocaleResolverTest {
     void shouldResolveOverrideLocalePtBr() {
         // given pt_br is mapped to "br" via LOCALE_OVERRIDES
         Player player = mock(Player.class);
-        BukkitCompatibilityAdapter adapter = mock(BukkitCompatibilityAdapter.class);
-        given(adapter.getPlayerLocale(player)).willReturn(Optional.of("pt_br"));
+        BukkitCompatibilityAdapter adapter = adapterReturningLocale("pt_br");
         Settings settings = settingsWithPerPlayerLocale(true);
 
         // when / then

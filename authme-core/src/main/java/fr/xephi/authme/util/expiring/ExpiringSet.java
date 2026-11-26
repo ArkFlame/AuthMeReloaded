@@ -50,12 +50,12 @@ public class ExpiringSet<E> {
         Long expiration = entries.get(entry);
         if (expiration == null) {
             return false;
-        } else if (expiration > System.currentTimeMillis()) {
-            return true;
-        } else {
-            entries.remove(entry);
-            return false;
         }
+        if (expiration > System.currentTimeMillis()) {
+            return true;
+        }
+        entries.remove(entry);
+        return false;
     }
 
     /**

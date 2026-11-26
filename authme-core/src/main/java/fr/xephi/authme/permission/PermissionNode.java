@@ -13,9 +13,13 @@ public interface PermissionNode {
     String getNode();
 
     /**
-     * Return the default permission for this node, e.g. "OP_ONLY"
+     * Return the default permission for this node, e.g. "OP_ONLY".
+     * Most AuthMe nodes fall back to {@link DefaultPermission#OP_ONLY}; nodes with a
+     * different fallback override this method.
      *
      * @return The default level of permission
      */
-    DefaultPermission getDefaultPermission();
+    default DefaultPermission getDefaultPermission() {
+        return DefaultPermission.OP_ONLY;
+    }
 }

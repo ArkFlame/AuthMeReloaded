@@ -7,6 +7,8 @@ import fr.xephi.authme.service.PreJoinDialogService;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -51,34 +53,19 @@ class ManagementTest {
         verify(bukkitService).runTaskOptionallyAsync(any(Runnable.class));
     }
 
-    @Test
-    void shouldForceLoginFromProxyByNameApprovesBlockingPreJoinDialog() {
+    @ParameterizedTest(name = "{0}, approved={1}")
+    @CsvSource({"ConNor, true", "OfflinePlayer, false"})
+    void shouldForceLoginFromProxyByNameForOfflinePlayer(String playerName, boolean approved) {
         // given
-        String playerName = "ConNor";
         when(bukkitService.getPlayerExact(playerName)).thenReturn(null);
+        when(preJoinDialogService.approvePreJoinForceLogin(playerName.toLowerCase())).thenReturn(approved);
 
         // when
         management.forceLoginFromProxy(playerName);
 
         // then
         verify(proxySessionManager).processProxySessionMessage(playerName);
-        verify(preJoinDialogService).approvePreJoinForceLogin("connor");
-        verify(bukkitService, never()).runTaskOptionallyAsync(any());
-    }
-
-    @Test
-    void shouldForceLoginFromProxyByNameKeepsQueueWhenNoDialogFutureExists() {
-        // given
-        String playerName = "OfflinePlayer";
-        when(bukkitService.getPlayerExact(playerName)).thenReturn(null);
-        when(preJoinDialogService.approvePreJoinForceLogin("offlineplayer")).thenReturn(false);
-
-        // when
-        management.forceLoginFromProxy(playerName);
-
-        // then
-        verify(proxySessionManager).processProxySessionMessage(playerName);
-        verify(preJoinDialogService).approvePreJoinForceLogin("offlineplayer");
+        verify(preJoinDialogService).approvePreJoinForceLogin(playerName.toLowerCase());
         verify(bukkitService, never()).runTaskOptionallyAsync(any());
     }
 }

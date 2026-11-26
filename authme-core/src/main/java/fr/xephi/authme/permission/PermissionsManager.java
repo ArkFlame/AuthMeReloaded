@@ -17,6 +17,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.Server;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.permissions.ServerOperator;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 
@@ -26,6 +27,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.UUID;
 import java.util.function.BiFunction;
+import java.util.function.Supplier;
 
 /**
  * PermissionsManager.
@@ -207,16 +209,7 @@ public class PermissionsManager implements Reloadable {
      * @return true if the player has permission, false otherwise
      */
     public boolean hasPermissionOffline(OfflinePlayer player, PermissionNode permissionNode) {
-        // Check if the permission node is null
-        if (permissionNode == null) {
-            return true;
-        }
-
-        if (!isEnabled()) {
-            return permissionNode.getDefaultPermission().evaluate(player);
-        }
-
-        return handler.hasPermissionOffline(player.getName(), permissionNode);
+        return checkOfflinePermission(permissionNode, player, () -> player.getName());
     }
 
     /**
@@ -229,14 +222,18 @@ public class PermissionsManager implements Reloadable {
      * @return true if the player has permission, false otherwise
      */
     public boolean hasPermissionOffline(String name, PermissionNode permissionNode) {
+        return checkOfflinePermission(permissionNode, null, () -> name);
+    }
+
+    private boolean checkOfflinePermission(PermissionNode permissionNode, ServerOperator sender,
+                                           Supplier<String> nameSupplier) {
         if (permissionNode == null) {
             return true;
         }
         if (!isEnabled()) {
-            return permissionNode.getDefaultPermission().evaluate(null);
+            return permissionNode.getDefaultPermission().evaluate(sender);
         }
-
-        return handler.hasPermissionOffline(name, permissionNode);
+        return handler.hasPermissionOffline(nameSupplier.get(), permissionNode);
     }
 
     /**

@@ -178,19 +178,6 @@ public class LimboPlayer {
     }
 
     /**
-     * Sets the ender pearl entity UUIDs to restore on reconnect.
-     *
-     * @param pearlUuids the set of pearl entity UUIDs to track
-     */
-    public void setEnderPearlUuids(Set<UUID> pearlUuids) {
-        Map<UUID, EnderPearlRestoreData> pearls = new HashMap<>();
-        for (UUID pearlUuid : pearlUuids) {
-            pearls.put(pearlUuid, new EnderPearlRestoreData(pearlUuid, null, null));
-        }
-        this.enderPearls = pearls.isEmpty() ? Collections.emptyMap() : pearls;
-    }
-
-    /**
      * Returns the tracked ender pearls for this player, including the data required
      * to recreate them if the original entity can no longer be found.
      *
@@ -198,6 +185,16 @@ public class LimboPlayer {
      */
     public Collection<EnderPearlRestoreData> getEnderPearls() {
         return new ArrayList<>(enderPearls.values());
+    }
+
+    /**
+     * Returns a mutable copy of the tracked ender pearls keyed by entity UUID. Callers can
+     * remove restored pearls from the copy without modifying this limbo snapshot.
+     *
+     * @return ender pearls keyed by UUID
+     */
+    Map<UUID, EnderPearlRestoreData> copyEnderPearlsByUuid() {
+        return new HashMap<>(enderPearls);
     }
 
     /**

@@ -96,8 +96,7 @@ public class LuckPermsHandler implements PermissionHandler {
             return false;
         }
 
-        InheritanceNode inheritanceNode = InheritanceNode.builder(group.getGroupName()).build();
-        return user.data().contains(inheritanceNode, NodeEqualityPredicate.EXACT).asBoolean();
+        return user.data().contains(buildInheritanceNode(group), NodeEqualityPredicate.EXACT).asBoolean();
     }
 
     @Override
@@ -107,8 +106,7 @@ public class LuckPermsHandler implements PermissionHandler {
             return false;
         }
 
-        InheritanceNode groupNode = InheritanceNode.builder(group.getGroupName()).build();
-        boolean result = user.data().remove(groupNode) != DataMutateResult.FAIL;
+        boolean result = user.data().remove(buildInheritanceNode(group)) != DataMutateResult.FAIL;
 
         luckPerms.getUserManager().saveUser(user);
         return result;
@@ -188,6 +186,10 @@ public class LuckPermsHandler implements PermissionHandler {
                 + playerName + " but it isn't loaded!");
         }
         return user;
+    }
+
+    private static InheritanceNode buildInheritanceNode(UserGroup group) {
+        return InheritanceNode.builder(group.getGroupName()).build();
     }
 
     @NotNull

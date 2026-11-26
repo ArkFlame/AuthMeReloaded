@@ -208,32 +208,23 @@ class AsyncChangeEmailTest {
 
     @Test
     void shouldSendLoginMessage() {
-        // given
-        given(player.getName()).willReturn("Bobby");
-        given(playerCache.isAuthenticated("bobby")).willReturn(false);
-        given(dataSource.isAuthAvailable("Bobby")).willReturn(true);
-
-        // when
-        process.changeEmail(player, "old@mail.tld", "new@mail.tld");
-
-        // then
-        verifyEmailNotUpdated();
-        verify(service).send(player, MessageKey.LOGIN_MESSAGE);
+        assertUnauthenticatedOutcome(true, MessageKey.LOGIN_MESSAGE);
     }
 
     @Test
     void shouldShowRegistrationMessage() {
-        // given
+        assertUnauthenticatedOutcome(false, MessageKey.REGISTER_MESSAGE);
+    }
+
+    private void assertUnauthenticatedOutcome(boolean isRegistered, MessageKey expectedMessage) {
         given(player.getName()).willReturn("Bobby");
         given(playerCache.isAuthenticated("bobby")).willReturn(false);
-        given(dataSource.isAuthAvailable("Bobby")).willReturn(false);
+        given(dataSource.isAuthAvailable("Bobby")).willReturn(isRegistered);
 
-        // when
         process.changeEmail(player, "old@mail.tld", "new@mail.tld");
 
-        // then
         verifyEmailNotUpdated();
-        verify(service).send(player, MessageKey.REGISTER_MESSAGE);
+        verify(service).send(player, expectedMessage);
     }
 
     @Test

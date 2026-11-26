@@ -116,7 +116,7 @@ class VerificationCodeManagerTest {
     }
 
     @Test
-    void shouldGenerateCode() {
+    void shouldGenerateAndRequireCode() {
         // given
         given(emailService.hasAllInformation()).willReturn(true);
         String player = "ILoveTests";
@@ -129,34 +129,16 @@ class VerificationCodeManagerTest {
         codeManager2.codeExistOrGenerateNew(player);
 
         // when
-        boolean test1 = codeManager1.hasCode(player);
-        boolean test2 = codeManager2.hasCode(player);
+        boolean hasCode1 = codeManager1.hasCode(player);
+        boolean hasCode2 = codeManager2.hasCode(player);
+        boolean codeRequired1 = codeManager1.isCodeRequired(player);
+        boolean codeRequired2 = codeManager2.isCodeRequired(player);
 
         // then
-        assertThat(test1, equalTo(false));
-        assertThat(test2, equalTo(true));
-    }
-
-    @Test
-    void shouldRequireCode() {
-        // given
-        given(emailService.hasAllInformation()).willReturn(true);
-        String player = "ILoveTests";
-        String email = "ilovetests@test.com";
-        given(dataSource.getEmail(player)).willReturn(DataSourceValueImpl.of(email));
-        given(emailService.sendVerificationMail(eq(player), eq(email), anyString())).willReturn(true);
-        setBukkitServiceToRunTaskAsynchronously(bukkitService);
-        VerificationCodeManager codeManager1 = createCodeManager();
-        VerificationCodeManager codeManager2 = createCodeManager();
-        codeManager2.codeExistOrGenerateNew(player);
-
-        // when
-        boolean test1 = codeManager1.isCodeRequired(player);
-        boolean test2 = codeManager2.isCodeRequired(player);
-
-        // then
-        assertThat(test1, equalTo(false));
-        assertThat(test2, equalTo(true));
+        assertThat(hasCode1, equalTo(false));
+        assertThat(hasCode2, equalTo(true));
+        assertThat(codeRequired1, equalTo(false));
+        assertThat(codeRequired2, equalTo(true));
     }
 
     @Test

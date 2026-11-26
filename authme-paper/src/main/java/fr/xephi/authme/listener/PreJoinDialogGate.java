@@ -31,12 +31,8 @@ final class PreJoinDialogGate {
             return true;
         }
 
-        if (proxySessionManager.shouldResumeSession(normalizedName)) {
-            ProxySessionManager.ProxyLoginRequest request = proxySessionManager.getLoginRequest(normalizedName);
-            if (request != null && (request.verifiedPremiumUuid() == null
-                || isProxyPremiumRequestValid(normalizedName, request, dataSource, pendingPremiumCache))) {
-                return true;
-            }
+        if (hasValidProxySession(normalizedName, proxySessionManager, dataSource, pendingPremiumCache)) {
+            return true;
         }
 
         InetSocketAddress clientAddress = connection.getClientAddress();
@@ -46,6 +42,17 @@ final class PreJoinDialogGate {
         }
 
         return !isClientDialogCapable(connection.getProfile().getId());
+    }
+
+    /** True when a queued proxy login exists and either needs no verification or was verified for this name. */
+    static boolean hasValidProxySession(String normalizedName, ProxySessionManager proxySessionManager,
+                                        DataSource dataSource, PendingPremiumCache pendingPremiumCache) {
+        if (!proxySessionManager.shouldResumeSession(normalizedName)) {
+            return false;
+        }
+        ProxySessionManager.ProxyLoginRequest request = proxySessionManager.getLoginRequest(normalizedName);
+        return request != null && (request.verifiedPremiumUuid() == null
+            || isProxyPremiumRequestValid(normalizedName, request, dataSource, pendingPremiumCache));
     }
 
     static boolean isProxyPremiumRequestValid(String normalizedName, ProxySessionManager.ProxyLoginRequest request,

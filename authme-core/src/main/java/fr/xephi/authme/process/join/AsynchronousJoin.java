@@ -13,6 +13,7 @@ import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.permission.PlayerStatePermission;
 import fr.xephi.authme.platform.DialogAdapter;
 import fr.xephi.authme.process.AsynchronousProcess;
+import fr.xephi.authme.process.ProcessSharedActions;
 import fr.xephi.authme.process.login.AsynchronousLogin;
 import fr.xephi.authme.process.register.RegisterSecondaryArgument;
 import fr.xephi.authme.process.register.RegistrationType;
@@ -35,7 +36,6 @@ import fr.xephi.authme.service.ProxyLoginRequestValidator;
 import fr.xephi.authme.service.SessionService;
 import fr.xephi.authme.service.ValidationService;
 import fr.xephi.authme.service.bungeecord.BungeeSender;
-import fr.xephi.authme.service.bungeecord.MessageType;
 import fr.xephi.authme.settings.WelcomeMessageConfiguration;
 import fr.xephi.authme.mail.EmailService;
 import fr.xephi.authme.service.PasswordRecoveryService;
@@ -46,7 +46,6 @@ import fr.xephi.authme.settings.properties.PremiumSettings;
 import fr.xephi.authme.settings.properties.RegistrationSettings;
 import fr.xephi.authme.settings.properties.RestrictionSettings;
 import fr.xephi.authme.settings.properties.SecuritySettings;
-import fr.xephi.authme.util.InternetProtocolUtils;
 import fr.xephi.authme.util.PlayerUtils;
 import fr.xephi.authme.util.RandomStringUtils;
 import fr.xephi.authme.util.Utils;
@@ -253,13 +252,10 @@ public class AsynchronousJoin implements AsynchronousProcess {
                         if (playerCache.isAuthenticated(name)) {
                             return;
                         }
-                        service.send(player, MessageKey.SESSION_RECONNECTION);
-                        // Run commands
-                        runSessionLoginCommands(player);
                         // Use forceLoginFromProxy (quiet=true, no BungeeCord redirect) so that if
                         // BungeeReceiver.performLogin() concurrently already completed the login, this
                         // call is a no-op rather than sending an "already logged in" error.
-                        forceLoginFromProxyAsync(player);
+                        resumeSession(player, true);
                         logger.info("The user " + player.getName() + " has been automatically logged in, "
                             + "as present in autologin queue.");
                         return;
@@ -270,10 +266,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
                 }
             }
             if (sessionService.canResumeSession(player)) {
-                service.send(player, MessageKey.SESSION_RECONNECTION);
-                // Run commands
-                runSessionLoginCommands(player);
-                forceLoginAsync(player);
+                resumeSession(player, false);
                 return;
             }
         } else if (premiumService.tryAutoRegister(player)) {
@@ -291,12 +284,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
 
             // Skip if registration is optional
 
-            if (bungeeSender.isEnabled()) {
-                // As described at https://www.spigotmc.org/wiki/bukkit-bungee-plugin-messaging-channel/
-                // "Keep in mind that you can't send plugin messages directly after a player joins."
-                bukkitService.scheduleSyncDelayedTask(player, () ->
-                    bungeeSender.sendAuthMeBungeecordMessage(player, MessageType.LOGIN), 5L);
-            }
+            ProcessSharedActions.sendLoginMessageToProxy(bukkitService, bungeeSender, player);
             return;
         }
 
@@ -443,6 +431,23 @@ public class AsynchronousJoin implements AsynchronousProcess {
      */
     private void forceLoginFromProxyAsync(Player player) {
         bukkitService.runTaskOptionallyAsync(() -> asynchronousLogin.forceLoginFromProxy(player));
+    }
+
+    /**
+     * Resumes a session: announces it, runs the session commands and schedules the passwordless
+     * login. Shared by the proxy and the regular session branch.
+     *
+     * @param player the player resuming a session
+     * @param proxyInitiated whether the login was initiated through the proxy
+     */
+    private void resumeSession(Player player, boolean proxyInitiated) {
+        service.send(player, MessageKey.SESSION_RECONNECTION);
+        runSessionLoginCommands(player);
+        if (proxyInitiated) {
+            forceLoginFromProxyAsync(player);
+        } else {
+            forceLoginAsync(player);
+        }
     }
 
     /**
@@ -624,8 +629,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
     private boolean validatePlayerCountForIp(Player player, String ip) {
         int maxPerIp = service.getProperty(RestrictionSettings.MAX_JOIN_PER_IP);
         if (maxPerIp > 0
-            && !service.hasPermission(player, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS)
-            && !InternetProtocolUtils.isLoopbackAddress(ip)
+            && !ProcessSharedActions.isExemptFromIpLimit(service, player, ip)
             && exceedsMaxPlayersPerIp(ip, maxPerIp)) {
 
             kickWithMessageKey(player, MessageKey.SAME_IP_ONLINE);

@@ -8,7 +8,6 @@ import fr.xephi.authme.security.crypts.description.SaltType;
 import fr.xephi.authme.security.crypts.description.Usage;
 
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 
 import static fr.xephi.authme.security.HashUtils.isEqual;
 import static fr.xephi.authme.security.crypts.BCryptHasher.SALT_LENGTH_ENCODED;
@@ -70,9 +69,7 @@ public class PhpBB implements EncryptionMethod {
     private static final class PhpassSaltedMd5 {
 
         private static String md5(String data) {
-            byte[] bytes = data.getBytes(StandardCharsets.ISO_8859_1);
-            MessageDigest md5er = HashUtils.getDigest(MessageDigestAlgorithm.MD5);
-            return HashUtils.toHex(md5er.digest(bytes));
+            return HashUtils.hash(data, MessageDigestAlgorithm.MD5, StandardCharsets.ISO_8859_1);
         }
 
         private static int hexToInt(char ch) {

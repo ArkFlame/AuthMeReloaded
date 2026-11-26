@@ -6,131 +6,97 @@ import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.security.crypts.HashedPassword;
 import fr.xephi.authme.util.UuidUtils;
-import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import javax.inject.Inject;
-import java.io.File;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Locale;
 
-import static fr.xephi.authme.util.Utils.logAndSendMessage;
-
 /**
- * Converts data from LimboAuth to AuthMe.
- * <p>
- * The storage backend is determined by reading {@code plugins/limboauth/config.yml}:
- * <ul>
- *   <li><b>SQLite</b> ({@code database.storage-type: SQLITE}) — reads
- *       {@code plugins/limboauth/limboauth.db} directly.</li>
- *   <li><b>MySQL / MariaDB / PostgreSQL</b> — uses AuthMe's existing connection pool; LimboAuth
- *       must share the same database as AuthMe.</li>
- *   <li><b>H2</b> (default) — not supported; reconfigure LimboAuth to use SQLite or
- *       MySQL/MariaDB/PostgreSQL, migrate the data, then re-run this converter.</li>
- * </ul>
- * <p>
- * LimboAuth uses BCrypt exclusively for new registrations. Configure AuthMe with
- * {@code passwordHash: BCRYPT} before running this converter.
+ * Converts data from LimboAuth to AuthMe. Reads {@code plugins/limboauth/config.yml}:
+ * {@code database.storage-type} may be {@code SQLITE} (file at
+ * {@code plugins/limboauth/limboauth.db}), {@code MYSQL}/{@code MARIADB}/{@code POSTGRESQL}
+ * (shared pool) or {@code H2} (unsupported). LimboAuth uses BCrypt, so set
+ * {@code passwordHash: BCRYPT} in AuthMe before converting.
  */
-public class LimboAuthConverter implements Converter {
+public class LimboAuthConverter extends AbstractYamlPluginConverter {
 
     private static final String CONFIG_PATH = "plugins/limboauth/config.yml";
     private static final String SQLITE_DB_PATH = "plugins/limboauth/limboauth.db";
-    private static final String TABLE = "AUTH";
     private static final String QUERY =
-        "SELECT NICKNAME, LOWERCASENICKNAME, HASH, IP, REGDATE, LOGINDATE, UUID, PREMIUMUUID, TOTPTOKEN FROM " + TABLE;
+        "SELECT NICKNAME, LOWERCASENICKNAME, HASH, IP, REGDATE, LOGINDATE, UUID, PREMIUMUUID, TOTPTOKEN FROM AUTH";
 
     private static final ConsoleLogger logger = ConsoleLoggerFactory.get(LimboAuthConverter.class);
-    private final DataSource dataSource;
 
     @Inject
     LimboAuthConverter(DataSource dataSource) {
-        this.dataSource = dataSource;
+        super(dataSource, CONFIG_PATH, SQLITE_DB_PATH, "LimboAuth", logger);
     }
 
     @Override
-    public void execute(CommandSender sender) {
-        File configFile = new File(CONFIG_PATH);
-        if (!configFile.exists()) {
-            logAndSendMessage(sender, "LimboAuth conversion failed: config not found at " + CONFIG_PATH);
-            return;
-        }
-
-        YamlConfiguration limboConfig = YamlConfiguration.loadConfiguration(configFile);
-        String storageType = limboConfig.getString("database.storage-type", "H2").toUpperCase(Locale.ROOT);
-
-        switch (storageType) {
+    protected Backend getBackend(YamlConfiguration config) {
+        switch (readStorageType(config)) {
             case "SQLITE":
-                new SqliteImportTask(dataSource, new File(SQLITE_DB_PATH), QUERY, "LimboAuth", logger,
-                    importer(sender), "LimboAuth conversion failed: SQLite database not found at " + SQLITE_DB_PATH)
-                    .execute(sender);
-                break;
+                return Backend.SQLITE;
             case "MYSQL":
             case "MARIADB":
             case "POSTGRESQL":
-                new SqlImportTask(dataSource, QUERY, "LimboAuth", logger, importer(sender)).execute(sender);
-                break;
+                return Backend.SQL;
             default:
-                logAndSendMessage(sender,
-                    "LimboAuth conversion: database type '" + storageType + "' is not supported. "
-                    + "Reconfigure LimboAuth to use SQLite or MySQL/MariaDB/PostgreSQL, migrate the data, "
-                    + "then re-run the conversion.");
+                return Backend.UNSUPPORTED;
         }
     }
 
-    private ResultSetImporter importer(CommandSender sender) {
-        return rs -> importRows(rs, dataSource, sender);
+    @Override
+    protected String getQuery(YamlConfiguration config) {
+        return QUERY;
     }
 
-    private static void importRows(ResultSet rs, DataSource dataSource, CommandSender sender) throws SQLException {
-        long imported = 0;
-        long skipped = 0;
-        while (rs.next()) {
-            String realName = rs.getString("NICKNAME");
-            String name = rs.getString("LOWERCASENICKNAME");
-            if (name == null || name.isEmpty()) {
-                if (realName != null) {
-                    name = realName.toLowerCase(Locale.ROOT);
-                } else {
-                    continue;
-                }
-            }
-            if (realName == null) {
-                realName = name;
-            }
+    @Override
+    protected String unsupportedMessage(YamlConfiguration config) {
+        return "LimboAuth conversion: database type '" + readStorageType(config) + "' is not supported. "
+            + "Reconfigure LimboAuth to use SQLite or MySQL/MariaDB/PostgreSQL, migrate the data, "
+            + "then re-run the conversion.";
+    }
 
-            if (dataSource.isAuthAvailable(name)) {
-                ++skipped;
-                continue;
-            }
+    private static String readStorageType(YamlConfiguration config) {
+        return config.getString("database.storage-type", "H2").toUpperCase(Locale.ROOT);
+    }
 
-            String hash = rs.getString("HASH");
-            if (hash == null || hash.isEmpty()) {
-                logger.warning("No hash for player '" + name + "', skipping");
-                continue;
-            }
-
-            long regDate = rs.getLong("REGDATE");
-            long loginDate = rs.getLong("LOGINDATE");
-
-            PlayerAuth auth = PlayerAuth.builder()
-                .name(name)
-                .realName(realName)
-                .password(new HashedPassword(hash))
-                .lastIp(rs.getString("IP"))
-                .registrationDate(regDate)
-                .lastLogin(loginDate > 0 ? loginDate : null)
-                .totpKey(rs.getString("TOTPTOKEN"))
-                .uuid(UuidUtils.parseUuidSafely(rs.getString("UUID")))
-                .premiumUuid(UuidUtils.parseUuidSafely(rs.getString("PREMIUMUUID")))
-                .build();
-
-            dataSource.saveAuth(auth);
-            ++imported;
+    @Override
+    protected String getName(ResultSet rs) throws SQLException {
+        String realName = rs.getString("NICKNAME");
+        String name = rs.getString("LOWERCASENICKNAME");
+        if (name == null || name.isEmpty()) {
+            name = realName != null ? realName.toLowerCase(Locale.ROOT) : null;
         }
+        return name;
+    }
 
-        logAndSendMessage(sender, "LimboAuth conversion: " + imported + " account(s) imported, "
-            + skipped + " skipped (already exist)");
+    @Override
+    protected PlayerAuth buildAuth(ResultSet rs, String name) throws SQLException {
+        String realName = rs.getString("NICKNAME");
+        if (realName == null) {
+            realName = name;
+        }
+        String hash = rs.getString("HASH");
+        if (hash == null || hash.isEmpty()) {
+            logger.warning("No hash for player '" + name + "', skipping");
+            return null;
+        }
+        long regDate = rs.getLong("REGDATE");
+        long loginDate = rs.getLong("LOGINDATE");
+        return PlayerAuth.builder()
+            .name(name)
+            .realName(realName)
+            .password(new HashedPassword(hash))
+            .lastIp(rs.getString("IP"))
+            .registrationDate(regDate)
+            .lastLogin(loginDate > 0 ? loginDate : null)
+            .totpKey(rs.getString("TOTPTOKEN"))
+            .uuid(UuidUtils.parseUuidSafely(rs.getString("UUID")))
+            .premiumUuid(UuidUtils.parseUuidSafely(rs.getString("PREMIUMUUID")))
+            .build();
     }
 }

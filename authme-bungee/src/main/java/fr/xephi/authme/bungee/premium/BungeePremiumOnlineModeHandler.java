@@ -2,7 +2,6 @@ package fr.xephi.authme.bungee.premium;
 
 import net.md_5.bungee.api.connection.PendingConnection;
 
-import java.util.Locale;
 import java.util.function.Predicate;
 
 public final class BungeePremiumOnlineModeHandler {
@@ -19,7 +18,7 @@ public final class BungeePremiumOnlineModeHandler {
             return;
         }
 
-        String normalizedName = username.toLowerCase(Locale.ROOT);
+        String normalizedName = ProxyPremiumLoginVerifier.normalize(username);
         if (requiresVerification.test(normalizedName) && !connection.isOnlineMode()) {
             connection.setOnlineMode(true);
         }

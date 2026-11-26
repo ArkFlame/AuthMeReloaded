@@ -30,7 +30,7 @@ class PurgeTask implements Runnable {
     private final OfflinePlayer[] offlinePlayers;
     private final int totalPurgeCount;
 
-    private int currentPage = 0;
+    private int nextPlayerIndex;
     private CancellableTask taskHandle;
     private boolean cancellationRequested;
 
@@ -65,14 +65,8 @@ class PurgeTask implements Runnable {
 
         Set<OfflinePlayer> playerPortion = new HashSet<>(INTERVAL_CHECK);
         Set<String> namePortion = new HashSet<>(INTERVAL_CHECK);
-        for (int i = 0; i < INTERVAL_CHECK; i++) {
-            int nextPosition = (currentPage * INTERVAL_CHECK) + i;
-            if (offlinePlayers.length <= nextPosition) {
-                //no more offline players on this page
-                break;
-            }
-
-            OfflinePlayer offlinePlayer = offlinePlayers[nextPosition];
+        for (int i = 0; i < INTERVAL_CHECK && nextPlayerIndex + i < offlinePlayers.length; i++) {
+            OfflinePlayer offlinePlayer = offlinePlayers[nextPlayerIndex + i];
             if (offlinePlayer.getName() != null && toPurge.remove(offlinePlayer.getName().toLowerCase(Locale.ROOT))) {
                 if (!permissionsManager.loadUserData(offlinePlayer)) {
                     logger.warning("Unable to check if the user " + offlinePlayer.getName() + " can be purged!");
@@ -97,9 +91,9 @@ class PurgeTask implements Runnable {
             toPurge.clear();
         }
 
-        currentPage++;
+        nextPlayerIndex += INTERVAL_CHECK;
         purgeService.executePurge(playerPortion, namePortion);
-        if (currentPage % 20 == 0) {
+        if ((nextPlayerIndex / INTERVAL_CHECK) % 20 == 0) {
             int completed = totalPurgeCount - toPurge.size();
             sendMessage("[AuthMe] Purge progress " + completed + '/' + totalPurgeCount);
         }
@@ -116,12 +110,15 @@ class PurgeTask implements Runnable {
     }
 
     void setTaskHandle(CancellableTask taskHandle) {
+        boolean cancelImmediately;
         synchronized (this) {
-            if (cancellationRequested) {
-                taskHandle.cancel();
-            } else {
+            cancelImmediately = cancellationRequested;
+            if (!cancelImmediately) {
                 this.taskHandle = taskHandle;
             }
+        }
+        if (cancelImmediately) {
+            taskHandle.cancel();
         }
     }
 
@@ -137,12 +134,15 @@ class PurgeTask implements Runnable {
     }
 
     private void cancelTask() {
+        CancellableTask handle;
         synchronized (this) {
-            if (taskHandle != null) {
-                taskHandle.cancel();
-            } else {
+            handle = taskHandle;
+            if (handle == null) {
                 cancellationRequested = true;
             }
+        }
+        if (handle != null) {
+            handle.cancel();
         }
     }
 }

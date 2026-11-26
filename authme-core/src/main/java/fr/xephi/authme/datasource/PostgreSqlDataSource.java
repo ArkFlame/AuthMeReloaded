@@ -142,17 +142,9 @@ public class PostgreSqlDataSource extends AbstractHikariSqlDataSource {
             st.executeUpdate(sql);
 
             DatabaseMetaData md = con.getMetaData();
-            if (isColumnMissing(md, col.NAME)) {
-                addColumn(st, col.NAME, "VARCHAR(255) NOT NULL UNIQUE;");
-            }
-
-            if (isColumnMissing(md, col.REAL_NAME)) {
-                addColumn(st, col.REAL_NAME, "VARCHAR(255) NOT NULL;");
-            }
-
-            if (isColumnMissing(md, col.PASSWORD)) {
-                addColumn(st, col.PASSWORD, "VARCHAR(255) NOT NULL;");
-            }
+            addColumnIfAbsent(md, st, col.NAME, "VARCHAR(255) NOT NULL UNIQUE;");
+            addColumnIfAbsent(md, st, col.REAL_NAME, "VARCHAR(255) NOT NULL;");
+            addColumnIfAbsent(md, st, col.PASSWORD, "VARCHAR(255) NOT NULL;");
 
             if (!col.SALT.isEmpty() && isColumnMissing(md, col.SALT)) {
                 addColumn(st, col.SALT, "VARCHAR(255);");
@@ -174,9 +166,7 @@ public class PostgreSqlDataSource extends AbstractHikariSqlDataSource {
                 MySqlMigrater.addRegistrationDateColumn(st, tableName, col);
             }
 
-            if (isColumnMissing(md, col.REGISTRATION_IP)) {
-                addColumn(st, col.REGISTRATION_IP, "VARCHAR(40);");
-            }
+            addColumnIfAbsent(md, st, col.REGISTRATION_IP, "VARCHAR(40);");
 
             if (isColumnMissing(md, col.LASTLOC_X)) {
                 alterTable(st, "ADD COLUMN " + col.LASTLOC_X + " DOUBLE PRECISION NOT NULL DEFAULT '0.0' , ADD "
@@ -184,29 +174,12 @@ public class PostgreSqlDataSource extends AbstractHikariSqlDataSource {
                     + col.LASTLOC_Z + " DOUBLE PRECISION NOT NULL DEFAULT '0.0';");
             }
 
-            if (isColumnMissing(md, col.LASTLOC_WORLD)) {
-                addColumn(st, col.LASTLOC_WORLD, "VARCHAR(255) NOT NULL DEFAULT 'world';");
-            }
-
-            if (isColumnMissing(md, col.LASTLOC_YAW)) {
-                addColumn(st, col.LASTLOC_YAW, "FLOAT;");
-            }
-
-            if (isColumnMissing(md, col.LASTLOC_PITCH)) {
-                addColumn(st, col.LASTLOC_PITCH, "FLOAT;");
-            }
-
-            if (isColumnMissing(md, col.EMAIL)) {
-                addColumn(st, col.EMAIL, "VARCHAR(255);");
-            }
-
-            if (isColumnMissing(md, col.IS_LOGGED)) {
-                addColumn(st, col.IS_LOGGED, "SMALLINT NOT NULL DEFAULT '0';");
-            }
-
-            if (isColumnMissing(md, col.HAS_SESSION)) {
-                addColumn(st, col.HAS_SESSION, "SMALLINT NOT NULL DEFAULT '0';");
-            }
+            addColumnIfAbsent(md, st, col.LASTLOC_WORLD, "VARCHAR(255) NOT NULL DEFAULT 'world';");
+            addColumnIfAbsent(md, st, col.LASTLOC_YAW, "FLOAT;");
+            addColumnIfAbsent(md, st, col.LASTLOC_PITCH, "FLOAT;");
+            addColumnIfAbsent(md, st, col.EMAIL, "VARCHAR(255);");
+            addColumnIfAbsent(md, st, col.IS_LOGGED, "SMALLINT NOT NULL DEFAULT '0';");
+            addColumnIfAbsent(md, st, col.HAS_SESSION, "SMALLINT NOT NULL DEFAULT '0';");
 
             if (isColumnMissing(md, col.TOTP_KEY)) {
                 addColumn(st, col.TOTP_KEY, "VARCHAR(32);");
@@ -227,6 +200,13 @@ public class PostgreSqlDataSource extends AbstractHikariSqlDataSource {
 
     private void addColumn(Statement st, String column, String definition) throws SQLException {
         alterTable(st, "ADD COLUMN " + column + " " + definition);
+    }
+
+    private void addColumnIfAbsent(DatabaseMetaData md, Statement st, String column, String definition)
+        throws SQLException {
+        if (isColumnMissing(md, column)) {
+            addColumn(st, column, definition);
+        }
     }
 
     private void alterTable(Statement st, String alteration) throws SQLException {

@@ -23,9 +23,6 @@ public class SettingsProvider implements Provider<Settings> {
     @Inject
     private SettingsMigrationService migrationService;
 
-    SettingsProvider() {
-    }
-
     /**
      * Loads the plugin's settings.
      *

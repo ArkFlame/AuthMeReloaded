@@ -5,12 +5,12 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static fr.xephi.authme.TestHelper.getJarFile;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -51,12 +51,9 @@ class CommandConsistencyTest {
      * @return collection of all base command labels
      */
     private static Collection<List<String>> initializeCommands() {
-        CommandInitializer initializer = new CommandInitializer();
-        Collection<List<String>> commandLabels = new ArrayList<>();
-        for (CommandDescription baseCommand : initializer.getCommands()) {
-            commandLabels.add(baseCommand.getLabels());
-        }
-        return commandLabels;
+        return new CommandInitializer().getCommands().stream()
+            .map(CommandDescription::getLabels)
+            .collect(Collectors.toList());
     }
 
     /**
@@ -74,7 +71,7 @@ class CommandConsistencyTest {
         for (Map.Entry<String, Object> commandDefinition : commandDefinitions.entrySet()) {
             MemorySection definition = (MemorySection) commandDefinition.getValue();
             List<String> alternativeLabels = definition.get("aliases") == null
-                ? Collections.EMPTY_LIST
+                ? Collections.emptyList()
                 : (List<String>) definition.get("aliases");
             commandLabels.put(commandDefinition.getKey(), alternativeLabels);
         }

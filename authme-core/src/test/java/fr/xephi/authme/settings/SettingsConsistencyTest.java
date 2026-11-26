@@ -60,7 +60,7 @@ class SettingsConsistencyTest {
     void shouldNotHaveVeryLongCommentLines() {
         // given
         Map<String, List<String>> commentEntries = configurationData.getAllComments();
-        List<String> badPaths = new ArrayList<>(0);
+        List<String> badPaths = new ArrayList<>();
 
         // when
         for (Map.Entry<String, List<String>> commentEntry : commentEntries.entrySet()) {
