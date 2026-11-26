@@ -122,7 +122,7 @@
         <maven.source.skip>true</maven.source.skip>
         <jacoco.skip>true</jacoco.skip>
         <argLine></argLine>
-        <surefire.forkCount>0.5C</surefire.forkCount>
+        <surefire.forkCount>1</surefire.forkCount>
     </properties>
 
     <!-- Jenkins profile -->

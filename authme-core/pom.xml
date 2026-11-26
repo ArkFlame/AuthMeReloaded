@@ -18,6 +18,7 @@
     <properties>
         <!-- Core stays Java 8 bytecode so the legacy 1.8 module can load it -->
         <core.java.version>8</core.java.version>
+        <surefire.forkCount>4</surefire.forkCount>
     </properties>
 
     <dependencies>
