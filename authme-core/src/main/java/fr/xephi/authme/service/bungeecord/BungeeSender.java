@@ -94,15 +94,10 @@ public class BungeeSender implements SettingsDependent {
             logger.debug("Tried to send a " + type + " bungeecord message but the plugin was disabled!");
             return;
         }
-        bukkitService.sendAuthMePluginMessage(player, buildIdAndNameMessage(type, player.getName()));
-    }
-
-    /** Builds the common "message type id + lowercased player name" payload. */
-    private static byte[] buildIdAndNameMessage(MessageType type, String name) {
         ByteArrayDataOutput out = ByteStreams.newDataOutput();
         out.writeUTF(type.getId());
-        out.writeUTF(name.toLowerCase(Locale.ROOT));
-        return out.toByteArray();
+        out.writeUTF(player.getName().toLowerCase(Locale.ROOT));
+        bukkitService.sendAuthMePluginMessage(player, out.toByteArray());
     }
 
     /**
@@ -173,7 +168,10 @@ public class BungeeSender implements SettingsDependent {
                 + " Premium state may be stale on the proxy until the next full resync.");
             return;
         }
-        byte[] payload = buildIdAndNameMessage(type, username);
+        ByteArrayDataOutput out = ByteStreams.newDataOutput();
+        out.writeUTF(type.getId());
+        out.writeUTF(username.toLowerCase(Locale.ROOT));
+        byte[] payload = out.toByteArray();
         bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(() ->
             bukkitService.sendAuthMePluginMessage(carrier, payload));
     }

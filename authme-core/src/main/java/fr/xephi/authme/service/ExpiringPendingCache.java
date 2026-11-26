@@ -2,7 +2,6 @@ package fr.xephi.authme.service;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -74,7 +73,7 @@ final class ExpiringPendingCache<V> {
         Collection<String> evicted = new ArrayList<>();
         entries.entrySet().removeIf(
             entry -> now > entry.getValue().expiresAt && evicted.add(entry.getKey()));
-        return evicted.isEmpty() ? Collections.emptyList() : evicted;
+        return evicted;
     }
 
     /**

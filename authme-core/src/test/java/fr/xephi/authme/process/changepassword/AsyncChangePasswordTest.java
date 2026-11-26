@@ -50,6 +50,8 @@ class AsyncChangePasswordTest {
     private PlayerCache playerCache;
     @Mock
     private PasswordSecurity passwordSecurity;
+    @Mock
+    private CommandSender sender;
 
     @BeforeAll
     static void setUpLogger() {
@@ -58,7 +60,6 @@ class AsyncChangePasswordTest {
 
     @Test
     void shouldRejectCommandForUnknownUser() {
-        CommandSender sender = mock(CommandSender.class);
         String player = "player";
 
         asyncChangePassword.changePasswordAsAdmin(sender, player, "password");
@@ -94,13 +95,11 @@ class AsyncChangePasswordTest {
         verify(dataSource).updatePassword("bobby", hashedPassword);
         verify(auth, cached).setPassword(hashedPassword);
         verify(playerCache, cached).updatePlayerIfPresent(auth);
-        verify(commonService).send(player,
-            saveSuccessful ? MessageKey.PASSWORD_CHANGED_SUCCESS : MessageKey.ERROR);
+        verify(commonService).send(player, saveSuccessful ? MessageKey.PASSWORD_CHANGED_SUCCESS : MessageKey.ERROR);
     }
 
     @Test
     void shouldRefreshCachedAuthAfterAdminChangeForOnlinePlayer() {
-        CommandSender sender = mock(CommandSender.class);
         String player = "bobby";
         String password = "newPass";
         PlayerAuth auth = mock(PlayerAuth.class);
@@ -120,7 +119,6 @@ class AsyncChangePasswordTest {
     @ParameterizedTest(name = "logged in={0}, save successful={1}")
     @MethodSource("changePasswordCases")
     void shouldUpdatePassword(boolean loggedIn, boolean saveSuccessful, MessageKey expectedMessage) {
-        CommandSender sender = mock(CommandSender.class);
         String player = "my_user12";
         given(playerCache.isAuthenticated(player)).willReturn(loggedIn);
         if (!loggedIn) {

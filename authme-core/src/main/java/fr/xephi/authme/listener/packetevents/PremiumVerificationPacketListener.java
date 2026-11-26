@@ -156,15 +156,8 @@ public class PremiumVerificationPacketListener extends PacketListenerAbstract {
      */
     private void enableChannelEncryption(Object channel, byte[] sharedSecret) {
         try {
-            SecretKeySpec key = new SecretKeySpec(sharedSecret, "AES");
-            // In Minecraft, the IV equals the shared secret (same 16 bytes for key and IV)
-            IvParameterSpec iv = new IvParameterSpec(sharedSecret);
-
-            Cipher decryptCipher = Cipher.getInstance("AES/CFB8/NoPadding");
-            decryptCipher.init(Cipher.DECRYPT_MODE, key, iv);
-
-            Cipher encryptCipher = Cipher.getInstance("AES/CFB8/NoPadding");
-            encryptCipher.init(Cipher.ENCRYPT_MODE, key, iv);
+            Cipher decryptCipher = createCipher(Cipher.DECRYPT_MODE, sharedSecret);
+            Cipher encryptCipher = createCipher(Cipher.ENCRYPT_MODE, sharedSecret);
 
             ChannelPipeline pipeline = (ChannelPipeline) ChannelHelper.getPipeline(channel);
             pipeline.addBefore("splitter", "decrypt", new AesCfb8Decoder(decryptCipher));
@@ -174,13 +167,17 @@ public class PremiumVerificationPacketListener extends PacketListenerAbstract {
         }
     }
 
+    private static Cipher createCipher(int mode, byte[] secret) throws GeneralSecurityException {
+        Cipher cipher = Cipher.getInstance("AES/CFB8/NoPadding");
+        // In Minecraft the IV equals the shared secret (same 16 bytes for key and IV)
+        cipher.init(mode, new SecretKeySpec(secret, "AES"), new IvParameterSpec(secret));
+        return cipher;
+    }
+
     /**
-     * Re-injects a {@code LOGIN_START} packet so vanilla completes the login normally.
-     * Uses {@code receivePacketSilently} to bypass PacketEvents' own listener chain
-     * (prevents infinite interception of our own injected packet).
-     *
-     * <p>The {@code playerUUID} must be forwarded for MC >= 1.20.2 clients; it is {@code null}
-     * on older protocol versions.</p>
+     * Re-injects a {@code LOGIN_START} so vanilla completes the login, using
+     * {@code receivePacketSilently} to avoid re-interception. The {@code playerUUID}
+     * is forwarded for MC >= 1.20.2 clients and is {@code null} on older versions.
      */
     private void resumeLogin(User user, String username, ClientVersion clientVersion, UUID playerUUID) {
         WrapperLoginClientLoginStart resumePacket =

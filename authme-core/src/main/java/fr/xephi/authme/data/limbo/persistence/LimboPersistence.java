@@ -19,7 +19,6 @@ public class LimboPersistence implements SettingsDependent {
     private final ConsoleLogger logger = ConsoleLoggerFactory.get(LimboPersistence.class);
 
     private final Factory<LimboPersistenceHandler> handlerFactory;
-
     private LimboPersistenceHandler handler;
 
     @Inject
@@ -39,8 +38,8 @@ public class LimboPersistence implements SettingsDependent {
             return handler.getLimboPlayer(player);
         } catch (Exception e) {
             logger.logException("Could not get LimboPlayer for '" + player.getName() + "'", e);
+            return null;
         }
-        return null;
     }
 
     /**
@@ -50,11 +49,7 @@ public class LimboPersistence implements SettingsDependent {
      * @param limbo the limbo player to save
      */
     public void saveLimboPlayer(Player player, LimboPlayer limbo) {
-        try {
-            handler.saveLimboPlayer(player, limbo);
-        } catch (Exception e) {
-            logger.logException("Could not save LimboPlayer for '" + player.getName() + "'", e);
-        }
+        executeSafely(player, "save", () -> handler.saveLimboPlayer(player, limbo));
     }
 
     /**
@@ -63,10 +58,14 @@ public class LimboPersistence implements SettingsDependent {
      * @param player the player whose LimboPlayer should be removed
      */
     public void removeLimboPlayer(Player player) {
+        executeSafely(player, "remove", () -> handler.removeLimboPlayer(player));
+    }
+
+    private void executeSafely(Player player, String action, Runnable task) {
         try {
-            handler.removeLimboPlayer(player);
+            task.run();
         } catch (Exception e) {
-            logger.logException("Could not remove LimboPlayer for '" + player.getName() + "'", e);
+            logger.logException("Could not " + action + " LimboPlayer for '" + player.getName() + "'", e);
         }
     }
 

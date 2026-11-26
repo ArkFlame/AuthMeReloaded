@@ -44,6 +44,13 @@ class MessageUpdaterTest {
         return messagesFile;
     }
 
+    private PropertyReader copyAndMigrate(String name, String resourcePath, String currentVersion,
+                                          String latestVersion) throws IOException {
+        File messagesFile = copyMessagesFile(name, resourcePath);
+        assertThat(messageUpdater.migrateAndSave(messagesFile, currentVersion, latestVersion), equalTo(true));
+        return new YamlFileReader(messagesFile);
+    }
+
     @Test
     void shouldNotUpdateDefaultFile() throws IOException {
         String messagesFilePath = DEFAULT_MESSAGES_FILE;
@@ -58,12 +65,8 @@ class MessageUpdaterTest {
 
     @Test
     void shouldAddMissingKeys() throws IOException {
-        File messagesFile = copyMessagesFile("file", TestHelper.PROJECT_ROOT + "message/messages_test.yml");
-
-        boolean wasChanged = messageUpdater.migrateAndSave(messagesFile, "does-not-exist", DEFAULT_MESSAGES_FILE);
-
-        assertThat(wasChanged, equalTo(true));
-        PropertyReader reader = new YamlFileReader(messagesFile);
+        PropertyReader reader = copyAndMigrate("file", TestHelper.PROJECT_ROOT + "message/messages_test.yml",
+            "does-not-exist", DEFAULT_MESSAGES_FILE);
         // Existing keys should not be overridden
         assertThat(reader.getString(MessageKey.LOGIN_SUCCESS.getKey()), equalTo("&cHere we have&bdefined some colors &dand some other &lthings"));
         assertThat(reader.getString(MessageKey.EMAIL_ALREADY_USED_ERROR.getKey()), equalTo(""));
@@ -74,12 +77,8 @@ class MessageUpdaterTest {
 
     @Test
     void shouldMigrateOldEntries() throws IOException {
-        File messagesFile = copyMessagesFile("messages.yml", TestHelper.PROJECT_ROOT + "message/messages_en_old.yml");
-
-        boolean wasChanged = messageUpdater.migrateAndSave(messagesFile, DEFAULT_MESSAGES_FILE, DEFAULT_MESSAGES_FILE);
-
-        assertThat(wasChanged, equalTo(true));
-        PropertyReader reader = new YamlFileReader(messagesFile);
+        PropertyReader reader = copyAndMigrate("messages.yml", TestHelper.PROJECT_ROOT + "message/messages_en_old.yml",
+            DEFAULT_MESSAGES_FILE, DEFAULT_MESSAGES_FILE);
         assertThat(reader.getString(MessageKey.PASSWORD_MATCH_ERROR.getKey()),
             equalTo("Password error message"));
         assertThat(reader.getString(MessageKey.INVALID_NAME_CHARACTERS.getKey()),
@@ -96,12 +95,8 @@ class MessageUpdaterTest {
 
     @Test
     void shouldPerformNewerMigrations() throws IOException {
-        File messagesFile = copyMessagesFile("newFile", TestHelper.PROJECT_ROOT + "message/messages_test2.yml");
-
-        boolean wasChanged = messageUpdater.migrateAndSave(messagesFile, DEFAULT_MESSAGES_FILE, DEFAULT_MESSAGES_FILE);
-
-        assertThat(wasChanged, equalTo(true));
-        PropertyReader reader = new YamlFileReader(messagesFile);
+        PropertyReader reader = copyAndMigrate("newFile", TestHelper.PROJECT_ROOT + "message/messages_test2.yml",
+            DEFAULT_MESSAGES_FILE, DEFAULT_MESSAGES_FILE);
         assertThat(reader.getString(MessageKey.TWO_FACTOR_CREATE.getKey()), equalTo("Old 2fa create text"));
         assertThat(reader.getString(MessageKey.WRONG_PASSWORD.getKey()), equalTo("test2 - wrong password")); // from pre-5.5 key
         assertThat(reader.getString(MessageKey.SECOND.getKey()), equalTo("second")); // from messages_en.yml

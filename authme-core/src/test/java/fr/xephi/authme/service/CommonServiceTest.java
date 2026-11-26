@@ -45,13 +45,10 @@ class CommonServiceTest {
 
     @Test
     void shouldGetProperty() {
-        // given
         given(settings.getProperty(SecuritySettings.CAPTCHA_LENGTH)).willReturn(8);
 
-        // when
         int result = commonService.getProperty(SecuritySettings.CAPTCHA_LENGTH);
 
-        // then
         verify(settings).getProperty(SecuritySettings.CAPTCHA_LENGTH);
         assertThat(result, equalTo(8));
     }
@@ -59,51 +56,38 @@ class CommonServiceTest {
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
     void shouldSendMessage(boolean withReplacements) {
-        // given
         CommandSender sender = mock(CommandSender.class);
         String[] replacements = {"test", "toast"};
 
-        // when
         if (withReplacements) {
             commonService.send(sender, TEST_KEY, replacements);
-        } else {
-            commonService.send(sender, TEST_KEY);
-        }
-
-        // then
-        if (withReplacements) {
             verify(messages).send(sender, TEST_KEY, replacements);
         } else {
+            commonService.send(sender, TEST_KEY);
             verify(messages).send(sender, TEST_KEY);
         }
     }
 
     @Test
     void shouldRetrieveSingleMessage() {
-        // given
         CommandSender sender = mock(CommandSender.class);
         String text = "Test text";
         given(messages.retrieveSingle(sender, TEST_KEY)).willReturn(text);
 
-        // when
         String result = commonService.retrieveSingleMessage(sender, TEST_KEY);
 
-        // then
         assertThat(result, equalTo(text));
         verify(messages).retrieveSingle(sender, TEST_KEY);
     }
 
     @Test
     void shouldCheckPermission() {
-        // given
         Player player = mock(Player.class);
         PermissionNode permission = PlayerPermission.CHANGE_PASSWORD;
         given(permissionsManager.hasPermission(player, permission)).willReturn(true);
 
-        // when
         boolean result = commonService.hasPermission(player, permission);
 
-        // then
         verify(permissionsManager).hasPermission(player, permission);
         assertThat(result, equalTo(true));
     }

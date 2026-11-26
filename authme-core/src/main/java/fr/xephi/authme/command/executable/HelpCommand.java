@@ -53,11 +53,9 @@ public class HelpCommand implements ExecutableCommand {
                 + CommandUtils.constructCommandPath(command));
         }
 
-        if (command.getLabelCount() == 1) {
-            helpProvider.outputHelp(sender, result,
-                SHOW_COMMAND | SHOW_DESCRIPTION | SHOW_CHILDREN | SHOW_ALTERNATIVES);
-        } else {
-            helpProvider.outputHelp(sender, result, ALL_OPTIONS);
-        }
+        int options = command.getLabelCount() == 1
+            ? SHOW_COMMAND | SHOW_DESCRIPTION | SHOW_CHILDREN | SHOW_ALTERNATIVES
+            : ALL_OPTIONS;
+        helpProvider.outputHelp(sender, result, options);
     }
 }

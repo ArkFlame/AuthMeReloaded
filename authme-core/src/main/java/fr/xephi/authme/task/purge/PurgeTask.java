@@ -58,8 +58,7 @@ class PurgeTask implements Runnable {
     @Override
     public void run() {
         try {
-            if (toPurge.isEmpty()) {
-                //everything was removed
+            if (toPurge.isEmpty()) { // everything was removed
                 finish();
                 return;
             }

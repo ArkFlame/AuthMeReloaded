@@ -34,9 +34,7 @@ public class ProxySessionManager implements HasCleanup {
      *
      * @param name the player to process
      */
-    public void processProxySessionMessage(String name) {
-        processProxySessionMessage(name, null);
-    }
+    public void processProxySessionMessage(String name) { processProxySessionMessage(name, null); }
 
     /**
      * Returns if the player should be logged in or not
@@ -73,14 +71,10 @@ public class ProxySessionManager implements HasCleanup {
      *
      * @param name the player name
      */
-    public void removeLoginRequest(String name) {
-        consumeLoginRequest(name);
-    }
+    public void removeLoginRequest(String name) { consumeLoginRequest(name); }
 
     @Override
-    public void performCleanup() {
-        activeProxySessions.removeExpiredEntries();
-    }
+    public void performCleanup() { activeProxySessions.removeExpiredEntries(); }
 
     public static final class ProxyLoginRequest {
         private final String playerName;

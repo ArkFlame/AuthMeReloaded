@@ -73,7 +73,6 @@ class CountryLookup implements DebugSection {
         sender.sendMessage("Note: if " + ProtectionSettings.ENABLE_PROTECTION + " is false no country is blocked");
     }
 
-    // TODO #1366: Extend with registration IP?
     private void outputInfoForPlayer(CommandSender sender, String name) {
         PlayerAuth auth = dataSource.getAuth(name);
         if (auth == null) {
@@ -83,9 +82,9 @@ class CountryLookup implements DebugSection {
         String lastIp = auth.getLastIp();
         if (lastIp == null) {
             sender.sendMessage("No last IP address known for '" + name + "'");
-        } else {
-            sender.sendMessage("Player '" + name + "' has IP address " + lastIp);
-            outputInfoForIpAddr(sender, lastIp);
+            return;
         }
+        sender.sendMessage("Player '" + name + "' has IP address " + lastIp);
+        outputInfoForIpAddr(sender, lastIp);
     }
 }

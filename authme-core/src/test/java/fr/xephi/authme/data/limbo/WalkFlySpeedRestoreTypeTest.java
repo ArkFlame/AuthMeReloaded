@@ -20,7 +20,6 @@ import static org.mockito.Mockito.verify;
 
 /** Test for {@link WalkFlySpeedRestoreType}. */
 class WalkFlySpeedRestoreTypeTest {
-
     @ParameterizedTest
     @MethodSource("buildParams")
     void shouldRestoreToExpectedValue(WalkFlySpeedRestoreType type, float givenLimboWalkSpeed,
@@ -40,7 +39,6 @@ class WalkFlySpeedRestoreTypeTest {
         verify(player).setWalkSpeed(expectedWalkSpeed);
         verify(player).setFlySpeed(expectedFlySpeed);
     }
-
     private static Stream<Arguments> buildParams() {
         return Stream.of(
             Arguments.of(RESTORE, 0.1f, 0.4f, 0.3f, 0.9f, 0.1f, 0.4f),

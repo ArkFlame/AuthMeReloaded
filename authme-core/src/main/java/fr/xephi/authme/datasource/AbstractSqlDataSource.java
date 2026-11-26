@@ -240,9 +240,7 @@ public abstract class AbstractSqlDataSource implements DataSource {
 
     /** Deletes all records whose names are in the given collection; the caller keeps ownership of the connection. */
     protected void deleteRecords(Connection con, String sql, Collection<String> names) throws SQLException {
-        if (names.isEmpty()) {
-            return;
-        }
+        if (names.isEmpty()) return;
         try (PreparedStatement pst = con.prepareStatement(sql)) {
             for (String name : names) {
                 pst.setString(1, name.toLowerCase(Locale.ROOT));
@@ -275,19 +273,13 @@ public abstract class AbstractSqlDataSource implements DataSource {
     /** Adds a column with the given definition to this data source's table if it is not there yet. */
     protected void addColumnIfAbsent(DatabaseMetaData md, Statement st, String column, String definition)
         throws SQLException {
-        if (isColumnMissing(md, column)) {
-            addColumn(st, column, definition);
-        }
+        if (isColumnMissing(md, column)) addColumn(st, column, definition);
     }
 
     /** Adds the configured UUID columns to the table when they are not there yet. */
     protected void addUuidColumnsIfAbsent(DatabaseMetaData md, Statement st) throws SQLException {
-        if (!col.PLAYER_UUID.isEmpty()) {
-            addColumnIfAbsent(md, st, col.PLAYER_UUID, "VARCHAR(36)");
-        }
-        if (!col.PREMIUM_UUID.isEmpty()) {
-            addColumnIfAbsent(md, st, col.PREMIUM_UUID, "VARCHAR(36)");
-        }
+        if (!col.PLAYER_UUID.isEmpty()) addColumnIfAbsent(md, st, col.PLAYER_UUID, "VARCHAR(36)");
+        if (!col.PREMIUM_UUID.isEmpty()) addColumnIfAbsent(md, st, col.PREMIUM_UUID, "VARCHAR(36)");
     }
 
     /** Executes an ALTER TABLE statement against this data source's table. */
