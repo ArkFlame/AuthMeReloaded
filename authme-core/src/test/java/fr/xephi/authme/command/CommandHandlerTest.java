@@ -28,8 +28,6 @@ import java.util.List;
 import java.util.Map;
 
 import static fr.xephi.authme.command.FoundResultStatus.INCORRECT_ARGUMENTS;
-import static fr.xephi.authme.command.FoundResultStatus.MISSING_BASE_COMMAND;
-import static fr.xephi.authme.command.FoundResultStatus.NO_PERMISSION;
 import static fr.xephi.authme.command.FoundResultStatus.SUCCESS;
 import static fr.xephi.authme.command.FoundResultStatus.UNKNOWN_LABEL;
 import static java.util.Arrays.asList;
@@ -118,7 +116,6 @@ class CommandHandlerTest {
         });
     }
 
-
     @ParameterizedTest(name = "pre-split parts: {0}")
     @ValueSource(booleans = {false, true})
     void shouldCallMappedCommandWithArgs(boolean preSplitParts) {
@@ -141,10 +138,11 @@ class CommandHandlerTest {
         verify(sender, never()).sendMessage(anyString());
     }
 
-    @Test
-    void shouldNotCallExecutableCommandIfNoPermission() {
+    @ParameterizedTest(name = "status: {0}")
+    @CsvSource({"NO_PERMISSION, NO_PERMISSION", "MISSING_BASE_COMMAND, COMMAND_FAILED_TO_PARSE"})
+    void shouldNotCallExecutableOnUnhandledResult(FoundResultStatus status, MessageKey messageKey) {
         // given
-        givenMapping(asList("unreg"), asList("testPlayer"), 0.0, NO_PERMISSION);
+        givenMapping(asList("unreg"), asList("testPlayer"), 0.0, status);
 
         // when
         handler.processCommand(sender, "unreg", new String[]{"testPlayer"});
@@ -152,33 +150,19 @@ class CommandHandlerTest {
         // then
         verifyMappedParts("unreg", "testPlayer");
         verify(command, never()).getExecutableCommand();
-        verify(messages).send(sender, MessageKey.NO_PERMISSION);
-    }
-
-    @Test
-    void shouldNotCallExecutableForWrongArguments() {
-        // given
-        given(command.getExecutableCommand()).willReturn((Class) TestUnregisterCommand.class);
-        givenMapping(asList("unreg"), asList("testPlayer"), 0.0, INCORRECT_ARGUMENTS);
-        given(permissionsManager.hasPermission(sender, command.getPermission())).willReturn(true);
-
-        // when
-        handler.processCommand(sender, "unreg", new String[]{"testPlayer"});
-
-        // then
-        verifyMappedParts("unreg", "testPlayer");
-        verify(messages).send(sender, MessageKey.COMMAND_INCORRECT_ARGUMENTS);
-        verify(helpProvider).outputHelp(eq(sender), any(FoundCommandResult.class), eq(HelpProvider.SHOW_ARGUMENTS));
-        verify(messages).send(eq(sender), eq(MessageKey.COMMAND_DETAILED_HELP), anyString());
+        verify(messages).send(sender, messageKey);
         verify(sender, never()).sendMessage(anyString());
     }
 
-    @Test
-    void shouldUseCustomMessageUponArgumentMismatch() {
+    @ParameterizedTest(name = "custom mismatch message: {0}")
+    @ValueSource(booleans = {false, true})
+    void shouldNotCallExecutableForWrongArguments(boolean useCustomMessage) {
         // given
         given(command.getExecutableCommand()).willReturn((Class) TestUnregisterCommand.class);
-        given(mockedCommands.get(TestUnregisterCommand.class).getArgumentsMismatchMessage())
-            .willReturn(MessageKey.USAGE_RECOVER_EMAIL);
+        if (useCustomMessage) {
+            given(mockedCommands.get(TestUnregisterCommand.class).getArgumentsMismatchMessage())
+                .willReturn(MessageKey.USAGE_RECOVER_EMAIL);
+        }
         givenMapping(asList("unreg"), asList("testPlayer"), 0.0, INCORRECT_ARGUMENTS);
         given(permissionsManager.hasPermission(sender, command.getPermission())).willReturn(true);
 
@@ -187,7 +171,13 @@ class CommandHandlerTest {
 
         // then
         verifyMappedParts("unreg", "testPlayer");
-        verify(messages).send(sender, MessageKey.USAGE_RECOVER_EMAIL);
+        if (useCustomMessage) {
+            verify(messages).send(sender, MessageKey.USAGE_RECOVER_EMAIL);
+        } else {
+            verify(messages).send(sender, MessageKey.COMMAND_INCORRECT_ARGUMENTS);
+            verify(helpProvider).outputHelp(eq(sender), any(FoundCommandResult.class), eq(HelpProvider.SHOW_ARGUMENTS));
+            verify(messages).send(eq(sender), eq(MessageKey.COMMAND_DETAILED_HELP), anyString());
+        }
         verify(sender, never()).sendMessage(anyString());
     }
 
@@ -204,21 +194,6 @@ class CommandHandlerTest {
         verifyMappedParts("unreg", "testPlayer");
         verify(command, never()).getExecutableCommand();
         verify(messages).send(sender, MessageKey.NO_PERMISSION);
-    }
-
-    @Test
-    void shouldNotCallExecutableForFailedParsing() {
-        // given
-        givenMapping(asList("unreg"), asList("testPlayer"), 0.0, MISSING_BASE_COMMAND);
-
-        // when
-        handler.processCommand(sender, "unreg", new String[]{"testPlayer"});
-
-        // then
-        verifyMappedParts("unreg", "testPlayer");
-        verify(command, never()).getExecutableCommand();
-        verify(messages).send(sender, MessageKey.COMMAND_FAILED_TO_PARSE);
-        verify(sender, never()).sendMessage(anyString());
     }
 
     @ParameterizedTest(name = "suggestion: {1}")

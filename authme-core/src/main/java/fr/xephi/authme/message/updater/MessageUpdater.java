@@ -63,9 +63,13 @@ public class MessageUpdater {
         configurationData.initializeValues(reader);
 
         // Step 1: Migrate any old keys in the file to the new paths
-        boolean movedOldKeys = migrateOldKeys(reader, configurationData);
+        boolean movedOldKeys = OldMessageKeysMigrater.migrateOldPaths(reader, configurationData);
+        if (movedOldKeys) {
+            logger.info("Old keys have been moved to the new ones in your messages_xx.yml file");
+        }
         // Step 2: Perform newer migrations
-        boolean movedNewerKeys = migrateKeys(reader, configurationData);
+        boolean movedNewerKeys = moveIfApplicable(reader, configurationData, "misc.two_factor_create",
+            MessageKey.TWO_FACTOR_CREATE, UnaryOperator.identity());
         // Step 3: Take any missing messages from the message files shipped in the AuthMe JAR
         boolean addedMissingKeys = addMissingKeys(jarMessageSource, configurationData);
 
@@ -77,11 +81,6 @@ public class MessageUpdater {
             return true;
         }
         return false;
-    }
-
-    private boolean migrateKeys(PropertyReader propertyReader, MessageKeyConfigurationData configurationData) {
-        return moveIfApplicable(propertyReader, configurationData, "misc.two_factor_create",
-            MessageKey.TWO_FACTOR_CREATE, UnaryOperator.identity());
     }
 
     /**
@@ -107,35 +106,25 @@ public class MessageUpdater {
         return true;
     }
 
-    private boolean migrateOldKeys(PropertyReader propertyReader, MessageKeyConfigurationData configurationData) {
-        boolean hasChange = OldMessageKeysMigrater.migrateOldPaths(propertyReader, configurationData);
-        if (hasChange) {
-            logger.info("Old keys have been moved to the new ones in your messages_xx.yml file");
-        }
-        return hasChange;
-    }
-
     private boolean addMissingKeys(JarMessageSource jarMessageSource, MessageKeyConfigurationData configurationData) {
         List<String> addedKeys = new ArrayList<>();
         for (Property<String> property : configurationData.getAllMessageProperties()) {
-            final String key = property.getPath();
             if (configurationData.getValue(property) == null) {
                 String message = jarMessageSource.getMessageFromJar(property);
                 // A key missing from both the local and the default JAR file must stay unset:
                 // storing null would make every reload re-detect it as missing and rewrite the file.
-                if (message == null) {
-                    continue;
+                if (message != null) {
+                    configurationData.setValue(property, message);
+                    addedKeys.add(property.getPath());
                 }
-                configurationData.setValue(property, message);
-                addedKeys.add(key);
             }
         }
-        if (!addedKeys.isEmpty()) {
-            logger.info(
-                "Added " + addedKeys.size() + " missing keys to your messages_xx.yml file: " + addedKeys);
-            return true;
+        if (addedKeys.isEmpty()) {
+            return false;
         }
-        return false;
+        logger.info(
+            "Added " + addedKeys.size() + " missing keys to your messages_xx.yml file: " + addedKeys);
+        return true;
     }
 
     private static void backupMessagesFile(File messagesFile) {
@@ -178,10 +167,12 @@ public class MessageUpdater {
             .build();
 
         Set<MessageKey> addedKeys = new HashSet<>();
+        Map<String, List<String>> commentsMap = new HashMap<>();
         MessageKeyPropertyListBuilder builder = new MessageKeyPropertyListBuilder();
         MessageKey[] allKeys = MessageKey.values();
         // Add one key per section based on the comments map above so that the order is clear
-        for (String path : comments.keySet()) {
+        for (Map.Entry<String, String> comment : comments.entrySet()) {
+            String path = comment.getKey();
             String prefix = path + ".";
             MessageKey firstKey = Arrays.stream(allKeys)
                 .filter(key -> key.getKey().startsWith(prefix))
@@ -189,18 +180,13 @@ public class MessageUpdater {
                 .orElseThrow(() -> new IllegalStateException(path));
             builder.addMessageKey(firstKey);
             addedKeys.add(firstKey);
+            commentsMap.put(path, singletonList(comment.getValue()));
         }
         // Add all remaining keys to the property list builder
         for (MessageKey key : allKeys) {
             if (!addedKeys.contains(key)) {
                 builder.addMessageKey(key);
             }
-        }
-
-        // Create ConfigurationData instance
-        Map<String, List<String>> commentsMap = new HashMap<>();
-        for (Map.Entry<String, String> entry : comments.entrySet()) {
-            commentsMap.put(entry.getKey(), singletonList(entry.getValue()));
         }
         return new MessageKeyConfigurationData(builder, commentsMap);
     }

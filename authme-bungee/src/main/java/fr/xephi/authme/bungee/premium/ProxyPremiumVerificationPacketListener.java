@@ -116,16 +116,12 @@ final class ProxyPremiumVerificationPacketListener extends PacketListenerAbstrac
             sharedSecret = loginVerifier.decryptData(encryptedSharedSecret);
         } catch (GeneralSecurityException e) {
             warningLogger.accept("Proxy premium RSA decryption failed for '" + username + "': " + e.getMessage());
-            loginVerifier.cleanupPending(connectionKey);
-            handlePendingVerificationFailure(username, pendingPremiumEnrollment);
-            closeConnection(user, username);
+            abortVerification(user, connectionKey, username, pendingPremiumEnrollment);
             return;
         }
 
         if (!enableChannelEncryption(user.getChannel(), sharedSecret)) {
-            loginVerifier.cleanupPending(connectionKey);
-            handlePendingVerificationFailure(username, pendingPremiumEnrollment);
-            closeConnection(user, username);
+            abortVerification(user, connectionKey, username, pendingPremiumEnrollment);
             return;
         }
 
@@ -171,16 +167,13 @@ final class ProxyPremiumVerificationPacketListener extends PacketListenerAbstrac
 
             Cipher decryptCipher = Cipher.getInstance("AES/CFB8/NoPadding");
             decryptCipher.init(Cipher.DECRYPT_MODE, key, iv);
-
             Cipher encryptCipher = Cipher.getInstance("AES/CFB8/NoPadding");
             encryptCipher.init(Cipher.ENCRYPT_MODE, key, iv);
 
             ChannelPipeline pipeline = (ChannelPipeline) ChannelHelper.getPipeline(channel);
-            String decoderAnchor = pipeline.get(PacketEvents.DECODER_NAME) != null
-                ? PacketEvents.DECODER_NAME
+            String decoderAnchor = pipeline.get(PacketEvents.DECODER_NAME) != null ? PacketEvents.DECODER_NAME
                 : pipeline.get("splitter") != null ? "splitter" : null;
-            String encoderAnchor = pipeline.get(PacketEvents.ENCODER_NAME) != null
-                ? PacketEvents.ENCODER_NAME
+            String encoderAnchor = pipeline.get(PacketEvents.ENCODER_NAME) != null ? PacketEvents.ENCODER_NAME
                 : pipeline.get("prepender") != null ? "prepender" : null;
             if (decoderAnchor == null || encoderAnchor == null) {
                 warningLogger.accept("Failed to install proxy AES cipher handlers: missing pipeline anchors in "
@@ -219,6 +212,12 @@ final class ProxyPremiumVerificationPacketListener extends PacketListenerAbstrac
     private void closeConnection(User user, String username) {
         ChannelHelper.runInEventLoop(user.getChannel(), user::closeConnection);
         warningLogger.accept("Closed proxy premium verification connection for '" + username + "'");
+    }
+
+    private void abortVerification(User user, String connectionKey, String username, boolean pending) {
+        loginVerifier.cleanupPending(connectionKey);
+        handlePendingVerificationFailure(username, pending);
+        closeConnection(user, username);
     }
 
     private void handlePendingVerificationFailure(String username, boolean pendingPremiumEnrollment) {

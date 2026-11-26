@@ -104,10 +104,9 @@ class MessagesIntegrationTest {
 
     @Test
     void shouldFormatColorCodes() {
-        MessageKey key = MessageKey.LOGIN_SUCCESS;
         CommandSender sender = mockSender();
 
-        String[] message = messages.retrieve(key, sender);
+        String[] message = messages.retrieve(MessageKey.LOGIN_SUCCESS, sender);
 
         assertThat(message, arrayWithSize(1));
         assertThat(message[0], equalTo("§cHere we have§bdefined some colors §dand some other §lthings"));
@@ -115,10 +114,9 @@ class MessagesIntegrationTest {
 
     @Test
     void shouldNotSendEmptyMessage() {
-        MessageKey key = MessageKey.EMAIL_ALREADY_USED_ERROR;
         CommandSender sender = mockSender();
 
-        messages.send(sender, key);
+        messages.send(sender, MessageKey.EMAIL_ALREADY_USED_ERROR);
 
         verify(sender, never()).sendMessage(anyString());
     }
@@ -167,10 +165,9 @@ class MessagesIntegrationTest {
     @Test
     void shouldNotUseMessageFromDefaultFile() {
         // Key is present in both files
-        MessageKey key = MessageKey.WRONG_PASSWORD;
         CommandSender sender = mockSender();
 
-        String message = messages.retrieveSingle(sender, key);
+        String message = messages.retrieveSingle(sender, MessageKey.WRONG_PASSWORD);
 
         assertThat(message, equalTo("§cWrong password!"));
     }

@@ -50,21 +50,12 @@ public class MySQL extends AbstractHikariSqlDataSource {
         setParameters(settings, extensionsFactory);
     }
 
-    /**
-     * Returns the path of the Driver class to use when connecting to the database.
-     *
-     * @return the dotted path of the SQL driver class to be used
-     */
+    /** Returns the dotted path of the JDBC driver class to use. */
     protected String getDriverClassName() {
         return "com.mysql.cj.jdbc.Driver";
     }
 
-    /**
-     * Retrieves various settings.
-     *
-     * @param settings the settings to read properties from
-     * @param extensionsFactory factory to create the MySQL extension
-     */
+    /** Reads the common and MySQL-specific settings. */
     private void setParameters(Settings settings, MySqlExtensionsFactory extensionsFactory) {
         setCommonParameters(settings, extensionsFactory);
         useSsl = settings.getProperty(DatabaseSettings.MYSQL_USE_SSL);
@@ -106,14 +97,14 @@ public class MySQL extends AbstractHikariSqlDataSource {
         }
 
         // Encoding, batching and caching options
-        String[][] extraProperties = {
-            {"characterEncoding", "utf8"}, {"encoding", "UTF-8"}, {"useUnicode", "true"},
-            {"rewriteBatchedStatements", "true"}, {"jdbcCompliantTruncation", "false"},
-            {"cachePrepStmts", "true"}, {"prepStmtCacheSize", "275"}, {"prepStmtCacheSqlLimit", "2048"}
-        };
-        for (String[] property : extraProperties) {
-            ds.addDataSourceProperty(property[0], property[1]);
-        }
+        ds.addDataSourceProperty("characterEncoding", "utf8");
+        ds.addDataSourceProperty("encoding", "UTF-8");
+        ds.addDataSourceProperty("useUnicode", "true");
+        ds.addDataSourceProperty("rewriteBatchedStatements", "true");
+        ds.addDataSourceProperty("jdbcCompliantTruncation", "false");
+        ds.addDataSourceProperty("cachePrepStmts", "true");
+        ds.addDataSourceProperty("prepStmtCacheSize", "275");
+        ds.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
 
         logger.info("Connection arguments loaded, Hikari ConnectionPool ready!");
     }

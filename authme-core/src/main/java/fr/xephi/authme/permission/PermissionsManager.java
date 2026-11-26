@@ -228,12 +228,11 @@ public class PermissionsManager implements Reloadable {
 
         boolean result = false;
         for (UserGroup group : groupNames) {
-            if (group == null) {
-                continue;
-            }
-            String groupName = group.getGroupName();
-            if (groupName != null && !groupName.isEmpty()) {
-                result |= add ? handler.addToGroup(player, group) : handler.removeFromGroup(player, group);
+            if (group != null) {
+                String groupName = group.getGroupName();
+                if (groupName != null && !groupName.isEmpty()) {
+                    result |= add ? handler.addToGroup(player, group) : handler.removeFromGroup(player, group);
+                }
             }
         }
         return result;
@@ -274,10 +273,9 @@ public class PermissionsManager implements Reloadable {
      * @throws PermissionLoadUserException if the action failed.
      */
     public void loadUserData(UUID uuid) throws PermissionLoadUserException {
-        if (!isEnabled()) {
-            return;
+        if (isEnabled()) {
+            handler.loadUserData(uuid);
         }
-        handler.loadUserData(uuid);
     }
 
 }

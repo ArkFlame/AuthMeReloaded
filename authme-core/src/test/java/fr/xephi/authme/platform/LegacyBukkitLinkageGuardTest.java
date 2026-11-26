@@ -59,8 +59,7 @@ class LegacyBukkitLinkageGuardTest {
 
         // Direct Block.isPassable must not appear as Methodref/InterfaceMethodref;
         // SpawnLoader must delegate via BukkitCompatibilityAdapter.isBlockPassable instead.
-        assertFalse(info.memberRefs.stream().anyMatch(
-                r -> "org/bukkit/block/Block".equals(r.className) && "isPassable".equals(r.name)),
+        assertNoMemberRef(info, "org/bukkit/block/Block", "isPassable",
             "SpawnLoader must not have direct Methodref to org/bukkit/block/Block.isPassable; "
                 + "use BukkitCompatibilityAdapter.isBlockPassable instead. Refs: " + info.memberRefs);
 
@@ -79,8 +78,7 @@ class LegacyBukkitLinkageGuardTest {
     void playerLocaleResolverMustNotDirectlyCallGetLocale() throws IOException {
         BytecodeInfo info = parse(PlayerLocaleResolver.class);
 
-        assertFalse(info.memberRefs.stream().anyMatch(
-                r -> "org/bukkit/entity/Player".equals(r.className) && "getLocale".equals(r.name)),
+        assertNoMemberRef(info, "org/bukkit/entity/Player", "getLocale",
             "PlayerLocaleResolver must not have direct Methodref to org/bukkit/entity/Player.getLocale; "
                 + "use BukkitCompatibilityAdapter.getPlayerLocale instead. Refs: " + info.memberRefs);
 
@@ -135,15 +133,10 @@ class LegacyBukkitLinkageGuardTest {
     @Test
     void coreBytecodeMustBeJava8() throws IOException {
         // Core main classes that must remain Java 8 (major version 52)
-        Class<?>[] coreClasses = new Class<?>[]{
-            fr.xephi.authme.AuthMe.class,
-            PlayerListener.class,
-            SpawnLoader.class,
-            PlayerLocaleResolver.class,
-            AbstractSpigotPlatformAdapter.class,
-            fr.xephi.authme.data.limbo.EnderPearlRestoreData.class
-        };
-        for (Class<?> clazz : coreClasses) {
+        for (Class<?> clazz : new Class<?>[]{
+            fr.xephi.authme.AuthMe.class, PlayerListener.class, SpawnLoader.class,
+            PlayerLocaleResolver.class, AbstractSpigotPlatformAdapter.class,
+            fr.xephi.authme.data.limbo.EnderPearlRestoreData.class}) {
             BytecodeInfo info = parse(clazz);
             assertTrue(info.majorVersion <= 52,
                 clazz.getName() + " must be compiled to Java 8 (major <=52) but was " + info.majorVersion);
@@ -158,7 +151,7 @@ class LegacyBukkitLinkageGuardTest {
     }
 
     private static void assertHasClassName(BytecodeInfo info, String expected, String message) {
-        assertTrue(info.classNames.stream().anyMatch(cn -> cn.equals(expected) || cn.contains(expected)),
+        assertTrue(info.classNames.stream().anyMatch(cn -> cn.contains(expected)),
             message + " — expected Class entry containing: " + expected + " but got: " + info.classNames);
     }
 
@@ -168,8 +161,13 @@ class LegacyBukkitLinkageGuardTest {
     }
 
     private static void assertHasUtf8(BytecodeInfo info, String expected) {
-        assertTrue(info.utf8Values.stream().anyMatch(s -> s.equals(expected) || s.contains(expected)),
+        assertTrue(info.utf8Values.stream().anyMatch(s -> s.contains(expected)),
             "Expected Utf8/String constant '" + expected + "' not found in " + info.utf8Values);
+    }
+
+    private static void assertNoMemberRef(BytecodeInfo info, String className, String name, String message) {
+        assertFalse(info.memberRefs.stream().anyMatch(
+                r -> className.equals(r.className) && name.equals(r.name)), message);
     }
 
     private static void assertNoMethodRef(BytecodeInfo info, String substring) {
@@ -229,9 +227,6 @@ class LegacyBukkitLinkageGuardTest {
                     pos += 2;
                     break;
                 }
-                case 8: // String: content is already in the Utf8 pool
-                    pos += 2;
-                    break;
                 case 9: // Fieldref
                 case 10: // Methodref
                 case 11: { // InterfaceMethodref
@@ -260,6 +255,7 @@ class LegacyBukkitLinkageGuardTest {
                 case 15: // MethodHandle
                     pos += 3;
                     break;
+                case 8: // String: content is already in the Utf8 pool
                 case 16: // MethodType
                     pos += 2;
                     break;

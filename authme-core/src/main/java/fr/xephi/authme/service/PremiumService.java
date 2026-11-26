@@ -95,18 +95,16 @@ public class PremiumService implements HasCleanup {
             // The player must reconnect; a cryptographic Mojang session check on reconnect is
             // what actually confirms ownership before we write anything to the database.
             String playerName = player.getName();
-            bukkitService.runTaskOptionallyAsync(() -> enablePremiumViaMojang(player, playerName));
+            bukkitService.runTaskOptionallyAsync(() -> {
+                Optional<UUID> mojangUuid = mojangApiService.fetchUuidByName(playerName);
+                if (!mojangUuid.isPresent()) {
+                    messages.send(player, MessageKey.PREMIUM_ACCOUNT_NOT_FOUND);
+                    return;
+                }
+                setPendingPremium(playerName, mojangUuid.get());
+                kickPlayerWithMessage(player, MessageKey.PREMIUM_PENDING_KICK);
+            });
         }
-    }
-
-    private void enablePremiumViaMojang(Player player, String playerName) {
-        Optional<UUID> mojangUuid = mojangApiService.fetchUuidByName(playerName);
-        if (!mojangUuid.isPresent()) {
-            messages.send(player, MessageKey.PREMIUM_ACCOUNT_NOT_FOUND);
-            return;
-        }
-        setPendingPremium(playerName, mojangUuid.get());
-        kickPlayerWithMessage(player, MessageKey.PREMIUM_PENDING_KICK);
     }
 
     /**
@@ -292,25 +290,17 @@ public class PremiumService implements HasCleanup {
 
     private void storePremiumUuid(PlayerAuth auth, UUID uuid, CommandSender feedbackTarget, String playerName,
                                     boolean updateCache, MessageKey successKey, String... successArgs) {
-        if (savePremiumUuid(auth, uuid, playerName, updateCache)) {
-            messages.send(feedbackTarget, successKey, successArgs);
-        } else {
-            messages.send(feedbackTarget, MessageKey.PREMIUM_ERROR);
-        }
-    }
-
-    /** Persists the UUID, updates the cache when requested and notifies the proxy, without player feedback. */
-    private boolean savePremiumUuid(PlayerAuth auth, UUID uuid, String playerName, boolean updateCache) {
         auth.setPremiumUuid(uuid);
         if (!dataSource.updatePremiumUuid(auth)) {
             logger.warning("Failed to save premium UUID for player " + playerName);
-            return false;
+            messages.send(feedbackTarget, MessageKey.PREMIUM_ERROR);
+            return;
         }
         if (updateCache) {
             playerCache.updatePlayerIfPresent(auth);
         }
         bungeeSender.sendPremiumSet(playerName);
-        return true;
+        messages.send(feedbackTarget, successKey, successArgs);
     }
 
     private void setPendingPremium(String playerName, UUID mojangUuid) {

@@ -10,6 +10,7 @@ import com.github.retrooper.packetevents.wrapper.login.client.WrapperLoginClient
 import com.github.retrooper.packetevents.wrapper.login.client.WrapperLoginClientLoginStart;
 import com.github.retrooper.packetevents.wrapper.login.server.WrapperLoginServerEncryptionRequest;
 import fr.xephi.authme.ConsoleLogger;
+import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.service.BukkitService;
@@ -77,20 +78,18 @@ public class PremiumVerificationPacketListener extends PacketListenerAbstract {
             return;
         }
 
-        // Capture state before the event is recycled
         User user = event.getUser();
         ClientVersion clientVersion = user.getClientVersion();
         String connectionKey = connectionKey(user);
         // MC >= 1.20.2 includes the player UUID in LOGIN_START; must be forwarded when re-injecting
         UUID playerUUID = wrapper.getPlayerUUID().orElse(null);
 
-        // Cancel immediately so the vanilla server does not process this LOGIN_START yet
         event.setCancelled(true);
 
         // DB lookup must happen off the Netty event loop to avoid blocking
         bukkitService.runTaskAsynchronously(() -> {
             String lowerName = username.toLowerCase(Locale.ROOT);
-            fr.xephi.authme.data.auth.PlayerAuth auth = dataSource.getAuth(lowerName);
+            PlayerAuth auth = dataSource.getAuth(lowerName);
 
             boolean isPremium = auth != null && auth.isPremium();
             if (isPremium || pendingPremiumCache.isPending(username)) {
@@ -123,19 +122,16 @@ public class PremiumVerificationPacketListener extends PacketListenerAbstract {
         Optional<byte[]> encVerifyTokenOpt = wrapper.getEncryptedVerifyToken();
         byte[] sharedSecret = null;
         if (encVerifyTokenOpt.isPresent()) {
-            // Step 1: RSA-decrypt the shared secret synchronously (fast; we're on the event loop).
-            // We must do this here — not inside the async task — so we can set up Netty encryption
-            // immediately before returning. The client is already in AES-encrypted mode after
-            // sending ENCRYPTION_RESPONSE; without decryption on our side every subsequent packet
-            // arrives as garbled bytes and Netty throws "length wider than 21-bit".
+            // RSA-decrypt the shared secret synchronously on the event loop so that Netty
+            // encryption is installed before the client's next (already AES-encrypted) packet.
             try {
                 sharedSecret = loginVerifier.decryptData(wrapper.getEncryptedSharedSecret().clone());
             } catch (GeneralSecurityException e) {
                 logger.warning("RSA decryption failed for '" + username + "': " + e.getMessage());
             }
         } else {
-            // Client responded with a signed nonce (1.19.1+ chat signing). We sent a plain verify
-            // token so this should not happen; fall through to password auth without verifying.
+            // Client sent a signed nonce (1.19.1+) instead of our plain verify token;
+            // fall through to password auth without verifying.
             logger.warning("Player '" + username + "' returned a signed nonce during premium "
                 + "verification (expected plain verify token). Resuming without premium bypass.");
         }
@@ -164,17 +160,9 @@ public class PremiumVerificationPacketListener extends PacketListenerAbstract {
     }
 
     /**
-     * Installs AES/CFB8 cipher handlers into the Netty pipeline.
-     *
-     * <p>Must be called on the channel's event-loop thread (i.e., synchronously from a
-     * PacketEvents {@code onPacketReceive} handler).  After the client sends
-     * {@code ENCRYPTION_RESPONSE} it immediately encrypts all outbound traffic, so
-     * decryption must be in place before any subsequent packet arrives.</p>
-     *
-     * <p>Handler positions follow vanilla Minecraft's {@code Connection.setupEncryption()}:
-     * {@code decrypt} before {@code "splitter"} (decrypt raw bytes before frame-splitting),
-     * {@code encrypt} before {@code "prepender"} (encrypt after length-prefixing, since the
-     * length varint is inside the encrypted stream in the Minecraft protocol).</p>
+     * Installs AES/CFB8 cipher handlers into the Netty pipeline, on the channel's event-loop
+     * thread. Positions follow vanilla {@code Connection.setupEncryption()}: {@code decrypt}
+     * before {@code splitter} and {@code encrypt} before {@code prepender}.
      */
     private void enableChannelEncryption(Object channel, byte[] sharedSecret) {
         try {

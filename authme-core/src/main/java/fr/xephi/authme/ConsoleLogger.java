@@ -50,9 +50,7 @@ public final class ConsoleLogger {
         this.name = name;
     }
 
-    // --------
     // Configurations
-    // --------
 
     public static void initialize(Logger logger, File logFile) {
         ConsoleLogger.logger = logger;
@@ -91,9 +89,7 @@ public final class ConsoleLogger {
     }
 
 
-    // --------
     // Logging methods
-    // --------
 
     /**
      * Log a WARN message.
@@ -142,9 +138,7 @@ public final class ConsoleLogger {
         }
     }
 
-    // --------
     // Debug log methods
-    // --------
 
     /**
      * Log a DEBUG message if enabled.
@@ -169,7 +163,7 @@ public final class ConsoleLogger {
     // Avoids array creation if DEBUG level is disabled
     public void debug(String message, Object param1) {
         if (logLevel.includes(LogLevel.DEBUG)) {
-            debug(message, new Object[]{param1});
+            logAndWriteWithDebugPrefix(MessageFormat.format(message, param1));
         }
     }
 
@@ -183,7 +177,7 @@ public final class ConsoleLogger {
     // Avoids array creation if DEBUG level is disabled
     public void debug(String message, Object param1, Object param2) {
         if (logLevel.includes(LogLevel.DEBUG)) {
-            debug(message, new Object[]{param1, param2});
+            logAndWriteWithDebugPrefix(MessageFormat.format(message, param1, param2));
         }
     }
 
@@ -216,9 +210,7 @@ public final class ConsoleLogger {
         writeLog(debugMessage);
     }
 
-    // --------
     // Helpers
-    // --------
 
     /**
      * Closes the file writer.

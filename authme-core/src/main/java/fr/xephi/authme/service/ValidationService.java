@@ -102,9 +102,8 @@ public class ValidationService implements Reloadable {
             || atIndex != email.lastIndexOf('@') || !emailRegex.matcher(email).matches()) {
             return false;
         }
-        final String emailDomain = email.substring(atIndex + 1);
-        return validateWhitelistAndBlacklist(
-            emailDomain, EmailSettings.DOMAIN_WHITELIST, EmailSettings.DOMAIN_BLACKLIST);
+        return validateWhitelistAndBlacklist(email.substring(atIndex + 1),
+            EmailSettings.DOMAIN_WHITELIST, EmailSettings.DOMAIN_BLACKLIST);
     }
 
     /**
@@ -233,8 +232,7 @@ public class ValidationService implements Reloadable {
             // strictly inside the string; this also mirrors split() dropping trailing empty parts.
             if (separator > 0 && separator < restriction.length() - 1) {
                 int ruleEnd = restriction.indexOf(';', separator + 1);
-                String rule = restriction.substring(separator + 1,
-                    ruleEnd < 0 ? restriction.length() : ruleEnd);
+                String rule = restriction.substring(separator + 1, ruleEnd < 0 ? restriction.length() : ruleEnd);
                 if (!rule.isEmpty()) {
                     restrictions.put(restriction.substring(0, separator).toLowerCase(Locale.ROOT),
                         Pattern.compile(toRegex(rule)));
@@ -262,8 +260,7 @@ public class ValidationService implements Reloadable {
          * Constructor for a successful validation.
          */
         public ValidationResult() {
-            this.messageKey = null;
-            this.args = null;
+            this(null, (String[]) null);
         }
 
         /**

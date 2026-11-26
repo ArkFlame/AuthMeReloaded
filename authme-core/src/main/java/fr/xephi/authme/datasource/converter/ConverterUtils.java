@@ -79,7 +79,17 @@ final class ConverterUtils {
             return new HashedPassword("$2a$" + hash.substring(0, sep) + "$" + salt + hash.substring(sep + 1));
         }
         if (argonAlgo.equals(algo)) {
-            String phc = decodeArgon2(hash);
+            String phc = hash;
+            if (!phc.startsWith("$argon2")) {
+                try {
+                    phc = new String(Base64.getDecoder().decode(hash), StandardCharsets.UTF_8);
+                } catch (IllegalArgumentException ignored) {
+                    phc = null;
+                }
+                if (phc != null && !phc.startsWith("$argon2")) {
+                    phc = null;
+                }
+            }
             if (phc == null) {
                 logger.warning("Could not decode Argon2-ID hash for player '" + name + "', skipping");
                 return null;
@@ -114,24 +124,6 @@ final class ConverterUtils {
             return false;
         }
         return true;
-    }
-
-    /**
-     * Returns the Argon2 PHC string, decoding it from Base64 when necessary.
-     *
-     * @param value the stored Argon2 hash
-     * @return the PHC string, or {@code null} if it cannot be decoded
-     */
-    static String decodeArgon2(String value) {
-        if (value.startsWith("$argon2")) {
-            return value;
-        }
-        try {
-            String decoded = new String(Base64.getDecoder().decode(value), StandardCharsets.UTF_8);
-            return decoded.startsWith("$argon2") ? decoded : null;
-        } catch (IllegalArgumentException ignored) {
-            return null;
-        }
     }
 
     /**

@@ -207,18 +207,24 @@ public class AsynchronousJoinTest {
         verify(player, never()).kickPlayer(any());
     }
 
-    @Test
-    public void shouldProcessPendingPreJoinLoginInsteadOfShowingDialog() {
+    @ParameterizedTest(name = "pendingForceLogin={0}")
+    @ValueSource(booleans = {true, false})
+    public void shouldApplyPendingPreJoinDecisionInsteadOfShowingDialog(boolean forceLogin) {
         Player player = givenRegisteredPlayer();
         givenPendingDialogState(new PreJoinDialogService.PendingDialogState(
-            "hunter2", null, null, false, false, null));
+            forceLogin ? null : "hunter2", null, null, false, forceLogin, null));
 
         asynchronousJoin.processJoin(player);
 
         verify(limboService).createLimboPlayer(player, true);
-        verify(asynchronousLogin).login(player, "hunter2");
         verifyNoLoginDialog(player);
-        verifySingleAuthLookup("bobby");
+        if (forceLogin) {
+            verify(asynchronousLogin).forceLogin(player);
+            verify(asynchronousLogin, never()).login(eq(player), any());
+        } else {
+            verify(asynchronousLogin).login(player, "hunter2");
+            verifySingleAuthLookup("bobby");
+        }
     }
 
     @ParameterizedTest(name = "queued proxy premium request={0}")
@@ -265,40 +271,43 @@ public class AsynchronousJoinTest {
         verify(asynchronousLogin, never()).forceLoginFromProxy(player);
     }
 
-    @Test
-    public void shouldForceLoginPlayerApprovedViaPreJoinDialog() {
+    @ParameterizedTest(name = "deferred={0}")
+    @ValueSource(booleans = {true, false})
+    public void shouldApplyPreJoinDialogOutcome(boolean deferred) {
         Player player = givenRegisteredPlayer();
         givenPendingDialogState(new PreJoinDialogService.PendingDialogState(
-            null, null, null, false, true, null));
-
-        asynchronousJoin.processJoin(player);
-
-        verify(limboService).createLimboPlayer(player, true);
-        verify(asynchronousLogin).forceLogin(player);
-        verify(asynchronousLogin, never()).login(eq(player), any());
-        verify(dialogAdapter, never()).showLoginDialog(eq(player), any());
-    }
-
-    @Test
-    public void shouldSkipPostJoinDialogWhenPreJoinDialogWasDeferred() {
-        Player player = givenRegisteredPlayer();
-        givenPendingDialogState(new PreJoinDialogService.PendingDialogState(
-            null, null, null, true, false, null));
-        givenDialogUi(player);
+            null, null, null, deferred, !deferred, null));
+        if (deferred) {
+            givenDialogUi(player);
+        }
 
         asynchronousJoin.processJoin(player);
 
         verify(limboService).createLimboPlayer(player, true);
         verifyNoLoginDialog(player);
+        if (!deferred) {
+            verify(asynchronousLogin).forceLogin(player);
+            verify(asynchronousLogin, never()).login(eq(player), any());
+        }
     }
 
-    @Test
-    public void shouldNotCreateLimboForPlayerWhoQuitBeforeSyncTaskRuns() {
+    @ParameterizedTest(name = "forceLoginRequested={0}")
+    @ValueSource(booleans = {true, false})
+    public void shouldNotCreateLimboForPlayerWhoQuitBeforeAuthContinues(boolean forceLoginRequested) {
         Player player = givenRegisteredPlayer();
+        AtomicReference<Runnable> continuation = new AtomicReference<>();
+        if (forceLoginRequested) {
+            listenToPreAuth(PlayerPreAuthEvent::forceLogin);
+            captureAsyncContinuation(continuation);
+        }
         given(player.isOnline()).willReturn(false);
 
         asynchronousJoin.processJoin(player);
-
+        if (forceLoginRequested) {
+            continuation.get().run();
+            verify(asynchronousLogin, never()).performLogin(eq(player), any(PlayerAuth.class));
+            verify(asynchronousLogin, never()).forceLogin(player);
+        }
         verify(limboService, never()).createLimboPlayer(eq(player), anyBoolean());
     }
 
@@ -338,40 +347,36 @@ public class AsynchronousJoinTest {
         verify(limboService, never()).createLimboPlayer(eq(player), anyBoolean());
     }
 
-    @Test
-    public void shouldAutoLoginRegisteredFloodgatePlayerWithoutCreatingLimbo() {
+    @ParameterizedTest(name = "canAutoLogin={0}")
+    @ValueSource(booleans = {true, false})
+    public void shouldHandleFloodgatePlayerOnJoin(boolean canAutoLogin) {
         Player player = mockPlayer(".Bobby");
         UUID playerId = UUID.fromString("00000000-0000-0000-0009-01f163ba2c3a");
         given(player.getUniqueId()).willReturn(playerId);
-        setUpRegisteredJoin(player);
-        given(floodgateService.canAutoLogin(playerId)).willReturn(true);
+        if (canAutoLogin) {
+            setUpRegisteredJoin(player);
+            given(floodgateService.canAutoLogin(playerId)).willReturn(true);
+        } else {
+            givenDefaultJoinRestrictions(player);
+            given(database.getAuth(".bobby")).willReturn(null);
+            given(floodgateService.canAutoRegister(playerId)).willReturn(true);
+            given(service.getProperty(SecuritySettings.MIN_PASSWORD_LENGTH)).willReturn(5);
+            given(service.getProperty(SecuritySettings.MAX_PASSWORD_LENGTH)).willReturn(30);
+        }
 
         asynchronousJoin.processJoin(player);
 
-        verify(asynchronousLogin).forceLogin(player);
-        verify(limboService, never()).createLimboPlayer(eq(player), anyBoolean());
-        verifyNoLoginDialog(player);
-        verifySingleAuthLookup(".bobby");
-    }
-
-    @Test
-    public void shouldAutoRegisterUnregisteredFloodgatePlayer() {
-        Player player = mockPlayer(".Bobby");
-        UUID playerId = UUID.fromString("00000000-0000-0000-0009-01f163ba2c3a");
-        given(player.getUniqueId()).willReturn(playerId);
-        givenDefaultJoinRestrictions(player);
-        given(database.getAuth(".bobby")).willReturn(null);
-        given(floodgateService.canAutoRegister(playerId)).willReturn(true);
-        given(service.getProperty(SecuritySettings.MIN_PASSWORD_LENGTH)).willReturn(5);
-        given(service.getProperty(SecuritySettings.MAX_PASSWORD_LENGTH)).willReturn(30);
-
-        asynchronousJoin.processJoin(player);
-
-        ArgumentCaptor<ApiPasswordRegisterParams> params = ArgumentCaptor.forClass(ApiPasswordRegisterParams.class);
-        verify(asyncRegister).register(eq(RegistrationMethod.API_REGISTRATION), params.capture());
-        assertThat(params.getValue().getPlayer(), is(player));
-        assertThat(params.getValue().getPassword().length(), is(24));
-        assertThat(params.getValue().getLoginAfterRegister(), is(true));
+        if (canAutoLogin) {
+            verify(asynchronousLogin).forceLogin(player);
+            verifyNoLoginDialog(player);
+            verifySingleAuthLookup(".bobby");
+        } else {
+            ArgumentCaptor<ApiPasswordRegisterParams> params = ArgumentCaptor.forClass(ApiPasswordRegisterParams.class);
+            verify(asyncRegister).register(eq(RegistrationMethod.API_REGISTRATION), params.capture());
+            assertThat(params.getValue().getPlayer(), is(player));
+            assertThat(params.getValue().getPassword().length(), is(24));
+            assertThat(params.getValue().getLoginAfterRegister(), is(true));
+        }
         verify(limboService, never()).createLimboPlayer(eq(player), anyBoolean());
     }
 
@@ -483,22 +488,6 @@ public class AsynchronousJoinTest {
         continuation.get().run();
 
         verify(asynchronousLogin, times(1)).performLogin(player, auth);
-    }
-
-    @Test
-    public void shouldSkipForcedLoginWhenPlayerQuitBeforeContinuationRuns() {
-        Player player = givenRegisteredPlayer();
-        listenToPreAuth(PlayerPreAuthEvent::forceLogin);
-        AtomicReference<Runnable> continuation = new AtomicReference<>();
-        captureAsyncContinuation(continuation);
-        given(player.isOnline()).willReturn(false);
-
-        asynchronousJoin.processJoin(player);
-        continuation.get().run();
-
-        verify(asynchronousLogin, never()).performLogin(eq(player), any(PlayerAuth.class));
-        verify(asynchronousLogin, never()).forceLogin(player);
-        verify(limboService, never()).createLimboPlayer(eq(player), anyBoolean());
     }
 
     @Test

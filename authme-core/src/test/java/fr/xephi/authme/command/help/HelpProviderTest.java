@@ -95,10 +95,9 @@ class HelpProviderTest {
         CommandDescription command = commandLabels.size() == 1
             ? getCommandWithLabel(commands, commandLabels.get(0))
             : getCommandWithLabel(commands, commandLabels.get(0), commandLabels.get(1));
-        FoundCommandResult result = newFoundResult(command, resultLabels);
 
         // when
-        helpProvider.outputHelp(sender, result, flags);
+        outputHelp(command, resultLabels, flags);
 
         // then
         assertThat(getLines(sender), equalTo(expectedLines));
@@ -134,10 +133,9 @@ class HelpProviderTest {
         CommandDescription command = childLabel == null
             ? getCommandWithLabel(commands, parentLabel)
             : getCommandWithLabel(commands, parentLabel, childLabel);
-        FoundCommandResult result = newFoundResult(command, labels);
 
         // when
-        helpProvider.outputHelp(sender, result, flags);
+        outputHelp(command, labels, flags);
 
         // then
         assertThat(getLines(sender), hasSize(1));
@@ -158,13 +156,12 @@ class HelpProviderTest {
                                           boolean hasDefaultPermission, String expectedResult) {
         // given
         CommandDescription command = getCommandWithLabel(commands, "unregister");
-        FoundCommandResult result = newFoundResult(command, Collections.singletonList(label));
         given(sender.isOp()).willReturn(isOp);
         given(permissionsManager.hasPermission(sender, AdminPermission.UNREGISTER)).willReturn(hasNodePermission);
         given(permissionsManager.hasPermission(sender, command.getPermission())).willReturn(hasDefaultPermission);
 
         // when
-        helpProvider.outputHelp(sender, result, SHOW_PERMISSIONS);
+        outputHelp(command, Collections.singletonList(label), SHOW_PERMISSIONS);
 
         // then
         List<String> lines = getLines(sender);
@@ -181,10 +178,9 @@ class HelpProviderTest {
         CommandDescription command = mock(CommandDescription.class);
         given(command.getPermission()).willReturn(null);
         given(command.getLabels()).willReturn(Collections.singletonList("test"));
-        FoundCommandResult result = newFoundResult(command, Collections.singletonList("test"));
 
         // when
-        helpProvider.outputHelp(sender, result, SHOW_PERMISSIONS);
+        outputHelp(command, Collections.singletonList("test"), SHOW_PERMISSIONS);
 
         // then
         List<String> lines = getLines(sender);
@@ -195,14 +191,13 @@ class HelpProviderTest {
     void shouldShowChildren() {
         // given
         CommandDescription command = getCommandWithLabel(commands, "authme");
-        FoundCommandResult result = newFoundResult(command, Collections.singletonList("authme"));
         given(helpMessagesService.getDescription(getCommandWithLabel(commands, "authme", "login"), null))
             .willReturn("Command for login [localized]");
         given(helpMessagesService.getDescription(getCommandWithLabel(commands, "authme", "register"), null))
             .willReturn("Registration command [localized]");
 
         // when
-        helpProvider.outputHelp(sender, result, SHOW_CHILDREN);
+        outputHelp(command, Collections.singletonList("authme"), SHOW_CHILDREN);
 
         // then
         List<String> lines = getLines(sender);
@@ -253,11 +248,8 @@ class HelpProviderTest {
         given(helpMessagesService.getMessage(HelpSection.ALTERNATIVES)).willReturn("");
         given(helpMessagesService.getMessage(HelpSection.PERMISSIONS)).willReturn("");
 
-        CommandDescription command = getCommandWithLabel(commands, "authme", "register");
-        FoundCommandResult result = newFoundResult(command, Collections.singletonList("authme"));
-
         // when
-        helpProvider.outputHelp(sender, result, ALL_OPTIONS);
+        outputHelpForRegister(ALL_OPTIONS);
 
         // then
         List<String> lines = getLines(sender);
@@ -277,11 +269,8 @@ class HelpProviderTest {
         given(helpMessagesService.getMessage(HelpSection.ALTERNATIVES)).willReturn("");
         given(helpMessagesService.getMessage(HelpSection.PERMISSIONS)).willReturn("");
 
-        CommandDescription command = getCommandWithLabel(commands, "authme", "register");
-        FoundCommandResult result = newFoundResult(command, Collections.singletonList("authme"));
-
         // when
-        helpProvider.outputHelp(sender, result, SHOW_COMMAND | SHOW_ALTERNATIVES | SHOW_PERMISSIONS);
+        outputHelpForRegister(SHOW_COMMAND | SHOW_ALTERNATIVES | SHOW_PERMISSIONS);
 
         // then
         verify(sender, never()).sendMessage(anyString());
@@ -291,11 +280,9 @@ class HelpProviderTest {
     void shouldSkipEmptyHeader() {
         // given
         given(helpMessagesService.getMessage(eq(HelpMessage.HEADER), isNull())).willReturn("");
-        CommandDescription command = getCommandWithLabel(commands, "authme", "register");
-        FoundCommandResult result = newFoundResult(command, Collections.singletonList("authme"));
 
         // when
-        helpProvider.outputHelp(sender, result, SHOW_COMMAND);
+        outputHelpForRegister(SHOW_COMMAND);
 
         // then
         List<String> lines = getLines(sender);
@@ -313,6 +300,16 @@ class HelpProviderTest {
      */
     private static FoundCommandResult newFoundResult(CommandDescription command, List<String> labels) {
         return new FoundCommandResult(command, labels, Collections.emptyList(), 0.0, FoundResultStatus.SUCCESS);
+    }
+
+    private void outputHelp(CommandDescription command, List<String> labels, int flags) {
+        helpProvider.outputHelp(sender, newFoundResult(command, labels), flags);
+    }
+
+    /** Runs the help output for the {@code authme register} command with the labels of the parent command. */
+    private void outputHelpForRegister(int flags) {
+        outputHelp(getCommandWithLabel(commands, "authme", "register"),
+            Collections.singletonList("authme"), flags);
     }
 
     private static List<String> getLines(CommandSender sender) {

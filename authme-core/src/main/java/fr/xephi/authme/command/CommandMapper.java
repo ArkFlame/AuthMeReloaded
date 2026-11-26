@@ -41,7 +41,6 @@ public class CommandMapper {
         this.permissionsManager = permissionsManager;
     }
 
-
     /**
      * Map incoming command parts to a command. This processes all parts and distinguishes the labels from arguments.
      *
@@ -129,7 +128,6 @@ public class CommandMapper {
         List<String> arguments = (labels.size() == partsSize)
             ? Collections.emptyList()
             : parts.subList(labels.size(), partsSize);
-
         return new FoundCommandResult(closestCommand, labels, arguments, minDifference, status);
     }
 
@@ -174,16 +172,13 @@ public class CommandMapper {
     private FoundCommandResult createResult(CommandSender sender, CommandDescription command,
                                              List<String> labels, List<String> arguments) {
         FoundResultStatus status = sender != null && !permissionsManager.hasPermission(sender, command.getPermission())
-            ? FoundResultStatus.NO_PERMISSION
-            : FoundResultStatus.SUCCESS;
+            ? FoundResultStatus.NO_PERMISSION : FoundResultStatus.SUCCESS;
         return new FoundCommandResult(command, labels, arguments, 0.0, status);
     }
 
     private static boolean hasSuitableArgumentCount(CommandDescription command, int argumentCount) {
-        int minArgs = CommandUtils.getMinNumberOfArguments(command);
-        int maxArgs = CommandUtils.getMaxNumberOfArguments(command);
-
-        return argumentCount >= minArgs && argumentCount <= maxArgs;
+        return argumentCount >= CommandUtils.getMinNumberOfArguments(command)
+            && argumentCount <= CommandUtils.getMaxNumberOfArguments(command);
     }
 
     private static double getLabelDifference(CommandDescription command, String givenLabel) {

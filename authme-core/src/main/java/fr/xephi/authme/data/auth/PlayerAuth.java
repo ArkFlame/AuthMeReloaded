@@ -51,21 +51,13 @@ public class PlayerAuth {
     private PlayerAuth() {
     }
 
-    public String getNickname() {
-        return nickname;
-    }
+    public String getNickname() { return nickname; }
 
-    public String getRealName() {
-        return realName;
-    }
+    public String getRealName() { return realName; }
 
-    public void setRealName(String realName) {
-        this.realName = realName;
-    }
+    public void setRealName(String realName) { this.realName = realName; }
 
-    public int getGroupId() {
-        return groupId;
-    }
+    public int getGroupId() { return groupId; }
 
     public void setQuitLocation(Location location) {
         x = location.getX();
@@ -76,109 +68,57 @@ public class PlayerAuth {
         pitch = location.getPitch();
     }
 
-    public double getQuitLocX() {
-        return x;
-    }
+    public double getQuitLocX() { return x; }
 
-    public void setQuitLocX(double d) {
-        this.x = d;
-    }
+    public void setQuitLocX(double d) { this.x = d; }
 
-    public double getQuitLocY() {
-        return y;
-    }
+    public double getQuitLocY() { return y; }
 
-    public void setQuitLocY(double d) {
-        this.y = d;
-    }
+    public void setQuitLocY(double d) { this.y = d; }
 
-    public double getQuitLocZ() {
-        return z;
-    }
+    public double getQuitLocZ() { return z; }
 
-    public void setQuitLocZ(double d) {
-        this.z = d;
-    }
+    public void setQuitLocZ(double d) { this.z = d; }
 
-    public String getWorld() {
-        return world;
-    }
+    public String getWorld() { return world; }
 
-    public void setWorld(String world) {
-        this.world = world;
-    }
+    public void setWorld(String world) { this.world = world; }
 
-    public float getYaw() {
-        return yaw;
-    }
+    public float getYaw() { return yaw; }
 
-    public float getPitch() {
-        return pitch;
-    }
+    public float getPitch() { return pitch; }
 
-    public String getLastIp() {
-        return lastIp;
-    }
+    public String getLastIp() { return lastIp; }
 
-    public void setLastIp(String lastIp) {
-        this.lastIp = lastIp;
-    }
+    public void setLastIp(String lastIp) { this.lastIp = lastIp; }
 
-    public Long getLastLogin() {
-        return lastLogin == DB_LAST_LOGIN_DEFAULT ? null : lastLogin;
-    }
+    public Long getLastLogin() { return lastLogin == DB_LAST_LOGIN_DEFAULT ? null : lastLogin; }
 
-    public void setLastLogin(long lastLogin) {
-        this.lastLogin = lastLogin;
-    }
+    public void setLastLogin(long lastLogin) { this.lastLogin = lastLogin; }
 
-    public String getEmail() {
-        return email;
-    }
+    public String getEmail() { return email; }
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
+    public void setEmail(String email) { this.email = email; }
 
-    public HashedPassword getPassword() {
-        return password;
-    }
+    public HashedPassword getPassword() { return password; }
 
-    public void setPassword(HashedPassword password) {
-        this.password = password;
-    }
+    public void setPassword(HashedPassword password) { this.password = password; }
 
-    public String getRegistrationIp() {
-        return registrationIp;
-    }
+    public String getRegistrationIp() { return registrationIp; }
 
-    public long getRegistrationDate() {
-        return registrationDate;
-    }
+    public long getRegistrationDate() { return registrationDate; }
 
-    public String getTotpKey() {
-        return totpKey;
-    }
+    public String getTotpKey() { return totpKey; }
 
-    public void setTotpKey(String totpKey) {
-        this.totpKey = totpKey;
-    }
+    public void setTotpKey(String totpKey) { this.totpKey = totpKey; }
 
-    public UUID getUuid() {
-        return uuid;
-    }
+    public UUID getUuid() { return uuid; }
 
-    public UUID getPremiumUuid() {
-        return premiumUuid;
-    }
+    public UUID getPremiumUuid() { return premiumUuid; }
 
-    public void setPremiumUuid(UUID premiumUuid) {
-        this.premiumUuid = premiumUuid;
-    }
+    public void setPremiumUuid(UUID premiumUuid) { this.premiumUuid = premiumUuid; }
 
-    public boolean isPremium() {
-        return premiumUuid != null;
-    }
+    public boolean isPremium() { return premiumUuid != null; }
 
     @Override
     public boolean equals(Object obj) {
