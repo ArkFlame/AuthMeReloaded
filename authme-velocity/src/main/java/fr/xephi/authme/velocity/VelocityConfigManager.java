@@ -31,6 +31,6 @@ final class VelocityConfigManager {
 
     VelocityProxyConfiguration reload() {
         settingsManager.reload();
-        return VelocityProxyConfiguration.from(settingsManager);
+        return getConfiguration();
     }
 }

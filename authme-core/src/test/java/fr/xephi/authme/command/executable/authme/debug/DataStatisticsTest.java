@@ -80,14 +80,10 @@ class DataStatisticsTest {
         ConsoleLoggerFactory.get(Integer.class);
 
         // when
-        CommandSender sender = mock(CommandSender.class);
-        dataStatistics.execute(sender, Collections.emptyList());
-        ArgumentCaptor<String> stringCaptor = ArgumentCaptor.forClass(String.class);
-        verify(sender, atLeastOnce()).sendMessage(stringCaptor.capture());
+        List<String> messages = new ArrayList<>(executeAndCaptureMessages());
 
         // then
         String loggerPrefix = "Total logger instances: ";
-        List<String> messages = new ArrayList<>(stringCaptor.getAllValues());
         String loggerLine = messages.stream().filter(m -> m.startsWith(loggerPrefix)).findFirst().get();
         messages.remove(loggerLine);
         assertThat(Integer.parseInt(loggerLine.substring(loggerPrefix.length())), greaterThanOrEqualTo(2));
@@ -106,11 +102,15 @@ class DataStatisticsTest {
         given(cacheDataSource.getCachedAuths()).willReturn(cache);
         ReflectionTestUtils.setField(DataStatistics.class, dataStatistics, "dataSource", cacheDataSource);
 
-        CommandSender cachedSender = mock(CommandSender.class);
-        dataStatistics.execute(cachedSender, Collections.emptyList());
-        ArgumentCaptor<String> cachedCaptor = ArgumentCaptor.forClass(String.class);
-        verify(cachedSender, atLeastOnce()).sendMessage(cachedCaptor.capture());
-        assertThat(cachedCaptor.getAllValues(), hasItem("Cached PlayerAuth objects: 11"));
+        assertThat(executeAndCaptureMessages(), hasItem("Cached PlayerAuth objects: 11"));
+    }
+
+    private List<String> executeAndCaptureMessages() {
+        CommandSender sender = mock(CommandSender.class);
+        dataStatistics.execute(sender, Collections.emptyList());
+        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        verify(sender, atLeastOnce()).sendMessage(captor.capture());
+        return captor.getAllValues();
     }
 
     private static <T> List<T> mockListOfSize(Class<T> mockClass, int size) {

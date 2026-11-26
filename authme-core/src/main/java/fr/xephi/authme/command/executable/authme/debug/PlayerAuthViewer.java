@@ -50,23 +50,9 @@ class PlayerAuthViewer implements DebugSection {
         if (auth == null) {
             sendTitle(sender, "database viewer");
             sender.sendMessage("No record exists for '" + name + "'");
-        } else {
-            displayAuthToSender(auth, sender);
+            return;
         }
-    }
 
-    @Override
-    public PermissionNode getRequiredPermission() {
-        return DebugSectionPermissions.PLAYER_AUTH_VIEWER;
-    }
-
-    /**
-     * Outputs the PlayerAuth information to the given sender.
-     *
-     * @param auth the PlayerAuth to display
-     * @param sender the sender to send the messages to
-     */
-    private void displayAuthToSender(PlayerAuth auth, CommandSender sender) {
         sender.sendMessage(ChatColor.BLUE + "[AuthMe] Player " + auth.getNickname() + " / " + auth.getRealName());
         sender.sendMessage("Email: " + auth.getEmail() + ". IP: " + auth.getLastIp() + ". Group: " + auth.getGroupId());
         sender.sendMessage("Quit location: "
@@ -79,6 +65,11 @@ class PlayerAuthViewer implements DebugSection {
         sender.sendMessage("Hash / salt (partial): '" + safeSubstring(hashedPass.getHash(), 6)
             + "' / '" + safeSubstring(hashedPass.getSalt(), 4) + "'");
         sender.sendMessage("TOTP code (partial): '" + safeSubstring(auth.getTotpKey(), 3) + "'");
+    }
+
+    @Override
+    public PermissionNode getRequiredPermission() {
+        return DebugSectionPermissions.PLAYER_AUTH_VIEWER;
     }
 
     /**
@@ -104,10 +95,8 @@ class PlayerAuthViewer implements DebugSection {
      * @return the formatted timestamp
      */
     private static String formatDate(Long timestamp) {
-        if (timestamp == null) {
-            return "Not available (null)";
-        } else if (timestamp == 0) {
-            return "Not available (0)";
+        if (timestamp == null || timestamp == 0) {
+            return "Not available (" + (timestamp == null ? "null" : "0") + ")";
         }
         return DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(
             LocalDateTime.ofInstant(Instant.ofEpochMilli(timestamp), ZoneId.systemDefault()));

@@ -126,7 +126,10 @@ class LoginSecurityConverterTest extends AbstractConverterTest {
         File dbFile = new File(tempFolder, "LoginSecurity.db");
         try (Connection setup = openDatabase(dbFile);
              Statement statement = setup.createStatement()) {
-            createTables(statement);
+            statement.execute("CREATE TABLE ls_players (id INTEGER PRIMARY KEY, last_name TEXT, password TEXT, "
+                + "last_login TIMESTAMP, registration_date DATE, unique_user_id TEXT, ip_address TEXT)");
+            statement.execute("CREATE TABLE ls_locations (id INTEGER PRIMARY KEY, x DOUBLE, y DOUBLE, z DOUBLE, "
+                + "world TEXT, yaw DOUBLE, pitch DOUBLE)");
             for (String sql : inserts) {
                 statement.execute(sql);
             }
@@ -140,12 +143,5 @@ class LoginSecurityConverterTest extends AbstractConverterTest {
     private static Connection openDatabase(File dbFile) throws SQLException, ClassNotFoundException {
         Class.forName("org.sqlite.JDBC");
         return DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath());
-    }
-
-    private static void createTables(Statement statement) throws SQLException {
-        statement.execute("CREATE TABLE ls_players (id INTEGER PRIMARY KEY, last_name TEXT, password TEXT, "
-            + "last_login TIMESTAMP, registration_date DATE, unique_user_id TEXT, ip_address TEXT)");
-        statement.execute("CREATE TABLE ls_locations (id INTEGER PRIMARY KEY, x DOUBLE, y DOUBLE, z DOUBLE, "
-            + "world TEXT, yaw DOUBLE, pitch DOUBLE)");
     }
 }
