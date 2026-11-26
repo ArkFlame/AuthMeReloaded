@@ -14,6 +14,7 @@ import org.bukkit.plugin.PluginManager;
 
 import javax.inject.Inject;
 import java.io.File;
+import java.util.function.Supplier;
 
 /**
  * Hooks into third-party plugins and allows to perform actions on them.
@@ -94,15 +95,15 @@ public class PluginHookService {
     }
 
     public void tryHookToEssentials() {
-        essentials = tryHook("Essentials", Essentials.class);
+        essentials = tryHook("Essentials", () -> Essentials.class);
     }
 
     public void tryHookToCmi() {
-        cmi = tryHook("CMI", Plugin.class);
+        cmi = tryHook("CMI", () -> Plugin.class);
     }
 
     public void tryHookToMultiverse() {
-        multiverse = tryHook("Multiverse-Core", MultiverseCore.class);
+        multiverse = tryHook("Multiverse-Core", () -> MultiverseCore.class);
     }
 
     public void unhookEssentials() {
@@ -117,14 +118,14 @@ public class PluginHookService {
         multiverse = null;
     }
 
-    private <T extends Plugin> T tryHook(String name, Class<T> clazz) {
+    private <T extends Plugin> T tryHook(String name, Supplier<Class<T>> clazz) {
         try {
             if (pluginManager.isPluginEnabled(name)) {
-                T plugin = clazz.cast(pluginManager.getPlugin(name));
+                T plugin = clazz.get().cast(pluginManager.getPlugin(name));
                 logger.info("Hooked successfully into " + name);
                 return plugin;
             }
-        } catch (Exception | NoClassDefFoundError ignored) {
+        } catch (Exception | LinkageError ignored) {
             // Plugin is not available
         }
         return null;

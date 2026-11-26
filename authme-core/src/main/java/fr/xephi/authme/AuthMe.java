@@ -78,6 +78,12 @@ public class AuthMe extends JavaPlugin {
     private BackupService backupService;
     private ConsoleLogger logger;
 
+    /**
+     * Required by Bukkit: the plugin class loader instantiates the main class through a public no-args constructor.
+     */
+    public AuthMe() {
+    }
+
     /*
      * Constructor for unit testing.
      */
