@@ -57,14 +57,8 @@ class XfBcryptExtension extends MySqlExtension {
             pst.executeUpdate();
         }
         // Update player group and permission combination in xf_users
-        for (String column : new String[]{"user_group_id", "permission_combination_id"}) {
-            sql = "UPDATE " + tableName + " SET " + tableName + "." + column + "=? WHERE " + col.NAME + "=?;";
-            try (PreparedStatement pst = con.prepareStatement(sql)) {
-                pst.setInt(1, xfGroup);
-                pst.setString(2, auth.getNickname());
-                pst.executeUpdate();
-            }
-        }
+        setIntColumns(tableName, tableName,
+            new String[]{"user_group_id", "permission_combination_id"}, xfGroup, auth.getNickname(), con);
         // Insert player privacy combination in xf_user_privacy
         sql = "INSERT INTO " + xfPrefix + "user_privacy (user_id, allow_view_profile, allow_post_profile, "
             + "allow_send_personal_conversation, allow_view_identities, allow_receive_news_feed) VALUES (?,?,?,?,?,?)";

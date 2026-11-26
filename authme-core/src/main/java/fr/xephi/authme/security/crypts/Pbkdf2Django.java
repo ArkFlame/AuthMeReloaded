@@ -6,7 +6,6 @@ import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.security.crypts.description.AsciiRestricted;
 
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.util.Base64;
 
 @AsciiRestricted
@@ -37,9 +36,8 @@ public class Pbkdf2Django extends HexSaltedMethod {
         }
         String salt = line[2];
         byte[] expected = Base64.getDecoder().decode(line[3]);
-        byte[] computed = AbstractPbkdf2.deriveKey(password, salt.getBytes(StandardCharsets.US_ASCII),
-            iterations, HASH_BYTES, StandardCharsets.US_ASCII);
-        return MessageDigest.isEqual(computed, expected);
+        return AbstractPbkdf2.verifyKey(password, salt.getBytes(StandardCharsets.US_ASCII),
+            iterations, expected, StandardCharsets.US_ASCII);
     }
 
     @Override

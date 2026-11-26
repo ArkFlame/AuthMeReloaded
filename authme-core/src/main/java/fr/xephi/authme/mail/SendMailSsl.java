@@ -30,7 +30,7 @@ public class SendMailSsl {
 
     private static final AtomicBoolean MAILCAP_INITIALIZED = new AtomicBoolean(false);
 
-    private ConsoleLogger logger = ConsoleLoggerFactory.get(SendMailSsl.class);
+    private final ConsoleLogger logger = ConsoleLoggerFactory.get(SendMailSsl.class);
 
     @Inject
     private Settings settings;
@@ -143,9 +143,7 @@ public class SendMailSsl {
                     mailProperties.setProperty(OAuth2SaslClientFactory.OAUTH_TOKEN_PROP, oAuth2Token);
                     email.setMailSession(Session.getInstance(mailProperties));
                 } else {
-                    email.setStartTLSEnabled(true);
-                    email.setStartTLSRequired(true);
-                    email.setSSLCheckServerIdentity(checkServerIdentity);
+                    enableStartTls(email, checkServerIdentity);
                 }
                 break;
             case 25:
@@ -160,9 +158,13 @@ public class SendMailSsl {
                 email.setSSLCheckServerIdentity(checkServerIdentity);
                 break;
             default:
-                email.setStartTLSEnabled(true);
-                email.setStartTLSRequired(true);
-                email.setSSLCheckServerIdentity(checkServerIdentity);
+                enableStartTls(email, checkServerIdentity);
         }
+    }
+
+    private static void enableStartTls(HtmlEmail email, boolean checkServerIdentity) {
+        email.setStartTLSEnabled(true);
+        email.setStartTLSRequired(true);
+        email.setSSLCheckServerIdentity(checkServerIdentity);
     }
 }

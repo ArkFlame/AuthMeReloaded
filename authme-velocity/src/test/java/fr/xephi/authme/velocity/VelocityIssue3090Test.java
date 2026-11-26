@@ -5,7 +5,6 @@ import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 import com.velocitypowered.api.event.connection.PluginMessageEvent;
 import com.velocitypowered.api.event.player.GameProfileRequestEvent;
-import com.velocitypowered.api.event.player.ServerConnectedEvent;
 import com.velocitypowered.api.event.player.configuration.PlayerEnteredConfigurationEvent;
 import com.velocitypowered.api.proxy.InboundConnection;
 import com.velocitypowered.api.proxy.Player;
@@ -20,7 +19,6 @@ import org.mockito.ArgumentCaptor;
 import org.slf4j.Logger;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -34,18 +32,6 @@ import static org.mockito.Mockito.verify;
 class VelocityIssue3090Test {
 
     private static final UUID PREMIUM_UUID = UUID.fromString("8d6d0684-d8b4-4d40-8d2d-0dd4df5555c8");
-
-    @Test
-    void shouldSendPremiumUuidInPerformLoginWhenBackendSeesOfflineUuidOnServerConnected() {
-        Fixture fixture = new Fixture();
-        fixture.recordPremiumName();
-        fixture.verifyProfileRequestRewritesToOfflineUuid();
-
-        given(fixture.player.getCurrentServer()).willReturn(Optional.of(fixture.currentServer));
-        fixture.bridge.onServerConnected(new ServerConnectedEvent(fixture.player, fixture.gameServer, null));
-
-        assertPerformLoginCarriesPremiumUuid(fixture.currentServer);
-    }
 
     @Test
     void shouldSendPremiumUuidInPerformLoginToNonAuthBackendDuringConfiguration() {

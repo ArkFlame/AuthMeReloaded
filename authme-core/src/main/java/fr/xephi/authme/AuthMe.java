@@ -48,6 +48,7 @@ import fr.xephi.authme.platform.TeleportAdapter;
 
 import java.io.File;
 import java.util.Iterator;
+import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
 import java.util.function.Consumer;
 
@@ -265,11 +266,31 @@ public class AuthMe extends JavaPlugin {
         onStartupTasks.scheduleRecallEmailTask();
     }
 
+    /**
+     * Picks the first registered adapter that is compatible with the running server; if none is,
+     * the first one is returned so its compatibility error is reported at startup.
+     */
     private PlatformAdapter loadPlatformAdapter() {
+        PlatformAdapter first = null;
         Iterator<PlatformAdapter> adapters =
             ServiceLoader.load(PlatformAdapter.class, getClass().getClassLoader()).iterator();
-        if (adapters.hasNext()) {
-            return adapters.next();
+        while (adapters.hasNext()) {
+            PlatformAdapter adapter;
+            try {
+                adapter = adapters.next();
+            } catch (ServiceConfigurationError | LinkageError e) {
+                // e.g. an adapter compiled for a newer Java than this server runs: skip it
+                continue;
+            }
+            if (adapter.getCompatibilityError() == null) {
+                return adapter;
+            }
+            if (first == null) {
+                first = adapter;
+            }
+        }
+        if (first != null) {
+            return first;
         }
         throw new IllegalStateException(
             "No PlatformAdapter found. Ensure you are using a version-specific AuthMe jar.");

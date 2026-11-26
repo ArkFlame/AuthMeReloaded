@@ -54,50 +54,38 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
     @Override
     public CancellableTask runDelayedOnGlobalThread(Plugin plugin, Runnable task, long delayTicks) {
         Object scheduler = getGlobalScheduler();
-        Method runDelayed = findMethod(scheduler, "runDelayed", Plugin.class, Consumer.class, long.class);
-        if (runDelayed == null) {
-            warnUnavailable(plugin, "global region scheduler");
-            return NO_OP_TASK;
-        }
-        return asCancellable(invoke(runDelayed, scheduler, plugin, toConsumer(task), delayTicks));
+        return schedule(plugin, scheduler,
+            findMethod(scheduler, "runDelayed", Plugin.class, Consumer.class, long.class),
+            "global region scheduler", plugin, toConsumer(task), delayTicks);
     }
 
     @Override
     public CancellableTask runAtFixedRateOnGlobalThread(Plugin plugin, Runnable task,
                                                         long delayTicks, long periodTicks) {
         Object scheduler = getGlobalScheduler();
-        Method runAtFixedRate = findMethod(scheduler, "runAtFixedRate", Plugin.class, Consumer.class,
-            long.class, long.class, TimeUnit.class);
-        if (runAtFixedRate == null) {
-            warnUnavailable(plugin, "global region scheduler");
-            return NO_OP_TASK;
-        }
-        return asCancellable(invoke(runAtFixedRate, scheduler, plugin, toConsumer(task),
-            delayTicks * MILLIS_PER_TICK, periodTicks * MILLIS_PER_TICK, TimeUnit.MILLISECONDS));
+        return schedule(plugin, scheduler,
+            findMethod(scheduler, "runAtFixedRate", Plugin.class, Consumer.class,
+                long.class, long.class, TimeUnit.class),
+            "global region scheduler", plugin, toConsumer(task),
+            delayTicks * MILLIS_PER_TICK, periodTicks * MILLIS_PER_TICK, TimeUnit.MILLISECONDS);
     }
 
     @Override
     public CancellableTask runAsync(Plugin plugin, Runnable task) {
         Object scheduler = getAsyncScheduler();
-        Method runNow = findMethod(scheduler, "runNow", Plugin.class, Consumer.class);
-        if (runNow == null) {
-            warnUnavailable(plugin, "async scheduler");
-            return NO_OP_TASK;
-        }
-        return asCancellable(invoke(runNow, scheduler, plugin, toConsumer(task)));
+        return schedule(plugin, scheduler,
+            findMethod(scheduler, "runNow", Plugin.class, Consumer.class),
+            "async scheduler", plugin, toConsumer(task));
     }
 
     @Override
     public CancellableTask runAsyncTimer(Plugin plugin, Runnable task, long delayTicks, long periodTicks) {
         Object scheduler = getAsyncScheduler();
-        Method runAtFixedRate = findMethod(scheduler, "runAtFixedRate", Plugin.class, Consumer.class,
-            long.class, long.class, TimeUnit.class);
-        if (runAtFixedRate == null) {
-            warnUnavailable(plugin, "async scheduler");
-            return NO_OP_TASK;
-        }
-        return asCancellable(invoke(runAtFixedRate, scheduler, plugin, toConsumer(task),
-            delayTicks * MILLIS_PER_TICK, periodTicks * MILLIS_PER_TICK, TimeUnit.MILLISECONDS));
+        return schedule(plugin, scheduler,
+            findMethod(scheduler, "runAtFixedRate", Plugin.class, Consumer.class,
+                long.class, long.class, TimeUnit.class),
+            "async scheduler", plugin, toConsumer(task),
+            delayTicks * MILLIS_PER_TICK, periodTicks * MILLIS_PER_TICK, TimeUnit.MILLISECONDS);
     }
 
     private Object getGlobalScheduler() {
@@ -169,6 +157,18 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
             return NO_OP_TASK;
         }
         return () -> invoke(cancel, scheduledTask);
+    }
+
+    /**
+     * Invokes a resolved scheduler method, or warns and returns a no-op handle when it is unavailable.
+     */
+    private static CancellableTask schedule(Plugin plugin, Object scheduler, Method method,
+                                            String schedulerName, Object... arguments) {
+        if (method == null) {
+            warnUnavailable(plugin, schedulerName);
+            return NO_OP_TASK;
+        }
+        return asCancellable(invoke(method, scheduler, arguments));
     }
 
     private static void warnUnavailable(Plugin plugin, String schedulerName) {

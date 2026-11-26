@@ -3,8 +3,9 @@ package fr.xephi.authme.platform;
 /**
  * Combines all platform-specific behavior. Implementations are provided by each version
  * module via ServiceLoader and registered as {@link TeleportAdapter}, {@link ChatAdapter},
- * {@link EventRegistrationAdapter}, {@link SchedulingAdapter}, {@link CommandRegistrationAdapter},
- * and {@link PacketInterceptionAdapter} in the DI container.
+ * {@link EventRegistrationAdapter}, {@link DialogAdapter}, {@link CommandRegistrationAdapter},
+ * {@link SchedulingAdapter}, {@link PacketInterceptionAdapter} and
+ * {@link BukkitCompatibilityAdapter} in the DI container.
  */
 public interface PlatformAdapter extends TeleportAdapter, ChatAdapter, EventRegistrationAdapter,
     DialogAdapter, CommandRegistrationAdapter, SchedulingAdapter, PacketInterceptionAdapter,

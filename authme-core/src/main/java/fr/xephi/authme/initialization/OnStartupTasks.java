@@ -3,15 +3,14 @@ package fr.xephi.authme.initialization;
 import fr.xephi.authme.AuthMe;
 import fr.xephi.authme.ConsoleLogger;
 import fr.xephi.authme.datasource.DataSource;
-import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.message.Messages;
 import fr.xephi.authme.output.ConsoleFilter;
+import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.output.Log4JFilter;
 import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.settings.Settings;
 import fr.xephi.authme.settings.properties.DatabaseSettings;
-import fr.xephi.authme.settings.properties.EmailSettings;
 import fr.xephi.authme.settings.properties.PluginSettings;
 import org.apache.logging.log4j.LogManager;
 import org.bstats.bukkit.Metrics;
@@ -24,6 +23,7 @@ import java.util.List;
 import java.util.logging.Logger;
 
 import static fr.xephi.authme.service.BukkitService.TICKS_PER_MINUTE;
+import static fr.xephi.authme.settings.properties.EmailSettings.DELAY_RECALL;
 import static fr.xephi.authme.settings.properties.EmailSettings.RECALL_PLAYERS;
 
 /**
@@ -54,7 +54,7 @@ public class OnStartupTasks {
     public static void sendMetrics(AuthMe plugin, Settings settings) {
         // We do not relocate as the library is downloaded at runtime
         System.setProperty("bstats.relocatecheck", "false");
-        final Metrics metrics = new Metrics(plugin, 164);
+        Metrics metrics = new Metrics(plugin, 164);
 
         metrics.addCustomChart(new SimplePie("messages_language",
             () -> settings.getProperty(PluginSettings.MESSAGES_LANGUAGE)));
@@ -107,6 +107,6 @@ public class OnStartupTasks {
                     }
                 }
             });
-        }, 1, (long) TICKS_PER_MINUTE * settings.getProperty(EmailSettings.DELAY_RECALL));
+        }, 1, (long) TICKS_PER_MINUTE * settings.getProperty(DELAY_RECALL));
     }
 }

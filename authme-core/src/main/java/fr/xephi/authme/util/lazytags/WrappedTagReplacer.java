@@ -1,8 +1,8 @@
 package fr.xephi.authme.util.lazytags;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -49,7 +49,7 @@ public class WrappedTagReplacer<T, A> {
      */
     public List<T> getAdaptedItems(A argument) {
         List<String> adaptedStrings = tagReplacer.getAdaptedMessages(argument);
-        List<T> adaptedItems = new LinkedList<>();
+        List<T> adaptedItems = new ArrayList<>();
 
         Iterator<T> originalItemsIter = items.iterator();
         Iterator<String> newStringsIter = adaptedStrings.iterator();

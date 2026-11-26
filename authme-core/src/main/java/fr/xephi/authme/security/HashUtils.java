@@ -24,7 +24,7 @@ public final class HashUtils {
      * @return The resulting SHA-1 digest
      */
     public static String sha1(String message) {
-        return hash(message, MessageDigestAlgorithm.SHA1);
+        return hash(message, getDigest(MessageDigestAlgorithm.SHA1));
     }
 
     /**
@@ -34,7 +34,7 @@ public final class HashUtils {
      * @return The resulting SHA-256 digest
      */
     public static String sha256(String message) {
-        return hash(message, MessageDigestAlgorithm.SHA256);
+        return hash(message, getDigest(MessageDigestAlgorithm.SHA256));
     }
 
     /**
@@ -44,7 +44,7 @@ public final class HashUtils {
      * @return The resulting SHA-512 digest
      */
     public static String sha512(String message) {
-        return hash(message, MessageDigestAlgorithm.SHA512);
+        return hash(message, getDigest(MessageDigestAlgorithm.SHA512));
     }
 
     /**
@@ -54,7 +54,7 @@ public final class HashUtils {
      * @return The resulting MD5 digest
      */
     public static String md5(String message) {
-        return hash(message, MessageDigestAlgorithm.MD5);
+        return hash(message, getDigest(MessageDigestAlgorithm.MD5));
     }
 
     /**
@@ -112,8 +112,19 @@ public final class HashUtils {
      * @return true if the strings are equal to each other, false otherwise
      */
     public static boolean isEqual(String string1, String string2) {
-        return MessageDigest.isEqual(
-            string1.getBytes(StandardCharsets.UTF_8), string2.getBytes(StandardCharsets.UTF_8));
+        return isEqual(string1.getBytes(StandardCharsets.UTF_8), string2.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * Checks whether the two byte arrays are equal to each other in a time-constant manner.
+     * This is the canonical comparison for digests and other secret material.
+     *
+     * @param bytes1 first byte array
+     * @param bytes2 second byte array
+     * @return true if the byte arrays are equal to each other, false otherwise
+     */
+    public static boolean isEqual(byte[] bytes1, byte[] bytes2) {
+        return MessageDigest.isEqual(bytes1, bytes2);
     }
 
     /**
@@ -145,16 +156,4 @@ public final class HashUtils {
         byte[] digest = algorithm.digest();
         return toHex(digest);
     }
-
-    /**
-     * Hash the message with the given algorithm and return the hash in its hexadecimal notation.
-     *
-     * @param message The message to hash
-     * @param algorithm The algorithm to hash the message with
-     * @return The digest in its hexadecimal representation
-     */
-    private static String hash(String message, MessageDigestAlgorithm algorithm) {
-        return hash(message, getDigest(algorithm));
-    }
-
 }

@@ -20,7 +20,7 @@ public class TranslationsGatherer {
 
     private static final String MESSAGES_FOLDER = MAIN_RESOURCES_ROOT + MessagePathHelper.MESSAGES_FOLDER;
 
-    private List<TranslationInfo> translationInfo = new ArrayList<>();
+    private final List<TranslationInfo> translationInfo = new ArrayList<>();
 
     public TranslationsGatherer() {
         gatherTranslations();

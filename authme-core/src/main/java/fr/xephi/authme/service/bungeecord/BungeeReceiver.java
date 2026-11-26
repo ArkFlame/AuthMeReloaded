@@ -40,7 +40,7 @@ public class BungeeReceiver implements PluginMessageListener, SettingsDependent 
     private final DataSource dataSource;
     private final ProxyLoginRequestValidator proxyLoginRequestValidator;
 
-    private static final String AUTHME_CHANNEL = "authme:main";
+    private static final String AUTHME_CHANNEL = MessageType.CHANNEL;
     private static final long MAX_AGE_MILLIS = 30_000L;
 
     private boolean isEnabled;

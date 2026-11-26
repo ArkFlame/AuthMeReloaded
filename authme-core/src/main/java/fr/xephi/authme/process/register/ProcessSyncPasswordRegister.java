@@ -12,7 +12,6 @@ import fr.xephi.authme.service.bungeecord.BungeeSender;
 import fr.xephi.authme.settings.commandconfig.CommandManager;
 import fr.xephi.authme.settings.properties.EmailSettings;
 import fr.xephi.authme.settings.properties.RegistrationSettings;
-import fr.xephi.authme.util.PlayerUtils;
 import org.bukkit.entity.Player;
 
 import javax.inject.Inject;
@@ -55,7 +54,7 @@ public class ProcessSyncPasswordRegister implements SynchronousProcess {
         }
 
         bukkitService.callEvent(new RegisterEvent(player));
-        logger.fine(player.getName() + " registered " + PlayerUtils.getPlayerIp(player));
+        RegisterLogHelper.logRegistration(logger, player);
 
         // Kick Player after Registration is enabled, kick the player
         if (service.getProperty(RegistrationSettings.FORCE_KICK_AFTER_REGISTER)) {

@@ -42,11 +42,11 @@ public class Duration {
         long durationMillis = Math.abs(TimeUnit.MILLISECONDS.convert(sourceDuration, sourceUnit));
 
         TimeUnit targetUnit;
-        if (durationMillis > 1000L * 60L * 60L * 24L) {
+        if (durationMillis > TimeUnit.DAYS.toMillis(1)) {
             targetUnit = TimeUnit.DAYS;
-        } else if (durationMillis > 1000L * 60L * 60L) {
+        } else if (durationMillis > TimeUnit.HOURS.toMillis(1)) {
             targetUnit = TimeUnit.HOURS;
-        } else if (durationMillis > 1000L * 60L) {
+        } else if (durationMillis > TimeUnit.MINUTES.toMillis(1)) {
             targetUnit = TimeUnit.MINUTES;
         } else {
             targetUnit = TimeUnit.SECONDS;

@@ -5,17 +5,10 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerPickupItemEvent;
 
-import javax.inject.Inject;
-
-public class LegacyPlayerPickupItemListener implements Listener {
-
-    @Inject
-    private ListenerService listenerService;
+public class LegacyPlayerPickupItemListener extends AbstractCancelListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onLegacyPlayerPickupItem(PlayerPickupItemEvent event) {
-        if (listenerService.shouldCancelEvent(event)) {
-            event.setCancelled(true);
-        }
+        cancelIfUnauthorized(event);
     }
 }

@@ -34,19 +34,13 @@ public class DebugCommand implements ExecutableCommand {
 
     @Override
     public void executeCommand(CommandSender sender, List<String> arguments) {
-        DebugSection debugSection = findDebugSection(arguments);
+        DebugSection debugSection = arguments.isEmpty() ? null
+            : getSections().get(arguments.get(0).toLowerCase(Locale.ROOT));
         if (debugSection == null) {
             sendAvailableSections(sender);
         } else {
             executeSection(debugSection, sender, arguments);
         }
-    }
-
-    private DebugSection findDebugSection(List<String> arguments) {
-        if (arguments.isEmpty()) {
-            return null;
-        }
-        return getSections().get(arguments.get(0).toLowerCase(Locale.ROOT));
     }
 
     private void sendAvailableSections(CommandSender sender) {

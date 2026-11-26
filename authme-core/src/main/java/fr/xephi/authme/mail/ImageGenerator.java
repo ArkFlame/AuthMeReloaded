@@ -7,6 +7,7 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 
 /**
+ * Generates an image containing a password, to be embedded into an email.
  */
 public class ImageGenerator {
 
@@ -31,10 +32,8 @@ public class ImageGenerator {
         Graphics2D graphics = image.createGraphics();
         graphics.setColor(Color.BLACK);
         graphics.fillRect(0, 0, 200, 40);
-        GradientPaint gradientPaint = new GradientPaint(10, 5, Color.WHITE, 20, 10, Color.WHITE, true);
-        graphics.setPaint(gradientPaint);
-        Font font = new Font("Comic Sans MS", Font.BOLD, 30);
-        graphics.setFont(font);
+        graphics.setPaint(new GradientPaint(10, 5, Color.WHITE, 20, 10, Color.WHITE, true));
+        graphics.setFont(new Font("Comic Sans MS", Font.BOLD, 30));
         graphics.drawString(pass, 5, 30);
         graphics.dispose();
         image.flush();

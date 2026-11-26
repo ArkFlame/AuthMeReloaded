@@ -6,7 +6,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.List;
 
 /**
@@ -38,20 +37,6 @@ public final class FileIoUtils {
             Files.write(path, contents.getBytes());
         } catch (IOException e) {
             throw new UnsupportedOperationException("Failed to write to file '" + path + "'", e);
-        }
-    }
-
-    /**
-     * Adds the given contents to the file while keeping any existing content.
-     *
-     * @param outputFile the file to write to
-     * @param contents the contents to append
-     */
-    public static void appendToFile(String outputFile, String contents) {
-        try {
-            Files.write(Paths.get(outputFile), contents.getBytes(), StandardOpenOption.APPEND);
-        } catch (IOException e) {
-            throw new UnsupportedOperationException("Failed to append to file '" + outputFile + "'", e);
         }
     }
 

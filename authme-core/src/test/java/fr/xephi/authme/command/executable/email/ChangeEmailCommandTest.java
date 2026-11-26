@@ -1,27 +1,19 @@
 package fr.xephi.authme.command.executable.email;
 
-import org.mockito.quality.Strictness;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.junit.jupiter.api.extension.ExtendWith;
+import fr.xephi.authme.command.ExecutableCommand;
 import fr.xephi.authme.data.VerificationCodeManager;
 import fr.xephi.authme.message.MessageKey;
-import fr.xephi.authme.message.Messages;
-import fr.xephi.authme.process.Management;
-import fr.xephi.authme.service.CommonService;
-import fr.xephi.authme.service.ValidationService;
-import org.bukkit.command.BlockCommandSender;
-import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.util.Arrays;
-import java.util.Collections;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -33,37 +25,22 @@ import static org.mockito.Mockito.when;
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.WARN)
-public class ChangeEmailCommandTest {
+public class ChangeEmailCommandTest extends AbstractEmailCommandTest {
 
     @InjectMocks
     private ChangeEmailCommand command;
 
     @Mock
-    private Management management;
-
-    @Mock
-    private CommonService commonService;
-
-    @Mock
     private VerificationCodeManager codeManager;
 
-    @Mock
-    private ValidationService validationService;
+    @Override
+    protected ExecutableCommand getCommand() {
+        return command;
+    }
 
-    @Mock
-    private Messages messages;
-
-
-    @Test
-    public void shouldRejectNonPlayerSender() {
-        // given
-        CommandSender sender = mock(BlockCommandSender.class);
-
-        // when
-        command.executeCommand(sender, Collections.emptyList());
-
-        // then
-        verifyNoInteractions(management);
+    @Override
+    protected MessageKey getUsageMessage() {
+        return MessageKey.USAGE_CHANGE_EMAIL;
     }
 
     @Test
@@ -128,17 +105,9 @@ public class ChangeEmailCommandTest {
         verify(commonService).send(sender, MessageKey.INVALID_NEW_EMAIL);
     }
 
-    @Test
-    public void shouldDefineArgumentMismatchMessage() {
-        // given / when / then
-        assertThat(command.getArgumentsMismatchMessage(), equalTo(MessageKey.USAGE_CHANGE_EMAIL));
-    }
-
     private Player initPlayerWithName(String name) {
         Player player = mock(Player.class);
         when(player.getName()).thenReturn(name);
         return player;
     }
 }
-
-

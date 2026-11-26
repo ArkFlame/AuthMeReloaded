@@ -32,7 +32,8 @@ classes are shipped. Add it as a compile-only dependency of your plugin and decl
 | `AuthMeTeleportEvent`, `FirstSpawnTeleportEvent`, `SpawnTeleportEvent` | AuthMe teleports a player | yes |
 
 `PasswordEncryptionEvent` (custom hash algorithm) references the encryption SPI and stays in the plugin jar.
-All events extend `CustomEvent`, whose `isAsynchronous()` tells you which thread you are on.
+All events extend `CustomEvent`, which inherits `Event#isAsynchronous()` so handlers can tell which
+thread they are on.
 
 ## PlayerPreAuthEvent: skip the join-event-plus-scheduler-wait pattern
 

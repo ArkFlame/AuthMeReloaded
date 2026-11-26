@@ -282,9 +282,7 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
         try {
             return Bukkit.getServer().spigot().getConfig()
                 .getBoolean("settings.bungeecord", false);
-        } catch (Exception ignored) {
-            return false;
-        } catch (LinkageError ignored) {
+        } catch (Exception | LinkageError ignored) {
             return false;
         }
     }

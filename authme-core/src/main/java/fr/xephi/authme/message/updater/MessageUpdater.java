@@ -17,13 +17,12 @@ import fr.xephi.authme.util.FileUtils;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
 
@@ -171,23 +170,37 @@ public class MessageUpdater {
             .put("premium", "Premium mode")
             .build();
 
-        Set<String> addedKeys = new HashSet<>();
+        Set<MessageKey> addedKeys = new HashSet<>();
         MessageKeyPropertyListBuilder builder = new MessageKeyPropertyListBuilder();
+        MessageKey[] allKeys = MessageKey.values();
         // Add one key per section based on the comments map above so that the order is clear
         for (String path : comments.keySet()) {
-            MessageKey key = Arrays.stream(MessageKey.values()).filter(p -> p.getKey().startsWith(path + "."))
-                .findFirst().orElseThrow(() -> new IllegalStateException(path));
-            builder.addMessageKey(key);
-            addedKeys.add(key.getKey());
+            String prefix = path + ".";
+            MessageKey firstKey = null;
+            for (MessageKey key : allKeys) {
+                if (key.getKey().startsWith(prefix)) {
+                    firstKey = key;
+                    break;
+                }
+            }
+            if (firstKey == null) {
+                throw new IllegalStateException(path);
+            }
+            builder.addMessageKey(firstKey);
+            addedKeys.add(firstKey);
         }
         // Add all remaining keys to the property list builder
-        Arrays.stream(MessageKey.values())
-            .filter(key -> !addedKeys.contains(key.getKey()))
-            .forEach(builder::addMessageKey);
+        for (MessageKey key : allKeys) {
+            if (!addedKeys.contains(key)) {
+                builder.addMessageKey(key);
+            }
+        }
 
         // Create ConfigurationData instance
-        Map<String, List<String>> commentsMap = comments.entrySet().stream()
-            .collect(Collectors.toMap(e -> e.getKey(), e -> singletonList(e.getValue())));
+        Map<String, List<String>> commentsMap = new HashMap<>();
+        for (Map.Entry<String, String> entry : comments.entrySet()) {
+            commentsMap.put(entry.getKey(), singletonList(entry.getValue()));
+        }
         return new MessageKeyConfigurationData(builder, commentsMap);
     }
 

@@ -9,11 +9,12 @@ import fr.xephi.authme.util.StringUtils;
 import org.bukkit.command.CommandSender;
 
 import javax.inject.Inject;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * The AuthMe command handler, responsible for invoking the correct {@link ExecutableCommand} based on incoming
@@ -138,13 +139,9 @@ public class CommandHandler {
      * @return List of the items that are not empty
      */
     private static List<String> skipEmptyArguments(String[] args) {
-        List<String> cleanArguments = new ArrayList<>();
-        for (String argument : args) {
-            if (!StringUtils.isBlank(argument)) {
-                cleanArguments.add(argument);
-            }
-        }
-        return cleanArguments;
+        return Arrays.stream(args)
+            .filter(argument -> !StringUtils.isBlank(argument))
+            .collect(Collectors.toList());
     }
 
     /**

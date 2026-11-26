@@ -20,25 +20,24 @@ public enum HelpSection {
     CHILDREN("children");
 
     private static final String PREFIX = "section.";
-    private final String key;
+    private final LocalizedKey key;
 
     /**
      * Constructor.
      *
-     * @param key the message key
+     * @param key the message key without the section prefix
      */
     HelpSection(String key) {
-        this.key = PREFIX + key;
+        this.key = new LocalizedKey(PREFIX, key);
     }
 
     /** @return the message key */
     public String getKey() {
-        return key;
+        return key.getKey();
     }
 
-    /** @return the key without the common prefix */
+    /** @return the key without the section prefix */
     public String getEntryKey() {
-        // Note ljacqu 20171008: #getKey is called more often than this method, so we optimize for the former method
-        return key.substring(PREFIX.length());
+        return key.getEntryKey();
     }
 }

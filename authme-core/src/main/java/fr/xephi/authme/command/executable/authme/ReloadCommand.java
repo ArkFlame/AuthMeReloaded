@@ -68,10 +68,7 @@ public class ReloadCommand implements ExecutableCommand {
     }
 
     private void performReloadOnServices() {
-        reloadableStore.retrieveAllOfType()
-            .forEach(r -> r.reload());
-
-        settingsDependentStore.retrieveAllOfType()
-            .forEach(s -> s.reload(settings));
+        reloadableStore.retrieveAllOfType().forEach(Reloadable::reload);
+        settingsDependentStore.retrieveAllOfType().forEach(s -> s.reload(settings));
     }
 }

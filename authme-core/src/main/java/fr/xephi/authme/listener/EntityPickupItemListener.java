@@ -1,25 +1,20 @@
 package fr.xephi.authme.listener;
 
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 
-import javax.inject.Inject;
-
-public class EntityPickupItemListener implements Listener {
-
-    @Inject
-    private ListenerService listenerService;
+public class EntityPickupItemListener extends AbstractCancelListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onPlayerPickupItem(EntityPickupItemEvent event) {
-        if (!(event.getEntity() instanceof Player)) {
+        Entity entity = event.getEntity();
+        if (!(entity instanceof Player)) {
             return;
         }
-        if (listenerService.shouldCancelEvent((Player) event.getEntity())) {
-            event.setCancelled(true);
-        }
+        cancelIfUnauthorized((Player) entity, event);
     }
 }

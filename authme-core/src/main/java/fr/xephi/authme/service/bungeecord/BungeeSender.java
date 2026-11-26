@@ -21,6 +21,9 @@ import javax.inject.Inject;
 
 public class BungeeSender implements SettingsDependent {
 
+    private static final String BUNGEE_CHANNEL = "BungeeCord";
+    private static final String AUTHME_CHANNEL = MessageType.CHANNEL;
+
     private final ConsoleLogger logger = ConsoleLoggerFactory.get(BungeeSender.class);
     private final AuthMe plugin;
     private final BukkitService bukkitService;
@@ -43,21 +46,26 @@ public class BungeeSender implements SettingsDependent {
         this.isEnabled = settings.getProperty(HooksSettings.BUNGEECORD);
         this.destinationServerOnLogin = settings.getProperty(HooksSettings.BUNGEECORD_SERVER);
         Messenger messenger = plugin.getServer().getMessenger();
+        if (messenger == null) {
+            return;
+        }
+        setOutgoingChannel(messenger, BUNGEE_CHANNEL, isEnabled);
+        setOutgoingChannel(messenger, AUTHME_CHANNEL, isEnabled);
+    }
 
-        if (this.isEnabled && messenger != null) {
-            if (!messenger.isOutgoingChannelRegistered(plugin, "BungeeCord")) {
-                messenger.registerOutgoingPluginChannel(plugin, "BungeeCord");
-            }
-            if (!messenger.isOutgoingChannelRegistered(plugin, "authme:main")) {
-                messenger.registerOutgoingPluginChannel(plugin, "authme:main");
-            }
-        } else if (messenger != null) {
-            if (messenger.isOutgoingChannelRegistered(plugin, "BungeeCord")) {
-                messenger.unregisterOutgoingPluginChannel(plugin, "BungeeCord");
-            }
-            if (messenger.isOutgoingChannelRegistered(plugin, "authme:main")) {
-                messenger.unregisterOutgoingPluginChannel(plugin, "authme:main");
-            }
+    /**
+     * Registers or unregisters an outgoing channel so that its state matches the given flag.
+     *
+     * @param messenger the server messenger
+     * @param channel   the channel to update
+     * @param register  whether the channel should be registered
+     */
+    private void setOutgoingChannel(Messenger messenger, String channel, boolean register) {
+        boolean registered = messenger.isOutgoingChannelRegistered(plugin, channel);
+        if (register && !registered) {
+            messenger.registerOutgoingPluginChannel(plugin, channel);
+        } else if (!register && registered) {
+            messenger.unregisterOutgoingPluginChannel(plugin, channel);
         }
     }
 
@@ -98,10 +106,22 @@ public class BungeeSender implements SettingsDependent {
             logger.debug("Tried to send a " + type + " bungeecord message but the plugin was disabled!");
             return;
         }
+        bukkitService.sendAuthMePluginMessage(player, buildIdAndNameMessage(type, player.getName()));
+    }
+
+    /**
+     * Builds the common "message type id + lowercased player name" payload used by the
+     * authme:main messages.
+     *
+     * @param type the message type
+     * @param name the player name (lowercased before being written)
+     * @return the serialized payload
+     */
+    private static byte[] buildIdAndNameMessage(MessageType type, String name) {
         ByteArrayDataOutput out = ByteStreams.newDataOutput();
         out.writeUTF(type.getId());
-        out.writeUTF(player.getName().toLowerCase(java.util.Locale.ROOT));
-        bukkitService.sendAuthMePluginMessage(player, out.toByteArray());
+        out.writeUTF(name.toLowerCase(Locale.ROOT));
+        return out.toByteArray();
     }
 
     /**
@@ -184,10 +204,7 @@ public class BungeeSender implements SettingsDependent {
             return;
         }
         Player p = carrier.get();
-        ByteArrayDataOutput out = ByteStreams.newDataOutput();
-        out.writeUTF(type.getId());
-        out.writeUTF(username.toLowerCase(java.util.Locale.ROOT));
-        byte[] payload = out.toByteArray();
+        byte[] payload = buildIdAndNameMessage(type, username);
         bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(() ->
             bukkitService.sendAuthMePluginMessage(p, payload));
     }

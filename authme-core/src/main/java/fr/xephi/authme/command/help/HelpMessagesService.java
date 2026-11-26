@@ -85,7 +85,7 @@ public class HelpMessagesService {
     }
 
     public String getMessage(HelpMessage message) {
-        return helpMessagesFileHandler.getMessage(message.getKey());
+        return getMessage(message, null);
     }
 
     public String getMessage(HelpMessage message, String language) {
@@ -93,7 +93,7 @@ public class HelpMessagesService {
     }
 
     public String getMessage(HelpSection section) {
-        return helpMessagesFileHandler.getMessage(section.getKey());
+        return getMessage(section, null);
     }
 
     public String getMessage(HelpSection section, String language) {

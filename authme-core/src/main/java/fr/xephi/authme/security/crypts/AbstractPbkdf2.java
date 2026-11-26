@@ -8,7 +8,8 @@ import org.bouncycastle.crypto.params.KeyParameter;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
+
+import static fr.xephi.authme.security.HashUtils.isEqual;
 
 public abstract class AbstractPbkdf2 extends HexSaltedMethod {
 
@@ -59,7 +60,22 @@ public abstract class AbstractPbkdf2 extends HexSaltedMethod {
      * @return true if the derived key matches the expected key
      */
     protected boolean verifyKey(String password, byte[] saltBytes, int iterations, byte[] expectedKey) {
-        byte[] computed = deriveKey(password, saltBytes, iterations, expectedKey.length);
-        return MessageDigest.isEqual(computed, expectedKey);
+        return verifyKey(password, saltBytes, iterations, expectedKey, StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Verifies a derived key, encoding the password with the given charset.
+     *
+     * @param password the clear-text password
+     * @param saltBytes the salt bytes
+     * @param iterations the number of PBKDF2 iterations
+     * @param expectedKey the expected derived key
+     * @param charset the charset used to convert the password into bytes
+     * @return true if the derived key matches the expected key
+     */
+    protected static boolean verifyKey(String password, byte[] saltBytes, int iterations, byte[] expectedKey,
+                                       Charset charset) {
+        byte[] computed = deriveKey(password, saltBytes, iterations, expectedKey.length, charset);
+        return isEqual(computed, expectedKey);
     }
 }

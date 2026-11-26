@@ -16,7 +16,7 @@ final class LogFilterHelper {
     @VisibleForTesting
     static final List<String> COMMANDS_TO_SKIP = withAndWithoutAuthMePrefix(
         "/login ", "/l ", "/log ", "/register ", "/reg ", "/unregister ", "/unreg ",
-        "/changepassword ", "/cp ", "/changepass ", "/authme register ",  "/authme reg ", "/authme r ",
+        "/changepassword ", "/cp ", "/changepass ", "/authme register ", "/authme reg ", "/authme r ",
         "/authme changepassword ", "/authme password ", "/authme changepass ", "/authme cp ", "/email setpassword ",
         "/email code ", "/totp code ", "/totp c ", "/2fa code ", "/2fa c ");
 

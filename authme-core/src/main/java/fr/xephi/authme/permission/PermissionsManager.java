@@ -97,15 +97,31 @@ public class PermissionsManager implements Reloadable {
     }
 
     /**
-     * Creates the handler for the given type and stores it if the hook succeeded.
+     * Creates the handler for the given type and stores it if the hook succeeds.
      *
      * @return true if a handler was created and stored
      * @throws PermissionHandlerException if the handler could not be initialized
      */
     private boolean hookInto(PermissionsSystemType type) throws PermissionHandlerException {
-        PermissionHandler newHandler = createPermissionHandler(type);
-        if (newHandler == null) {
+        Plugin plugin = pluginManager.getPlugin(type.getPluginName());
+        if (plugin == null) {
             return false;
+        }
+        if (!plugin.isEnabled()) {
+            logger.info("Not hooking into " + type.getDisplayName() + " because it's disabled!");
+            return false;
+        }
+
+        PermissionHandler newHandler;
+        switch (type) {
+            case LUCK_PERMS:
+                newHandler = new LuckPermsHandler();
+                break;
+            case VAULT:
+                newHandler = new VaultHandler(server);
+                break;
+            default:
+                throw new IllegalStateException("Unhandled permission type '" + type + "'");
         }
         this.handler = newHandler;
         logger.info("Hooked into " + type.getDisplayName() + "!");
@@ -113,58 +129,12 @@ public class PermissionsManager implements Reloadable {
     }
 
     /**
-     * Creates a permission handler for the provided permission systems if possible.
-     *
-     * @param type the permission systems type for which to create a corresponding permission handler
-     *
-     * @return the permission handler, or {@code null} if not possible
-     *
-     * @throws PermissionHandlerException during initialization of the permission handler
-     */
-    private PermissionHandler createPermissionHandler(PermissionsSystemType type) throws PermissionHandlerException {
-        // Try to find the plugin for the current permissions system
-        Plugin plugin = pluginManager.getPlugin(type.getPluginName());
-
-        if (plugin == null) {
-            return null;
-        }
-
-        // Make sure the plugin is enabled before hooking
-        if (!plugin.isEnabled()) {
-            logger.info("Not hooking into " + type.getDisplayName() + " because it's disabled!");
-            return null;
-        }
-
-        switch (type) {
-            case LUCK_PERMS:
-                return new LuckPermsHandler();
-            case VAULT:
-                return new VaultHandler(server);
-            default:
-                throw new IllegalStateException("Unhandled permission type '" + type + "'");
-        }
-    }
-
-    /**
-     * Break the hook with all permission systems.
-     */
-    private void unhook() {
-        // Reset the current used permissions system
-        this.handler = null;
-
-        // Print a status message to the console
-        logger.info("Unhooked from Permissions!");
-    }
-
-    /**
      * Reload the permissions manager, and re-hook all permission plugins.
      */
     @Override
     public void reload() {
-        // Unhook all permission plugins
-        unhook();
-
-        // Set up the permissions manager again
+        handler = null;
+        logger.info("Unhooked from Permissions!");
         setup();
     }
 
@@ -174,11 +144,7 @@ public class PermissionsManager implements Reloadable {
      * @param pluginName The name of the plugin being enabled.
      */
     public void onPluginEnable(String pluginName) {
-        // Check if any known permissions system is enabling
-        if (PermissionsSystemType.isPermissionSystem(pluginName)) {
-            logger.info(pluginName + " plugin enabled, dynamically updating permissions hooks!");
-            setup();
-        }
+        updateHooks(pluginName, "enabled, dynamically updating permissions hooks!");
     }
 
     /**
@@ -187,9 +153,13 @@ public class PermissionsManager implements Reloadable {
      * @param pluginName The name of the plugin being disabled.
      */
     public void onPluginDisable(String pluginName) {
-        // Check if any known permission system is being disabled
+        updateHooks(pluginName, "disabled, updating hooks!");
+    }
+
+    /** Re-hooks permissions systems when a supported plugin changes its state. */
+    private void updateHooks(String pluginName, String action) {
         if (PermissionsSystemType.isPermissionSystem(pluginName)) {
-            logger.info(pluginName + " plugin disabled, updating hooks!");
+            logger.info(pluginName + " plugin " + action);
             setup();
         }
     }

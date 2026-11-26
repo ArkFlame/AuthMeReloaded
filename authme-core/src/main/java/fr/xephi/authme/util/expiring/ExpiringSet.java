@@ -113,11 +113,11 @@ public class ExpiringSet<E> {
     }
 
     /**
-     * Returns whether this map is empty. This reflects the state of the
+     * Returns whether this set is empty. This reflects the state of the
      * internal map, which may contain expired entries only. The result
      * may change after running {@link #removeExpiredEntries()}.
      *
-     * @return true if map is really empty, false otherwise
+     * @return true if the set is really empty, false otherwise
      */
     public boolean isEmpty() {
         return entries.isEmpty();

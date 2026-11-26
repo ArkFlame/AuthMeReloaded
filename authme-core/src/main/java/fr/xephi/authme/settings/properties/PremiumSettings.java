@@ -1,36 +1,18 @@
 package fr.xephi.authme.settings.properties;
 
-import ch.jalu.configme.Comment;
-import ch.jalu.configme.SettingsHolder;
 import ch.jalu.configme.properties.Property;
 
-import static ch.jalu.configme.properties.PropertyInitializer.newProperty;
+/**
+ * Source-compatible access point for the premium settings, which live in {@link PluginSettings}.
+ *
+ * <p>The properties are declared by the single settings holder so they are registered with
+ * ConfigMe exactly once. This class only forwards to those declarations.
+ */
+public final class PremiumSettings {
 
-public final class PremiumSettings implements SettingsHolder {
-
-    @Comment({
-        "Enable premium mode: players with an official Minecraft account",
-        "can skip password authentication.",
-        "Verification method is chosen automatically:",
-        "  - online-mode=true: Bukkit already has the Mojang UUID; no PacketEvents needed.",
-        "  - offline-mode + proxy: set Hooks.bungeecord=true; UUID is forwarded by proxy.",
-        "  - offline-mode, no proxy: PacketEvents required for cryptographic verification.",
-        "    Without PacketEvents, premium auto-login is disabled (fail closed).",
-        "Players must use /premium to opt in."
-    })
-    public static final Property<Boolean> ENABLE_PREMIUM =
-        newProperty("settings.enablePremium", false);
-
-    @Comment({
-        "Automatically register players with a verified premium identity",
-        "who do not have an account yet.",
-        "Requires enablePremium and the same identity verification as premium bypass.",
-        "Existing accounts are never modified."
-    })
-    public static final Property<Boolean> AUTO_REGISTER =
-        newProperty("settings.premium.autoRegister", false);
+    public static final Property<Boolean> ENABLE_PREMIUM = PluginSettings.ENABLE_PREMIUM;
+    public static final Property<Boolean> AUTO_REGISTER = PluginSettings.AUTO_REGISTER;
 
     private PremiumSettings() {
     }
-
 }

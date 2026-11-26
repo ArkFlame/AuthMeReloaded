@@ -5,17 +5,10 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 
-import javax.inject.Inject;
-
-public class PlayerSwapHandItemsListener implements Listener {
-
-    @Inject
-    private ListenerService listenerService;
+public class PlayerSwapHandItemsListener extends AbstractCancelListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onPlayerSwapHandItems(PlayerSwapHandItemsEvent event) {
-        if (listenerService.shouldCancelEvent(event)) {
-            event.setCancelled(true);
-        }
+        cancelIfUnauthorized(event);
     }
 }

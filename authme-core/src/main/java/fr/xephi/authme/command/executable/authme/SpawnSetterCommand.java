@@ -1,21 +1,15 @@
 package fr.xephi.authme.command.executable.authme;
 
-import fr.xephi.authme.command.PlayerCommand;
 import fr.xephi.authme.message.MessageKey;
-import fr.xephi.authme.settings.SpawnLoader;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
-import javax.inject.Inject;
 import java.util.List;
 
 /**
  * Common base for commands that store the player's current location as a spawn.
  */
-public abstract class SpawnSetterCommand extends PlayerCommand {
-
-    @Inject
-    private SpawnLoader spawnLoader;
+public abstract class SpawnSetterCommand extends AbstractSpawnCommand {
 
     @Override
     protected final void runCommand(Player player, List<String> arguments) {
@@ -43,8 +37,4 @@ public abstract class SpawnSetterCommand extends PlayerCommand {
      * @return the message to show when the spawn could not be stored
      */
     protected abstract MessageKey getFailureMessage();
-
-    protected SpawnLoader getSpawnLoader() {
-        return spawnLoader;
-    }
 }

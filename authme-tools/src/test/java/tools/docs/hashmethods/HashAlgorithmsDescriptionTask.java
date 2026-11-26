@@ -62,10 +62,6 @@ public class HashAlgorithmsDescriptionTask implements AutoToolTask {
         return value ? "Y" : "";
     }
 
-    private static String asString(int value) {
-        return String.valueOf(value);
-    }
-
     private static String asString(Integer value) {
         if (value == null) {
             return "";

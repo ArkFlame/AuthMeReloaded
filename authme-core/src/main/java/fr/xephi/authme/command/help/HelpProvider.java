@@ -184,17 +184,16 @@ public class HelpProvider implements Reloadable {
         }
 
         lines.add(ChatColor.GOLD + helpMessagesService.getMessage(HelpSection.ARGUMENTS, language) + ":");
-        StringBuilder argString = new StringBuilder();
         String optionalText = " (" + helpMessagesService.getMessage(HelpMessage.OPTIONAL, language) + ")";
         for (CommandArgumentDescription argument : command.getArguments()) {
-            argString.setLength(0);
-            argString.append(" ").append(ChatColor.YELLOW).append(ChatColor.ITALIC).append(argument.getName())
+            StringBuilder argumentLine = new StringBuilder()
+                .append(" ").append(ChatColor.YELLOW).append(ChatColor.ITALIC).append(argument.getName())
                 .append(": ").append(ChatColor.WHITE).append(argument.getDescription());
 
             if (argument.isOptional()) {
-                argString.append(ChatColor.GRAY).append(ChatColor.ITALIC).append(optionalText);
+                argumentLine.append(ChatColor.GRAY).append(ChatColor.ITALIC).append(optionalText);
             }
-            lines.add(argString.toString());
+            lines.add(argumentLine.toString());
         }
     }
 

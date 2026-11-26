@@ -1,69 +1,40 @@
 package fr.xephi.authme.command.executable.authme;
 
 import fr.xephi.authme.message.MessageKey;
-import fr.xephi.authme.message.Messages;
-import fr.xephi.authme.platform.TeleportAdapter;
-import fr.xephi.authme.settings.SpawnLoader;
 import org.bukkit.Location;
-import org.bukkit.entity.Player;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Collections;
-
-import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 
 /**
  * Test for {@link FirstSpawnCommand}.
  */
 @ExtendWith(MockitoExtension.class)
-class FirstSpawnCommandTest {
+class FirstSpawnCommandTest extends AbstractSpawnTeleportCommandTest<FirstSpawnCommand> {
 
     @InjectMocks
     private FirstSpawnCommand command;
 
-    @Mock
-    private SpawnLoader spawnLoader;
+    @Override
+    protected FirstSpawnCommand getCommand() {
+        return command;
+    }
 
-    @Mock
-    private Messages messages;
+    @Override
+    protected Location getSpawn() {
+        return spawnLoader.getFirstSpawn();
+    }
 
-    @Mock
-    private TeleportAdapter teleportAdapter;
-
-    @Test
-    void shouldTeleportToFirstSpawn() {
-        // given
-        Location firstSpawn = mock(Location.class);
-        given(spawnLoader.getFirstSpawn()).willReturn(firstSpawn);
-        Player player = mock(Player.class);
-
-        // when
-        command.executeCommand(player, Collections.emptyList());
-
-        // then
-        verify(teleportAdapter).teleportPlayer(player, firstSpawn);
+    @Override
+    protected void verifySpawnLoaded() {
         verify(spawnLoader, atLeastOnce()).getFirstSpawn();
     }
 
-    @Test
-    void shouldHandleMissingFirstSpawn() {
-        // given
-        given(spawnLoader.getFirstSpawn()).willReturn(null);
-        Player player = mock(Player.class);
-
-        // when
-        command.executeCommand(player, Collections.emptyList());
-
-        // then
-        verify(messages).send(player, MessageKey.FIRST_SPAWN_NOT_DEFINED);
-        verifyNoInteractions(teleportAdapter);
+    @Override
+    protected MessageKey getNotDefinedMessage() {
+        return MessageKey.FIRST_SPAWN_NOT_DEFINED;
     }
 }

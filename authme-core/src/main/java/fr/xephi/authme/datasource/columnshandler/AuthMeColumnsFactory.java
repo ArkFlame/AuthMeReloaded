@@ -18,7 +18,7 @@ final class AuthMeColumnsFactory {
     static DataSourceColumn<Integer> createInteger(Property<String> nameProperty,
                                                    ColumnOptions... options) {
         return new DataSourceColumn<>(StandardTypes.INTEGER, nameProperty,
-            isOptional(options), hasDefaultForNull(options));
+            hasOption(ColumnOptions.OPTIONAL, options), hasOption(ColumnOptions.DEFAULT_FOR_NULL, options));
     }
 
     static PlayerAuthColumn<Integer> createInteger(Property<String> nameProperty,
@@ -54,19 +54,12 @@ final class AuthMeColumnsFactory {
     private static <T> PlayerAuthColumn<T> createInternal(ColumnType<T> type, Property<String> nameProperty,
                                                           Function<PlayerAuth, T> authGetter,
                                                           ColumnOptions... options) {
-        return new PlayerAuthColumn<>(type, nameProperty, isOptional(options), hasDefaultForNull(options), authGetter);
+        return new PlayerAuthColumn<>(type, nameProperty,
+            hasOption(ColumnOptions.OPTIONAL, options), hasOption(ColumnOptions.DEFAULT_FOR_NULL, options), authGetter);
     }
 
-    private static boolean isOptional(ColumnOptions[] options) {
-        return containsInArray(ColumnOptions.OPTIONAL, options);
-    }
-
-    private static boolean hasDefaultForNull(ColumnOptions[] options) {
-        return containsInArray(ColumnOptions.DEFAULT_FOR_NULL, options);
-    }
-
-    private static boolean containsInArray(ColumnOptions needle, ColumnOptions[] haystack) {
-        for (ColumnOptions option : haystack) {
+    private static boolean hasOption(ColumnOptions needle, ColumnOptions[] options) {
+        for (ColumnOptions option : options) {
             if (option == needle) {
                 return true;
             }

@@ -44,17 +44,15 @@ public class VerifyHelpTranslations implements ToolTask {
         HelpTranslationVerifier verifier = new HelpTranslationVerifier(file);
 
         // Check and output errors
-        if (!verifier.getMissingSections().isEmpty()) {
-            System.out.println("Missing sections: " + String.join(", ", verifier.getMissingSections()));
-        }
-        if (!verifier.getUnknownSections().isEmpty()) {
-            System.out.println("Unknown sections: " + String.join(", ", verifier.getUnknownSections()));
-        }
-        if (!verifier.getMissingCommands().isEmpty()) {
-            System.out.println("Missing command entries: " + String.join(", ", verifier.getMissingCommands()));
-        }
-        if (!verifier.getUnknownCommands().isEmpty()) {
-            System.out.println("Unknown command entries: " + String.join(", ", verifier.getUnknownCommands()));
+        printIfNotEmpty("Missing sections", verifier.getMissingSections());
+        printIfNotEmpty("Unknown sections", verifier.getUnknownSections());
+        printIfNotEmpty("Missing command entries", verifier.getMissingCommands());
+        printIfNotEmpty("Unknown command entries", verifier.getUnknownCommands());
+    }
+
+    private static void printIfNotEmpty(String label, List<String> values) {
+        if (!values.isEmpty()) {
+            System.out.println(label + ": " + String.join(", ", values));
         }
     }
 

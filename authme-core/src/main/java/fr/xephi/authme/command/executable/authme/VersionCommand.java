@@ -46,36 +46,14 @@ public class VersionCommand implements ExecutableCommand {
             + ". Released under GPL v3 License.");
     }
 
-    /**
-     * Print a developer with proper styling.
-     *
-     * @param sender        The command sender
-     * @param name          The display name of the developer
-     * @param minecraftName The Minecraft username of the developer, if available
-     * @param function      The function of the developer
-     * @param onlinePlayers The list of online players
-     */
     private static void printDeveloper(CommandSender sender, String name, String minecraftName, String function,
                                        Collection<Player> onlinePlayers) {
         String msg = " " + ChatColor.WHITE + name
             + ChatColor.GRAY + " // " + ChatColor.WHITE + minecraftName
             + ChatColor.GRAY + ChatColor.ITALIC + " (" + function + ")";
-        if (isPlayerOnline(minecraftName, onlinePlayers)) {
-            msg = msg + ChatColor.GREEN + ChatColor.ITALIC + " (In-Game)";
+        if (onlinePlayers.stream().anyMatch(player -> player.getName().equalsIgnoreCase(minecraftName))) {
+            msg += ChatColor.GREEN.toString() + ChatColor.ITALIC + " (In-Game)";
         }
         sender.sendMessage(msg);
-    }
-
-    /**
-     * Check whether a player is online.
-     *
-     * @param minecraftName The Minecraft player name
-     * @param onlinePlayers List of online players
-     *
-     * @return True if the player is online, false otherwise
-     */
-    private static boolean isPlayerOnline(String minecraftName, Collection<Player> onlinePlayers) {
-        return onlinePlayers.stream()
-            .anyMatch(player -> player.getName().equalsIgnoreCase(minecraftName));
     }
 }

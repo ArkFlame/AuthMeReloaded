@@ -28,8 +28,9 @@ mvn clean package
 # Build without tests
 mvn clean package -DskipTests
 
-# Build while skipping long hash tests
+# Build while skipping long hash tests (-P and -D activate the same profile)
 mvn clean package -P skipLongHashTests
+mvn clean package -DskipLongHashTests
 
 # Build one deliverable with its dependencies
 mvn clean package -pl authme-bungee -am

@@ -52,16 +52,20 @@ public class AsyncRegister implements AsynchronousProcess {
      */
     public <P extends RegistrationParameters> void register(RegistrationMethod<P> variant, P parameters) {
         Player player = parameters.getPlayer();
-        if (preRegisterCheck(variant, player)) {
-            RegistrationExecutor<P> executor = registrationExecutorFactory.getSingleton(variant.getExecutorClass());
-            if (executor.isRegistrationAdmitted(parameters)) {
-                PlayerAuth auth = executor.buildPlayerAuth(parameters);
-                if (database.saveAuth(auth)) {
-                    executor.executePostPersistAction(parameters);
-                } else {
-                    service.send(player, MessageKey.ERROR);
-                }
-            }
+        if (!preRegisterCheck(variant, player)) {
+            return;
+        }
+
+        RegistrationExecutor<P> executor = registrationExecutorFactory.getSingleton(variant.getExecutorClass());
+        if (!executor.isRegistrationAdmitted(parameters)) {
+            return;
+        }
+
+        PlayerAuth auth = executor.buildPlayerAuth(parameters);
+        if (database.saveAuth(auth)) {
+            executor.executePostPersistAction(parameters);
+        } else {
+            service.send(player, MessageKey.ERROR);
         }
     }
 
@@ -104,17 +108,21 @@ public class AsyncRegister implements AsynchronousProcess {
      */
     private boolean isPlayerIpAllowedToRegister(Player player) {
         int maxRegPerIp = service.getProperty(RestrictionSettings.MAX_REGISTRATION_PER_IP);
+        if (maxRegPerIp <= 0) {
+            return true;
+        }
+
         String ip = PlayerUtils.getPlayerIp(player);
-        if (maxRegPerIp > 0
-            && !InternetProtocolUtils.isLoopbackAddress(ip)
-            && !service.hasPermission(player, ALLOW_MULTIPLE_ACCOUNTS)) {
-            List<String> otherAccounts = database.getAllAuthsByIp(ip);
-            int accountCount = otherAccounts.size();
-            if (accountCount >= maxRegPerIp) {
-                service.send(player, MessageKey.MAX_REGISTER_EXCEEDED, Integer.toString(maxRegPerIp),
-                    Integer.toString(accountCount), String.join(", ", otherAccounts));
-                return false;
-            }
+        if (InternetProtocolUtils.isLoopbackAddress(ip) || service.hasPermission(player, ALLOW_MULTIPLE_ACCOUNTS)) {
+            return true;
+        }
+
+        List<String> otherAccounts = database.getAllAuthsByIp(ip);
+        int accountCount = otherAccounts.size();
+        if (accountCount >= maxRegPerIp) {
+            service.send(player, MessageKey.MAX_REGISTER_EXCEEDED, Integer.toString(maxRegPerIp),
+                Integer.toString(accountCount), String.join(", ", otherAccounts));
+            return false;
         }
         return true;
     }

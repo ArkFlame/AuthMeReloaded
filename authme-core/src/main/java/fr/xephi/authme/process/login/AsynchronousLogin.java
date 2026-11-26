@@ -109,8 +109,10 @@ public class AsynchronousLogin implements AsynchronousProcess {
      * @param password the password to log in with
      */
     public void login(Player player, String password) {
-        PlayerAuth auth = getPlayerAuth(player, false);
-        if (auth != null && checkPlayerInfo(player, auth, password)) {
+        String name = player.getName();
+        String lowerCaseName = name.toLowerCase(Locale.ROOT);
+        PlayerAuth auth = getPlayerAuth(player, lowerCaseName, false);
+        if (auth != null && checkPlayerInfo(player, name, lowerCaseName, auth, password)) {
             if (auth.getTotpKey() != null) {
                 LimboPlayer limbo = limboService.getLimboPlayer(player);
                 if (limbo == null) {
@@ -133,7 +135,9 @@ public class AsynchronousLogin implements AsynchronousProcess {
      * @param player the player to log in
      */
     public void forceLogin(Player player) {
-        PlayerAuth auth = getPlayerAuth(player, false);
+        String name = player.getName();
+        String lowerCaseName = name.toLowerCase(Locale.ROOT);
+        PlayerAuth auth = getPlayerAuth(player, lowerCaseName, false);
         if (auth != null) {
             performLogin(player, auth);
         }
@@ -147,9 +151,11 @@ public class AsynchronousLogin implements AsynchronousProcess {
      * @param player the player to log in
      */
     public void forceLoginFromProxy(Player player) {
-        PlayerAuth auth = getPlayerAuth(player, true);
+        String name = player.getName();
+        String lowerCaseName = name.toLowerCase(Locale.ROOT);
+        PlayerAuth auth = getPlayerAuth(player, lowerCaseName, true);
         if (auth != null) {
-            doPerformLogin(player, auth, true);
+            doPerformLogin(player, name, auth, true);
         }
     }
 
@@ -158,20 +164,20 @@ public class AsynchronousLogin implements AsynchronousProcess {
      * the player's {@link PlayerAuth} object.
      *
      * @param player the player to check
+     * @param lowerCaseName the lower-case name, resolved once for this login call
      * @param quiet don't send messages
      * @return the PlayerAuth object, or {@code null} if the player doesn't exist or may not log in
      *         (e.g. because he is already logged in)
      */
-    private PlayerAuth getPlayerAuth(Player player, boolean quiet) {
-        String name = player.getName().toLowerCase(Locale.ROOT);
-        if (playerCache.isAuthenticated(name)) {
+    private PlayerAuth getPlayerAuth(Player player, String lowerCaseName, boolean quiet) {
+        if (playerCache.isAuthenticated(lowerCaseName)) {
             if (!quiet) {
                 service.send(player, MessageKey.ALREADY_LOGGED_IN_ERROR);
             }
             return null;
         }
 
-        PlayerAuth auth = dataSource.getAuth(name);
+        PlayerAuth auth = dataSource.getAuth(lowerCaseName);
         if (auth == null) {
             if (!quiet) {
                 service.send(player, MessageKey.UNKNOWN_USER);
@@ -210,15 +216,15 @@ public class AsynchronousLogin implements AsynchronousProcess {
      * Checks various conditions for regular player login (not used in force login).
      *
      * @param player the player requesting to log in
+     * @param name the player's name, resolved once for this login call
+     * @param lowerCaseName the lower-case name, resolved once for this login call
      * @param auth the PlayerAuth object of the player
      * @param password the password supplied by the player
      * @return true if the password matches and all other conditions are met (e.g. no captcha required),
      *         false otherwise
      */
-    private boolean checkPlayerInfo(Player player, PlayerAuth auth, String password) {
-        String name = player.getName();
-        String lowerCaseName = name.toLowerCase(Locale.ROOT);
-
+    private boolean checkPlayerInfo(Player player, String name, String lowerCaseName, PlayerAuth auth,
+                                    String password) {
         // If captcha is required send a message to the player and deny to log in
         if (loginCaptchaManager.isCaptchaRequired(lowerCaseName)) {
             service.send(player, MessageKey.USAGE_CAPTCHA,
@@ -233,7 +239,7 @@ public class AsynchronousLogin implements AsynchronousProcess {
         tempbanManager.increaseCount(ip, lowerCaseName);
 
         if (!passwordSecurity.comparePassword(password, auth.getPassword(), name)) {
-            handleWrongPassword(player, auth, ip);
+            handleWrongPassword(player, name, auth, ip);
             return false;
         }
         return true;
@@ -243,11 +249,11 @@ public class AsynchronousLogin implements AsynchronousProcess {
      * Handles a login with wrong password.
      *
      * @param player the player who attempted to log in
+     * @param name the player's name, resolved once for this login call
      * @param auth the PlayerAuth object of the player
      * @param ip the ip address of the player
      */
-    private void handleWrongPassword(Player player, PlayerAuth auth, String ip) {
-        String name = player.getName();
+    private void handleWrongPassword(Player player, String name, PlayerAuth auth, String ip) {
         logger.fine(name + " used the wrong password");
 
         bukkitService.createAndCallEvent(isAsync -> new FailedLoginEvent(player, isAsync));
@@ -293,11 +299,10 @@ public class AsynchronousLogin implements AsynchronousProcess {
      * @param auth the associated PlayerAuth object
      */
     public void performLogin(Player player, PlayerAuth auth) {
-        doPerformLogin(player, auth, false);
+        doPerformLogin(player, player.getName(), auth, false);
     }
 
-    private void doPerformLogin(Player player, PlayerAuth auth, boolean proxyInitiated) {
-        String name = player.getName();
+    private void doPerformLogin(Player player, String name, PlayerAuth auth, boolean proxyInitiated) {
         if (player.isOnline()) {
             boolean isFirstLogin = (auth.getLastLogin() == null);
 
@@ -318,7 +323,7 @@ public class AsynchronousLogin implements AsynchronousProcess {
 
             // Other auths
             List<String> auths = dataSource.getAllAuthsByIp(auth.getLastIp());
-            displayOtherAccounts(auths, player);
+            displayOtherAccounts(auths, player, name);
 
             String email = auth.getEmail();
             if (service.getProperty(EmailSettings.RECALL_PLAYERS) && Utils.isEmailEmpty(email)) {
@@ -366,14 +371,14 @@ public class AsynchronousLogin implements AsynchronousProcess {
      *
      * @param auths the names of the accounts also owned by the player
      * @param player the player
+     * @param playerName the player's name, resolved once for this login call
      */
-    private void displayOtherAccounts(List<String> auths, Player player) {
+    private void displayOtherAccounts(List<String> auths, Player player, String playerName) {
         int accountCount = auths.size();
         if (!service.getProperty(RestrictionSettings.DISPLAY_OTHER_ACCOUNTS) || accountCount <= 1) {
             return;
         }
 
-        String playerName = player.getName();
         List<String> formattedNames = new ArrayList<>(accountCount);
         for (String currentName : auths) {
             Player currentPlayer = bukkitService.getPlayerExact(currentName);

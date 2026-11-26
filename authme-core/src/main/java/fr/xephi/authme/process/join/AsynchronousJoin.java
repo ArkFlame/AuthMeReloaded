@@ -311,7 +311,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
         // had a chance to take priority and return early. If perform.login arrived in time, the
         // player was already auto-logged in above and pendingKick is silently discarded.
         if (pendingKick != null) {
-            bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, () -> player.kickPlayer(pendingKick));
+            kickPlayer(player, pendingKick);
             return;
         }
 
@@ -417,8 +417,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
     }
 
     private void handlePlayerWithUnmetNameRestriction(Player player, String ip) {
-        bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player,
-            () -> player.kickPlayer(service.retrieveSingleMessage(player, MessageKey.NOT_OWNER_ERROR)));
+        kickWithMessageKey(player, MessageKey.NOT_OWNER_ERROR);
         if (service.getProperty(RestrictionSettings.BAN_UNKNOWN_IP)) {
             bukkitService.runOnGlobalRegion(() -> server.banIP(ip));
         }
@@ -454,6 +453,21 @@ public class AsynchronousJoin implements AsynchronousProcess {
             () -> commandManager.runCommandsOnSessionLogin(player));
     }
 
+    private Runnable pickPendingAction(Player player, String pendingLoginPassword, String pendingRecoveryEmail,
+                                       PreJoinDialogService.PendingRegistration pendingRegistration,
+                                       boolean pendingForceLogin) {
+        if (pendingRegistration != null) {
+            return () -> processPendingRegistration(player, pendingRegistration);
+        } else if (pendingLoginPassword != null) {
+            return () -> asynchronousLogin.login(player, pendingLoginPassword);
+        } else if (pendingRecoveryEmail != null) {
+            return () -> processPendingEmailRecovery(player, pendingRecoveryEmail);
+        } else if (pendingForceLogin) {
+            return () -> asynchronousLogin.forceLogin(player);
+        }
+        return null;
+    }
+
     /**
      * Performs various operations in sync mode for an unauthenticated player (such as blindness effect and
      * limbo player creation).
@@ -469,9 +483,18 @@ public class AsynchronousJoin implements AsynchronousProcess {
             isAuthAvailable ? RestrictionSettings.LOGIN_TIMEOUT : RestrictionSettings.REGISTER_TIMEOUT
         ) * TICKS_PER_SECOND;
 
+        // Pick the pre-join dialog continuation up front: the scheduled task then captures a
+        // single Runnable instead of all four pending values.
+        final Runnable pendingAction = pickPendingAction(player, pendingLoginPassword, pendingRecoveryEmail,
+            pendingRegistration, pendingForceLogin);
+
         bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, () -> {
             // Guard: proxy login may have completed between when this task was scheduled and now
-            if (!player.isOnline() || playerCache.isAuthenticated(player.getName())) {
+            if (!player.isOnline()) {
+                return;
+            }
+            String playerName = player.getName();
+            if (playerCache.isAuthenticated(playerName)) {
                 return;
             }
             limboService.createLimboPlayer(player, isAuthAvailable);
@@ -488,24 +511,14 @@ public class AsynchronousJoin implements AsynchronousProcess {
             commandManager.runCommandsOnJoin(player);
 
             // Pre-join dialog actions are mutually exclusive and all require the limbo created above.
-            // Pick the single action to run and schedule one follow-up task rather than one per case.
-            Runnable pendingAction = null;
-            if (pendingRegistration != null) {
-                pendingAction = () -> processPendingRegistration(player, pendingRegistration);
-            } else if (pendingLoginPassword != null) {
-                pendingAction = () -> asynchronousLogin.login(player, pendingLoginPassword);
-            } else if (pendingRecoveryEmail != null) {
-                pendingAction = () -> processPendingEmailRecovery(player, pendingRecoveryEmail);
-            } else if (pendingForceLogin) {
-                pendingAction = () -> asynchronousLogin.forceLogin(player);
-            }
+            // Schedule one follow-up task for the action picked above.
             if (pendingAction != null) {
                 bukkitService.runTaskOptionallyAsync(pendingAction);
                 return;
             }
 
             if (!shouldSkipPostJoinDialog
-                && !playerCache.isAuthenticated(player.getName())
+                && !playerCache.isAuthenticated(playerName)
                 && service.getProperty(RegistrationSettings.USE_DIALOG_UI)
                 && dialogAdapter.isDialogSupported()) {
                 bukkitService.runTaskLater(player, () -> showPostJoinDialogIfNecessary(player, isAuthAvailable), 1L);
@@ -564,8 +577,28 @@ public class AsynchronousJoin implements AsynchronousProcess {
     }
 
     private void kickFromPreJoinRecovery(Player player, MessageKey messageKey) {
-        String kickMessage = service.retrieveSingleMessage(player, messageKey);
+        kickPlayer(player, service.retrieveSingleMessage(player, messageKey));
+    }
+
+    /**
+     * Kicks the player on its owning thread with an already resolved message.
+     *
+     * @param player the player to kick
+     * @param kickMessage the message to show
+     */
+    private void kickPlayer(Player player, String kickMessage) {
         bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, () -> player.kickPlayer(kickMessage));
+    }
+
+    /**
+     * Resolves the message on the player's owning thread and kicks the player there.
+     *
+     * @param player the player to kick
+     * @param messageKey the message to resolve and show
+     */
+    private void kickWithMessageKey(Player player, MessageKey messageKey) {
+        bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player,
+            () -> player.kickPlayer(service.retrieveSingleMessage(player, messageKey)));
     }
 
     private void processPendingRegistration(Player player, PreJoinDialogService.PendingRegistration pendingRegistration) {
@@ -588,13 +621,13 @@ public class AsynchronousJoin implements AsynchronousProcess {
      * @return true if the verification is OK (no infraction), false if player has been kicked
      */
     private boolean validatePlayerCountForIp(Player player, String ip) {
-        if (service.getProperty(RestrictionSettings.MAX_JOIN_PER_IP) > 0
+        int maxPerIp = service.getProperty(RestrictionSettings.MAX_JOIN_PER_IP);
+        if (maxPerIp > 0
             && !service.hasPermission(player, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS)
             && !InternetProtocolUtils.isLoopbackAddress(ip)
-            && countOnlinePlayersByIp(ip) > service.getProperty(RestrictionSettings.MAX_JOIN_PER_IP)) {
+            && countOnlinePlayersByIp(ip) > maxPerIp) {
 
-            bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player,
-                () -> player.kickPlayer(service.retrieveSingleMessage(player, MessageKey.SAME_IP_ONLINE)));
+            kickWithMessageKey(player, MessageKey.SAME_IP_ONLINE);
             return false;
         }
         return true;
@@ -618,8 +651,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
                     premiumService.finalizePendingPremium(player, pendingUuid);
                     return true;
                 }
-                bungeeSender.sendPremiumUnset(name);
-                service.send(player, MessageKey.PREMIUM_PENDING_FAIL);
+                failPendingPremium(player, name);
                 return false;
             } else if (bungeeSender.isEnabled()) {
                 // Behind a proxy we intentionally keep the backend UUID on the offline v3 value, so
@@ -649,8 +681,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
                 }
                 logger.warning("canBypassWithPremium[v3/proxy]: verified UUID " + verified
                     + " does not match pending UUID " + pendingUuid + " for " + name + "; failing enrollment");
-                bungeeSender.sendPremiumUnset(name);
-                service.send(player, MessageKey.PREMIUM_PENDING_FAIL);
+                failPendingPremium(player, name);
                 return false;
             } else {
                 // No proxy: require cryptographic session verification via PacketEvents.
@@ -665,8 +696,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
                     premiumService.finalizePendingPremium(player, confirmedUuid);
                     return true;
                 }
-                bungeeSender.sendPremiumUnset(name);
-                service.send(player, MessageKey.PREMIUM_PENDING_FAIL);
+                failPendingPremium(player, name);
                 return false;
             }
         }
@@ -684,6 +714,17 @@ public class AsynchronousJoin implements AsynchronousProcess {
         // UUID v3 = Bukkit offline UUID: require cryptographic session verification via PacketEvents.
         UUID verifiedUuid = premiumLoginVerifier.consumeVerifiedUuid(name);
         return verifiedUuid != null && verifiedUuid.equals(auth.getPremiumUuid());
+    }
+
+    /**
+     * Notifies the proxy and the player that a pending premium enrollment failed.
+     *
+     * @param player the player whose enrollment failed
+     * @param name the player's name, as reported to the proxy
+     */
+    private void failPendingPremium(Player player, String name) {
+        bungeeSender.sendPremiumUnset(name);
+        service.send(player, MessageKey.PREMIUM_PENDING_FAIL);
     }
 
     private int countOnlinePlayersByIp(String ip) {

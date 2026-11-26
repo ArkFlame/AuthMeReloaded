@@ -13,6 +13,8 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -79,35 +81,17 @@ class AsyncChangePasswordTest {
         verifyNoInteractions(passwordSecurity, dataSource, commonService);
     }
 
-    @Test
-    void shouldUpdatePasswordOfLoggedInUser() {
+    @ParameterizedTest(name = "update password of {0} user")
+    @ValueSource(booleans = {true, false})
+    void shouldUpdatePassword(boolean loggedIn) {
         // given
         CommandSender sender = mock(CommandSender.class);
         String player = "my_user12";
         String password = "passPass";
-        given(playerCache.isAuthenticated(player)).willReturn(true);
-
-        HashedPassword hashedPassword = mock(HashedPassword.class);
-        given(passwordSecurity.computeHash(password, player)).willReturn(hashedPassword);
-        given(dataSource.updatePassword(player, hashedPassword)).willReturn(true);
-
-        // when
-        asyncChangePassword.changePasswordAsAdmin(sender, player, password);
-
-        // then
-        verify(commonService).send(sender, MessageKey.PASSWORD_CHANGED_SUCCESS);
-        verify(passwordSecurity).computeHash(password, player);
-        verify(dataSource).updatePassword(player, hashedPassword);
-    }
-
-    @Test
-    void shouldUpdatePasswordOfOfflineUser() {
-        // given
-        CommandSender sender = mock(CommandSender.class);
-        String player = "my_user12";
-        String password = "passPass";
-        given(playerCache.isAuthenticated(player)).willReturn(false);
-        given(dataSource.isAuthAvailable(player)).willReturn(true);
+        given(playerCache.isAuthenticated(player)).willReturn(loggedIn);
+        if (!loggedIn) {
+            given(dataSource.isAuthAvailable(player)).willReturn(true);
+        }
 
         HashedPassword hashedPassword = mock(HashedPassword.class);
         given(passwordSecurity.computeHash(password, player)).willReturn(hashedPassword);

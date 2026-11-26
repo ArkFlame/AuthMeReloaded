@@ -72,13 +72,13 @@ public final class TagReplacer {
         if (!matcher.find()) {
             // Couldn't find results, so just return text as it is
             return text;
-        } else if (tagValue.isEmpty()) {
+        }
+        if (tagValue.isEmpty()) {
             // Tag is empty, replace [tagName]some_text[/tagName] to nothing
             return matcher.replaceAll("");
-        } else {
-            // Tag is not empty, so replace [tagName]some_text[/tagName] to some_text
-            return matcher.replaceAll(matcher.group(1));
         }
+        // Tag is not empty, so replace [tagName]some_text[/tagName] to some_text
+        return matcher.replaceAll(matcher.group(1));
     }
 
     /**
@@ -100,11 +100,11 @@ public final class TagReplacer {
             return matcher.replaceAll("");
         }
         final String innerTemplate = matcher.group(1).trim() + "\n";
-        String result = "";
+        StringBuilder result = new StringBuilder();
         for (TagValueHolder entry : tagValue.getValue()) {
-            result += applyReplacements(innerTemplate, entry);
+            result.append(applyReplacements(innerTemplate, entry));
         }
-        return matcher.replaceAll(result);
+        return matcher.replaceAll(result.toString());
     }
 
 }

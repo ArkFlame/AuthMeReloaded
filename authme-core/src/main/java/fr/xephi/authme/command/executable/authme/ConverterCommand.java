@@ -50,7 +50,9 @@ public class ConverterCommand implements ExecutableCommand {
 
     @Override
     public void executeCommand(CommandSender sender, List<String> arguments) {
-        Class<? extends Converter> converterClass = getConverterClassFromArgs(arguments);
+        Class<? extends Converter> converterClass = arguments.isEmpty()
+            ? null
+            : CONVERTERS.get(arguments.get(0).toLowerCase(Locale.ROOT));
         if (converterClass == null) {
             sender.sendMessage("Converters: " + String.join(", ", CONVERTERS.keySet()));
             return;
@@ -67,12 +69,6 @@ public class ConverterCommand implements ExecutableCommand {
         });
 
         sender.sendMessage("[AuthMe] Successfully started " + arguments.get(0));
-    }
-
-    private static Class<? extends Converter> getConverterClassFromArgs(List<String> arguments) {
-        return arguments.isEmpty()
-            ? null
-            : CONVERTERS.get(arguments.get(0).toLowerCase(Locale.ROOT));
     }
 
     /**

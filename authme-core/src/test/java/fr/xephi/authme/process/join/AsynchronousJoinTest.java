@@ -221,6 +221,9 @@ public class AsynchronousJoinTest {
         verify(asynchronousLogin).forceLogin(player);
         verify(limboService, never()).createLimboPlayer(player, true);
         verifyNoLoginDialog(player);
+        // The account is read once and reused; no second availability lookup is performed.
+        verify(database, times(1)).getAuth("bobby");
+        verify(database, never()).isAuthAvailable(anyString());
     }
 
     @Test
@@ -278,6 +281,9 @@ public class AsynchronousJoinTest {
         verify(limboService).createLimboPlayer(player, true);
         verify(asynchronousLogin).login(player, "hunter2");
         verifyNoLoginDialog(player);
+        // The account is read once and reused; no second availability lookup is performed.
+        verify(database, times(1)).getAuth("bobby");
+        verify(database, never()).isAuthAvailable(anyString());
     }
 
     @Test
@@ -431,6 +437,9 @@ public class AsynchronousJoinTest {
         verify(asynchronousLogin).forceLogin(player);
         verify(limboService, never()).createLimboPlayer(eq(player), anyBoolean());
         verifyNoLoginDialog(player);
+        // The account is read once and reused; no second availability lookup is performed.
+        verify(database, times(1)).getAuth(".bobby");
+        verify(database, never()).isAuthAvailable(anyString());
     }
 
     @Test

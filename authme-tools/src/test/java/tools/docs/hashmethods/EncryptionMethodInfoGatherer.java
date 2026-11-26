@@ -63,7 +63,7 @@ public class EncryptionMethodInfoGatherer {
     private static MethodDescription createDescription(HashAlgorithm algorithm) {
         Class<? extends EncryptionMethod> clazz = algorithm.getClazz();
         EncryptionMethod method = createEncryptionMethod(clazz);
-        MethodDescription description = new MethodDescription(clazz);
+        MethodDescription description = new MethodDescription();
         description.setHashLength(method.computeHash("test", "user").getHash().length());
         description.setHasSeparateSalt(method.hasSeparateSalt());
 

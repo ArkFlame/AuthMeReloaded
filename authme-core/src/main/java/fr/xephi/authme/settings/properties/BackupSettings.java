@@ -1,28 +1,19 @@
 package fr.xephi.authme.settings.properties;
 
-import ch.jalu.configme.Comment;
-import ch.jalu.configme.SettingsHolder;
 import ch.jalu.configme.properties.Property;
 
-import static ch.jalu.configme.properties.PropertyInitializer.newProperty;
+/**
+ * Source-compatible access point for the backup settings, which live in {@link PurgeSettings}.
+ *
+ * <p>The properties are declared by the single settings holder so they are registered with
+ * ConfigMe exactly once. This class only forwards to those declarations.
+ */
+public final class BackupSettings {
 
-public final class BackupSettings implements SettingsHolder {
-
-    @Comment("General configuration for backups: if false, no backups are possible")
-    public static final Property<Boolean> ENABLED =
-        newProperty("BackupSystem.ActivateBackup", false);
-
-    @Comment("Create backup at every start of server")
-    public static final Property<Boolean> ON_SERVER_START =
-        newProperty("BackupSystem.OnServerStart", false);
-
-    @Comment("Create backup at every stop of server")
-    public static final Property<Boolean> ON_SERVER_STOP =
-        newProperty("BackupSystem.OnServerStop", true);
-
-    @Comment("Windows only: MySQL installation path")
-    public static final Property<String> MYSQL_WINDOWS_PATH =
-        newProperty("BackupSystem.MysqlWindowsPath", "C:\\Program Files\\MySQL\\MySQL Server 5.1\\");
+    public static final Property<Boolean> ENABLED = PurgeSettings.ENABLED;
+    public static final Property<Boolean> ON_SERVER_START = PurgeSettings.ON_SERVER_START;
+    public static final Property<Boolean> ON_SERVER_STOP = PurgeSettings.ON_SERVER_STOP;
+    public static final Property<String> MYSQL_WINDOWS_PATH = PurgeSettings.MYSQL_WINDOWS_PATH;
 
     private BackupSettings() {
     }

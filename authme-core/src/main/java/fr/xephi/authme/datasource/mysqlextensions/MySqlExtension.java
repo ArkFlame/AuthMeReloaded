@@ -93,4 +93,78 @@ public abstract class MySqlExtension {
         }
         return OptionalInt.empty();
     }
+
+    /**
+     * Sets the given columns of the account's row to an int value. Implemented with primitive value types
+     * to avoid boxing when the value comes from a configuration property or a long/int computation.
+     *
+     * @param fullTableName table name as written after {@code UPDATE}
+     * @param qualifiedTableName table name used to qualify the columns in the {@code SET} clause
+     * @param columns the columns to update
+     * @param value the value to set the columns to
+     * @param name the name of the account to update
+     * @param con connection to the sql table
+     * @throws SQLException .
+     */
+    protected void setIntColumns(String fullTableName, String qualifiedTableName, String[] columns,
+                                 int value, String name, Connection con) throws SQLException {
+        for (String column : columns) {
+            try (PreparedStatement pst = prepareColumnUpdate(fullTableName, qualifiedTableName, column, con)) {
+                pst.setInt(1, value);
+                pst.setString(2, name);
+                pst.executeUpdate();
+            }
+        }
+    }
+
+    /**
+     * Sets the given columns of the account's row to a long value.
+     *
+     * @param fullTableName table name as written after {@code UPDATE}
+     * @param qualifiedTableName table name used to qualify the columns in the {@code SET} clause
+     * @param columns the columns to update
+     * @param value the value to set the columns to
+     * @param name the name of the account to update
+     * @param con connection to the sql table
+     * @throws SQLException .
+     */
+    protected void setLongColumns(String fullTableName, String qualifiedTableName, String[] columns,
+                                  long value, String name, Connection con) throws SQLException {
+        for (String column : columns) {
+            try (PreparedStatement pst = prepareColumnUpdate(fullTableName, qualifiedTableName, column, con)) {
+                pst.setLong(1, value);
+                pst.setString(2, name);
+                pst.executeUpdate();
+            }
+        }
+    }
+
+    /**
+     * Sets the given columns of the account's row to a string value.
+     *
+     * @param fullTableName table name as written after {@code UPDATE}
+     * @param qualifiedTableName table name used to qualify the columns in the {@code SET} clause
+     * @param columns the columns to update
+     * @param value the value to set the columns to
+     * @param name the name of the account to update
+     * @param con connection to the sql table
+     * @throws SQLException .
+     */
+    protected void setStringColumns(String fullTableName, String qualifiedTableName, String[] columns,
+                                    String value, String name, Connection con) throws SQLException {
+        for (String column : columns) {
+            try (PreparedStatement pst = prepareColumnUpdate(fullTableName, qualifiedTableName, column, con)) {
+                pst.setString(1, value);
+                pst.setString(2, name);
+                pst.executeUpdate();
+            }
+        }
+    }
+
+    private PreparedStatement prepareColumnUpdate(String fullTableName, String qualifiedTableName, String column,
+                                                  Connection con) throws SQLException {
+        String sql = "UPDATE " + fullTableName + " SET " + qualifiedTableName + "." + column
+            + "=? WHERE " + col.NAME + "=?;";
+        return con.prepareStatement(sql);
+    }
 }

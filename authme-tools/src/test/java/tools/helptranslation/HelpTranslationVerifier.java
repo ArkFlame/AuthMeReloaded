@@ -55,15 +55,18 @@ public class HelpTranslationVerifier {
     }
 
     public List<String> getMissingCommands() {
-        // All entries start with "command.", so remove that
-        return missingCommands.stream()
-            .map(s -> s.substring(9)).collect(Collectors.toList());
+        return stripCommandPrefix(missingCommands);
     }
 
     public List<String> getUnknownCommands() {
-        // All entries start with "command.", so remove that
-        return unknownCommands.stream()
-            .map(s -> s.substring(9)).collect(Collectors.toList());
+        return stripCommandPrefix(unknownCommands);
+    }
+
+    /** All command entries start with "command.", so remove that prefix. */
+    private static List<String> stripCommandPrefix(List<String> entries) {
+        return entries.stream()
+            .map(s -> s.substring(9))
+            .collect(Collectors.toList());
     }
 
     /**

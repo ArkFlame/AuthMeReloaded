@@ -157,10 +157,17 @@ public class Messages {
     }
 
     private static String formatMessage(String message, String name, String displayName) {
-        return ChatColor.translateAlternateColorCodes('&', message)
-                .replace(NEWLINE_TAG, "\n")
-                .replace(USERNAME_TAG, name)
-                .replace(DISPLAYNAME_TAG, displayName);
+        String formatted = message.indexOf('&') >= 0
+            ? ChatColor.translateAlternateColorCodes('&', message)
+            : message;
+        // String.replace allocates a regex machinery even when the tag is absent, so only
+        // apply the newline conversion when it is actually present in the message.
+        if (formatted.contains(NEWLINE_TAG)) {
+            formatted = formatted.replace(NEWLINE_TAG, "\n");
+        }
+        return formatted
+            .replace(USERNAME_TAG, name)
+            .replace(DISPLAYNAME_TAG, displayName);
     }
 
     /**

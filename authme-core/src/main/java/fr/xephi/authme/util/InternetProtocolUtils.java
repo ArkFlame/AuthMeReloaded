@@ -19,9 +19,8 @@ public final class InternetProtocolUtils {
      * @return true if the address is a local (site and link) or loopback address, false otherwise
      */
     public static boolean isLocalAddress(String address) {
-        try {
-            InetAddress inetAddress = InetAddress.getByName(address);
-
+        InetAddress inetAddress = resolveAddress(address);
+        if (inetAddress != null) {
             // Examples: 127.0.0.1, localhost or [::1]
             return inetAddress.isLoopbackAddress()
                     // Example: 10.0.0.0, 172.16.0.0, 192.168.0.0, fec0::/10 (deprecated)
@@ -32,9 +31,8 @@ public final class InternetProtocolUtils {
                     || inetAddress.isLinkLocalAddress()
                     // non deprecated unique site-local that java doesn't check yet -> fc00::/7
                     || isIPv6UniqueSiteLocal(inetAddress);
-        } catch (UnknownHostException e) {
-            return false;
         }
+        return false;
     }
 
     /**
@@ -49,11 +47,16 @@ public final class InternetProtocolUtils {
      * @return true if the address is a loopback one
      */
     public static boolean isLoopbackAddress(String address) {
+        InetAddress inetAddress = resolveAddress(address);
+        return inetAddress != null && inetAddress.isLoopbackAddress();
+    }
+
+    /** Resolves the address, returning null when it cannot be resolved. */
+    private static InetAddress resolveAddress(String address) {
         try {
-            InetAddress inetAddress = InetAddress.getByName(address);
-            return inetAddress.isLoopbackAddress();
+            return InetAddress.getByName(address);
         } catch (UnknownHostException e) {
-            return false;
+            return null;
         }
     }
 

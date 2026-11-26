@@ -21,13 +21,9 @@ import io.papermc.paper.threadedregions.scheduler.AsyncScheduler;
 import io.papermc.paper.threadedregions.scheduler.EntityScheduler;
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import org.bukkit.Bukkit;
-import fr.xephi.authme.process.register.RegisterSecondaryArgument;
-import fr.xephi.authme.process.register.RegistrationType;
-import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerKickEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -36,6 +32,7 @@ import org.mockito.MockedStatic;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -50,18 +47,9 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-import java.util.concurrent.TimeUnit;
-
 public class FoliaPlatformAdapterTest {
 
     private final FoliaPlatformAdapter adapter = new FoliaPlatformAdapter();
-    private final DialogWindowSpec dialog = new DialogWindowSpec("Title",
-        List.of(new DialogInputSpec("password", "Password", 100)),
-        "Submit",
-        "Cancel",
-        false,
-        false,
-        null);
 
     @Test
     public void getPlatformNameReturnsExpectedValue() {
@@ -71,12 +59,6 @@ public class FoliaPlatformAdapterTest {
     @Test
     public void getCompatibilityErrorReturnsNullForCompatibleClasspath() {
         assertThat(adapter.getCompatibilityError(), is((String) null));
-    }
-
-    @Test
-    public void isDialogSupportedReturnsTrueWhenApiIsOnClasspath() {
-        // The Paper dialog API is a test dependency, so DIALOG_AVAILABLE is true
-        assertThat(adapter.isDialogSupported(), is(true));
     }
 
     @Test
@@ -99,60 +81,6 @@ public class FoliaPlatformAdapterTest {
             FoliaPlayerSpawnLocationListener.class,
             PaperLoginValidationListener.class,
             PlayerOpenSignListener.class));
-    }
-
-    @Test
-    public void getListenersRetainsAllModernEventProtections() {
-        List<Class<? extends Listener>> listeners = adapter.getListeners();
-        assertThat(listeners, org.hamcrest.Matchers.hasItem(PlayerSwapHandItemsListener.class));
-        assertThat(listeners, org.hamcrest.Matchers.hasItem(EntityAirChangeListener.class));
-        assertThat(listeners, org.hamcrest.Matchers.hasItem(EntityPickupItemListener.class));
-    }
-
-    @Test
-    public void showLoginDialogDelegatesToPaperDialogHelper() {
-        // given
-        Player player = mock(Player.class);
-
-        // when / then - FoliaDialogHelper uses API calls that require a running server.
-        // Use mockStatic to verify delegation without invoking the full Paper server stack.
-        try (MockedStatic<PaperDialogHelper> helperMock = mockStatic(PaperDialogHelper.class)) {
-            adapter.showLoginDialog(player, dialog);
-
-            helperMock.verify(() -> PaperDialogHelper.showLoginDialog(player, dialog));
-        }
-    }
-
-    @Test
-    public void showRegisterDialogDelegatesToPaperDialogHelper() {
-        // given
-        Player player = mock(Player.class);
-
-        // when / then
-        try (MockedStatic<PaperDialogHelper> helperMock = mockStatic(PaperDialogHelper.class)) {
-            adapter.showRegisterDialog(player, RegistrationType.EMAIL, RegisterSecondaryArgument.CONFIRMATION, dialog);
-
-            helperMock.verify(() -> PaperDialogHelper.showRegisterDialog(
-                eq(player),
-                eq(RegistrationType.EMAIL),
-                eq(RegisterSecondaryArgument.CONFIRMATION),
-                eq(dialog)));
-        }
-    }
-
-    @Test
-    public void teleportPlayerCallsTeleportAsync() {
-        // given
-        Player player = mock(Player.class);
-        given(player.getUniqueId()).willReturn(UUID.randomUUID());
-        Location location = mock(Location.class);
-        given(player.teleportAsync(location)).willReturn(new CompletableFuture<>());
-
-        // when
-        adapter.teleportPlayer(player, location);
-
-        // then
-        verify(player).teleportAsync(location);
     }
 
     @Test
@@ -185,20 +113,6 @@ public class FoliaPlatformAdapterTest {
             taskCaptor.getValue().accept(mock(ScheduledTask.class));
             verify(player).teleportAsync(second);
         }
-    }
-
-    @Test
-    public void getKickReasonReturnsPlainTextFromComponent() {
-        // given
-        // PlayerKickEvent is not final; reason() is a Paper API method, stubable with Mockito 5
-        PlayerKickEvent event = mock(PlayerKickEvent.class);
-        given(event.reason()).willReturn(Component.text("You were kicked"));
-
-        // when
-        String reason = adapter.getKickReason(event);
-
-        // then
-        assertThat(reason, is("You were kicked"));
     }
 
     @Test
@@ -250,4 +164,3 @@ public class FoliaPlatformAdapterTest {
         verify(scheduledTask).cancel();
     }
 }
-

@@ -42,6 +42,6 @@ public interface EventRegistrationAdapter {
         for (List<Class<? extends Listener>> listenerGroup : listenerGroups) {
             listeners.addAll(listenerGroup);
         }
-        return Collections.unmodifiableList(new ArrayList<Class<? extends Listener>>(listeners));
+        return Collections.unmodifiableList(listeners);
     }
 }

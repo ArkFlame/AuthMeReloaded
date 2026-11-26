@@ -1,9 +1,7 @@
 package fr.xephi.authme.command.executable.authme;
 
-import fr.xephi.authme.command.PlayerCommand;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.platform.TeleportAdapter;
-import fr.xephi.authme.settings.SpawnLoader;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
@@ -13,10 +11,7 @@ import java.util.List;
 /**
  * Common base for commands that teleport the player to a configured spawn.
  */
-public abstract class SpawnTeleportCommand extends PlayerCommand {
-
-    @Inject
-    private SpawnLoader spawnLoader;
+public abstract class SpawnTeleportCommand extends AbstractSpawnCommand {
 
     @Inject
     private TeleportAdapter teleportAdapter;
@@ -40,12 +35,4 @@ public abstract class SpawnTeleportCommand extends PlayerCommand {
      * @return the message to show when no spawn location is configured
      */
     protected abstract MessageKey getNotDefinedMessage();
-
-    protected SpawnLoader getSpawnLoader() {
-        return spawnLoader;
-    }
-
-    protected TeleportAdapter getTeleportAdapter() {
-        return teleportAdapter;
-    }
 }

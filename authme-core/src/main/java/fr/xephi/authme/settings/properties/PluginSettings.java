@@ -108,6 +108,28 @@ public final class PluginSettings implements SettingsHolder {
     @Comment("The name of the server, used in some placeholders.")
     public static final Property<String> SERVER_NAME = newProperty("settings.serverName", "Your Minecraft Server");
 
+    @Comment({
+        "Enable premium mode: players with an official Minecraft account",
+        "can skip password authentication.",
+        "Verification method is chosen automatically:",
+        "  - online-mode=true: Bukkit already has the Mojang UUID; no PacketEvents needed.",
+        "  - offline-mode + proxy: set Hooks.bungeecord=true; UUID is forwarded by proxy.",
+        "  - offline-mode, no proxy: PacketEvents required for cryptographic verification.",
+        "    Without PacketEvents, premium auto-login is disabled (fail closed).",
+        "Players must use /premium to opt in."
+    })
+    public static final Property<Boolean> ENABLE_PREMIUM =
+        newProperty("settings.enablePremium", false);
+
+    @Comment({
+        "Automatically register players with a verified premium identity",
+        "who do not have an account yet.",
+        "Requires enablePremium and the same identity verification as premium bypass.",
+        "Existing accounts are never modified."
+    })
+    public static final Property<Boolean> AUTO_REGISTER =
+        newProperty("settings.premium.autoRegister", false);
+
     private PluginSettings() {
     }
 

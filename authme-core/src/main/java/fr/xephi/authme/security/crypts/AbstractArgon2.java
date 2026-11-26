@@ -3,9 +3,10 @@ package fr.xephi.authme.security.crypts;
 import org.bouncycastle.crypto.generators.Argon2BytesGenerator;
 import org.bouncycastle.crypto.params.Argon2Parameters;
 
-import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Base64;
+
+import static fr.xephi.authme.security.HashUtils.isEqual;
 
 /**
  * Common implementation for Argon2 variants stored in the PHC string format.
@@ -59,7 +60,7 @@ public abstract class AbstractArgon2 extends UnsaltedMethod {
             byte[] salt = decodeNoPadding(parts[4]);
             byte[] expected = decodeNoPadding(parts[5]);
             byte[] computed = derive(password.toCharArray(), salt, params[1], params[0], params[2], expected.length);
-            return MessageDigest.isEqual(computed, expected);
+            return isEqual(computed, expected);
         } catch (IllegalArgumentException e) {
             return false;
         }

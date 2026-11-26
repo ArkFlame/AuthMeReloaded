@@ -43,31 +43,12 @@ class PhpBbExtension extends MySqlExtension {
             pst.setInt(4, 0);
             pst.executeUpdate();
         }
-        // Update username_clean in phpbb_users
-        sql = "UPDATE " + tableName + " SET " + tableName + ".username_clean=? WHERE " + col.NAME + "=?;";
-        try (PreparedStatement pst = con.prepareStatement(sql)) {
-            pst.setString(1, name);
-            pst.setString(2, name);
-            pst.executeUpdate();
-        }
-        // Update player group in phpbb_users
-        sql = "UPDATE " + tableName + " SET " + tableName + ".group_id=? WHERE " + col.NAME + "=?;";
-        try (PreparedStatement pst = con.prepareStatement(sql)) {
-            pst.setInt(1, phpBbGroup);
-            pst.setString(2, name);
-            pst.executeUpdate();
-        }
-        // Get current time without ms
+        // Update username_clean and the player group in phpbb_users
+        setStringColumns(tableName, tableName, new String[]{"username_clean"}, name, name, con);
+        setIntColumns(tableName, tableName, new String[]{"group_id"}, phpBbGroup, name, con);
+        // Get current time without ms, then update user_regdate and user_lastvisit
         long time = System.currentTimeMillis() / 1000;
-        // Update user_regdate and user_lastvisit
-        for (String column : new String[]{"user_regdate", "user_lastvisit"}) {
-            sql = "UPDATE " + tableName + " SET " + tableName + "." + column + "=? WHERE " + col.NAME + "=?;";
-            try (PreparedStatement pst = con.prepareStatement(sql)) {
-                pst.setLong(1, time);
-                pst.setString(2, name);
-                pst.executeUpdate();
-            }
-        }
+        setLongColumns(tableName, tableName, new String[]{"user_regdate", "user_lastvisit"}, time, name, con);
         // Increment num_users
         sql = "UPDATE " + phpBbPrefix
             + "config SET config_value = config_value + 1 WHERE config_name = 'num_users';";

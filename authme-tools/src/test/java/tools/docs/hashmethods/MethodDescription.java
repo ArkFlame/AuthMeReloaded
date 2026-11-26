@@ -9,8 +9,6 @@ import fr.xephi.authme.security.crypts.description.Usage;
  */
 public class MethodDescription {
 
-    /** The implementation class the description belongs to. */
-    private final Class<? extends EncryptionMethod> method;
     /** The type of the salt that is used. */
     private SaltType saltType;
     /** The length of the salt for SaltType.TEXT salts. */
@@ -24,16 +22,7 @@ public class MethodDescription {
     /** The length of the hash output, based on a test hash (i.e. assumes same length for all hashes.) */
     private int hashLength;
 
-    public MethodDescription(Class<? extends EncryptionMethod> method) {
-        this.method = method;
-    }
-
-
     // Trivial getters and setters
-    public Class<? extends EncryptionMethod> getMethod() {
-        return method;
-    }
-
     public SaltType getSaltType() {
         return saltType;
     }

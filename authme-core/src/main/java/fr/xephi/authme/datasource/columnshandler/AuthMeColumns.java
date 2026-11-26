@@ -49,14 +49,10 @@ public final class AuthMeColumns {
         DatabaseSettings.MYSQL_COL_REGISTER_DATE, PlayerAuth::getRegistrationDate);
 
     public static final PlayerAuthColumn<String> UUID = createString(
-        DatabaseSettings.MYSQL_COL_PLAYER_UUID,
-        auth -> auth.getUuid() == null ? null : auth.getUuid().toString(),
-        OPTIONAL);
+        DatabaseSettings.MYSQL_COL_PLAYER_UUID, auth -> uuidToString(auth.getUuid()), OPTIONAL);
 
     public static final PlayerAuthColumn<String> PREMIUM_UUID = createString(
-        DatabaseSettings.MYSQL_COL_PREMIUM_UUID,
-        auth -> auth.getPremiumUuid() == null ? null : auth.getPremiumUuid().toString(),
-        OPTIONAL);
+        DatabaseSettings.MYSQL_COL_PREMIUM_UUID, auth -> uuidToString(auth.getPremiumUuid()), OPTIONAL);
 
     // --------
     // Location columns
@@ -87,6 +83,10 @@ public final class AuthMeColumns {
 
     public static final DataSourceColumn<Integer> HAS_SESSION = createInteger(
         DatabaseSettings.MYSQL_COL_HASSESSION);
+
+    private static String uuidToString(UUID uuid) {
+        return uuid == null ? null : uuid.toString();
+    }
 
     private AuthMeColumns() {
     }

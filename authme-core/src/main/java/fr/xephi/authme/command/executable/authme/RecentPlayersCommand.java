@@ -42,14 +42,9 @@ public class RecentPlayersCommand implements ExecutableCommand {
     }
 
     private String formatPlayerMessage(PlayerAuth auth) {
-        String lastLoginText;
-        if (auth.getLastLogin() == null) {
-            lastLoginText = "never";
-        } else {
-            LocalDateTime lastLogin = LocalDateTime.ofInstant(ofEpochMilli(auth.getLastLogin()), getZoneId());
-            lastLoginText = DATE_FORMAT.format(lastLogin);
-        }
-
+        Long lastLogin = auth.getLastLogin();
+        String lastLoginText = lastLogin == null ? "never"
+            : DATE_FORMAT.format(LocalDateTime.ofInstant(ofEpochMilli(lastLogin), getZoneId()));
         return "- " + auth.getRealName() + " (" + lastLoginText + " with IP " + auth.getLastIp() + ")";
     }
 }

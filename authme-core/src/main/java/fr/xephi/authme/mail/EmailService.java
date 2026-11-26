@@ -87,19 +87,12 @@ public class EmailService {
      * @return true if email could be sent, false otherwise
      */
     public boolean sendVerificationMail(String name, String mailAddress, String code) {
-        if (!hasAllInformation()) {
-            logger.warning("Cannot send verification email: not all email settings are complete");
-            return false;
-        }
-
-        HtmlEmail email = initializeMail(mailAddress, "Failed to create verification email with the given settings:");
-        if (email == null) {
-            return false;
-        }
-
-        String mailText = replaceTagsForVerificationEmail(settings.getVerificationEmailMessage(), name, code,
-            settings.getProperty(SecuritySettings.VERIFICATION_CODE_EXPIRATION_MINUTES));
-        return sendMailSsl.sendEmail(mailText, email);
+        return sendVerificationCodeMail(
+            "Cannot send verification email: not all email settings are complete",
+            "Failed to create verification email with the given settings:",
+            name, mailAddress, code,
+            settings.getProperty(SecuritySettings.VERIFICATION_CODE_EXPIRATION_MINUTES),
+            settings.getVerificationEmailMessage());
     }
 
     /**
@@ -111,19 +104,39 @@ public class EmailService {
      * @return true if email could be sent, false otherwise
      */
     public boolean sendEmailConfirmationMail(String name, String email, String code) {
-        if (!hasAllInformation()) {
-            logger.warning("Cannot send email confirmation: not all email settings are complete");
-            return false;
-        }
-
-        HtmlEmail htmlEmail = initializeMail(email, "Failed to create email confirmation mail with the given settings:");
-        if (htmlEmail == null) {
-            return false;
-        }
-
         // TTL matches PendingEmailVerificationCache.TTL_MS (10 minutes)
-        String mailText = replaceTagsForVerificationEmail(settings.getEmailConfirmationMessage(), name, code, 10);
-        return sendMailSsl.sendEmail(mailText, htmlEmail);
+        return sendVerificationCodeMail(
+            "Cannot send email confirmation: not all email settings are complete",
+            "Failed to create email confirmation mail with the given settings:",
+            name, email, code, 10, settings.getEmailConfirmationMessage());
+    }
+
+    /**
+     * Sends a mail with a verification code once all email settings are complete.
+     *
+     * @param warning warning to log when email settings are incomplete
+     * @param errorMessage message to log when the mail cannot be initialized
+     * @param name the name of the player
+     * @param mailAddress the recipient address
+     * @param code the verification code
+     * @param minutesValid number of minutes the code stays valid
+     * @param message the mail template
+     * @return true if the mail could be sent, false otherwise
+     */
+    private boolean sendVerificationCodeMail(String warning, String errorMessage, String name, String mailAddress,
+                                             String code, int minutesValid, String message) {
+        if (!hasAllInformation()) {
+            logger.warning(warning);
+            return false;
+        }
+
+        HtmlEmail email = initializeMail(mailAddress, errorMessage);
+        if (email == null) {
+            return false;
+        }
+
+        String mailText = replaceTagsForVerificationEmail(message, name, code, minutesValid);
+        return sendMailSsl.sendEmail(mailText, email);
     }
 
     /**

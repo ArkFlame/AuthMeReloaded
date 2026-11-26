@@ -39,12 +39,12 @@ public class SwitchAntiBotCommand implements ExecutableCommand {
 
         String newState = arguments.get(0);
 
-        if ("ON".equalsIgnoreCase(newState)) {
-            antiBotService.overrideAntiBotStatus(true);
-            messages.send(sender, MessageKey.ANTIBOT_OVERRIDE_ENABLED);
-        } else if ("OFF".equalsIgnoreCase(newState)) {
-            antiBotService.overrideAntiBotStatus(false);
-            messages.send(sender, MessageKey.ANTIBOT_OVERRIDE_DISABLED);
+        if ("ON".equalsIgnoreCase(newState) || "OFF".equalsIgnoreCase(newState)) {
+            boolean enabled = "ON".equalsIgnoreCase(newState);
+            antiBotService.overrideAntiBotStatus(enabled);
+            messages.send(sender, enabled
+                ? MessageKey.ANTIBOT_OVERRIDE_ENABLED
+                : MessageKey.ANTIBOT_OVERRIDE_DISABLED);
         } else {
             messages.send(sender, MessageKey.ANTIBOT_INVALID_MODE);
             FoundCommandResult result = commandMapper.mapPartsToCommand(sender, Arrays.asList("authme", "antibot"));

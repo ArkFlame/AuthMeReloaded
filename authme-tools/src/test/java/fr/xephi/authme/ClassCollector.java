@@ -80,7 +80,7 @@ public class ClassCollector {
      * @return collection of created objects
      */
     public <T> List<T> getInstancesOfType(Class<T> parent) {
-        return getInstancesOfType(parent, (clz) -> {
+        return getInstancesOfType(parent, clz -> {
            try {
                return canInstantiate(clz) ? clz.newInstance() : null;
            } catch (InstantiationException | IllegalAccessException e) {

@@ -14,6 +14,11 @@ public enum MessageType {
     PREMIUM_LIST_CHUNK("premium.list.chunk", false),
     PREMIUM_PENDING_SET("premium.pending.set", false);
 
+    /**
+     * Plugin-messaging channel shared by the backend and the proxy side of the bridge.
+     */
+    public static final String CHANNEL = "authme:main";
+
     private final String id;
     private final boolean broadcast;
 

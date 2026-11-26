@@ -23,13 +23,9 @@ public final class CommandUtils {
      * @return min number of arguments required by the command
      */
     public static int getMinNumberOfArguments(CommandDescription command) {
-        int mandatoryArguments = 0;
-        for (CommandArgumentDescription argument : command.getArguments()) {
-            if (!argument.isOptional()) {
-                ++mandatoryArguments;
-            }
-        }
-        return mandatoryArguments;
+        return (int) command.getArguments().stream()
+            .filter(argument -> !argument.isOptional())
+            .count();
     }
 
     /**

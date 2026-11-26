@@ -18,6 +18,7 @@ public final class Utils {
     public static final long MILLIS_PER_MINUTE = 60_000L;
 
     private static final ConsoleLogger logger = ConsoleLoggerFactory.get(Utils.class);
+    private static final Pattern MATCH_ALL_PATTERN = Pattern.compile(".*?");
 
     // Utility class
     private Utils() {
@@ -35,7 +36,7 @@ public final class Utils {
             return Pattern.compile(pattern);
         } catch (Exception e) {
             logger.warning("Failed to compile pattern '" + pattern + "' - defaulting to allowing everything");
-            return Pattern.compile(".*?");
+            return MATCH_ALL_PATTERN;
         }
     }
 

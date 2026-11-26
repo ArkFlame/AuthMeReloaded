@@ -9,6 +9,7 @@ import org.bukkit.command.CommandSender;
 import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -55,13 +56,11 @@ public class CommandMapper {
         List<String> remainingParts = parts.subList(1, parts.size());
         CommandDescription childCommand = getSuitableChild(base, remainingParts);
         if (childCommand != null) {
-            FoundResultStatus status = getPermissionAwareStatus(sender, childCommand);
-            FoundCommandResult result = new FoundCommandResult(
-                childCommand, parts.subList(0, 2), parts.subList(2, parts.size()), 0.0, status);
+            FoundCommandResult result = createResult(sender, childCommand,
+                parts.subList(0, 2), parts.subList(2, parts.size()));
             return transformResultForHelp(result);
         } else if (hasSuitableArgumentCount(base, remainingParts.size())) {
-            FoundResultStatus status = getPermissionAwareStatus(sender, base);
-            return new FoundCommandResult(base, parts.subList(0, 1), parts.subList(1, parts.size()), 0.0, status);
+            return createResult(sender, base, parts.subList(0, 1), parts.subList(1, parts.size()));
         }
 
         return getCommandWithSmallestDifference(base, parts);
@@ -99,16 +98,9 @@ public class CommandMapper {
         }
 
         final String childLabel = parts.get(1);
-        double minDifference = Double.POSITIVE_INFINITY;
-        CommandDescription closestCommand = null;
-
-        for (CommandDescription child : base.getChildren()) {
-            double difference = getLabelDifference(child, childLabel);
-            if (difference < minDifference) {
-                minDifference = difference;
-                closestCommand = child;
-            }
-        }
+        CommandDescription closestCommand = base.getChildren().stream()
+            .min(Comparator.comparingDouble(child -> getLabelDifference(child, childLabel)))
+            .orElse(null);
 
         // base command may have no children, in which case we return the base command with incorrect arguments error
         if (closestCommand == null) {
@@ -116,6 +108,7 @@ public class CommandMapper {
                 base, parts.subList(0, 1), parts.subList(1, parts.size()), 0.0, INCORRECT_ARGUMENTS);
         }
 
+        double minDifference = getLabelDifference(closestCommand, childLabel);
         FoundResultStatus status = (minDifference == 0.0) ? INCORRECT_ARGUMENTS : UNKNOWN_LABEL;
         final int partsSize = parts.size();
         List<String> labels = parts.subList(0, Math.min(closestCommand.getLabelCount(), partsSize));
@@ -177,6 +170,11 @@ public class CommandMapper {
                 arguments, result.getDifference(), result.getResultStatus());
         }
         return result;
+    }
+
+    private FoundCommandResult createResult(CommandSender sender, CommandDescription command,
+                                            List<String> labels, List<String> arguments) {
+        return new FoundCommandResult(command, labels, arguments, 0.0, getPermissionAwareStatus(sender, command));
     }
 
     private FoundResultStatus getPermissionAwareStatus(CommandSender sender, CommandDescription command) {
