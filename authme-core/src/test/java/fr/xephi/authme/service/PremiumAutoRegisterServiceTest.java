@@ -78,7 +78,9 @@ class PremiumAutoRegisterServiceTest {
     @BeforeEach
     void setUp() {
         BukkitServiceTestHelper.setBukkitServiceToRunTaskOptionallyAsync(bukkitService);
+        given(player.getUniqueId()).willReturn(UUID.randomUUID());
         given(player.getName()).willReturn("Bobby");
+        given(player.getUniqueId()).willReturn(offlineUuid());
         TestHelper.mockIpAddressToPlayer(player, "127.0.0.1");
         given(settings.getProperty(PremiumSettings.AUTO_REGISTER)).willReturn(true);
         given(settings.getProperty(PremiumSettings.ENABLE_PREMIUM)).willReturn(true);
@@ -109,7 +111,6 @@ class PremiumAutoRegisterServiceTest {
     @Test
     void shouldRegisterPlayerVerifiedByPacketEvents() {
         UUID premiumUuid = UUID.randomUUID();
-        given(player.getUniqueId()).willReturn(offlineUuid());
         given(premiumLoginVerifier.getVerifiedUuid("Bobby")).willReturn(premiumUuid);
         given(premiumLoginVerifier.consumeVerifiedUuid("Bobby")).willReturn(premiumUuid);
 
@@ -122,7 +123,6 @@ class PremiumAutoRegisterServiceTest {
     @Test
     void shouldRegisterPlayerWithVerifiedProxyUuid() {
         UUID premiumUuid = UUID.randomUUID();
-        given(player.getUniqueId()).willReturn(offlineUuid());
         given(bungeeSender.isEnabled()).willReturn(true);
         ProxySessionManager.ProxyLoginRequest request =
             new ProxySessionManager.ProxyLoginRequest("bobby", premiumUuid);
@@ -135,7 +135,6 @@ class PremiumAutoRegisterServiceTest {
 
     @Test
     void shouldNotRegisterUnverifiedPlayer() {
-        given(player.getUniqueId()).willReturn(offlineUuid());
         given(premiumLoginVerifier.getVerifiedUuid("Bobby")).willReturn(null);
 
         assertFalse(service.tryAutoRegister(player));

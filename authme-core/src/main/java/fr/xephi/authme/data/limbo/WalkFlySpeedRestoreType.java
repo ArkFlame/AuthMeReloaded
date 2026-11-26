@@ -69,8 +69,7 @@ public enum WalkFlySpeedRestoreType {
     public abstract void restoreWalkSpeed(Player player, LimboPlayer limbo);
 
     private static void restore(Player player, boolean fly, float speed, String mode) {
-        logger.debug(() -> "Restoring " + type(fly) + " speed for LimboPlayer " + player.getName()
-            + " to " + speed + " (" + mode + " mode)");
+        log(player, fly, String.valueOf(speed), " (" + mode + " mode)");
         setSpeed(player, fly, speed);
     }
 
@@ -79,8 +78,7 @@ public enum WalkFlySpeedRestoreType {
         if (speed > 0.01f) {
             restore(player, fly, speed, "RESTORE_NO_ZERO");
         } else {
-            logger.debug(() -> "Restoring " + type(fly) + " speed for LimboPlayer " + player.getName()
-                + " to DEFAULT, it was 0! (RESTORE_NO_ZERO mode)");
+            log(player, fly, "DEFAULT, it was 0!", " (RESTORE_NO_ZERO mode)");
             setSpeed(player, fly, fly ? LimboPlayer.DEFAULT_FLY_SPEED : LimboPlayer.DEFAULT_WALK_SPEED);
         }
     }
@@ -89,14 +87,13 @@ public enum WalkFlySpeedRestoreType {
         float current = fly ? player.getFlySpeed() : player.getWalkSpeed();
         float limboSpeed = getSpeed(limbo, fly);
         float newSpeed = Math.max(current, limboSpeed);
-        logger.debug(() -> "Restoring " + type(fly) + " speed for LimboPlayer " + player.getName() + " to " + newSpeed
-            + " (Current: " + current + ", Limbo: " + limboSpeed + ") (MAX_RESTORE mode)");
+        log(player, fly, String.valueOf(newSpeed),
+            " (Current: " + current + ", Limbo: " + limboSpeed + ") (MAX_RESTORE mode)");
         setSpeed(player, fly, newSpeed);
     }
 
     private static void restoreDefault(Player player, boolean fly) {
-        logger.debug(() -> "Restoring " + type(fly) + " speed for LimboPlayer " + player.getName()
-            + " to DEFAULT (DEFAULT mode)");
+        log(player, fly, "DEFAULT", " (DEFAULT mode)");
         setSpeed(player, fly, fly ? LimboPlayer.DEFAULT_FLY_SPEED : LimboPlayer.DEFAULT_WALK_SPEED);
     }
 
@@ -104,8 +101,9 @@ public enum WalkFlySpeedRestoreType {
         return fly ? limbo.getFlySpeed() : limbo.getWalkSpeed();
     }
 
-    private static String type(boolean fly) {
-        return fly ? "fly" : "walk";
+    private static void log(Player player, boolean fly, String target, String detail) {
+        logger.debug(() -> "Restoring " + (fly ? "fly" : "walk") + " speed for LimboPlayer " + player.getName()
+            + " to " + target + detail);
     }
 
     private static void setSpeed(Player player, boolean fly, float speed) {

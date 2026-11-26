@@ -29,7 +29,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
@@ -113,11 +112,10 @@ class GeoIpServiceTest {
     @Test
     void shouldNotLookUpCountryNameIfDisabled() throws Exception {
         // given
-        InetAddress ip = InetAddress.getByName("24.45.167.89");
         given(settings.getProperty(ProtectionSettings.ENABLE_GEOIP)).willReturn(false);
 
         // when
-        String result = geoIpService.getCountryName(ip.getHostAddress());
+        String result = geoIpService.getCountryName("24.45.167.89");
 
         // then
         assertThat(result, equalTo("N/A"));
@@ -178,8 +176,7 @@ class GeoIpServiceTest {
         List<String> locales = Collections.singletonList("en");
         Continent continent = new Continent(locales, "XX", 1L, Collections.emptyMap());
 
-        Map<String, String> countryNames = ImmutableMap.of("en", countryName);
-        Country country = new Country(locales, 100, 3L, false, countryCode, countryNames);
+        Country country = new Country(locales, 100, 3L, false, countryCode, ImmutableMap.of("en", countryName));
         return new CountryResponse(continent, country, null, country, null, null);
     }
 }

@@ -5,6 +5,7 @@ import ch.jalu.datasourcecolumns.ColumnType;
 import ch.jalu.datasourcecolumns.StandardTypes;
 import fr.xephi.authme.data.auth.PlayerAuth;
 
+import java.util.Arrays;
 import java.util.function.Function;
 
 /**
@@ -59,12 +60,7 @@ final class AuthMeColumnsFactory {
     }
 
     private static boolean hasOption(ColumnOptions needle, ColumnOptions[] options) {
-        for (ColumnOptions option : options) {
-            if (option == needle) {
-                return true;
-            }
-        }
-        return false;
+        return Arrays.asList(options).contains(needle);
     }
 
     enum ColumnOptions {

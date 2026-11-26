@@ -3,14 +3,9 @@ package fr.xephi.authme.util.expiring;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Set whose entries expire after a configurable amount of time. Once an entry
- * has expired, the set will act as if the entry no longer exists. Time starts
- * counting after the entry has been inserted.
- * <p>
- * Internally, expired entries are not guaranteed to be cleared automatically.
- * A cleanup of all expired entries may be triggered with
- * {@link #removeExpiredEntries()}. Adding an entry that is already present
- * effectively resets its expiration.
+ * Set whose entries expire after a configurable amount of time; an expired entry behaves as if
+ * absent. Expired entries are cleared lazily on access or via {@link #removeExpiredEntries()}.
+ * Adding an entry that is already present resets its expiration.
  *
  * @param <E> the type of the entries
  */
@@ -36,7 +31,7 @@ public class ExpiringSet<E> extends AbstractExpiring<E, Long> {
         Long expiration = getEntries().get(entry);
         if (expiration != null && expiration <= System.currentTimeMillis()) {
             getEntries().remove(entry);
-            return false;
+            expiration = null;
         }
         return expiration != null;
     }

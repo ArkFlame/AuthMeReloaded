@@ -30,13 +30,9 @@ class MigraterYamlFileResourceTest {
 
     @Test
     void shouldReadChineseFile() {
-        File file = TestHelper.getJarFile(CHINESE_MESSAGES_FILE);
-        MigraterYamlFileResource resource = new MigraterYamlFileResource(file);
+        MigraterYamlFileResource resource = new MigraterYamlFileResource(TestHelper.getJarFile(CHINESE_MESSAGES_FILE));
 
-        PropertyReader reader = resource.createReader();
-
-        assertCommonKeys(reader);
-        assertThat(reader.getString("third"), equalTo("您已经可以在当前会话中执行任何敏感命令！"));
+        assertFileContents(resource.createReader(), "您已经可以在当前会话中执行任何敏感命令！");
     }
 
     @Test
@@ -51,14 +47,13 @@ class MigraterYamlFileResourceTest {
 
         resource.exportProperties(configurationData);
 
-        PropertyReader reader = resource.createReader();
-        assertCommonKeys(reader);
-        assertThat(reader.getString("third"), equalTo(newMessage));
+        assertFileContents(resource.createReader(), newMessage);
     }
 
-    private static void assertCommonKeys(PropertyReader reader) {
+    private static void assertFileContents(PropertyReader reader, String expectedThird) {
         assertThat(reader.getString("first"), equalTo("错误的密码"));
         assertThat(reader.getString("second"), equalTo("为了验证您的身份，您需要将一个电子邮件地址与您的帐户绑定！"));
+        assertThat(reader.getString("third"), equalTo(expectedThird));
     }
 
     private static ConfigurationData buildConfigurationData() {

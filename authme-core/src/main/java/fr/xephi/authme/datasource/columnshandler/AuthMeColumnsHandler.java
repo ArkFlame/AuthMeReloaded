@@ -41,11 +41,9 @@ public final class AuthMeColumnsHandler {
      */
     public static AuthMeColumnsHandler createForSqlite(Connection connection, Settings settings) {
         ColumnContext columnContext = new ColumnContext(settings, false);
-        String tableName = settings.getProperty(DatabaseSettings.MYSQL_TABLE);
-        String nameColumn = settings.getProperty(DatabaseSettings.MYSQL_COL_NAME);
-
         return new AuthMeColumnsHandler(new SqlColumnsHandler<>(
-            forSingleConnection(connection, tableName, nameColumn, columnContext)
+            forSingleConnection(connection, settings.getProperty(DatabaseSettings.MYSQL_TABLE),
+                settings.getProperty(DatabaseSettings.MYSQL_COL_NAME), columnContext)
                 .setPredicateSqlGenerator(new PredicateSqlGenerator<>(columnContext, true))));
     }
 
@@ -58,11 +56,9 @@ public final class AuthMeColumnsHandler {
      */
     public static AuthMeColumnsHandler createForMySql(ConnectionSupplier connectionSupplier, Settings settings) {
         ColumnContext columnContext = new ColumnContext(settings, true);
-        String tableName = settings.getProperty(DatabaseSettings.MYSQL_TABLE);
-        String nameColumn = settings.getProperty(DatabaseSettings.MYSQL_COL_NAME);
-
         return new AuthMeColumnsHandler(new SqlColumnsHandler<>(
-            forConnectionPool(connectionSupplier, tableName, nameColumn, columnContext)));
+            forConnectionPool(connectionSupplier, settings.getProperty(DatabaseSettings.MYSQL_TABLE),
+                settings.getProperty(DatabaseSettings.MYSQL_COL_NAME), columnContext)));
     }
 
     /**
@@ -181,9 +177,7 @@ public final class AuthMeColumnsHandler {
         }
     }
 
-    @FunctionalInterface
     private interface SqlAction<T> {
-
         T execute() throws SQLException;
     }
 }

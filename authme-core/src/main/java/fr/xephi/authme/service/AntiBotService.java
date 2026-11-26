@@ -28,48 +28,39 @@ public class AntiBotService implements SettingsDependent {
     private volatile int duration;
     // Service status - read on the async pre-login thread, written on the region/command thread
     private volatile AntiBotStatus antiBotStatus;
-    private boolean startup;
+    private boolean startup = true;
     private volatile CancellableTask disableTask;
     private volatile AtomicIntervalCounter flaggedCounter;
 
     @Inject
     AntiBotService(Settings settings, Messages messages, PermissionsManager permissionsManager,
                    BukkitService bukkitService) {
-        // Instances
         this.messages = messages;
         this.permissionsManager = permissionsManager;
         this.bukkitService = bukkitService;
-        // Initial status
         antiBotStatus = AntiBotStatus.DISABLED;
-        startup = true;
-        // Load settings and start if required
         reload(settings);
     }
 
     @Override
     public void reload(Settings settings) {
-        // Load settings
         duration = settings.getProperty(ProtectionSettings.ANTIBOT_DURATION);
-        int sensibility = settings.getProperty(ProtectionSettings.ANTIBOT_SENSIBILITY);
-        int interval = settings.getProperty(ProtectionSettings.ANTIBOT_INTERVAL);
-        flaggedCounter = new AtomicIntervalCounter(sensibility, interval * 1000);
+        flaggedCounter = new AtomicIntervalCounter(settings.getProperty(ProtectionSettings.ANTIBOT_SENSIBILITY),
+            settings.getProperty(ProtectionSettings.ANTIBOT_INTERVAL) * 1000);
 
-        // Stop existing protection
         stopProtection();
         antiBotStatus = AntiBotStatus.DISABLED;
 
-        // If antibot is disabled, just stop
         if (!settings.getProperty(ProtectionSettings.ENABLE_ANTIBOT)) {
             return;
         }
 
-        // Bot activation task
         Runnable enableTask = () -> antiBotStatus = AntiBotStatus.LISTENING;
 
         // Delay the schedule on first start
         if (startup) {
-            int delay = settings.getProperty(ProtectionSettings.ANTIBOT_DELAY);
-            bukkitService.runTaskLaterOnGlobalRegion(enableTask, delay * TICKS_PER_SECOND);
+            bukkitService.runTaskLaterOnGlobalRegion(enableTask,
+                settings.getProperty(ProtectionSettings.ANTIBOT_DELAY) * TICKS_PER_SECOND);
             startup = false;
         } else {
             enableTask.run();

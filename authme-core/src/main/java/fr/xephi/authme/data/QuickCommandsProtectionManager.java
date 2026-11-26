@@ -45,8 +45,8 @@ public class QuickCommandsProtectionManager implements SettingsDependent, HasCle
 
     @Override
     public void reload(Settings settings) {
-        long countTimeout = settings.getProperty(ProtectionSettings.QUICK_COMMANDS_DENIED_BEFORE_MILLISECONDS);
-        latestJoin.setExpiration(countTimeout, TimeUnit.MILLISECONDS);
+        latestJoin.setExpiration(settings.getProperty(ProtectionSettings.QUICK_COMMANDS_DENIED_BEFORE_MILLISECONDS),
+            TimeUnit.MILLISECONDS);
     }
 
     @Override
