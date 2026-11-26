@@ -45,7 +45,7 @@ class AccountsCommandTest {
     @Test
     void shouldGetAccountsOfCurrentUser() {
         // given
-        CommandSender sender = mock(CommandSender.class);
+        CommandSender sender = mock(org.bukkit.entity.Player.class);
         given(sender.getName()).willReturn("Tester");
         List<String> arguments = Collections.emptyList();
         given(dataSource.getAuth("tester")).willReturn(authWithIp("123.45.67.89"));
@@ -60,6 +60,19 @@ class AccountsCommandTest {
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
         verify(sender).sendMessage(captor.capture());
         assertThat(captor.getValue(), containsString("Toaster, Pester"));
+    }
+
+    @Test
+    void shouldShowUsageForConsoleWithoutArguments() {
+        // given
+        CommandSender sender = mock(CommandSender.class);
+
+        // when
+        command.executeCommand(sender, Collections.emptyList());
+
+        // then
+        verify(sender).sendMessage("Usage: /authme accounts <player|ip>");
+        org.mockito.Mockito.verifyNoInteractions(dataSource, service);
     }
 
     @Test

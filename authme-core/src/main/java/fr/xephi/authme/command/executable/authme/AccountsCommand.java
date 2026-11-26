@@ -7,6 +7,7 @@ import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.service.CommonService;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
 import javax.inject.Inject;
 import java.util.List;
@@ -29,6 +30,11 @@ public class AccountsCommand implements ExecutableCommand {
     @Override
     public void executeCommand(final CommandSender sender, List<String> arguments) {
         // TODO #1366: last IP vs. registration IP?
+        if (arguments.isEmpty() && !(sender instanceof Player)) {
+            // Console has no own account; fixes HaHaWTH/AuthMeReReloaded#244
+            sender.sendMessage("Usage: /authme accounts <player|ip>");
+            return;
+        }
         final String playerName = arguments.isEmpty() ? sender.getName() : arguments.get(0);
 
         // Assumption: a player name cannot contain '.'
