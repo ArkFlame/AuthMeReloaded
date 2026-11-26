@@ -81,6 +81,11 @@ public class PlayerPreAuthEvent extends AbstractCancellableEvent {
      * continuation; if the player has left or is already logged in by then, nothing happens.
      */
     public void forceLogin() {
+        // An unregistered player has no account to log into, so the request must be a complete no-op:
+        // clearing the cancellation here would silently discard an earlier skipAuthentication().
+        if (!registered) {
+            return;
+        }
         this.forceLoginRequested = true;
         super.setCancelled(false);
     }

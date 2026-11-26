@@ -65,26 +65,35 @@ public abstract class AbstractDataSourceConverter<S extends DataSource> implemen
             return;
         }
 
-        List<String> skippedPlayers = new ArrayList<>();
-        for (PlayerAuth auth : source.getAllAuths()) {
-            if (destination.isAuthAvailable(auth.getNickname())) {
-                skippedPlayers.add(auth.getNickname());
-            } else {
-                destination.saveAuth(auth);
-                destination.updateSession(auth);
-                destination.updateQuitLoc(auth);
-                if (auth.getPremiumUuid() != null) {
-                    destination.updatePremiumUuid(auth);
+        // The source is a freshly created data source (a new connection/pool), whereas the
+        // destination is the live, shared one. Always release the source's connections when
+        // the conversion is done, including when a database error aborts the loop.
+        try {
+            List<String> skippedPlayers = new ArrayList<>();
+            for (PlayerAuth auth : source.getAllAuths()) {
+                if (destination.isAuthAvailable(auth.getNickname())) {
+                    skippedPlayers.add(auth.getNickname());
+                } else {
+                    destination.saveAuth(auth);
+                    destination.updateSession(auth);
+                    destination.updateQuitLoc(auth);
+                    if (auth.getPremiumUuid() != null) {
+                        destination.updatePremiumUuid(auth);
+                    }
                 }
             }
-        }
 
-        if (!skippedPlayers.isEmpty()) {
-            logAndSendMessage(sender, "Skipped conversion for players which were already in "
-                + destinationType + ": " + String.join(", ", skippedPlayers));
+            if (!skippedPlayers.isEmpty()) {
+                logAndSendMessage(sender, "Skipped conversion for players which were already in "
+                    + destinationType + ": " + String.join(", ", skippedPlayers));
+            }
+            logAndSendMessage(sender, "Database successfully converted from " + source.getType()
+                + " to " + destinationType);
+        } finally {
+            if (source != destination) {
+                source.closeConnection();
+            }
         }
-        logAndSendMessage(sender, "Database successfully converted from " + source.getType()
-            + " to " + destinationType);
     }
 
     /**

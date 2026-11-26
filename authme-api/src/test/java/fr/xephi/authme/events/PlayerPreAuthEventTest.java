@@ -44,6 +44,19 @@ class PlayerPreAuthEventTest {
     }
 
     @Test
+    void forceLoginOnUnregisteredPlayerDoesNotClearCancellation() {
+        PlayerPreAuthEvent event = new PlayerPreAuthEvent(player, false, PlayerPreAuthEvent.Source.JOIN, false);
+        event.skipAuthentication();
+        assertThat(event.isCancelled(), equalTo(true));
+
+        // The force-login request is ignored for an unregistered player; it must not un-cancel the
+        // skip decision made by an earlier listener.
+        event.forceLogin();
+        assertThat(event.isCancelled(), equalTo(true));
+        assertThat(event.isForceLoginRequested(), equalTo(false));
+    }
+
+    @Test
     void cancellingClearsForceLoginAndViceVersa() {
         PlayerPreAuthEvent event = new PlayerPreAuthEvent(player, true, PlayerPreAuthEvent.Source.JOIN, false);
         event.forceLogin();

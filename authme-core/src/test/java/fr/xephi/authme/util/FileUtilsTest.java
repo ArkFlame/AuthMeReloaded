@@ -148,6 +148,11 @@ class FileUtilsTest {
     }
 
     @Test
+    void shouldReturnFalseForNullDirectory() {
+        assertThat(FileUtils.createDirectory(null), equalTo(false));
+    }
+
+    @Test
     void shouldCreateCurrentTimestampString() {
         String currentTimeString = FileUtils.createCurrentTimeString();
 

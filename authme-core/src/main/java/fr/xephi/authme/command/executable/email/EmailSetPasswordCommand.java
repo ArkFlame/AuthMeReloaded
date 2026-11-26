@@ -53,7 +53,10 @@ public class EmailSetPasswordCommand extends PlayerCommand {
         }
 
         HashedPassword hashedPassword = passwordSecurity.computeHash(password, name);
-        dataSource.updatePassword(name, hashedPassword);
+        if (!dataSource.updatePassword(name, hashedPassword)) {
+            commonService.send(player, MessageKey.ERROR);
+            return;
+        }
         recoveryService.removeFromSuccessfulRecovery(player);
         logger.info("Player '" + name + "' has changed their password from recovery");
         commonService.send(player, MessageKey.PASSWORD_CHANGED_SUCCESS);

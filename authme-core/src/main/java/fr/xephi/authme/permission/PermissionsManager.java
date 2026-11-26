@@ -46,7 +46,7 @@ public class PermissionsManager implements Reloadable {
     private final Settings settings;
 
     /** The permission handler that is currently in use, null if no permissions system is hooked. */
-    private PermissionHandler handler = null;
+    private volatile PermissionHandler handler = null;
 
     @Inject
     PermissionsManager(Server server, PluginManager pluginManager, Settings settings) {
@@ -136,6 +136,8 @@ public class PermissionsManager implements Reloadable {
     private void updateHooks(String pluginName, String action) {
         if (PermissionsSystemType.isPermissionSystem(pluginName)) {
             logger.info(pluginName + " plugin " + action);
+            // Drop the old handler first: setup() won't clear it when no replacement is available.
+            handler = null;
             setup();
         }
     }
@@ -205,7 +207,7 @@ public class PermissionsManager implements Reloadable {
 
     /** Add the permission group of a player, if supported. */
     public boolean addGroup(OfflinePlayer player, UserGroup groupName) {
-        if (!isEnabled() || StringUtils.isBlank(groupName.getGroupName())) {
+        if (!isEnabled() || groupName == null || StringUtils.isBlank(groupName.getGroupName())) {
             return false;
         }
         return handler.addToGroup(player, groupName);
@@ -228,13 +230,17 @@ public class PermissionsManager implements Reloadable {
 
     private boolean changeGroups(OfflinePlayer player, Collection<UserGroup> groupNames,
                                  BiFunction<OfflinePlayer, UserGroup, Boolean> action) {
-        if (!isEnabled()) {
+        if (!isEnabled() || groupNames == null) {
             return false;
         }
 
         boolean result = false;
         for (UserGroup group : groupNames) {
-            if (!group.getGroupName().isEmpty()) {
+            if (group == null) {
+                continue;
+            }
+            String groupName = group.getGroupName();
+            if (groupName != null && !groupName.isEmpty()) {
                 result |= action.apply(player, group);
             }
         }

@@ -66,6 +66,9 @@ public final class FileUtils {
      * @return true upon success, false otherwise
      */
     public static boolean createDirectory(File dir) {
+        if (dir == null) {
+            return false;
+        }
         if (!dir.exists() && !dir.mkdirs()) {
             logger.warning("Could not create directory '" + dir + "'");
             return false;

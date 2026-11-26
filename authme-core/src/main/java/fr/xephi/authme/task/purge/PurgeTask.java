@@ -57,6 +57,18 @@ class PurgeTask implements Runnable {
 
     @Override
     public void run() {
+        try {
+            runPurgeIteration();
+        } catch (RuntimeException e) {
+            // An exception escaping a repeating task makes Bukkit cancel it. Since finish() is
+            // then never called, isPurging would stay true and reject every future purge request.
+            logger.logException("Unexpected error while purging; cancelling the purge task", e);
+            cancelTask();
+            purgeService.setPurging(false);
+        }
+    }
+
+    private void runPurgeIteration() {
         if (toPurge.isEmpty()) {
             //everything was removed
             finish();

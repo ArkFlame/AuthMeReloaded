@@ -238,8 +238,9 @@ public class ValidationService implements Reloadable {
     private Multimap<String, Pattern> loadNameRestrictions(Set<String> configuredRestrictions) {
         Multimap<String, Pattern> restrictions = HashMultimap.create();
         for (String restriction : configuredRestrictions) {
-            if (isInsideString(';', restriction)) {
-                String[] data = restriction.split(";");
+            String[] data = isInsideString(';', restriction) ? restriction.split(";") : new String[0];
+            // split() drops trailing empty entries, so "name;;" has no usable restriction
+            if (data.length >= 2 && !data[1].isEmpty()) {
                 restrictions.put(data[0].toLowerCase(Locale.ROOT), Pattern.compile(toRegex(data[1])));
             } else {
                 logger.warning("Restricted user rule must have a ';' separating name from restriction,"

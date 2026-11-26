@@ -40,6 +40,9 @@ class InternetProtocolUtilsTest {
 
         // public
         assertThat(InternetProtocolUtils.isLocalAddress("94.32.34.5"), equalTo(false));
+        // IPv4 addresses starting with 252 or 253 must not be treated as IPv6 fc00::/7
+        assertThat(InternetProtocolUtils.isLocalAddress("252.0.0.1"), equalTo(false));
+        assertThat(InternetProtocolUtils.isLocalAddress("253.1.2.3"), equalTo(false));
     }
 
     @Test

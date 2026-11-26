@@ -79,7 +79,9 @@ public class AntiBotService implements SettingsDependent {
     /**
      * Transitions the anti bot service to an active status.
      */
-    private void startProtection() {
+    // Serialized: startProtection may be reached from the async pre-login thread at the same
+    // time as stopProtection is reached from a scheduled region task or a command.
+    private synchronized void startProtection() {
         if (antiBotStatus == AntiBotStatus.ACTIVE) {
             return; // Already activating/active
         }
@@ -95,7 +97,7 @@ public class AntiBotService implements SettingsDependent {
     /**
      * Transitions the anti bot service from active status back to listening.
      */
-    private void stopProtection() {
+    private synchronized void stopProtection() {
         if (antiBotStatus != AntiBotStatus.ACTIVE) {
             return;
         }
@@ -104,9 +106,11 @@ public class AntiBotService implements SettingsDependent {
         antiBotStatus = AntiBotStatus.LISTENING;
         flaggedCounter.reset();
 
-        // Cancel auto-disable task
-        disableTask.cancel();
-        disableTask = null;
+        // Cancel auto-disable task; it may already have been cleared by a reload
+        if (disableTask != null) {
+            disableTask.cancel();
+            disableTask = null;
+        }
 
         // Inform admins
         notifyAdmins(MessageKey.ANTIBOT_AUTO_DISABLED_MESSAGE, Integer.toString(duration));

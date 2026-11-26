@@ -15,7 +15,6 @@ import org.bukkit.entity.Player;
 
 import javax.inject.Inject;
 import java.io.File;
-import java.io.FileWriter;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -95,8 +94,10 @@ class DistributedFilesPersistenceHandler implements LimboPersistenceHandler {
     }
 
     private void saveEntries(Map<String, LimboPlayer> entries, File file) {
-        try (FileWriter fw = new FileWriter(file)) {
-            gson.toJson(entries, fw);
+        // Write with the same charset that readLimboPlayers uses; FileWriter would silently use the
+        // platform default and corrupt non-ASCII group names on systems where that is not UTF-8.
+        try {
+            Files.asCharSink(file, StandardCharsets.UTF_8).write(gson.toJson(entries));
         } catch (Exception e) {
             logger.logException("Could not write to '" + file + "':", e);
         }

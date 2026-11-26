@@ -63,11 +63,12 @@ public class AsyncConfirmEmail implements AsynchronousProcess {
             return;
         }
 
-        pendingEmailVerificationCache.removePending(player.getName());
-
         PlayerAuth auth = playerCache.getAuth(playerName);
-        if (!EmailProcessHelper.persistEmail(service, dataSource, playerCache, auth, player, entry.email(),
+        if (EmailProcessHelper.persistEmail(service, dataSource, playerCache, auth, player, entry.email(),
                 MessageKey.EMAIL_CONFIRM_SUCCESS)) {
+            pendingEmailVerificationCache.removePending(player.getName());
+        } else {
+            // Leave the pending entry in place so the code can be retried after a failed save.
             logger.warning("Could not save confirmed email for player '" + player + "'");
         }
     }

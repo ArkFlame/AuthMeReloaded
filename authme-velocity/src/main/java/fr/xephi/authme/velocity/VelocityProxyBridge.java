@@ -50,7 +50,7 @@ final class VelocityProxyBridge {
 
     private final ProxyServer proxyServer;
     private final Logger logger;
-    private VelocityProxyConfiguration configuration;
+    private volatile VelocityProxyConfiguration configuration;
     private final VelocityAuthenticationStore authenticationStore;
     private final Map<String, AtomicInteger> pendingAutoLogins = new ConcurrentHashMap<>();
     private final Set<String> notifiedAuthServers = ConcurrentHashMap.newKeySet();
@@ -556,6 +556,13 @@ final class VelocityProxyBridge {
             }
             Optional<ServerConnection> serverOpt = playerOpt.get().getCurrentServer();
             if (serverOpt.isEmpty()) {
+                int deferred = attempts.getAndIncrement();
+                if (deferred >= MAX_RETRIES) {
+                    pendingAutoLogins.remove(normalizedName);
+                    logger.warn("No server connection for {} after {} deferred retries; giving up on auto-login",
+                        normalizedName, MAX_RETRIES);
+                    return;
+                }
                 logger.debug("Auto-login retry for {} deferred: no active server connection yet", normalizedName);
                 scheduleRetry(normalizedName, attempts);
                 return;

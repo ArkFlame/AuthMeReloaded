@@ -1,5 +1,6 @@
 package fr.xephi.authme.util;
 
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
@@ -59,6 +60,11 @@ public final class InternetProtocolUtils {
     }
 
     private static boolean isIPv6UniqueSiteLocal(InetAddress address) {
+        // The fc00::/7 check is IPv6-only: an IPv4 address whose first octet is 252 or 253
+        // must not be mistaken for a unique local address.
+        if (!(address instanceof Inet6Address)) {
+            return false;
+        }
         // ref: https://en.wikipedia.org/wiki/Unique_local_address
         int firstByte = address.getAddress()[0] & 0xFF;
 

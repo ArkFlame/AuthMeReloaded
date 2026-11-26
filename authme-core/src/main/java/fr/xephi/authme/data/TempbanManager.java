@@ -59,7 +59,16 @@ public class TempbanManager implements SettingsDependent, HasCleanup {
                 TimedCounter<String> existing = ipLoginFailureCounts.putIfAbsent(address, created);
                 countsByName = existing == null ? created : existing;
             }
-            countsByName.increment(name.toLowerCase(Locale.ROOT));
+            String key = name.toLowerCase(Locale.ROOT);
+            countsByName.increment(key);
+            // performCleanup() runs asynchronously and drops counters that are momentarily empty.
+            // If it removed the mapping between the lookup above and the increment, restore the
+            // updated counter so the failed login is not lost. If a different counter took its
+            // place, record the failure there as well.
+            TimedCounter<String> current = ipLoginFailureCounts.putIfAbsent(address, countsByName);
+            if (current != null && current != countsByName) {
+                current.increment(key);
+            }
         }
     }
 

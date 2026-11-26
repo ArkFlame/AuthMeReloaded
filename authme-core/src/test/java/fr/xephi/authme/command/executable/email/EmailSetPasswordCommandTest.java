@@ -24,6 +24,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 /**
  * Tests for {@link EmailSetPasswordCommand}.
@@ -62,8 +63,9 @@ public class EmailSetPasswordCommandTest {
         String name = "Jerry";
         given(player.getName()).willReturn(name);
         given(recoveryService.canChangePassword(player)).willReturn(true);
-        HashedPassword hashedPassword = passwordSecurity.computeHash("abc123", name);
+        HashedPassword hashedPassword = new HashedPassword("hash");
         given(passwordSecurity.computeHash("abc123", name)).willReturn(hashedPassword);
+        given(dataSource.updatePassword(name, hashedPassword)).willReturn(true);
         given(validationService.validatePassword("abc123", name))
             .willReturn(new ValidationService.ValidationResult());
 
@@ -75,6 +77,31 @@ public class EmailSetPasswordCommandTest {
         verify(dataSource).updatePassword(name, hashedPassword);
         verify(recoveryService).removeFromSuccessfulRecovery(player);
         verify(commonService).send(player, MessageKey.PASSWORD_CHANGED_SUCCESS);
+    }
+
+    @Test
+    public void shouldReportErrorWhenDatabaseUpdateFails() {
+        // given
+        Player player = mock(Player.class);
+        String name = "Jerry";
+        String password = "abc123";
+        given(player.getName()).willReturn(name);
+        given(recoveryService.canChangePassword(player)).willReturn(true);
+        HashedPassword hashedPassword = new HashedPassword("hash");
+        given(passwordSecurity.computeHash(password, name)).willReturn(hashedPassword);
+        given(validationService.validatePassword(password, name))
+            .willReturn(new ValidationService.ValidationResult());
+        given(dataSource.updatePassword(name, hashedPassword)).willReturn(false);
+
+        // when
+        command.runCommand(player, Collections.singletonList(password));
+
+        // then
+        verify(dataSource).updatePassword(name, hashedPassword);
+        verify(recoveryService).canChangePassword(player);
+        verifyNoMoreInteractions(recoveryService);
+        verify(commonService).send(player, MessageKey.ERROR);
+        verifyNoMoreInteractions(commonService);
     }
 
     @Test
