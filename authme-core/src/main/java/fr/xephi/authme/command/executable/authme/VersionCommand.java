@@ -20,7 +20,6 @@ public class VersionCommand implements ExecutableCommand {
 
     @Override
     public void executeCommand(CommandSender sender, List<String> arguments) {
-        // Show some version info
         sender.sendMessage(ChatColor.GOLD + "==========[ " + AuthMe.getPluginName() + " ABOUT ]==========");
         sender.sendMessage(ChatColor.GOLD + "Version: " + ChatColor.WHITE + AuthMe.getPluginName()
             + " v" + AuthMe.getPluginVersion() + ChatColor.GRAY + " (build: " + AuthMe.getPluginBuildNumber() + ")");
@@ -47,10 +46,9 @@ public class VersionCommand implements ExecutableCommand {
     private static void printDeveloper(CommandSender sender, String name, String minecraftName, String function,
                                        Collection<Player> onlinePlayers) {
         String msg = " " + ChatColor.WHITE + name + ChatColor.GRAY + " // " + ChatColor.WHITE + minecraftName
-            + ChatColor.GRAY + ChatColor.ITALIC + " (" + function + ")";
-        if (onlinePlayers.stream().anyMatch(player -> player.getName().equalsIgnoreCase(minecraftName))) {
-            msg += ChatColor.GREEN.toString() + ChatColor.ITALIC + " (In-Game)";
-        }
+            + ChatColor.GRAY + ChatColor.ITALIC + " (" + function + ")"
+            + (onlinePlayers.stream().anyMatch(player -> player.getName().equalsIgnoreCase(minecraftName))
+                ? ChatColor.GREEN.toString() + ChatColor.ITALIC + " (In-Game)" : "");
         sender.sendMessage(msg);
     }
 }

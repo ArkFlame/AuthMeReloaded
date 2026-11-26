@@ -18,9 +18,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.stubbing.Answer;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -46,8 +44,7 @@ import static org.mockito.Mockito.verify;
 /**
  * Test for {@link CommandHandler}.
  */
-// Justification: It's more readable to use asList() everywhere in the test when we often generated two lists where one
-// often consists of only one element, e.g. myMethod(asList("authme"), asList("my", "args"), ...)
+// Justification: asList() stays readable when generating pairs of lists where one often has a single element.
 @SuppressWarnings("ArraysAsListWithZeroOrOneArgument")
 @ExtendWith(MockitoExtension.class)
 class CommandHandlerTest {
@@ -70,7 +67,6 @@ class CommandHandlerTest {
     private final Map<Class<? extends ExecutableCommand>, ExecutableCommand> mockedCommands = new HashMap<>();
 
     @BeforeEach
-    @SuppressWarnings("unchecked")
     void initializeCommandMapper() {
         given(commandMapper.getCommandClasses()).willReturn(Sets.newHashSet(
             ExecutableCommand.class, TestLoginCommand.class, TestRegisterCommand.class, TestUnregisterCommand.class));
@@ -100,19 +96,16 @@ class CommandHandlerTest {
      */
     @SuppressWarnings("unchecked")
     private void setInjectorToMockExecutableCommandClasses() {
-        given(commandFactory.newInstance(any(Class.class))).willAnswer(new Answer<Object>() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                Class<?> clazz = invocation.getArgument(0);
-                if (ExecutableCommand.class.isAssignableFrom(clazz)) {
-                    Class<? extends ExecutableCommand> commandClass = (Class<? extends ExecutableCommand>) clazz;
-                    ExecutableCommand mock = mock(commandClass);
-                    mockedCommands.put(commandClass, mock);
-                    return mock;
-                }
-                throw new IllegalStateException("Unexpected class '" + clazz.getName()
-                    + "': Not a child of ExecutableCommand");
+        given(commandFactory.newInstance(any(Class.class))).willAnswer(invocation -> {
+            Class<?> clazz = invocation.getArgument(0);
+            if (ExecutableCommand.class.isAssignableFrom(clazz)) {
+                Class<? extends ExecutableCommand> commandClass = (Class<? extends ExecutableCommand>) clazz;
+                ExecutableCommand mock = mock(commandClass);
+                mockedCommands.put(commandClass, mock);
+                return mock;
             }
+            throw new IllegalStateException("Unexpected class '" + clazz.getName()
+                + "': Not a child of ExecutableCommand");
         });
     }
 

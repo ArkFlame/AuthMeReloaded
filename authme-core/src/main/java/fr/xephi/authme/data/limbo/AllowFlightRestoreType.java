@@ -36,7 +36,6 @@ public enum AllowFlightRestoreType {
     NOTHING {
         @Override
         public void processPlayer(Player player) {
-            // noop
         }
     };
 
@@ -49,7 +48,6 @@ public enum AllowFlightRestoreType {
      * @param limbo the limbo player to read from
      */
     public void restoreAllowFlight(Player player, LimboPlayer limbo) {
-        // noop
     }
 
     /**

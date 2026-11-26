@@ -45,8 +45,10 @@ public class PasswordSecurity implements Reloadable {
     @PostConstruct
     @Override
     public void reload() {
-        this.encryptionMethod =
-            initializeEncryptionMethodWithEvent(settings.getProperty(SecuritySettings.PASSWORD_HASH));
+        EncryptionMethod method = initializeEncryptionMethod(settings.getProperty(SecuritySettings.PASSWORD_HASH));
+        PasswordEncryptionEvent event = new PasswordEncryptionEvent(method);
+        pluginManager.callEvent(event);
+        this.encryptionMethod = event.getMethod();
         this.legacyAlgorithms = settings.getProperty(SecuritySettings.LEGACY_HASHES);
         this.legacyEncryptionMethods = createLegacyEncryptionMethods(this.legacyAlgorithms);
     }
@@ -130,22 +132,6 @@ public class PasswordSecurity implements Reloadable {
                                          HashedPassword hashedPassword, String playerName) {
         return method != null && (!method.hasSeparateSalt() || hashedPassword.getSalt() != null)
             && method.comparePassword(password, hashedPassword, playerName);
-    }
-
-    /**
-     * Get the encryption method from the given {@link HashAlgorithm} value and emit a
-     * {@link PasswordEncryptionEvent}. The encryption method from the event is then returned,
-     * which may have been changed by an external listener.
-     *
-     * @param algorithm  The algorithm to retrieve the encryption method for
-     *
-     * @return The encryption method
-     */
-    private EncryptionMethod initializeEncryptionMethodWithEvent(HashAlgorithm algorithm) {
-        EncryptionMethod method = initializeEncryptionMethod(algorithm);
-        PasswordEncryptionEvent event = new PasswordEncryptionEvent(method);
-        pluginManager.callEvent(event);
-        return event.getMethod();
     }
 
     /**

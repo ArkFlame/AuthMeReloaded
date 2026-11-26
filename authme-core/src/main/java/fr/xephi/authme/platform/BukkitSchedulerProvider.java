@@ -45,8 +45,7 @@ final class BukkitSchedulerProvider implements SchedulerProvider {
 
     @Override
     public CancellableTask runAsyncTimer(Plugin plugin, Runnable task, long delayTicks, long periodTicks) {
-        return asCancellable(Bukkit.getScheduler()
-            .runTaskTimerAsynchronously(plugin, task, delayTicks, periodTicks));
+        return asCancellable(Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, task, delayTicks, periodTicks));
     }
 
     private static CancellableTask asCancellable(BukkitTask task) {

@@ -2,16 +2,13 @@ package fr.xephi.authme.command.executable.authme;
 
 import fr.xephi.authme.message.MessageKey;
 import org.bukkit.Location;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.mockito.Mockito.verify;
 
 /**
  * Test for {@link SetSpawnCommand}.
  */
-@ExtendWith(MockitoExtension.class)
 class SetSpawnCommandTest extends AbstractSpawnSetterCommandTest<SetSpawnCommand> {
 
     @InjectMocks

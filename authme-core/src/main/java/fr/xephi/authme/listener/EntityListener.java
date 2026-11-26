@@ -24,7 +24,7 @@ public class EntityListener extends AbstractCancelListener implements Listener {
         if (getListenerService().shouldCancelEvent(event)) {
             event.getEntity().setFireTicks(0);
             event.setDamage(0);
-            event.setCancelled(true);
+            cancelEvent(true, event);
         }
     }
 
@@ -37,7 +37,7 @@ public class EntityListener extends AbstractCancelListener implements Listener {
     public void onEntityTarget(EntityTargetEvent event) {
         if (getListenerService().shouldCancelEvent(event.getTarget())) {
             event.setTarget(null);
-            event.setCancelled(true);
+            cancelEvent(true, event);
         }
     }
 
@@ -50,12 +50,11 @@ public class EntityListener extends AbstractCancelListener implements Listener {
     public void entityRegainHealthEvent(EntityRegainHealthEvent event) {
         if (getListenerService().shouldCancelEvent(event)) {
             event.setAmount(0);
-            event.setCancelled(true);
+            cancelEvent(true, event);
         }
     }
 
-    // Both priorities are needed: the LOWEST handler blocks early, the HIGHEST one
-    // re-applies the check after other plugins have had a chance to uncancel.
+    // LOWEST blocks early; HIGHEST re-applies after other plugins may uncancel.
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onEntityInteract(EntityInteractEvent event) {
         cancelIfUnauthorized(event);

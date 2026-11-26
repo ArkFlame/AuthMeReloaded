@@ -75,15 +75,10 @@ class EmailRecoveryDialogServiceTest {
     @ValueSource(booleans = {true, false})
     void shouldSendRecoveryCodeAndOnlyOfferDialogWhenAllowed(boolean rateLimited) {
         // given
-        Player player = mockPlayer();
-        givenValidEmailInput();
-        given(recoveryCodeService.isRecoveryCodeNeeded()).willReturn(true);
+        Player player = givenRecoveryRequest(true);
         given(passwordRecoveryService.isOnEmailCooldown(player)).willReturn(rateLimited);
-        setBukkitServiceToRunTaskAsynchronously(bukkitService);
         if (!rateLimited) {
-            givenDialogFlowEnabled(true);
-            given(dialogAdapter.isDialogSupported()).willReturn(true);
-            givenDialogTextStubs(player);
+            givenDialogReady(player);
             setBukkitServiceToScheduleSyncEntityTaskFromOptionallyAsyncTask(bukkitService);
         }
 
@@ -103,10 +98,7 @@ class EmailRecoveryDialogServiceTest {
     @Test
     void shouldSendNewPasswordWhenCodesAreDisabled() {
         // given
-        Player player = mockPlayer();
-        givenValidEmailInput();
-        given(recoveryCodeService.isRecoveryCodeNeeded()).willReturn(false);
-        setBukkitServiceToRunTaskAsynchronously(bukkitService);
+        Player player = givenRecoveryRequest(false);
 
         // when
         service.requestRecovery(player, EMAIL);
@@ -137,12 +129,10 @@ class EmailRecoveryDialogServiceTest {
     void shouldOfferPasswordDialogOnlyAfterValidCode() {
         // given
         Player player = mockPlayer();
-        givenDialogFlowEnabled(true);
-        given(dialogAdapter.isDialogSupported()).willReturn(true);
+        givenDialogReady(player);
         given(emailService.hasAllInformation()).willReturn(true);
         given(recoveryCodeService.hasTriesLeft(NAME)).willReturn(true);
         given(recoveryCodeService.isCodeValid(NAME, "123abc")).willReturn(true);
-        givenDialogTextStubs(player);
 
         // when
         service.submitCode(player, "123abc");
@@ -157,11 +147,8 @@ class EmailRecoveryDialogServiceTest {
     @Test
     void shouldLeaveChatFallbackUntouchedWhenFlowIsDisabled() {
         // given
-        Player player = mockPlayer();
-        given(commonService.getProperty(RegistrationSettings.DIALOG_EMAIL_RECOVERY)).willReturn(false);
-        givenValidEmailInput();
-        given(recoveryCodeService.isRecoveryCodeNeeded()).willReturn(true);
-        setBukkitServiceToRunTaskAsynchronously(bukkitService);
+        Player player = givenRecoveryRequest(true);
+        givenDialogFlowEnabled(false);
 
         // when
         boolean enabled = service.isDialogFlowEnabled();
@@ -239,14 +226,24 @@ class EmailRecoveryDialogServiceTest {
         given(commonService.getProperty(RegistrationSettings.DIALOG_STACK_BUTTONS_VERTICALLY)).willReturn(false);
     }
 
-    private void givenDialogFlowEnabled(boolean enabled) {
-        given(commonService.getProperty(RegistrationSettings.DIALOG_EMAIL_RECOVERY)).willReturn(enabled);
-    }
-
-    private void givenValidEmailInput() {
+    private Player givenRecoveryRequest(boolean recoveryCodeNeeded) {
+        Player player = mockPlayer();
         given(emailService.hasAllInformation()).willReturn(true);
         given(playerCache.isAuthenticated(NAME)).willReturn(false);
         given(validationService.validateEmail(EMAIL)).willReturn(true);
         given(dataSource.getEmail(NAME)).willReturn(DataSourceValueImpl.of(EMAIL));
+        given(recoveryCodeService.isRecoveryCodeNeeded()).willReturn(recoveryCodeNeeded);
+        setBukkitServiceToRunTaskAsynchronously(bukkitService);
+        return player;
+    }
+
+    private void givenDialogReady(Player player) {
+        givenDialogFlowEnabled(true);
+        given(dialogAdapter.isDialogSupported()).willReturn(true);
+        givenDialogTextStubs(player);
+    }
+
+    private void givenDialogFlowEnabled(boolean enabled) {
+        given(commonService.getProperty(RegistrationSettings.DIALOG_EMAIL_RECOVERY)).willReturn(enabled);
     }
 }

@@ -31,10 +31,8 @@ final class MySqlMigrater {
      */
     static void migrateLastIpColumn(Statement st, DatabaseMetaData metaData,
                                     String tableName, Columns col) throws SQLException {
-        final boolean isNotNullWithoutDefault = SqlDataSourceUtils.isNotNullColumn(metaData, tableName, col.LAST_IP)
-            && SqlDataSourceUtils.getColumnDefaultValue(metaData, tableName, col.LAST_IP) == null;
-
-        if (isNotNullWithoutDefault) {
+        if (SqlDataSourceUtils.isNotNullColumn(metaData, tableName, col.LAST_IP)
+            && SqlDataSourceUtils.getColumnDefaultValue(metaData, tableName, col.LAST_IP) == null) {
             st.execute(String.format(
                 "ALTER TABLE %s MODIFY %s VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin", tableName, col.LAST_IP));
             logger.info("Changed last login column to allow NULL values. Please verify the registration feature "
@@ -76,7 +74,6 @@ final class MySqlMigrater {
      *      #887: Migrate lastlogin column from int32 to bigint</a>
      */
     private static void migrateLastLoginColumnFromInt(Statement st, String tableName, Columns col) throws SQLException {
-        // Change from int to bigint
         logger.info("Migrating lastlogin column from int to bigint");
         st.execute(String.format("ALTER TABLE %s MODIFY %s BIGINT;", tableName, col.LAST_LOGIN));
 

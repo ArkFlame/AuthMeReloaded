@@ -11,6 +11,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 
+import java.util.List;
 import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -31,44 +32,29 @@ public class SpigotDialogHelperTest {
         assertThat(action.template(), is("login $(password)"));
     }
 
-    @Test
-    public void showLoginDialogStacksButtonsWhenEnabled() {
+    @ParameterizedTest
+    @MethodSource("loginDialogs")
+    public void showLoginDialogBuildsExpectedActions(List<DialogInputSpec> inputs, boolean stackButtons,
+                                                      int expectedColumns) {
         Player player = mock(Player.class);
-        DialogWindowSpec dialog = new DialogWindowSpec("Login",
-            java.util.List.of(new DialogInputSpec("password", "Password", 100)),
-            "Login",
-            "Forgot Password?",
-            true,
-            false,
-            "email recover $(email)",
-            null,
-            true);
+        DialogWindowSpec dialog = new DialogWindowSpec("Login", inputs, "Login", "Forgot Password?", true,
+            false, "email recover $(email)", null, stackButtons);
 
         SpigotDialogHelper.showLoginDialog(player, dialog);
 
         MultiActionDialog shown = captureDialog(player);
-        assertThat(shown.columns(), is(1));
-    }
-
-    @Test
-    public void showLoginDialogIncludesForgotPasswordButtonWhenSpecified() {
-        Player player = mock(Player.class);
-        DialogWindowSpec dialog = new DialogWindowSpec("Login",
-            java.util.List.of(
-                new DialogInputSpec("password", "Password", 100),
-                new DialogInputSpec("email", "Recovery Email", 100)),
-            "Login",
-            "Forgot Password?",
-            true,
-            false,
-            "email recover $(email)");
-
-        SpigotDialogHelper.showLoginDialog(player, dialog);
-
-        MultiActionDialog shown = captureDialog(player);
+        assertThat(shown.columns(), is(expectedColumns));
         assertThat(shown.actions().size(), is(2));
         assertThat(((RunCommandAction) shown.actions().get(0).action()).template(), is("login $(password)"));
         assertThat(((RunCommandAction) shown.actions().get(1).action()).template(), is("email recover $(email)"));
+    }
+
+    private static Stream<Arguments> loginDialogs() {
+        return Stream.of(
+            Arguments.of(List.of(new DialogInputSpec("password", "Password", 100)), true, 1),
+            Arguments.of(List.of(
+                new DialogInputSpec("password", "Password", 100),
+                new DialogInputSpec("email", "Recovery Email", 100)), false, 2));
     }
 
     @Test
@@ -121,7 +107,7 @@ public class SpigotDialogHelperTest {
 
     private static DialogWindowSpec createDialogSpec(String title, String inputLabel, String primaryButtonLabel) {
         return new DialogWindowSpec(title,
-            java.util.List.of(new DialogInputSpec("field", inputLabel, 100)),
+            List.of(new DialogInputSpec("field", inputLabel, 100)),
             primaryButtonLabel,
             "Cancel",
             false,
