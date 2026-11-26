@@ -65,46 +65,30 @@ abstract class AbstractLibrePremiumConverter implements Converter {
     }
 
     private void importRows(ResultSet rs, CommandSender sender) throws SQLException {
-        long imported = 0;
-        long skipped = 0;
-        while (rs.next()) {
-            String realName = rs.getString("last_nickname");
-            String name = ConverterUtils.toLowerCaseOrNull(realName);
-            if (name == null) {
-                continue;
-            }
+        ConverterUtils.importRows(rs, dataSource, sender, pluginName,
+            row -> ConverterUtils.toLowerCaseOrNull(row.getString("last_nickname")), this::buildAuth);
+    }
 
-            if (dataSource.isAuthAvailable(name)) {
-                ++skipped;
-                continue;
-            }
-
-            HashedPassword password = ConverterUtils.buildHashedPassword(
-                rs.getString("hashed_password"), rs.getString("salt"), rs.getString("algo"),
-                name, argonAlgo, pluginName, logger);
-            if (password == null) {
-                continue;
-            }
-
-            ImportDates dates = readDates(rs);
-            PlayerAuth auth = PlayerAuth.builder()
-                .name(name)
-                .realName(realName)
-                .password(password)
-                .lastIp(rs.getString("ip"))
-                .email(rs.getString("email"))
-                .registrationDate(dates.registrationDate)
-                .lastLogin(dates.lastLogin)
-                .totpKey(rs.getString("secret"))
-                .uuid(UuidUtils.parseUuidSafely(rs.getString("uuid")))
-                .premiumUuid(UuidUtils.parseUuidSafely(rs.getString("premium_uuid")))
-                .build();
-
-            dataSource.saveAuth(auth);
-            ++imported;
+    private PlayerAuth buildAuth(ResultSet rs, String name) throws SQLException {
+        HashedPassword password = ConverterUtils.buildHashedPassword(
+            rs.getString("hashed_password"), rs.getString("salt"), rs.getString("algo"),
+            name, argonAlgo, pluginName, logger);
+        if (password == null) {
+            return null;
         }
-
-        ConverterUtils.logImportResult(sender, pluginName, imported, skipped);
+        ImportDates dates = readDates(rs);
+        return PlayerAuth.builder()
+            .name(name)
+            .realName(rs.getString("last_nickname"))
+            .password(password)
+            .lastIp(rs.getString("ip"))
+            .email(rs.getString("email"))
+            .registrationDate(dates.registrationDate)
+            .lastLogin(dates.lastLogin)
+            .totpKey(rs.getString("secret"))
+            .uuid(UuidUtils.parseUuidSafely(rs.getString("uuid")))
+            .premiumUuid(UuidUtils.parseUuidSafely(rs.getString("premium_uuid")))
+            .build();
     }
 
     /**

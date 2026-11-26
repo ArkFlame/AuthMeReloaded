@@ -151,17 +151,13 @@ final class PreJoinRegisterProcessor {
         PaperDialogSessionSupport.completeResponse(pendingResponses, sessionId, null);
     }
 
-    private void showRegisterDialogWithError(PlayerConfigurationConnection connection, String playerName,
-                                             String errorMessage) {
+    private void showError(PlayerConfigurationConnection connection, String playerName,
+                           MessageKey key, String... args) {
+        String errorMessage = messages.retrieveSingle(playerName, key, args);
         RegistrationType registrationType = commonService.getProperty(RegistrationSettings.REGISTRATION_TYPE);
         RegisterSecondaryArgument secondArg = commonService.getProperty(RegistrationSettings.REGISTER_SECOND_ARGUMENT);
         DialogWindowSpec spec = dialogWindowService.createPreJoinRegisterDialog(playerName, registrationType, secondArg);
         connection.getAudience().showDialog(PaperDialogHelper.createPreJoinRegisterDialog(spec.withBody(errorMessage)));
-    }
-
-    private void showError(PlayerConfigurationConnection connection, String playerName,
-                           MessageKey key, String... args) {
-        showRegisterDialogWithError(connection, playerName, messages.retrieveSingle(playerName, key, args));
     }
 
     private static boolean isBlank(String value) {

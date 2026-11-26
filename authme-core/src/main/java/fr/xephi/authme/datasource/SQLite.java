@@ -19,6 +19,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -114,8 +115,8 @@ public class SQLite extends AbstractSqlDataSource {
             addColumnIfAbsent(md, st, col.REAL_NAME, "VARCHAR(255) NOT NULL DEFAULT 'Player';");
             addColumnIfAbsent(md, st, col.PASSWORD, "VARCHAR(255) NOT NULL DEFAULT '';");
 
-            if (!col.SALT.isEmpty() && isColumnMissing(md, col.SALT)) {
-                addColumn(st, col.SALT, "VARCHAR(255);");
+            if (!col.SALT.isEmpty()) {
+                addColumnIfAbsent(md, st, col.SALT, "VARCHAR(255);");
             }
 
             addColumnIfAbsent(md, st, col.LAST_IP, "VARCHAR(40);");
@@ -148,12 +149,10 @@ public class SQLite extends AbstractSqlDataSource {
             addColumnIfAbsent(md, st, col.HAS_SESSION, "INT NOT NULL DEFAULT '0';");
             addColumnIfAbsent(md, st, col.TOTP_KEY, "VARCHAR(32);");
 
-            if (!col.PLAYER_UUID.isEmpty() && isColumnMissing(md, col.PLAYER_UUID)) {
-                addColumn(st, col.PLAYER_UUID, "VARCHAR(36)");
-            }
-
-            if (!col.PREMIUM_UUID.isEmpty() && isColumnMissing(md, col.PREMIUM_UUID)) {
-                addColumn(st, col.PREMIUM_UUID, "VARCHAR(36)");
+            for (String uuidColumn : Arrays.asList(col.PLAYER_UUID, col.PREMIUM_UUID)) {
+                if (!uuidColumn.isEmpty()) {
+                    addColumnIfAbsent(md, st, uuidColumn, "VARCHAR(36)");
+                }
             }
         }
         logger.info("SQLite Setup finished");

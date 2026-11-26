@@ -99,18 +99,34 @@ public class AsynchronousLogin implements AsynchronousProcess {
 
     /** Processes a player's login request. */
     public void login(Player player, String password) {
+        login(player, password, false);
+    }
+
+    /** Logs a player in without requiring a password. */
+    public void forceLogin(Player player) {
+        login(player, null, false);
+    }
+
+    /** Logs a player in without a password, initiated by the proxy: quiet and no BungeeCord redirect. */
+    public void forceLoginFromProxy(Player player) {
+        login(player, null, true);
+    }
+
+    /** Shared login implementation; a null password forces the login without password or TOTP checks. */
+    private void login(Player player, String password, boolean quiet) {
         String name = player.getName();
         String lowerCaseName = name.toLowerCase(Locale.ROOT);
-        PlayerAuth auth = getPlayerAuth(player, lowerCaseName, false);
+        PlayerAuth auth = getPlayerAuth(player, lowerCaseName, quiet);
         if (auth == null) {
             return;
         }
         // Resolve the IP once for the whole login call and pass it to every check that needs it
         String ip = PlayerUtils.getPlayerIp(player);
-        if (!canLogin(player, ip, false) || !checkPlayerInfo(player, name, lowerCaseName, ip, auth, password)) {
+        if (!canLogin(player, ip, quiet)
+            || (password != null && !checkPlayerInfo(player, name, lowerCaseName, ip, auth, password))) {
             return;
         }
-        if (auth.getTotpKey() != null) {
+        if (password != null && auth.getTotpKey() != null) {
             LimboPlayer limbo = limboService.getLimboPlayer(player);
             if (limbo == null) {
                 service.send(player, MessageKey.LOGIN_MESSAGE);
@@ -121,31 +137,7 @@ public class AsynchronousLogin implements AsynchronousProcess {
             showTotpDialogIfEnabled(player, lowerCaseName);
             // TODO #1141: Check if we should check limbo state before processing password
         } else {
-            doPerformLogin(player, name, ip, auth, false);
-        }
-    }
-
-    /** Logs a player in without requiring a password. */
-    public void forceLogin(Player player) {
-        forceLogin(player, false);
-    }
-
-    /** Logs a player in without a password, initiated by the proxy: quiet and no BungeeCord redirect. */
-    public void forceLoginFromProxy(Player player) {
-        forceLogin(player, true);
-    }
-
-    /** Shared force-login implementation for locally and proxy initiated logins. */
-    private void forceLogin(Player player, boolean proxyInitiated) {
-        String name = player.getName();
-        String lowerCaseName = name.toLowerCase(Locale.ROOT);
-        PlayerAuth auth = getPlayerAuth(player, lowerCaseName, proxyInitiated);
-        if (auth == null) {
-            return;
-        }
-        String ip = PlayerUtils.getPlayerIp(player);
-        if (canLogin(player, ip, proxyInitiated)) {
-            doPerformLogin(player, name, ip, auth, proxyInitiated);
+            doPerformLogin(player, name, ip, auth, quiet);
         }
     }
 

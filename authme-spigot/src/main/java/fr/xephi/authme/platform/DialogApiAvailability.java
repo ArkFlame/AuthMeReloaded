@@ -1,5 +1,7 @@
 package fr.xephi.authme.platform;
 
+import fr.xephi.authme.util.Utils;
+
 /**
  * Detects, once, whether the BungeeCord dialog API shipped with Spigot 1.21.6+ is present.
  *
@@ -9,22 +11,14 @@ package fr.xephi.authme.platform;
  */
 final class DialogApiAvailability {
 
-    private static final boolean AVAILABLE = detect();
+    // Same Class.forName probe as the core hook; no dialog API class is referenced directly here.
+    private static final boolean AVAILABLE =
+        Utils.isClassLoaded("net.md_5.bungee.api.dialog.MultiActionDialog");
 
     private DialogApiAvailability() {
     }
 
     static boolean isAvailable() {
         return AVAILABLE;
-    }
-
-    private static boolean detect() {
-        try {
-            Class.forName("net.md_5.bungee.api.dialog.MultiActionDialog");
-            return true;
-        } catch (ClassNotFoundException ignored) {
-            // BungeeCord dialog API absent (Spigot < 1.21.6)
-            return false;
-        }
     }
 }

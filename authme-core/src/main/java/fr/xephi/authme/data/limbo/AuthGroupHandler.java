@@ -58,14 +58,10 @@ class AuthGroupHandler implements Reloadable {
             // Implementation note: some permission systems don't support players not being in any group,
             // so add the new group before removing the old ones
             case UNREGISTERED:
-                permissionsManager.addGroup(player, unregisteredGroup);
-                permissionsManager.removeGroup(player, registeredGroup);
-                processGroups(player, previousGroups, group -> permissionsManager.removeGroup(player, group), "remove");
-                break;
-
             case REGISTERED_UNAUTHENTICATED:
-                permissionsManager.addGroup(player, registeredGroup);
-                permissionsManager.removeGroup(player, unregisteredGroup);
+                boolean isUnregistered = groupType == AuthGroupType.UNREGISTERED;
+                permissionsManager.addGroup(player, isUnregistered ? unregisteredGroup : registeredGroup);
+                permissionsManager.removeGroup(player, isUnregistered ? registeredGroup : unregisteredGroup);
                 processGroups(player, previousGroups, group -> permissionsManager.removeGroup(player, group), "remove");
                 break;
 

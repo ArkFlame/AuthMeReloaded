@@ -1,9 +1,7 @@
 package fr.xephi.authme.command.executable.authme;
 
-import fr.xephi.authme.command.ExecutableCommand;
 import fr.xephi.authme.command.executable.CommandValidation;
 import fr.xephi.authme.process.Management;
-import fr.xephi.authme.service.CommonService;
 import fr.xephi.authme.service.ValidationService;
 import org.bukkit.command.CommandSender;
 
@@ -13,13 +11,10 @@ import java.util.List;
 /**
  * Admin command for changing a player's password.
  */
-public class ChangePasswordAdminCommand implements ExecutableCommand {
+public class ChangePasswordAdminCommand extends AbstractPlayerAuthCommand {
 
     @Inject
     private ValidationService validationService;
-
-    @Inject
-    private CommonService commonService;
 
     @Inject
     private Management management;
@@ -31,7 +26,7 @@ public class ChangePasswordAdminCommand implements ExecutableCommand {
         final String playerPass = arguments.get(1);
 
         // Validate the password
-        if (CommandValidation.isValid(commonService, sender,
+        if (CommandValidation.isValid(getCommonService(), sender,
             validationService.validatePassword(playerPass, playerName))) {
             management.performPasswordChangeAsAdmin(sender, playerName, playerPass);
         }

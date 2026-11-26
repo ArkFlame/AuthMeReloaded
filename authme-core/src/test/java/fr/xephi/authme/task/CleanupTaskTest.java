@@ -29,14 +29,11 @@ class CleanupTaskTest {
 
     @Test
     void shouldPerformCleanup() {
-        // given
         List<HasCleanup> services = asList(mock(HasCleanup.class), mock(HasCleanup.class), mock(HasCleanup.class));
         given(hasCleanupStore.retrieveAllOfType()).willReturn(services);
 
-        // when
         cleanupTask.run();
 
-        // then
         for (HasCleanup service : services) {
             verify(service).performCleanup();
         }

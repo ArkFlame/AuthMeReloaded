@@ -84,20 +84,12 @@ public class HelpMessagesService {
             command::getDescription, language);
     }
 
-    public String getMessage(HelpMessage message) {
-        return getMessage(message, null);
+    public String getMessage(HelpTextKey key) {
+        return getMessage(key, null);
     }
 
-    public String getMessage(HelpMessage message, String language) {
-        return helpMessagesFileHandler.getMessage(message.getKey(), language);
-    }
-
-    public String getMessage(HelpSection section) {
-        return getMessage(section, null);
-    }
-
-    public String getMessage(HelpSection section, String language) {
-        return helpMessagesFileHandler.getMessage(section.getKey(), language);
+    public String getMessage(HelpTextKey key, String language) {
+        return helpMessagesFileHandler.getMessage(key.getKey(), language);
     }
 
     public String getMessage(DefaultPermission defaultPermission) {

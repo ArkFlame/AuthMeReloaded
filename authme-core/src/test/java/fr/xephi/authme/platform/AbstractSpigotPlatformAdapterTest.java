@@ -49,7 +49,6 @@ class AbstractSpigotPlatformAdapterTest {
 
     @Test
     void shouldUseBedSpawnLocationByDefault() {
-        // given
         AbstractSpigotPlatformAdapter adapter = new AbstractSpigotPlatformAdapter() {
             @Override
             public String getPlatformName() {
@@ -61,10 +60,8 @@ class AbstractSpigotPlatformAdapterTest {
         Location bedSpawn = new Location(world, 10.0, 64.0, -2.0);
         given(player.getBedSpawnLocation()).willReturn(bedSpawn);
 
-        // when
         Location result = adapter.getPlayerRespawnLocation(player);
 
-        // then
         assertThat(result, equalTo(bedSpawn));
     }
 

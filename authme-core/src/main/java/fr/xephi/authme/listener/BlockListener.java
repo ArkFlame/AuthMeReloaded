@@ -8,12 +8,8 @@ import org.bukkit.event.block.BlockPlaceEvent;
 public class BlockListener extends AbstractCancelListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
-    public void onBlockPlace(BlockPlaceEvent event) {
-        cancelIfUnauthorized(event.getPlayer(), event);
-    }
+    public void onBlockPlace(BlockPlaceEvent event) { cancelIfUnauthorized(event.getPlayer(), event); }
 
     @EventHandler(ignoreCancelled = true)
-    public void onBlockBreak(BlockBreakEvent event) {
-        cancelIfUnauthorized(event.getPlayer(), event);
-    }
+    public void onBlockBreak(BlockBreakEvent event) { cancelIfUnauthorized(event.getPlayer(), event); }
 }

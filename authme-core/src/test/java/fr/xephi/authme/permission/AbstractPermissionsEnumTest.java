@@ -14,10 +14,8 @@ public abstract class AbstractPermissionsEnumTest {
 
     @Test
     void shouldAllStartWitRequiredPrefix() {
-        // given
         String requiredPrefix = getRequiredPrefix();
 
-        // when/then
         for (PermissionNode permission : getPermissionNodes()) {
             if (!permission.getNode().startsWith(requiredPrefix)) {
                 fail("The permission '" + permission + "' does not start with the required prefix '"
@@ -28,10 +26,8 @@ public abstract class AbstractPermissionsEnumTest {
 
     @Test
     void shouldHaveUniqueNodes() {
-        // given
         Set<String> nodes = new HashSet<>();
 
-        // when/then
         for (PermissionNode permission : getPermissionNodes()) {
             if (!nodes.add(permission.getNode())) {
                 fail("More than one enum value defines the node '" + permission.getNode() + "'");

@@ -30,15 +30,12 @@ class VaultHandlerTest {
     @ParameterizedTest(name = "{0}")
     @MethodSource("createParameters")
     void shouldGetGroups(String description, String[] vaultGroups, List<String> expectedGroups) {
-        // given
         Permission permissionMock = vaultHandlerTest.permissionMock;
         Player player = mock(Player.class);
         given(permissionMock.getPlayerGroups(null, player)).willReturn(vaultGroups);
 
-        // when
         List<UserGroup> result = vaultHandlerTest.getGroups(player);
 
-        // then
         assertThat(result.stream().map(UserGroup::getGroupName).collect(toList()), equalTo(expectedGroups));
         verify(permissionMock).getPlayerGroups(null, player);
     }

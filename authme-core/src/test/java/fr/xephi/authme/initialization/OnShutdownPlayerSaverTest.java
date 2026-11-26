@@ -57,16 +57,13 @@ class OnShutdownPlayerSaverTest {
 
     @Test
     void shouldSaveRemainingPlayersIfOneFails() {
-        // given
         Player failing = mockPlayerInLimbo("Failing");
         Player other = mockPlayerInLimbo("Other");
         doReturn(Arrays.asList(failing, other)).when(bukkitService).getOnlinePlayers();
         doThrow(IllegalStateException.class).when(limboService).restoreData(failing);
 
-        // when
         onShutdownPlayerSaver.saveAllPlayers();
 
-        // then
         verify(playerCache).removePlayer("failing");
         verify(limboService).restoreData(other);
         verify(playerCache).removePlayer("other");
@@ -74,16 +71,13 @@ class OnShutdownPlayerSaverTest {
 
     @Test
     void shouldRestoreRevokedOperatorOfPlayerWithoutLimbo() {
-        // given
         Player player = mock(Player.class);
         given(player.getName()).willReturn("Bobby");
         doReturn(Collections.singletonList(player)).when(bukkitService).getOnlinePlayers();
         given(settings.getProperty(RestrictionSettings.SAVE_QUIT_LOCATION)).willReturn(false);
 
-        // when
         onShutdownPlayerSaver.saveAllPlayers();
 
-        // then
         verify(limboService).restorePendingOperator(player);
         verify(playerCache).removePlayer("bobby");
     }

@@ -82,33 +82,17 @@ public class AsyncAddEmail implements AsynchronousProcess {
                     service.send(player, MessageKey.EMAIL_ADD_NOT_ALLOWED);
                     return;
                 }
-                if (requiresEmailConfirmation()) {
+                if (emailService.hasAllInformation()
+                    && service.getProperty(RegistrationSettings.REGISTER_SECOND_ARGUMENT) != EMAIL_OPTIONAL) {
                     EmailProcessHelper.sendConfirmationCode(service, emailService, pendingEmailVerificationCache,
                         logger, player, email);
-                } else {
-                    saveEmailDirectly(auth, player, email);
+                } else if (!EmailProcessHelper.persistEmail(service, dataSource, playerCache, auth, player, email,
+                    MessageKey.EMAIL_ADDED_SUCCESS)) {
+                    logger.warning("Could not save email for player '" + player + "'");
                 }
             }
         } else {
             EmailProcessHelper.sendUnloggedMessage(service, dataSource, player);
-        }
-    }
-
-    /**
-     * Returns whether the given email must be confirmed before it is saved. Registration with
-     * {@code EMAIL_OPTIONAL} saves the email directly, so adding one later must do the same.
-     *
-     * @return true if a confirmation code should be sent
-     */
-    private boolean requiresEmailConfirmation() {
-        return emailService.hasAllInformation()
-            && service.getProperty(RegistrationSettings.REGISTER_SECOND_ARGUMENT) != EMAIL_OPTIONAL;
-    }
-
-    private void saveEmailDirectly(PlayerAuth auth, Player player, String email) {
-        if (!EmailProcessHelper.persistEmail(service, dataSource, playerCache, auth, player, email,
-                MessageKey.EMAIL_ADDED_SUCCESS)) {
-            logger.warning("Could not save email for player '" + player + "'");
         }
     }
 

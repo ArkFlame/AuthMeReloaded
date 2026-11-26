@@ -45,14 +45,8 @@ class LimboServiceHelper {
         // For safety reasons an unregistered player should not have OP status after registration
         boolean isOperator = isRegistered && (wasOperator || player.isOp());
         boolean flyEnabled = player.getAllowFlight();
-        float walkSpeed = player.getWalkSpeed();
-        if (walkSpeed <= 0.01f) {
-            walkSpeed = LimboPlayer.DEFAULT_WALK_SPEED;
-        }
-        float flySpeed = player.getFlySpeed();
-        if (flySpeed <= 0.01f) {
-            flySpeed = LimboPlayer.DEFAULT_FLY_SPEED;
-        }
+        float walkSpeed = speedOrDefault(player.getWalkSpeed(), LimboPlayer.DEFAULT_WALK_SPEED);
+        float flySpeed = speedOrDefault(player.getFlySpeed(), LimboPlayer.DEFAULT_FLY_SPEED);
         Collection<UserGroup> playerGroups = permissionsManager.hasGroupSupport()
             ? permissionsManager.getGroups(player) : Collections.emptyList();
 
@@ -61,6 +55,10 @@ class LimboServiceHelper {
         logger.debug(() -> "Player `" + player.getName() + "` has groups `"
             + joinGroupNames(playerGroups) + "`");
         return new LimboPlayer(location, isOperator, playerGroups, flyEnabled, walkSpeed, flySpeed);
+    }
+
+    private static float speedOrDefault(float speed, float defaultValue) {
+        return speed <= 0.01f ? defaultValue : speed;
     }
 
     /** Renders the group names exactly as {@code String.join(", ", names)} would. */

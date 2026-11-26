@@ -4,7 +4,7 @@ package fr.xephi.authme.command.help;
  * Common, non-generic keys for messages used when showing command help.
  * All keys are prefixed with {@code common}.
  */
-public enum HelpMessage {
+public enum HelpMessage implements HelpTextKey {
 
     HEADER("header"),
 
@@ -19,24 +19,24 @@ public enum HelpMessage {
     RESULT("result");
 
     private static final String PREFIX = "common.";
-    private final LocalizedKey key;
+    private final String entryKey;
 
     /**
      * Constructor.
      *
-     * @param key the message key without the common prefix
+     * @param entryKey the message key without the common prefix
      */
-    HelpMessage(String key) {
-        this.key = new LocalizedKey(PREFIX, key);
+    HelpMessage(String entryKey) {
+        this.entryKey = entryKey;
     }
 
-    /** @return the message key */
-    public String getKey() {
-        return key.getKey();
+    @Override
+    public String getPrefix() {
+        return PREFIX;
     }
 
-    /** @return the key without the common prefix */
+    @Override
     public String getEntryKey() {
-        return key.getEntryKey();
+        return entryKey;
     }
 }

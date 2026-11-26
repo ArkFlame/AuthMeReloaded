@@ -11,6 +11,7 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Arrays;
 import java.util.Locale;
 
 /**
@@ -95,8 +96,8 @@ public class PostgreSqlDataSource extends AbstractHikariSqlDataSource {
             addColumnIfAbsent(md, st, col.REAL_NAME, "VARCHAR(255) NOT NULL;");
             addColumnIfAbsent(md, st, col.PASSWORD, "VARCHAR(255) NOT NULL;");
 
-            if (!col.SALT.isEmpty() && isColumnMissing(md, col.SALT)) {
-                addColumn(st, col.SALT, "VARCHAR(255);");
+            if (!col.SALT.isEmpty()) {
+                addColumnIfAbsent(md, st, col.SALT, "VARCHAR(255);");
             }
 
             if (isColumnMissing(md, col.LAST_IP)) {
@@ -136,12 +137,10 @@ public class PostgreSqlDataSource extends AbstractHikariSqlDataSource {
                 alterTable(st, "ALTER COLUMN " + col.TOTP_KEY + " TYPE VARCHAR(32);");
             }
 
-            if (!col.PLAYER_UUID.isEmpty() && isColumnMissing(md, col.PLAYER_UUID)) {
-                addColumn(st, col.PLAYER_UUID, "VARCHAR(36)");
-            }
-
-            if (!col.PREMIUM_UUID.isEmpty() && isColumnMissing(md, col.PREMIUM_UUID)) {
-                addColumn(st, col.PREMIUM_UUID, "VARCHAR(36)");
+            for (String uuidColumn : Arrays.asList(col.PLAYER_UUID, col.PREMIUM_UUID)) {
+                if (!uuidColumn.isEmpty()) {
+                    addColumnIfAbsent(md, st, uuidColumn, "VARCHAR(36)");
+                }
             }
         }
         logger.info("PostgreSQL setup finished");

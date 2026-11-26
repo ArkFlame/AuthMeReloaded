@@ -161,19 +161,16 @@ public final class PaperDialogHelper {
     }
 
     private static String createRegisterTemplate(RegistrationType type, RegisterSecondaryArgument secondArg) {
-        boolean confirmation = secondArg == RegisterSecondaryArgument.CONFIRMATION;
-        if (type == RegistrationType.EMAIL) {
-            return confirmation ? "register $(email) $(confirm)" : "register $(email)";
+        boolean email = type == RegistrationType.EMAIL;
+        String field = email ? "$(email)" : "$(password)";
+        if (secondArg == RegisterSecondaryArgument.CONFIRMATION) {
+            return "register " + field + " $(confirm)";
         }
-
-        if (confirmation) {
-            return "register $(password) $(confirm)";
+        if (!email && (secondArg == RegisterSecondaryArgument.EMAIL_MANDATORY
+            || secondArg == RegisterSecondaryArgument.EMAIL_OPTIONAL)) {
+            return "register " + field + " $(email)";
         }
-        if (secondArg == RegisterSecondaryArgument.EMAIL_MANDATORY
-            || secondArg == RegisterSecondaryArgument.EMAIL_OPTIONAL) {
-            return "register $(password) $(email)";
-        }
-        return "register $(password)";
+        return "register " + field;
     }
 
     private static Component legacyComponent(String text) {

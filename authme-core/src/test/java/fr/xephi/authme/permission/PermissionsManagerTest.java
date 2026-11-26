@@ -38,16 +38,13 @@ class PermissionsManagerTest {
     @MethodSource("createParameters")
     void shouldEvaluateDefaultPermission(String description, boolean player, PermissionNode node,
                                          boolean op, boolean expected) {
-        // given
         CommandSender sender = player ? mock(Player.class) : mock(CommandSender.class);
         if (op) {
             given(sender.isOp()).willReturn(true);
         }
 
-        // when
         boolean result = permissionsManager.hasPermission(sender, node);
 
-        // then
         assertThat(result, equalTo(expected));
     }
 

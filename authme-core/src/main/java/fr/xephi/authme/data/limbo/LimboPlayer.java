@@ -202,6 +202,10 @@ public class LimboPlayer {
      * @param pearls tracked ender pearls to restore on reconnect
      */
     public void setEnderPearls(Collection<EnderPearlRestoreData> pearls) {
+        if (pearls.isEmpty()) {
+            this.enderPearls = Collections.emptyMap();
+            return;
+        }
         Map<UUID, EnderPearlRestoreData> pearlMap = new HashMap<>();
         for (EnderPearlRestoreData pearl : pearls) {
             if (pearl != null) {

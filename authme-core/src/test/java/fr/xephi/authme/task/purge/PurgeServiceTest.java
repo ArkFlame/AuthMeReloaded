@@ -72,29 +72,23 @@ class PurgeServiceTest {
     @ParameterizedTest
     @CsvSource({"false, 60", "true, 0"})
     void shouldNotRunAutoPurge(boolean useAutoPurge, int daysBeforeRemovePlayer) {
-        // given
         given(settings.getProperty(PurgeSettings.USE_AUTO_PURGE)).willReturn(useAutoPurge);
         given(settings.getProperty(PurgeSettings.DAYS_BEFORE_REMOVE_PLAYER)).willReturn(daysBeforeRemovePlayer);
 
-        // when
         purgeService.runAutoPurge();
 
-        // then
         verifyNoInteractions(bukkitService, dataSource);
     }
 
     @Test
     void shouldRunAutoPurge() {
-        // given
         given(settings.getProperty(PurgeSettings.USE_AUTO_PURGE)).willReturn(true);
         given(settings.getProperty(PurgeSettings.DAYS_BEFORE_REMOVE_PLAYER)).willReturn(60);
         Set<String> playerNames = newHashSet("alpha", "bravo", "charlie", "delta");
         given(dataSource.getRecordsToPurge(anyLong())).willReturn(playerNames);
 
-        // when
         purgeService.runAutoPurge();
 
-        // then
         ArgumentCaptor<Long> captor = ArgumentCaptor.forClass(Long.class);
         verify(dataSource).getRecordsToPurge(captor.capture());
         assertCorrectPurgeTimestamp(captor.getValue(), 60);
@@ -105,15 +99,12 @@ class PurgeServiceTest {
 
     @Test
     void shouldRecognizeNoPlayersToPurge() {
-        // given
         final long delay = 123012301L;
         given(dataSource.getRecordsToPurge(delay)).willReturn(Collections.emptySet());
         CommandSender sender = mock(CommandSender.class);
 
-        // when
         purgeService.runPurge(sender, delay);
 
-        // then
         verify(dataSource).getRecordsToPurge(delay);
         verify(dataSource, never()).purgeRecords(anyCollection());
         verify(sender).sendMessage("No players to purge");
@@ -122,7 +113,6 @@ class PurgeServiceTest {
 
     @Test
     void shouldRunPurge() {
-        // given
         final long delay = 1809714L;
         Set<String> playerNames = newHashSet("charlie", "delta", "echo", "foxtrot");
         given(dataSource.getRecordsToPurge(delay)).willReturn(playerNames);
@@ -130,40 +120,32 @@ class PurgeServiceTest {
         UUID uuid = UUID.randomUUID();
         given(sender.getUniqueId()).willReturn(uuid);
 
-        // when
         purgeService.runPurge(sender, delay);
 
-        // then
         verify(dataSource).getRecordsToPurge(delay);
         verifyScheduledPurgeTask(uuid, playerNames);
     }
 
     @Test
     void shouldNotRunPurgeIfProcessIsAlreadyRunning() {
-        // given
         purgeService.setPurging(true);
         CommandSender sender = mock(CommandSender.class);
         OfflinePlayer[] offlinePlayers = new OfflinePlayer[]{mock(OfflinePlayer.class), mock(OfflinePlayer.class)};
 
-        // when
         purgeService.purgePlayers(sender, newHashSet("test", "names"), offlinePlayers);
 
-        // then
         verify(sender).sendMessage(argThat(containsString("Purge is already in progress")));
         verifyNoInteractions(bukkitService, dataSource, permissionsManager);
     }
 
     @Test
     void shouldExecutePurgeActions() {
-        // given
         List<String> names = Arrays.asList("alpha", "bravo", "foxtrot");
         List<OfflinePlayer> offlinePlayers = Arrays.asList(
             mock(OfflinePlayer.class), mock(OfflinePlayer.class), mock(OfflinePlayer.class));
 
-        // when
         purgeService.executePurge(offlinePlayers, names);
 
-        // then
         verify(executor).executePurge(offlinePlayers, names);
     }
 

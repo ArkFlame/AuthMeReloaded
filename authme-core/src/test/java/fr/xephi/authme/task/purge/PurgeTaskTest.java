@@ -73,7 +73,6 @@ class PurgeTaskTest {
 
     @Test
     void shouldRunTask() {
-        // given
         Set<String> names =
             newHashSet("alpha", "bravo", "charlie", "delta", "echo", "foxtrot", "golf", "hotel", "india");
         // alpha and echo have bypass permission
@@ -129,7 +128,6 @@ class PurgeTaskTest {
      */
     @Test
     void shouldHandleOfflinePlayerWithNullName() {
-        // given
         Set<String> names = newHashSet("name1", "name2");
         OfflinePlayer[] players = new OfflinePlayer[]{
             mockOfflinePlayer(null, false),  mockOfflinePlayer("charlie", false),  mockOfflinePlayer("name1", false)};
@@ -138,16 +136,13 @@ class PurgeTaskTest {
 
         PurgeTask task = new PurgeTask(purgeService, permissionsManager, null, names, players);
 
-        // when
         task.run();
 
-        // then
         assertRanPurgeWithPlayers(players[2]);
     }
 
     @Test
     void shouldStopTaskAndInformSenderUponCompletion() {
-        // given
         Set<String> names = newHashSet("name1", "name2");
         Player sender = mock(Player.class);
         UUID uuid = UUID.randomUUID();
@@ -162,17 +157,14 @@ class PurgeTaskTest {
 
         task.run(); // Run for the first time -> results in empty names list
 
-        // when
         task.run();
 
-        // then
         verify(taskHandle).cancel();
         verify(sender).sendMessage(argThat(containsString("Database has been purged successfully")));
     }
 
     @Test
     void shouldStopTaskAndInformConsoleUser() {
-        // given
         Set<String> names = newHashSet("name1", "name2");
         PurgeTask task = new PurgeTask(purgeService, permissionsManager, null, names, new OfflinePlayer[0]);
         CancellableTask taskHandle = mock(CancellableTask.class);
@@ -185,14 +177,11 @@ class PurgeTaskTest {
 
         task.run(); // Run for the first time -> results in empty names list
 
-        // when
         task.run();
 
-        // then
         verify(taskHandle).cancel();
         verify(consoleSender).sendMessage(argThat(containsString("Database has been purged successfully")));
     }
-
 
     private OfflinePlayer mockOfflinePlayer(String name, boolean hasBypassPermission) {
         OfflinePlayer player = mock(OfflinePlayer.class);

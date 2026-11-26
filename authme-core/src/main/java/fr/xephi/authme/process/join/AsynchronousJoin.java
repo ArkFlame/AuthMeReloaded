@@ -505,11 +505,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
 
         bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, () -> {
             // Guard: proxy login may have completed between when this task was scheduled and now
-            if (!player.isOnline()) {
-                return;
-            }
-            String playerName = player.getName();
-            if (playerCache.isAuthenticated(playerName)) {
+            if (!player.isOnline() || playerCache.isAuthenticated(player.getName())) {
                 return;
             }
             limboService.createLimboPlayer(player, isAuthAvailable);
@@ -531,20 +527,20 @@ public class AsynchronousJoin implements AsynchronousProcess {
                 return;
             }
 
-            if (!shouldSkipPostJoinDialog
-                && !playerCache.isAuthenticated(playerName)
-                && service.getProperty(RegistrationSettings.USE_DIALOG_UI)
-                && dialogAdapter.isDialogSupported()) {
+            if (!shouldSkipPostJoinDialog && hasPostJoinDialogPrerequisites(player)) {
                 bukkitService.runTaskLater(player, () -> showPostJoinDialogIfNecessary(player, isAuthAvailable), 1L);
             }
         });
     }
 
+    /** Shared dialog prerequisites, evaluated identically at scheduling and execution time. */
+    private boolean hasPostJoinDialogPrerequisites(Player player) {
+        return !playerCache.isAuthenticated(player.getName()) && service.getProperty(RegistrationSettings.USE_DIALOG_UI)
+            && dialogAdapter.isDialogSupported();
+    }
+
     private void showPostJoinDialogIfNecessary(Player player, boolean isAuthAvailable) {
-        if (!player.isOnline()
-            || playerCache.isAuthenticated(player.getName())
-            || !service.getProperty(RegistrationSettings.USE_DIALOG_UI)
-            || !dialogAdapter.isDialogSupported()) {
+        if (!player.isOnline() || !hasPostJoinDialogPrerequisites(player)) {
             return;
         }
 

@@ -12,7 +12,6 @@ import fr.xephi.authme.util.Utils;
 import org.bukkit.entity.Player;
 
 import javax.inject.Inject;
-import java.util.function.Function;
 
 /**
  * Optional in-dialog e-mail recovery flow. It delegates every check to the services used by the
@@ -132,24 +131,16 @@ public class EmailRecoveryDialogService {
     /** Shows the dialog for entering the recovery code. */
     public void showCodeDialog(Player player) {
         dialogAdapter.showRecoveryCodeDialog(player, EmailRecoveryDialogSpec.createCodeDialog(
-            textResolver(player), showBody(), stackButtonsVertically()));
+            key -> commonService.retrieveSingleMessage(player, key),
+            commonService.getProperty(RegistrationSettings.DIALOG_SHOW_BODY),
+            commonService.getProperty(RegistrationSettings.DIALOG_STACK_BUTTONS_VERTICALLY)));
     }
 
     /** Shows the dialog for choosing the new password. */
     public void showNewPasswordDialog(Player player) {
         dialogAdapter.showNewPasswordDialog(player, EmailRecoveryDialogSpec.createNewPasswordDialog(
-            textResolver(player), showBody(), stackButtonsVertically()));
-    }
-
-    private Function<MessageKey, String> textResolver(Player player) {
-        return key -> commonService.retrieveSingleMessage(player, key);
-    }
-
-    private boolean showBody() {
-        return commonService.getProperty(RegistrationSettings.DIALOG_SHOW_BODY);
-    }
-
-    private boolean stackButtonsVertically() {
-        return commonService.getProperty(RegistrationSettings.DIALOG_STACK_BUTTONS_VERTICALLY);
+            key -> commonService.retrieveSingleMessage(player, key),
+            commonService.getProperty(RegistrationSettings.DIALOG_SHOW_BODY),
+            commonService.getProperty(RegistrationSettings.DIALOG_STACK_BUTTONS_VERTICALLY)));
     }
 }

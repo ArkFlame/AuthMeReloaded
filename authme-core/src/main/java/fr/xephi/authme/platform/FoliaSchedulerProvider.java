@@ -59,12 +59,7 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
     @Override
     public CancellableTask runAtFixedRateOnGlobalThread(Plugin plugin, Runnable task,
                                                         long delayTicks, long periodTicks) {
-        Object scheduler = globalScheduler.get();
-        return schedule(plugin, scheduler,
-            findMethod(scheduler, "runAtFixedRate", Plugin.class, Consumer.class,
-                long.class, long.class, TimeUnit.class),
-            GLOBAL_SCHEDULER_NAME, plugin, toConsumer(task),
-            delayTicks * MILLIS_PER_TICK, periodTicks * MILLIS_PER_TICK, TimeUnit.MILLISECONDS);
+        return scheduleRepeating(globalScheduler.get(), plugin, task, delayTicks, periodTicks, GLOBAL_SCHEDULER_NAME);
     }
 
     @Override
@@ -77,11 +72,16 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
 
     @Override
     public CancellableTask runAsyncTimer(Plugin plugin, Runnable task, long delayTicks, long periodTicks) {
-        Object scheduler = asyncScheduler.get();
+        return scheduleRepeating(asyncScheduler.get(), plugin, task, delayTicks, periodTicks, ASYNC_SCHEDULER_NAME);
+    }
+
+    /** Schedules a repeating Folia task, converting tick delays and periods to milliseconds. */
+    private CancellableTask scheduleRepeating(Object scheduler, Plugin plugin, Runnable task,
+                                              long delayTicks, long periodTicks, String schedulerName) {
         return schedule(plugin, scheduler,
             findMethod(scheduler, "runAtFixedRate", Plugin.class, Consumer.class,
                 long.class, long.class, TimeUnit.class),
-            ASYNC_SCHEDULER_NAME, plugin, toConsumer(task),
+            schedulerName, plugin, toConsumer(task),
             delayTicks * MILLIS_PER_TICK, periodTicks * MILLIS_PER_TICK, TimeUnit.MILLISECONDS);
     }
 
@@ -139,14 +139,8 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
     }
 
     private static CancellableTask asCancellable(Object scheduledTask) {
-        if (scheduledTask == null) {
-            return NO_OP_TASK;
-        }
         Method cancel = findMethod(scheduledTask, "cancel");
-        if (cancel == null) {
-            return NO_OP_TASK;
-        }
-        return () -> invoke(cancel, scheduledTask);
+        return cancel == null ? NO_OP_TASK : () -> invoke(cancel, scheduledTask);
     }
 
     /**

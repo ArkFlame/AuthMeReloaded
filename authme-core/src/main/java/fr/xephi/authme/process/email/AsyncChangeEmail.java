@@ -84,17 +84,13 @@ public class AsyncChangeEmail implements AsynchronousProcess {
                     EmailProcessHelper.sendConfirmationCode(service, emailService, pendingEmailVerificationCache,
                         logger, player, newEmail);
                 } else {
-                    saveEmailDirectly(auth, player, newEmail);
+                    EmailProcessHelper.persistEmail(service, dataSource, playerCache, auth, player, newEmail,
+                        MessageKey.EMAIL_CHANGED_SUCCESS);
                 }
             }
         } else {
             EmailProcessHelper.sendUnloggedMessage(service, dataSource, player);
         }
-    }
-
-    private void saveEmailDirectly(PlayerAuth auth, Player player, String newEmail) {
-        EmailProcessHelper.persistEmail(service, dataSource, playerCache, auth, player, newEmail,
-            MessageKey.EMAIL_CHANGED_SUCCESS);
     }
 
 }

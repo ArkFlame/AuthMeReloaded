@@ -15,10 +15,8 @@ class PlayerStatePermissionTest extends AbstractPermissionsEnumTest {
 
     @Test
     void shouldNotStartWithOtherPrefixes() {
-        // given
         Set<String> forbiddenPrefixes = newHashSet("authme.player", "authme.admin", "authme.debug");
 
-        // when/then
         for (PlayerStatePermission permission : PlayerStatePermission.values()) {
             if (startsWithAny(permission.getNode(), forbiddenPrefixes)) {
                 fail("The permission '" + permission + "' should not start with any of " + forbiddenPrefixes);

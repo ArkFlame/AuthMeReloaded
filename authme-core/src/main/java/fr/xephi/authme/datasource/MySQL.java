@@ -13,6 +13,7 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Arrays;
 import java.util.Locale;
 
 /**
@@ -211,12 +212,10 @@ public class MySQL extends AbstractHikariSqlDataSource {
                 alterTable(st, "MODIFY " + col.TOTP_KEY + " VARCHAR(32);");
             }
 
-            if (!col.PLAYER_UUID.isEmpty()) {
-                addColumnIfAbsent(md, st, col.PLAYER_UUID, "VARCHAR(36)");
-            }
-
-            if (!col.PREMIUM_UUID.isEmpty()) {
-                addColumnIfAbsent(md, st, col.PREMIUM_UUID, "VARCHAR(36)");
+            for (String uuidColumn : Arrays.asList(col.PLAYER_UUID, col.PREMIUM_UUID)) {
+                if (!uuidColumn.isEmpty()) {
+                    addColumnIfAbsent(md, st, uuidColumn, "VARCHAR(36)");
+                }
             }
         }
         logger.info("MySQL setup finished");

@@ -37,10 +37,7 @@ final class FoliaTaskScheduler {
     }
 
     static void runOnEntityThread(AuthMe plugin, Entity entity, Runnable task) {
-        ScheduledTask scheduledTask = entity.getScheduler().run(plugin, ignored -> task.run(), null);
-        if (scheduledTask == null) {
-            plugin.getLogger().fine(ENTITY_TASK_RETIRED);
-        }
+        cancellableTask(entity.getScheduler().run(plugin, ignored -> task.run(), null), plugin, ENTITY_TASK_RETIRED);
     }
 
     static CancellableTask runDelayedOnEntityThread(AuthMe plugin, Entity entity, Runnable task, long delay) {

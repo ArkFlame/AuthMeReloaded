@@ -3,7 +3,7 @@ package fr.xephi.authme.command.help;
 /**
  * Translatable sections. Message keys are prefixed by {@code section}.
  */
-public enum HelpSection {
+public enum HelpSection implements HelpTextKey {
 
     COMMAND("command"),
 
@@ -20,24 +20,24 @@ public enum HelpSection {
     CHILDREN("children");
 
     private static final String PREFIX = "section.";
-    private final LocalizedKey key;
+    private final String entryKey;
 
     /**
      * Constructor.
      *
-     * @param key the message key without the section prefix
+     * @param entryKey the message key without the section prefix
      */
-    HelpSection(String key) {
-        this.key = new LocalizedKey(PREFIX, key);
+    HelpSection(String entryKey) {
+        this.entryKey = entryKey;
     }
 
-    /** @return the message key */
-    public String getKey() {
-        return key.getKey();
+    @Override
+    public String getPrefix() {
+        return PREFIX;
     }
 
-    /** @return the key without the section prefix */
+    @Override
     public String getEntryKey() {
-        return key.getEntryKey();
+        return entryKey;
     }
 }

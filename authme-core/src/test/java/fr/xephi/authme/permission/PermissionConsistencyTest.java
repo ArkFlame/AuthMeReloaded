@@ -57,10 +57,8 @@ class PermissionConsistencyTest {
 
     @Test
     void shouldHaveAllPermissionsInPluginYml() {
-        // given
         List<String> errors = new ArrayList<>();
 
-        // when
         for (PermissionNode node : permissionNodes) {
             PermissionDefinition permDef = pluginYmlPermissions.get(node.getNode());
             if (permDef == null) {
@@ -70,7 +68,6 @@ class PermissionConsistencyTest {
             }
         }
 
-        // then
         if (!errors.isEmpty()) {
             fail("Found consistency issues!\n" + String.join("\n", errors));
         }
@@ -78,10 +75,8 @@ class PermissionConsistencyTest {
 
     @Test
     void shouldNotHaveUnknownPermissionsInPluginYml() {
-        // given
         List<String> errors = new ArrayList<>();
 
-        // when
         for (PermissionDefinition def : pluginYmlPermissions.values()) {
             if (PLUGIN_YML_PERMISSIONS_WILDCARDS.contains(def.node)) {
                 validateChildren(def, errors);
@@ -95,7 +90,6 @@ class PermissionConsistencyTest {
             }
         }
 
-        // then
         if (!errors.isEmpty()) {
             fail("Found consistency issues!\n" + String.join("\n", errors));
         }

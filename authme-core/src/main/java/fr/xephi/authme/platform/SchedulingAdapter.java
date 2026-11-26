@@ -12,90 +12,33 @@ import org.bukkit.entity.Entity;
  */
 public interface SchedulingAdapter {
 
-    /**
-     * @param entity the entity that would own the task
-     * @return true if the current thread may already safely interact with the entity
-     */
+    /** @return true if the current thread may already safely interact with the entity */
     boolean isOwnedByCurrentThread(Entity entity);
 
-    /**
-     * @param location the location whose world area would be accessed
-     * @return true if the current thread may already safely interact with the world at the location
-     */
+    /** @return true if the current thread may already safely interact with the location's world area */
     boolean isOwnedByCurrentThread(Location location);
 
-    /**
-     * @return true if the current thread may already safely perform global server work
-     */
+    /** @return true if the current thread may already safely perform global server work */
     boolean isGlobalThread();
 
-    /**
-     * Runs a task on the owning thread of the given entity.
-     *
-     * @param plugin the plugin scheduling the task
-     * @param entity the entity that owns the execution context
-     * @param task the task to run
-     */
+    /** Runs a task on the owning thread of the given entity. */
     void runOnEntityThread(AuthMe plugin, Entity entity, Runnable task);
 
-    /**
-     * Runs a delayed task on the owning thread of the given entity.
-     *
-     * @param plugin the plugin scheduling the task
-     * @param entity the entity that owns the execution context
-     * @param task the task to run
-     * @param delay the delay in ticks
-     * @return the scheduled task handle
-     */
+    /** Runs a delayed task on the owning thread of the given entity. */
     CancellableTask runDelayedOnEntityThread(AuthMe plugin, Entity entity, Runnable task, long delay);
 
-    /**
-     * Runs a repeating task on the owning thread of the given entity.
-     *
-     * @param plugin the plugin scheduling the task
-     * @param entity the entity that owns the execution context
-     * @param task the task to run
-     * @param delay the initial delay in ticks
-     * @param period the repeat period in ticks
-     * @return the scheduled task handle
-     */
+    /** Runs a repeating task on the owning thread of the given entity. */
     CancellableTask runAtFixedRateOnEntityThread(AuthMe plugin, Entity entity, Runnable task, long delay, long period);
 
-    /**
-     * Runs a one-off background task that is not tied to a global or entity-owned thread.
-     *
-     * @param plugin the plugin scheduling the task
-     * @param task the task to run
-     * @return the scheduled task handle
-     */
+    /** Runs a one-off background task off the global and entity-owned threads. */
     CancellableTask runAsyncTask(AuthMe plugin, Runnable task);
 
-    /**
-     * Runs a repeating background task that is not tied to a global or entity-owned thread.
-     *
-     * @param plugin the plugin scheduling the task
-     * @param task the task to run
-     * @param delay the initial delay in ticks
-     * @param period the repeat period in ticks
-     * @return the scheduled task handle
-     */
+    /** Runs a repeating background task off the global and entity-owned threads. */
     CancellableTask runAsyncTaskTimer(AuthMe plugin, Runnable task, long delay, long period);
 
-    /**
-     * Runs a task on the platform's global execution context.
-     *
-     * @param plugin the plugin scheduling the task
-     * @param task the task to run
-     */
+    /** Runs a task on the platform's global execution context. */
     void runOnGlobalThread(AuthMe plugin, Runnable task);
 
-    /**
-     * Runs a delayed task on the platform's global execution context.
-     *
-     * @param plugin the plugin scheduling the task
-     * @param task the task to run
-     * @param delay the delay in ticks
-     * @return the scheduled task handle
-     */
+    /** Runs a delayed task on the platform's global execution context. */
     CancellableTask runDelayedOnGlobalThread(AuthMe plugin, Runnable task, long delay);
 }

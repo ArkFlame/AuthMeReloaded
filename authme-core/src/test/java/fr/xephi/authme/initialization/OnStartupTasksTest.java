@@ -47,7 +47,6 @@ class OnStartupTasksTest {
 
     @Test
     void shouldRemindPlayersWithoutEmailOnGlobalRegion() {
-        // given
         given(settings.getProperty(EmailSettings.RECALL_PLAYERS)).willReturn(true);
         given(settings.getProperty(EmailSettings.DELAY_RECALL)).willReturn(5);
         given(dataSource.getLoggedPlayersWithEmptyMail()).willReturn(Collections.singletonList("bobby"));
@@ -55,10 +54,8 @@ class OnStartupTasksTest {
         ArgumentCaptor<Runnable> taskCaptor = ArgumentCaptor.forClass(Runnable.class);
         verify(bukkitService).runTaskTimerAsynchronously(taskCaptor.capture(), anyLong(), anyLong());
 
-        // when
         taskCaptor.getValue().run();
 
-        // then
         verify(bukkitService).runOnGlobalRegion(any(Runnable.class));
         verify(bukkitService, never()).runTask(any(Runnable.class));
     }

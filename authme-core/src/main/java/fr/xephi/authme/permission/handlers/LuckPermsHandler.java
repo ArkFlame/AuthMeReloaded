@@ -58,10 +58,7 @@ public class LuckPermsHandler implements PermissionHandler {
             return false;
         }
 
-        InheritanceNode node = buildGroupNode(group);
-
-        DataMutateResult result = user.data().add(node);
-        if (result == DataMutateResult.FAIL) {
+        if (user.data().add(buildGroupNode(group)) == DataMutateResult.FAIL) {
             return false;
         }
 
@@ -95,7 +92,8 @@ public class LuckPermsHandler implements PermissionHandler {
             return false;
         }
 
-        boolean result = user.data().remove(buildInheritanceNode(group)) != DataMutateResult.FAIL;
+        boolean result = user.data().remove(InheritanceNode.builder(group.getGroupName()).build())
+            != DataMutateResult.FAIL;
 
         luckPerms.getUserManager().saveUser(user);
         return result;
@@ -110,8 +108,7 @@ public class LuckPermsHandler implements PermissionHandler {
 
         InheritanceNode groupNode = buildGroupNode(group);
 
-        DataMutateResult result = user.data().add(groupNode);
-        if (result == DataMutateResult.FAIL) {
+        if (user.data().add(groupNode) == DataMutateResult.FAIL) {
             return false;
         }
         user.data().clear(node -> {
@@ -177,10 +174,6 @@ public class LuckPermsHandler implements PermissionHandler {
         return user;
     }
 
-    private static InheritanceNode buildInheritanceNode(UserGroup group) {
-        return InheritanceNode.builder(group.getGroupName()).build();
-    }
-
     @NotNull
     private InheritanceNode buildGroupNode(UserGroup group) {
         ContextSetFactory contextSetFactory = luckPerms.getContextManager().getContextSetFactory();
@@ -194,8 +187,9 @@ public class LuckPermsHandler implements PermissionHandler {
     private int sortGroups(User user, LuckPermGroup o1, LuckPermGroup o2) {
         Group group1 = o1.getGroup();
         Group group2 = o2.getGroup();
-        if (group1.getName().equals(user.getPrimaryGroup()) || group2.getName().equals(user.getPrimaryGroup())) {
-            return group1.getName().equals(user.getPrimaryGroup()) ? 1 : -1;
+        String primaryGroup = user.getPrimaryGroup();
+        if (group1.getName().equals(primaryGroup) || group2.getName().equals(primaryGroup)) {
+            return group1.getName().equals(primaryGroup) ? 1 : -1;
         }
 
         int i = Integer.compare(group2.getWeight().orElse(0), group1.getWeight().orElse(0));

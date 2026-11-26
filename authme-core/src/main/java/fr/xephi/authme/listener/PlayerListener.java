@@ -327,10 +327,7 @@ public class PlayerListener extends AbstractCancelListener implements Listener {
             return false;
         }
         Player kicked = event.getPlayer();
-        if (kicked == null) {
-            return false;
-        }
-        String name = kicked.getName();
+        String name = kicked == null ? null : kicked.getName();
         if (name == null) {
             return false;
         }
@@ -487,9 +484,7 @@ public class PlayerListener extends AbstractCancelListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
-    public void onPlayerPortal(PlayerPortalEvent event) {
-        cancelIfUnauthorized(event);
-    }
+    public void onPlayerPortal(PlayerPortalEvent event) { cancelIfUnauthorized(event); }
 
     private static boolean isBlockedTeleportCause(PlayerTeleportEvent.TeleportCause cause) {
         return BLOCKED_TELEPORT_CAUSES.contains(cause.name());
@@ -517,68 +512,44 @@ public class PlayerListener extends AbstractCancelListener implements Listener {
      */
 
     @EventHandler(priority = EventPriority.LOWEST)
-    public void onPlayerInteract(PlayerInteractEvent event) {
-        cancelIfUnauthorized(event);
-    }
+    public void onPlayerInteract(PlayerInteractEvent event) { cancelIfUnauthorized(event); }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
-    public void onPlayerInteractEntity(PlayerInteractEntityEvent event) {
-        cancelIfUnauthorized(event);
-    }
+    public void onPlayerInteractEntity(PlayerInteractEntityEvent event) { cancelIfUnauthorized(event); }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
-    public void onPlayerInteractAtEntity(PlayerInteractAtEntityEvent event) {
-        cancelIfUnauthorized(event);
-    }
+    public void onPlayerInteractAtEntity(PlayerInteractAtEntityEvent event) { cancelIfUnauthorized(event); }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
-    public void onPlayerHitPlayerEvent(EntityDamageByEntityEvent event) {
-        cancelIfUnauthorized(event);
-    }
+    public void onPlayerHitPlayerEvent(EntityDamageByEntityEvent event) { cancelIfUnauthorized(event); }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
-    public void onPlayerShear(PlayerShearEntityEvent event) {
-        cancelIfUnauthorized(event);
-    }
+    public void onPlayerShear(PlayerShearEntityEvent event) { cancelIfUnauthorized(event); }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
-    public void onPlayerFish(PlayerFishEvent event) {
-        cancelIfUnauthorized(event);
-    }
+    public void onPlayerFish(PlayerFishEvent event) { cancelIfUnauthorized(event); }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
-    public void onPlayerBedEnter(PlayerBedEnterEvent event) {
-        cancelIfUnauthorized(event);
-    }
+    public void onPlayerBedEnter(PlayerBedEnterEvent event) { cancelIfUnauthorized(event); }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
-    public void onPlayerEditBook(PlayerEditBookEvent event) {
-        cancelIfUnauthorized(event);
-    }
+    public void onPlayerEditBook(PlayerEditBookEvent event) { cancelIfUnauthorized(event); }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
-    public void onSignChange(SignChangeEvent event) {
-        cancelIfUnauthorized(event.getPlayer(), event);
-    }
+    public void onSignChange(SignChangeEvent event) { cancelIfUnauthorized(event.getPlayer(), event); }
 
     /*
      * Inventory interactions
      */
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
-    public void onPlayerDropItem(PlayerDropItemEvent event) {
-        cancelIfUnauthorized(event);
-    }
+    public void onPlayerDropItem(PlayerDropItemEvent event) { cancelIfUnauthorized(event); }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
-    public void onPlayerHeldItem(PlayerItemHeldEvent event) {
-        cancelIfUnauthorized(event);
-    }
+    public void onPlayerHeldItem(PlayerItemHeldEvent event) { cancelIfUnauthorized(event); }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
-    public void onPlayerConsumeItem(PlayerItemConsumeEvent event) {
-        cancelIfUnauthorized(event);
-    }
+    public void onPlayerConsumeItem(PlayerItemConsumeEvent event) { cancelIfUnauthorized(event); }
 
     // Port of HaHaWTH/AuthMeReReloaded @ 06f6035b0: exact or substring inventory title matching
     private boolean isInventoryWhitelisted(InventoryView inventory) {

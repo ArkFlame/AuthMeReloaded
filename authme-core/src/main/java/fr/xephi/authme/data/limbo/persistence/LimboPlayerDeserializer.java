@@ -20,10 +20,8 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 
@@ -87,7 +85,8 @@ class LimboPlayerDeserializer implements JsonDeserializer<LimboPlayer> {
 
         JsonElement pearlsElement = jsonObject.get(ENDER_PEARLS);
         if (pearlsElement != null && pearlsElement.isJsonArray()) {
-            Set<EnderPearlRestoreData> pearls = new HashSet<>();
+            // setEnderPearls keys pearls by UUID, so an intermediate equality-based set would be redundant.
+            List<EnderPearlRestoreData> pearls = new ArrayList<>();
             for (JsonElement pearlElement : pearlsElement.getAsJsonArray()) {
                 EnderPearlRestoreData pearl = deserializeEnderPearl(pearlElement);
                 if (pearl != null) {
@@ -148,8 +147,8 @@ class LimboPlayerDeserializer implements JsonDeserializer<LimboPlayer> {
         double x = getDouble(locationObject, LOC_X);
         double y = getDouble(locationObject, LOC_Y);
         double z = getDouble(locationObject, LOC_Z);
-        float yaw = getFloat(locationObject, LOC_YAW);
-        float pitch = getFloat(locationObject, LOC_PITCH);
+        float yaw = getFloat(locationObject, LOC_YAW, 0.0f);
+        float pitch = getFloat(locationObject, LOC_PITCH, 0.0f);
         return new Location(world, x, y, z, yaw, pitch);
     }
 
@@ -202,10 +201,6 @@ class LimboPlayerDeserializer implements JsonDeserializer<LimboPlayer> {
     private static boolean getBoolean(JsonObject jsonObject, String memberName) {
         JsonElement element = jsonObject.get(memberName);
         return element != null && element.getAsBoolean();
-    }
-
-    private static float getFloat(JsonObject jsonObject, String memberName) {
-        return getNumberFromElement(jsonObject.get(memberName), JsonElement::getAsFloat, 0.0f);
     }
 
     private static float getFloat(JsonObject jsonObject, String memberName, float defaultValue) {

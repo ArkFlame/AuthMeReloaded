@@ -1,8 +1,6 @@
 package fr.xephi.authme.command.executable.authme;
 
-import fr.xephi.authme.command.ExecutableCommand;
 import fr.xephi.authme.data.auth.PlayerAuth;
-import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.util.PlayerUtils;
 import org.bukkit.command.CommandSender;
@@ -11,19 +9,16 @@ import org.bukkit.entity.Player;
 import javax.inject.Inject;
 import java.util.List;
 
-public class GetIpCommand implements ExecutableCommand {
+public class GetIpCommand extends AbstractPlayerAuthCommand {
 
     @Inject
     private BukkitService bukkitService;
-
-    @Inject
-    private DataSource dataSource;
 
     @Override
     public void executeCommand(CommandSender sender, List<String> arguments) {
         String playerName = arguments.get(0);
         Player player = bukkitService.getPlayerExact(playerName);
-        PlayerAuth auth = dataSource.getAuth(playerName);
+        PlayerAuth auth = getDataSource().getAuth(playerName);
 
         final String displayName = player == null ? playerName : player.getName();
         if (player != null) {

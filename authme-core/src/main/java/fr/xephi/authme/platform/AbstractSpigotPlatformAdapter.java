@@ -39,27 +39,17 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
 
     static {
         Method direct = findMethod(Player.class, "getLocale");
-        Method spigot = null;
-        Method spigotLocale = null;
-        if (direct == null) {
-            try {
-                spigot = Player.class.getMethod("spigot");
-                spigotLocale = findMethod(spigot.getReturnType(), "getLocale");
-            } catch (Exception ignored) {
-                spigot = null;
-                spigotLocale = null;
-            }
-        }
+        Method spigot = direct == null ? findMethod(Player.class, "spigot") : null;
         PLAYER_GET_LOCALE_METHOD = direct;
         PLAYER_SPIGOT_METHOD = spigot;
-        SPIGOT_GET_LOCALE_METHOD = spigotLocale;
+        SPIGOT_GET_LOCALE_METHOD = spigot == null ? null : findMethod(spigot.getReturnType(), "getLocale");
         BLOCK_IS_PASSABLE_METHOD = findMethod(Block.class, "isPassable");
     }
 
     private static Method findMethod(Class<?> owner, String name) {
         try {
             return owner.getMethod(name);
-        } catch (NoSuchMethodException ignored) {
+        } catch (Exception ignored) {
             return null;
         }
     }
@@ -88,11 +78,9 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
                 }
             } else if (PLAYER_SPIGOT_METHOD != null && SPIGOT_GET_LOCALE_METHOD != null) {
                 Object spigot = PLAYER_SPIGOT_METHOD.invoke(player);
-                if (spigot != null) {
-                    Object result = SPIGOT_GET_LOCALE_METHOD.invoke(spigot);
-                    if (result instanceof String) {
-                        locale = (String) result;
-                    }
+                Object result = spigot == null ? null : SPIGOT_GET_LOCALE_METHOD.invoke(spigot);
+                if (result instanceof String) {
+                    locale = (String) result;
                 }
             }
             return locale == null || locale.trim().isEmpty() ? Optional.empty() : Optional.of(locale);
@@ -132,8 +120,7 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
         List<Class<? extends Listener>> listeners = new ArrayList<>(EventRegistrationAdapter.getCommonListeners());
         listeners.add(LegacyPlayerLoginListener.class);
 
-        boolean hasModernPickup = isClassAvailable("org.bukkit.event.entity.EntityPickupItemEvent");
-        if (!hasModernPickup) {
+        if (!isClassAvailable("org.bukkit.event.entity.EntityPickupItemEvent")) {
             listeners.add(LegacyPlayerPickupItemListener.class);
         }
 
@@ -145,16 +132,13 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
             {"org.bukkit.event.player.PlayerPickupArrowEvent", "fr.xephi.authme.listener.PlayerPickupArrowListener"}
         };
         for (String[] entry : optionalListeners) {
-            String apiClass = entry[0];
-            String listenerClass = entry[1];
-            if (isClassAvailable(apiClass)) {
+            if (isClassAvailable(entry[0])) {
                 try {
-                    @SuppressWarnings("unchecked")
-                    Class<? extends Listener> clazz = (Class<? extends Listener>)
-                        Class.forName(listenerClass, false, getClass().getClassLoader()).asSubclass(Listener.class);
+                    Class<? extends Listener> clazz = Class.forName(entry[1], false, getClass().getClassLoader())
+                        .asSubclass(Listener.class);
                     listeners.add(clazz);
                 } catch (ClassNotFoundException e) {
-                    throw new IllegalStateException("Missing listener class: " + listenerClass, e);
+                    throw new IllegalStateException("Missing listener class: " + entry[1], e);
                 }
             }
         }

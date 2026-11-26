@@ -62,7 +62,6 @@ class TaskCloserTest {
 
     @Test
     void shouldWaitForTasksToClose() throws InterruptedException {
-        // given
         doNothing().when(taskCloser).sleep(); // avoid sleeping in tests
         mockActiveWorkers();
         given(bukkitScheduler.isCurrentlyRunning(ACTIVE_WORKERS_ID[0])).willReturn(false);
@@ -70,10 +69,8 @@ class TaskCloserTest {
             .willReturn(true) // first time
             .willReturn(false); // second time
 
-        // when
         taskCloser.run();
 
-        // then
         verify(bukkitScheduler, times(3)).isQueued(anyInt());
         verify(bukkitScheduler, times(3)).isCurrentlyRunning(taskIds.capture());
         assertThat(taskIds.getAllValues(), contains(ACTIVE_WORKERS_ID[0], ACTIVE_WORKERS_ID[1], ACTIVE_WORKERS_ID[1]));
@@ -83,17 +80,14 @@ class TaskCloserTest {
 
     @Test
     void shouldAbortForNeverEndingTask() throws InterruptedException {
-        // given
         doNothing().when(taskCloser).sleep(); // avoid sleeping in tests
         mockActiveWorkers();
         // This task never ends
         given(bukkitScheduler.isCurrentlyRunning(ACTIVE_WORKERS_ID[0])).willReturn(true);
         given(bukkitScheduler.isCurrentlyRunning(ACTIVE_WORKERS_ID[1])).willReturn(false);
 
-        // when
         taskCloser.run();
 
-        // then
         verify(bukkitScheduler, times(3)).isQueued(anyInt());
         verify(bukkitScheduler, times(61)).isCurrentlyRunning(anyInt());
         verify(taskCloser, times(60)).sleep();
@@ -116,17 +110,14 @@ class TaskCloserTest {
 
     /** Test implementation for {@link #shouldStopForInterruptedThread()}. */
     private void shouldStopForInterruptedThread0() throws InterruptedException {
-        // given
         taskCloser = spy(new TaskCloser(authMe, null));
         // First two times do nothing, third time throw exception when we sleep
         doNothing().doNothing().doThrow(InterruptedException.class).when(taskCloser).sleep();
         mockActiveWorkers();
         given(bukkitScheduler.isCurrentlyRunning(anyInt())).willReturn(true);
 
-        // when
         taskCloser.run();
 
-        // then
         verify(bukkitScheduler, times(4)).isCurrentlyRunning(anyInt());
         verify(taskCloser, times(3)).sleep();
     }

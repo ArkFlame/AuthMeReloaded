@@ -18,7 +18,6 @@ class PermissionsSystemTypeTest {
 
     @Test
     void shouldHaveDefinedAndUniqueNames() {
-        // given / when / then
         List<String> names = new ArrayList<>(PermissionsSystemType.values().length);
         List<String> pluginNames = new ArrayList<>(PermissionsSystemType.values().length);
 
