@@ -30,13 +30,13 @@ public class ProcessCodeCommand extends PlayerCommand {
 
     @Override
     protected void runCommand(Player player, List<String> arguments) {
+        String code = arguments.get(0);
         if (dialogRecoveryService.isDialogFlowEnabled()) {
-            dialogRecoveryService.submitCode(player, arguments.get(0));
+            dialogRecoveryService.submitCode(player, code);
             return;
         }
 
         String name = player.getName();
-        String code = arguments.get(0);
 
         if (codeService.hasTriesLeft(name)) {
             if (codeService.isCodeValid(name, code)) {

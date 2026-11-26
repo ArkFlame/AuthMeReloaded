@@ -24,9 +24,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.stubbing.Answer;
 
 import java.util.Collections;
 import java.util.Locale;
@@ -83,17 +81,14 @@ class PasswordSecurityTest {
         caughtClassInEvent = null;
 
         // When the password encryption event is emitted, replace the encryption method with our mock.
-        doAnswer(new Answer<Void>() {
-            @Override
-            public Void answer(InvocationOnMock invocation) throws Throwable {
-                Object[] arguments = invocation.getArguments();
-                if (arguments[0] instanceof PasswordEncryptionEvent) {
-                    PasswordEncryptionEvent event = (PasswordEncryptionEvent) arguments[0];
-                    caughtClassInEvent = event.getMethod() == null ? null : event.getMethod().getClass();
-                    event.setMethod(method);
-                }
-                return null;
+        doAnswer(invocation -> {
+            Object[] arguments = invocation.getArguments();
+            if (arguments[0] instanceof PasswordEncryptionEvent) {
+                PasswordEncryptionEvent event = (PasswordEncryptionEvent) arguments[0];
+                caughtClassInEvent = event.getMethod() == null ? null : event.getMethod().getClass();
+                event.setMethod(method);
             }
+            return null;
         }).when(pluginManager).callEvent(any(Event.class));
 
         given(settings.getProperty(SecuritySettings.PASSWORD_HASH)).willReturn(HashAlgorithm.BCRYPT);
@@ -120,7 +115,6 @@ class PasswordSecurityTest {
     @ParameterizedTest
     @CsvSource({"Tester, myPassTest, true", "My_PLayer, passw0Rd1, false"})
     void shouldReturnPasswordMatch(String playerName, String clearTextPass, boolean expectedMatch) {
-        // given
         HashedPassword password = new HashedPassword("$TEST$10$SOME_HASH", null);
         // Calls to EncryptionMethod are always with the lower-case version of the name
         String playerLowerCase = playerName.toLowerCase(Locale.ROOT);
@@ -128,10 +122,8 @@ class PasswordSecurityTest {
         given(dataSource.getPassword(playerName)).willReturn(password);
         given(method.comparePassword(clearTextPass, password, playerLowerCase)).willReturn(expectedMatch);
 
-        // when
         boolean result = passwordSecurity.comparePassword(clearTextPass, playerName);
 
-        // then
         assertThat(result, equalTo(expectedMatch));
         verify(dataSource).getPassword(playerName);
         verify(pluginManager).callEvent(any(PasswordEncryptionEvent.class));
@@ -140,15 +132,12 @@ class PasswordSecurityTest {
 
     @Test
     void shouldReturnFalseIfPlayerDoesNotExist() {
-        // given
         String playerName = "bobby";
         String clearTextPass = "tables";
         given(dataSource.getPassword(playerName)).willReturn(null);
 
-        // when
         boolean result = passwordSecurity.comparePassword(clearTextPass, playerName);
 
-        // then
         assertThat(result, equalTo(false));
         verify(dataSource).getPassword(playerName);
         verify(method, never()).comparePassword(anyString(), any(HashedPassword.class), anyString());
@@ -156,7 +145,6 @@ class PasswordSecurityTest {
 
     @Test
     void shouldTryOtherMethodsForFailedPassword() {
-        // given
         // BCRYPT hash for "Test"
         HashedPassword password =
             new HashedPassword("$2y$10$2e6d2193f43501c926e25elvWlPmWczmrfrnbZV0dUZGITjYjnkkW");
@@ -173,10 +161,8 @@ class PasswordSecurityTest {
         given(settings.getProperty(SecuritySettings.LEGACY_HASHES)).willReturn(newHashSet(HashAlgorithm.BCRYPT));
         passwordSecurity.reload();
 
-        // when
         boolean result = passwordSecurity.comparePassword(clearTextPass, playerName);
 
-        // then
         assertThat(result, equalTo(true));
         // Note ljacqu 20151230: We need to check the player name in a case-insensitive way because the methods within
         // PasswordSecurity may convert the name into all lower-case. This is desired because EncryptionMethod methods
@@ -189,7 +175,6 @@ class PasswordSecurityTest {
 
     @Test
     void shouldTryLegacyMethodsAndFail() {
-        // given
         HashedPassword password = new HashedPassword("hashNotMatchingAnyMethod", "someBogusSalt");
         String playerName = "asfd";
         String clearTextPass = "someInvalidPassword";
@@ -200,17 +185,14 @@ class PasswordSecurityTest {
             newHashSet(HashAlgorithm.DOUBLEMD5, HashAlgorithm.JOOMLA, HashAlgorithm.SMF, HashAlgorithm.SHA256));
         passwordSecurity.reload();
 
-        // when
         boolean result = passwordSecurity.comparePassword(clearTextPass, playerName);
 
-        // then
         assertThat(result, equalTo(false));
         verify(dataSource, never()).updatePassword(anyString(), any(HashedPassword.class));
     }
 
     @Test
     void shouldHashPassword() {
-        // given
         String password = "MyP@ssword";
         String username = "theUserInTest";
         String usernameLowerCase = username.toLowerCase(Locale.ROOT);
@@ -219,10 +201,8 @@ class PasswordSecurityTest {
         given(settings.getProperty(SecuritySettings.PASSWORD_HASH)).willReturn(HashAlgorithm.JOOMLA);
         passwordSecurity.reload();
 
-        // when
         HashedPassword result = passwordSecurity.computeHash(password, username);
 
-        // then
         assertThat(result, equalTo(hashedPassword));
         // Check that an event was fired twice: once on test setup, and once because we called reload()
         verify(pluginManager, times(2)).callEvent(any(PasswordEncryptionEvent.class));
@@ -231,7 +211,6 @@ class PasswordSecurityTest {
 
     @Test
     void shouldSkipCheckIfMandatorySaltIsUnavailable() {
-        // given
         String password = "?topSecretPass\\";
         String username = "someone12";
         HashedPassword hashedPassword = new HashedPassword("~T!est#Hash");
@@ -239,10 +218,8 @@ class PasswordSecurityTest {
         given(settings.getProperty(SecuritySettings.PASSWORD_HASH)).willReturn(HashAlgorithm.SHA256);
         passwordSecurity.reload();
 
-        // when
         boolean result = passwordSecurity.comparePassword(password, hashedPassword, username);
 
-        // then
         assertThat(result, equalTo(false));
         verify(dataSource, never()).getAuth(anyString());
         // Check that an event was fired twice: once on test setup, and once because we called reload()
@@ -252,16 +229,13 @@ class PasswordSecurityTest {
 
     @Test
     void shouldReloadSettings() {
-        // given
         given(settings.getProperty(SecuritySettings.PASSWORD_HASH)).willReturn(HashAlgorithm.MD5);
         given(settings.getProperty(SecuritySettings.LEGACY_HASHES))
             .willReturn(newHashSet(HashAlgorithm.CUSTOM, HashAlgorithm.BCRYPT));
         reset(pluginManager); // reset behavior when the event is emitted to check that we create an instance of Md5.java
 
-        // when
         passwordSecurity.reload();
 
-        // then
         assertThat(ReflectionTestUtils.getFieldValue(PasswordSecurity.class, passwordSecurity, "encryptionMethod"),
             instanceOf(Md5.class));
         Set<HashAlgorithm> legacyHashesSet = newHashSet(HashAlgorithm.CUSTOM, HashAlgorithm.BCRYPT);

@@ -59,19 +59,14 @@ class PhpBbExtension extends MySqlExtension {
         }
         // Get current time without ms
         long time = System.currentTimeMillis() / 1000;
-        // Update user_regdate
-        sql = "UPDATE " + tableName + " SET " + tableName + ".user_regdate=? WHERE " + col.NAME + "=?;";
-        try (PreparedStatement pst = con.prepareStatement(sql)) {
-            pst.setLong(1, time);
-            pst.setString(2, name);
-            pst.executeUpdate();
-        }
-        // Update user_lastvisit
-        sql = "UPDATE " + tableName + " SET " + tableName + ".user_lastvisit=? WHERE " + col.NAME + "=?;";
-        try (PreparedStatement pst = con.prepareStatement(sql)) {
-            pst.setLong(1, time);
-            pst.setString(2, name);
-            pst.executeUpdate();
+        // Update user_regdate and user_lastvisit
+        for (String column : new String[]{"user_regdate", "user_lastvisit"}) {
+            sql = "UPDATE " + tableName + " SET " + tableName + "." + column + "=? WHERE " + col.NAME + "=?;";
+            try (PreparedStatement pst = con.prepareStatement(sql)) {
+                pst.setLong(1, time);
+                pst.setString(2, name);
+                pst.executeUpdate();
+            }
         }
         // Increment num_users
         sql = "UPDATE " + phpBbPrefix

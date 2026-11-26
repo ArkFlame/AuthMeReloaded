@@ -43,19 +43,6 @@ public class ProcessSyncPasswordRegister implements SynchronousProcess {
     }
 
     /**
-     * Request that the player log in.
-     *
-     * @param player the player
-     */
-    private void requestLogin(Player player) {
-        limboService.replaceTasksAfterRegistration(player);
-
-        if (player.isInsideVehicle() && player.getVehicle() != null) {
-            player.getVehicle().eject();
-        }
-    }
-
-    /**
      * Processes a player having registered with a password.
      *
      * @param player the newly registered player
@@ -81,7 +68,10 @@ public class ProcessSyncPasswordRegister implements SynchronousProcess {
 
         // Request login after registration
         if (service.getProperty(RegistrationSettings.FORCE_LOGIN_AFTER_REGISTER)) {
-            requestLogin(player);
+            limboService.replaceTasksAfterRegistration(player);
+            if (player.isInsideVehicle() && player.getVehicle() != null) {
+                player.getVehicle().eject();
+            }
             return;
         }
 

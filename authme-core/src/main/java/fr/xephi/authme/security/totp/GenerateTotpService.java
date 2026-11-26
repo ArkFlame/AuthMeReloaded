@@ -6,7 +6,6 @@ import fr.xephi.authme.util.expiring.ExpiringMap;
 import org.bukkit.entity.Player;
 
 import javax.inject.Inject;
-import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -69,6 +68,6 @@ public class GenerateTotpService implements HasCleanup {
     }
 
     private static String keyFor(Player player) {
-        return player.getName().toLowerCase(Locale.ROOT);
+        return TotpAuthenticator.normalizePlayerName(player.getName());
     }
 }

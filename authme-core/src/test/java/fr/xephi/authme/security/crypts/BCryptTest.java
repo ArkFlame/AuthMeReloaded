@@ -25,13 +25,10 @@ class BCryptTest extends AbstractEncryptionMethodTest {
 
     @Test
     void shouldGenerateWith2aPrefix() {
-        // given
         BCrypt bCrypt = new BCrypt(mockSettings());
 
-        // when
         HashedPassword result = bCrypt.computeHash("test", null);
 
-        // then
         assertThat(result.getHash(), startsWith("$2a$08$"));
     }
 

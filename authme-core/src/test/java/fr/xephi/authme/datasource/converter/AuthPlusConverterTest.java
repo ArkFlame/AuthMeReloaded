@@ -67,7 +67,6 @@ class AuthPlusConverterTest extends AbstractConverterTest {
 
     @Test
     void shouldImportAndSkipAccordingly() throws IOException {
-        // given
         File playersYml = new File(tempFolder, "Auth/players.yml");
         FileUtils.create(playersYml);
         Files.copy(TestHelper.getJarFile("datasource/Auth/players.yml"), playersYml);
@@ -86,11 +85,9 @@ class AuthPlusConverterTest extends AbstractConverterTest {
             bukkit.when(() -> Bukkit.getOfflinePlayer(UUID_EXISTINGPLAYER)).thenReturn(existingPlayer);
             bukkit.when(() -> Bukkit.getOfflinePlayer(UUID_UNKNOWNPLAYER)).thenReturn(unknownPlayer);
 
-            // when
             converter.execute(sender);
         }
 
-        // then
         verify(dataSource, times(1)).saveAuth(authCaptor.capture());
         List<PlayerAuth> saved = authCaptor.getAllValues();
         assertThat(saved, hasSize(1));
@@ -104,13 +101,10 @@ class AuthPlusConverterTest extends AbstractConverterTest {
 
     @Test
     void shouldReportMissingFile() {
-        // given
         CommandSender sender = mock(CommandSender.class);
 
-        // when
         converter.execute(sender);
 
-        // then
         verifyNoInteractions(dataSource);
         verify(sender).sendMessage(argThat(containsString("does not exist")));
     }

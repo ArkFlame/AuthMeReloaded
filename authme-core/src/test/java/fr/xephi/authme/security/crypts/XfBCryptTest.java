@@ -21,13 +21,10 @@ class XfBCryptTest extends AbstractEncryptionMethodTest {
 
     @Test
     void shouldGenerateWith2aPrefixAndCostFactor10() {
-        // given
         XfBCrypt xfBCrypt = new XfBCrypt();
 
-        // when
         HashedPassword result = xfBCrypt.computeHash("test", null);
 
-        // then
         assertThat(result.getHash(), startsWith("$2a$10$"));
         assertThat(result.getSalt(), nullValue());
     }

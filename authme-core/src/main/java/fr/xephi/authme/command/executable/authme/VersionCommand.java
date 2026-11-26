@@ -57,23 +57,13 @@ public class VersionCommand implements ExecutableCommand {
      */
     private static void printDeveloper(CommandSender sender, String name, String minecraftName, String function,
                                        Collection<Player> onlinePlayers) {
-        // Print the name
-        StringBuilder msg = new StringBuilder();
-        msg.append(" ")
-            .append(ChatColor.WHITE)
-            .append(name);
-
-        // Append the Minecraft name
-        msg.append(ChatColor.GRAY).append(" // ").append(ChatColor.WHITE).append(minecraftName);
-        msg.append(ChatColor.GRAY).append(ChatColor.ITALIC).append(" (").append(function).append(")");
-
-        // Show the online status
+        String msg = " " + ChatColor.WHITE + name
+            + ChatColor.GRAY + " // " + ChatColor.WHITE + minecraftName
+            + ChatColor.GRAY + ChatColor.ITALIC + " (" + function + ")";
         if (isPlayerOnline(minecraftName, onlinePlayers)) {
-            msg.append(ChatColor.GREEN).append(ChatColor.ITALIC).append(" (In-Game)");
+            msg = msg + ChatColor.GREEN + ChatColor.ITALIC + " (In-Game)";
         }
-
-        // Print the message
-        sender.sendMessage(msg.toString());
+        sender.sendMessage(msg);
     }
 
     /**
@@ -85,11 +75,7 @@ public class VersionCommand implements ExecutableCommand {
      * @return True if the player is online, false otherwise
      */
     private static boolean isPlayerOnline(String minecraftName, Collection<Player> onlinePlayers) {
-        for (Player player : onlinePlayers) {
-            if (player.getName().equalsIgnoreCase(minecraftName)) {
-                return true;
-            }
-        }
-        return false;
+        return onlinePlayers.stream()
+            .anyMatch(player -> player.getName().equalsIgnoreCase(minecraftName));
     }
 }

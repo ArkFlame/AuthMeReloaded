@@ -27,6 +27,8 @@ import org.bukkit.World;
 import org.bukkit.entity.EnderPearl;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Cancellable;
+import org.bukkit.event.Event;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -56,6 +58,9 @@ import org.bukkit.inventory.InventoryView;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -69,6 +74,9 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 import static com.google.common.collect.Sets.newHashSet;
 import static fr.xephi.authme.listener.EventCancelVerifier.withServiceMock;
@@ -103,6 +111,9 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
  */
 @ExtendWith(MockitoExtension.class)
 class PlayerListenerTest {
+
+    private static final String TEST_PLAYER_NAME = "someone";
+    private static final UUID TEST_PLAYER_UUID = UUID.fromString("753493c9-33ba-4a4a-bf61-1bce9d3c9a71");
 
     @InjectMocks
     private PlayerListener listener;
@@ -153,51 +164,32 @@ class PlayerListenerTest {
      * #831: If a player is kicked because of "logged in from another location", the kick
      * should be CANCELED when single session is enabled.
      */
-    @Test
-    void shouldCancelKick() {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("kickCases")
+    void shouldHandleKick(String description, boolean forceSingleSession, String reason,
+                          boolean stubKickReason, boolean expectedCancelled) {
         // given
-        given(settings.getProperty(RestrictionSettings.FORCE_SINGLE_SESSION)).willReturn(true);
-        given(chatAdapter.getKickReason(any())).willAnswer(inv -> inv.getArgument(0, PlayerKickEvent.class).getReason());
+        given(settings.getProperty(RestrictionSettings.FORCE_SINGLE_SESSION)).willReturn(forceSingleSession);
+        if (stubKickReason) {
+            given(chatAdapter.getKickReason(any()))
+                .willAnswer(inv -> inv.getArgument(0, PlayerKickEvent.class).getReason());
+        }
         Player player = mock(Player.class);
-        PlayerKickEvent event = new PlayerKickEvent(player, "You logged in from another location", "");
+        PlayerKickEvent event = new PlayerKickEvent(player, reason, "");
 
         // when
         listener.onPlayerKick(event);
 
         // then
-        assertThat(event.isCancelled(), equalTo(true));
+        assertThat(event.isCancelled(), equalTo(expectedCancelled));
         verifyNoInteractions(player, management);
     }
 
-    @Test
-    void shouldNotCancelKick() {
-        // given
-        given(settings.getProperty(RestrictionSettings.FORCE_SINGLE_SESSION)).willReturn(false);
-        Player player = mock(Player.class);
-        PlayerKickEvent event = new PlayerKickEvent(player, "You logged in from another location", "");
-
-        // when
-        listener.onPlayerKick(event);
-
-        // then
-        assertThat(event.isCancelled(), equalTo(false));
-        verifyNoInteractions(management);
-    }
-
-    @Test
-    void shouldNotCancelOrdinaryKick() {
-        // given
-        given(settings.getProperty(RestrictionSettings.FORCE_SINGLE_SESSION)).willReturn(true);
-        given(chatAdapter.getKickReason(any())).willAnswer(inv -> inv.getArgument(0, PlayerKickEvent.class).getReason());
-        Player player = mock(Player.class);
-        PlayerKickEvent event = new PlayerKickEvent(player, "No longer desired here!", "");
-
-        // when
-        listener.onPlayerKick(event);
-
-        // then
-        assertThat(event.isCancelled(), equalTo(false));
-        verifyNoInteractions(management);
+    private static Stream<Arguments> kickCases() {
+        return Stream.of(
+            Arguments.of("cancel duplicate login", true, "You logged in from another location", true, true),
+            Arguments.of("single session disabled", false, "You logged in from another location", false, false),
+            Arguments.of("ordinary kick", true, "No longer desired here!", true, false));
     }
 
     @Test
@@ -212,7 +204,9 @@ class PlayerListenerTest {
             .check(listener::onPlayerInteract, PlayerInteractEvent.class)
             .check(listener::onPlayerInteractEntity, PlayerInteractEntityEvent.class)
             .check(listener::onPlayerHeldItem, PlayerItemHeldEvent.class)
-            .check(listener::onPlayerPortal, PlayerPortalEvent.class);
+            .check(listener::onPlayerPortal, PlayerPortalEvent.class)
+            .check(listener::onPlayerEditBook, PlayerEditBookEvent.class)
+            .check(listener::onPlayerInteractAtEntity, PlayerInteractAtEntityEvent.class);
     }
 
     @Test
@@ -625,82 +619,35 @@ class PlayerListenerTest {
         verify(bukkitService).runTaskLater(eq(player), any(Runnable.class), eq(1L));
     }
 
-    @Test
-    void shouldIgnorePlayerRespawn() {
-        // given
-        Player player = mock(Player.class);
-        Location respawnLocation = mock(Location.class);
-        PlayerRespawnEvent event = spy(new PlayerRespawnEvent(player, respawnLocation, false));
-        given(listenerService.shouldCancelEvent(event)).willReturn(false);
-
-        // when
-        listener.onPlayerRespawn(event);
-
-        // then
-        verifyNoInteractions(spawnLoader);
-        verify(event, never()).setRespawnLocation(any());
-    }
-
-    @Test
-    void shouldHandlePlayerRespawn() {
-        // given
-        Player player = mock(Player.class);
-        Location originalLocation = mock(Location.class);
-        Location newLocation = mock(Location.class);
-        World world = mock(World.class);
-        given(newLocation.getWorld()).willReturn(world);
-        PlayerRespawnEvent event = spy(new PlayerRespawnEvent(player, originalLocation, false));
-        given(settings.getProperty(RestrictionSettings.NO_TELEPORT)).willReturn(false);
-        given(listenerService.shouldCancelEvent(event)).willReturn(true);
-        given(spawnLoader.getPlayerRespawnLocationOrSpawn(player)).willReturn(newLocation);
-
-        // when
-        listener.onPlayerRespawn(event);
-
-        // then
-        verify(spawnLoader).getPlayerRespawnLocationOrSpawn(player);
-        verify(event).setRespawnLocation(newLocation);
-        verify(bukkitService).runTaskLater(eq(player), any(Runnable.class), eq(1L));
-    }
-
-    @Test
-    void shouldIgnorePlayerRespawnUnloadedWorld() {
-        // given
-        Player player = mock(Player.class);
-        Location originalLocation = mock(Location.class);
-        Location newLocation = mock(Location.class);
-        given(newLocation.getWorld()).willReturn(null);
-        PlayerRespawnEvent event = spy(new PlayerRespawnEvent(player, originalLocation, false));
-        given(settings.getProperty(RestrictionSettings.NO_TELEPORT)).willReturn(false);
-        given(listenerService.shouldCancelEvent(event)).willReturn(true);
-        given(spawnLoader.getPlayerRespawnLocationOrSpawn(player)).willReturn(newLocation);
-
-        // when
-        listener.onPlayerRespawn(event);
-
-        // then
-        verify(spawnLoader).getPlayerRespawnLocationOrSpawn(player);
-        verify(event, never()).setRespawnLocation(any());
-        verify(bukkitService).runTaskLater(eq(player), any(Runnable.class), eq(1L));
-    }
-
-    @Test
-    void shouldHandlePlayerRespawnNoChanges() {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("respawnLocations")
+    void shouldApplyRespawnLocation(String description, Location respawnLocation, boolean expectLocationChange) {
         // given
         Player player = mock(Player.class);
         Location originalLocation = mock(Location.class);
         PlayerRespawnEvent event = spy(new PlayerRespawnEvent(player, originalLocation, false));
         given(settings.getProperty(RestrictionSettings.NO_TELEPORT)).willReturn(false);
         given(listenerService.shouldCancelEvent(event)).willReturn(true);
-        given(spawnLoader.getPlayerRespawnLocationOrSpawn(player)).willReturn(null);
+        given(spawnLoader.getPlayerRespawnLocationOrSpawn(player)).willReturn(respawnLocation);
 
         // when
         listener.onPlayerRespawn(event);
 
         // then
         verify(spawnLoader).getPlayerRespawnLocationOrSpawn(player);
-        verify(event, never()).setRespawnLocation(any());
+        if (expectLocationChange) {
+            verify(event).setRespawnLocation(respawnLocation);
+        } else {
+            verify(event, never()).setRespawnLocation(any());
+        }
         verify(bukkitService).runTaskLater(eq(player), any(Runnable.class), eq(1L));
+    }
+
+    private static Stream<Arguments> respawnLocations() {
+        return Stream.of(
+            Arguments.of("spawn with loaded world", new Location(mock(World.class), 0, 90, 0), true),
+            Arguments.of("spawn with unloaded world", new Location(null, 0, 90, 0), false),
+            Arguments.of("no spawn location", null, false));
     }
 
     @Test
@@ -762,8 +709,8 @@ class PlayerListenerTest {
     @Test
     void shouldPerformAllJoinVerificationsSuccessfullyPreLoginLowest() throws FailedVerificationException {
         // given
-        String name = "someone";
-        UUID uniqueId = UUID.fromString("753493c9-33ba-4a4a-bf61-1bce9d3c9a71");
+        String name = TEST_PLAYER_NAME;
+        UUID uniqueId = TEST_PLAYER_UUID;
         String ip = "12.34.56.78";
 
         AsyncPlayerPreLoginEvent preLoginEvent = spy(new AsyncPlayerPreLoginEvent(name, createInetAddress(ip), uniqueId));
@@ -782,8 +729,8 @@ class PlayerListenerTest {
     @Test
     void shouldKickPreLoginLowestUnresolvedHostname() {
         // given
-        String name = "someone";
-        UUID uniqueId = UUID.fromString("753493c9-33ba-4a4a-bf61-1bce9d3c9a71");
+        String name = TEST_PLAYER_NAME;
+        UUID uniqueId = TEST_PLAYER_UUID;
     
         @SuppressWarnings("ConstantConditions")
         AsyncPlayerPreLoginEvent preLoginEvent = spy(new AsyncPlayerPreLoginEvent(name, null, uniqueId));
@@ -800,8 +747,8 @@ class PlayerListenerTest {
     @Test
     void shouldPerformAllJoinVerificationsSuccessfullyPreLoginHighest() throws FailedVerificationException {
         // given
-        String name = "someone";
-        UUID uniqueId = UUID.fromString("753493c9-33ba-4a4a-bf61-1bce9d3c9a71");
+        String name = TEST_PLAYER_NAME;
+        UUID uniqueId = TEST_PLAYER_UUID;
         String ip = "12.34.56.78";
 
         AsyncPlayerPreLoginEvent preLoginEvent = spy(new AsyncPlayerPreLoginEvent(name, createInetAddress(ip), uniqueId));
@@ -826,8 +773,8 @@ class PlayerListenerTest {
     @Test
     void shouldKeepCachedLoginOnPreLoginWhenPlayerWithNameIsOnline() {
         // given
-        String name = "someone";
-        UUID uniqueId = UUID.fromString("753493c9-33ba-4a4a-bf61-1bce9d3c9a71");
+        String name = TEST_PLAYER_NAME;
+        UUID uniqueId = TEST_PLAYER_UUID;
         AsyncPlayerPreLoginEvent preLoginEvent = spy(
             new AsyncPlayerPreLoginEvent(name, createInetAddress("12.34.56.78"), uniqueId));
         given(validationService.isUnrestricted(name)).willReturn(false);
@@ -868,7 +815,7 @@ class PlayerListenerTest {
     void shouldAbortPlayerJoinForInvalidName() throws FailedVerificationException {
         // given
         String name = "inval!dName";
-        UUID uniqueId = UUID.fromString("753493c9-33ba-4a4a-bf61-1bce9d3c9a71");
+        UUID uniqueId = TEST_PLAYER_UUID;
         InetAddress ip = createInetAddress("33.32.33.33");
         AsyncPlayerPreLoginEvent event = spy(new AsyncPlayerPreLoginEvent(name, ip, uniqueId));
         given(validationService.isUnrestricted(name)).willReturn(false);
@@ -928,8 +875,7 @@ class PlayerListenerTest {
     void shouldRestoreLimboDataSynchronouslyOnQuitOfPlayerInLimbo() {
         // given
         Player player = mock(Player.class);
-        given(settings.getProperty(RegistrationSettings.REMOVE_LEAVE_MESSAGE)).willReturn(false);
-        given(settings.getProperty(RegistrationSettings.REMOVE_UNLOGGED_LEAVE_MESSAGE)).willReturn(false);
+        mockLeaveMessagesDisabled();
         given(listenerService.shouldCancelEvent(player)).willReturn(true);
         given(limboService.hasLimboPlayer(player)).willReturn(true);
         PlayerQuitEvent event = new PlayerQuitEvent(player, "quit");
@@ -947,8 +893,7 @@ class PlayerListenerTest {
     void shouldRestoreRevokedOperatorOnQuitOfPlayerWithoutLimbo() {
         // given
         Player player = mock(Player.class);
-        given(settings.getProperty(RegistrationSettings.REMOVE_LEAVE_MESSAGE)).willReturn(false);
-        given(settings.getProperty(RegistrationSettings.REMOVE_UNLOGGED_LEAVE_MESSAGE)).willReturn(false);
+        mockLeaveMessagesDisabled();
         given(listenerService.shouldCancelEvent(player)).willReturn(true);
         given(limboService.hasLimboPlayer(player)).willReturn(false);
         PlayerQuitEvent event = new PlayerQuitEvent(player, "quit");
@@ -967,8 +912,7 @@ class PlayerListenerTest {
     void shouldRunQuitProcessEvenIfSavingQuitStateFails() {
         // given
         Player player = mock(Player.class);
-        given(settings.getProperty(RegistrationSettings.REMOVE_LEAVE_MESSAGE)).willReturn(false);
-        given(settings.getProperty(RegistrationSettings.REMOVE_UNLOGGED_LEAVE_MESSAGE)).willReturn(false);
+        mockLeaveMessagesDisabled();
         given(listenerService.shouldCancelEvent(player)).willReturn(false);
         given(player.getServer()).willThrow(new UnsupportedOperationException("cross-region access"));
         PlayerQuitEvent event = new PlayerQuitEvent(player, "quit");
@@ -984,8 +928,7 @@ class PlayerListenerTest {
     void shouldProcessPlayerAndKeepQuitMessage() {
         // given
         Player player = mock(Player.class);
-        given(settings.getProperty(RegistrationSettings.REMOVE_LEAVE_MESSAGE)).willReturn(false);
-        given(settings.getProperty(RegistrationSettings.REMOVE_UNLOGGED_LEAVE_MESSAGE)).willReturn(false);
+        mockLeaveMessagesDisabled();
         given(listenerService.shouldCancelEvent(player)).willReturn(true); // player not authenticated
         String quitMessage = "The player has left the server.";
         PlayerQuitEvent event = new PlayerQuitEvent(player, quitMessage);
@@ -1010,8 +953,7 @@ class PlayerListenerTest {
         Location pearlLocation = new Location(pearlWorld, 10.0, 65.0, -1.0);
         org.bukkit.util.Vector pearlVelocity = new org.bukkit.util.Vector(0.1, 0.2, 0.3);
 
-        given(settings.getProperty(RegistrationSettings.REMOVE_LEAVE_MESSAGE)).willReturn(false);
-        given(settings.getProperty(RegistrationSettings.REMOVE_UNLOGGED_LEAVE_MESSAGE)).willReturn(false);
+        mockLeaveMessagesDisabled();
         given(listenerService.shouldCancelEvent(player)).willReturn(false);
         given(player.getServer()).willReturn(server);
         given(server.getWorlds()).willReturn(Collections.singletonList(world));
@@ -1046,8 +988,7 @@ class PlayerListenerTest {
         Server server = mock(Server.class);
         World world = mock(World.class);
         EnderPearl pearl = mock(EnderPearl.class);
-        given(settings.getProperty(RegistrationSettings.REMOVE_LEAVE_MESSAGE)).willReturn(false);
-        given(settings.getProperty(RegistrationSettings.REMOVE_UNLOGGED_LEAVE_MESSAGE)).willReturn(false);
+        mockLeaveMessagesDisabled();
         given(listenerService.shouldCancelEvent(player)).willReturn(false);
         given(player.getServer()).willReturn(server);
         given(server.getWorlds()).willReturn(Collections.singletonList(world));
@@ -1065,63 +1006,15 @@ class PlayerListenerTest {
     }
 
     @Test
-    void shouldCancelInventoryClickEvent() {
-        // given
-        InventoryClickEvent event = mock(InventoryClickEvent.class);
-        HumanEntity player = mock(Player.class);
-        given(event.getWhoClicked()).willReturn(player);
-        given(listenerService.shouldCancelEvent(player)).willReturn(true);
-
-        // when
-        listener.onPlayerInventoryClick(event);
-
-        // then
-        verify(event).setCancelled(true);
+    void shouldHandleInventoryClick() {
+        verifyCancellation(InventoryClickEvent.class, InventoryClickEvent::getWhoClicked,
+            listener::onPlayerInventoryClick, event -> verify(event, only()).getWhoClicked());
     }
 
     @Test
-    void shouldCancelInventoryDragEvent() {
-        // given
-        InventoryDragEvent event = mock(InventoryDragEvent.class);
-        HumanEntity player = mock(Player.class);
-        given(event.getWhoClicked()).willReturn(player);
-        given(listenerService.shouldCancelEvent(player)).willReturn(true);
-
-        // when
-        listener.onPlayerInventoryDrag(event);
-
-        // then
-        verify(event).setCancelled(true);
-    }
-
-    @Test
-    void shouldAllowInventoryDragEvent() {
-        // given
-        InventoryDragEvent event = mock(InventoryDragEvent.class);
-        HumanEntity player = mock(Player.class);
-        given(event.getWhoClicked()).willReturn(player);
-        given(listenerService.shouldCancelEvent(player)).willReturn(false);
-
-        // when
-        listener.onPlayerInventoryDrag(event);
-
-        // then
-        verify(event, only()).getWhoClicked();
-    }
-
-    @Test
-    void shouldAllowInventoryClickEvent() {
-        // given
-        InventoryClickEvent event = mock(InventoryClickEvent.class);
-        HumanEntity player = mock(Player.class);
-        given(event.getWhoClicked()).willReturn(player);
-        given(listenerService.shouldCancelEvent(player)).willReturn(false);
-
-        // when
-        listener.onPlayerInventoryClick(event);
-
-        // then
-        verify(event, only()).getWhoClicked();
+    void shouldHandleInventoryDrag() {
+        verifyCancellation(InventoryDragEvent.class, InventoryDragEvent::getWhoClicked,
+            listener::onPlayerInventoryDrag, event -> verify(event, only()).getWhoClicked());
     }
 
     @Test
@@ -1152,6 +1045,30 @@ class PlayerListenerTest {
 
         // then
         verify(event).setCancelled(true);
+    }
+
+    /**
+     * Checks that a handler cancels the event for an unauthenticated player and leaves it untouched
+     * for an authenticated one. {@code verifyAllowedEvent} asserts which getter the handler used
+     * on the allowed path so that no other event call goes unnoticed.
+     */
+    private <T extends Event & Cancellable> void verifyCancellation(Class<T> eventClass,
+                                                                     Function<T, HumanEntity> playerGetter,
+                                                                     Consumer<T> handler,
+                                                                     Consumer<T> verifyAllowedEvent) {
+        T event = mock(eventClass);
+        HumanEntity unauthenticated = mock(Player.class);
+        given(playerGetter.apply(event)).willReturn(unauthenticated);
+        given(listenerService.shouldCancelEvent(unauthenticated)).willReturn(true);
+        handler.accept(event);
+        verify(event).setCancelled(true);
+
+        T allowedEvent = mock(eventClass);
+        HumanEntity authenticated = mock(Player.class);
+        given(playerGetter.apply(allowedEvent)).willReturn(authenticated);
+        given(listenerService.shouldCancelEvent(authenticated)).willReturn(false);
+        handler.accept(allowedEvent);
+        verifyAllowedEvent.accept(allowedEvent);
     }
 
     @Test
@@ -1266,16 +1183,9 @@ class PlayerListenerTest {
         verify(joinMessageService).putMessage("thename0", "thename0 is joining us");
     }
 
-    @Test
-    void shouldCancelPlayerEditBookEvent() {
-        withServiceMock(listenerService)
-            .check(listener::onPlayerEditBook, PlayerEditBookEvent.class);
-    }
-
-    @Test
-    void shouldCancelPlayerInteractAtEntityEvent() {
-        withServiceMock(listenerService)
-            .check(listener::onPlayerInteractAtEntity, PlayerInteractAtEntityEvent.class);
+    private void mockLeaveMessagesDisabled() {
+        given(settings.getProperty(RegistrationSettings.REMOVE_LEAVE_MESSAGE)).willReturn(false);
+        given(settings.getProperty(RegistrationSettings.REMOVE_UNLOGGED_LEAVE_MESSAGE)).willReturn(false);
     }
 
     /**

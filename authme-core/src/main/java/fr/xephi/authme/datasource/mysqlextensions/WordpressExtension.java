@@ -58,7 +58,6 @@ class WordpressExtension extends MySqlExtension {
 
             // Execute queries
             pst.executeBatch();
-            pst.clearBatch();
         }
     }
 

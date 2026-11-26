@@ -30,7 +30,6 @@ class AbstractDataSourceConverterTest extends AbstractConverterTest {
 
     @Test
     void shouldThrowForDestinationTypeMismatch() {
-        // given
         DataSource destination = mock(DataSource.class);
         given(destination.getType()).willReturn(DataSourceType.MYSQL);
         DataSourceType destinationType = DataSourceType.SQLITE;
@@ -38,10 +37,8 @@ class AbstractDataSourceConverterTest extends AbstractConverterTest {
         Converter converter = new DataSourceConverterTestImpl<>(source, destination, destinationType);
         CommandSender sender = mock(CommandSender.class);
 
-        // when
         converter.execute(sender);
 
-        // then
         verify(sender).sendMessage(argThat(containsString("Please configure your connection to SQLITE")));
         verify(destination, only()).getType();
         verifyNoInteractions(source);
@@ -49,7 +46,6 @@ class AbstractDataSourceConverterTest extends AbstractConverterTest {
 
     @Test
     void shouldHandleSourceThrowingException() {
-        // given
         DataSource source = mock(DataSource.class);
         DataSource destination = mock(DataSource.class);
         DataSourceType destinationType = DataSourceType.SQLITE;
@@ -59,10 +55,8 @@ class AbstractDataSourceConverterTest extends AbstractConverterTest {
         doThrow(IllegalStateException.class).when(converter).getSource();
         CommandSender sender = mock(CommandSender.class);
 
-        // when
         converter.execute(sender);
 
-        // then
         verify(sender).sendMessage("The data source to convert from could not be initialized");
         verify(destination, only()).getType();
         verifyNoInteractions(source);
@@ -70,7 +64,6 @@ class AbstractDataSourceConverterTest extends AbstractConverterTest {
 
     @Test
     void shouldConvertAndSkipExistingPlayers() {
-        // given
         DataSource source = mock(DataSource.class);
         DataSource destination = mock(DataSource.class);
         DataSourceType destinationType = DataSourceType.MYSQL;
@@ -84,10 +77,8 @@ class AbstractDataSourceConverterTest extends AbstractConverterTest {
         Converter converter = new DataSourceConverterTestImpl<>(source, destination, destinationType);
         CommandSender sender = mock(CommandSender.class);
 
-        // when
         converter.execute(sender);
 
-        // then
         verify(destination).getType();
         verify(destination, times(3)).isAuthAvailable(anyString());
         verify(destination, times(2)).saveAuth(any(PlayerAuth.class));

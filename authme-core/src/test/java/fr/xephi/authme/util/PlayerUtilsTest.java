@@ -22,31 +22,25 @@ class PlayerUtilsTest {
 
     @Test
     void shouldGetPlayerIp() {
-        // given
         Player player = mock(Player.class);
         String ip = "124.86.248.62";
         TestHelper.mockIpAddressToPlayer(player, ip);
 
-        // when
         String result = PlayerUtils.getPlayerIp(player);
 
-        // then
         assertThat(result, equalTo(ip));
     }
 
     @Test
     void shouldCheckIfIsNpc() {
-        // given
         Player player1 = mock(Player.class);
         given(player1.hasMetadata("NPC")).willReturn(false);
         Player player2 = mock(Player.class);
         given(player2.hasMetadata("NPC")).willReturn(true);
 
-        // when
         boolean result1 = PlayerUtils.isNpc(player1);
         boolean result2 = PlayerUtils.isNpc(player2);
 
-        // then
         assertThat(result1, equalTo(false));
         assertThat(result2, equalTo(true));
     }

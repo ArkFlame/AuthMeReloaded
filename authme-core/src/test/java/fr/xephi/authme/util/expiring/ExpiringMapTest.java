@@ -17,10 +17,8 @@ class ExpiringMapTest {
 
     @Test
     void shouldAddAndRetrieveEntries() {
-        // given
         ExpiringMap<String, Double> map = new ExpiringMap<>(3, TimeUnit.MINUTES);
 
-        // when / then
         map.put("three", 3.0);
         map.put("treefiddy", 3.50);
 
@@ -30,15 +28,12 @@ class ExpiringMapTest {
 
     @Test
     void shouldRemoveEntry() {
-        // given
         ExpiringMap<String, Boolean> map = new ExpiringMap<>(1, TimeUnit.HOURS);
         map.put("hi", true);
         map.put("ha", false);
 
-        // when
         Boolean removed = map.remove("ha");
 
-        // then
         assertThat(removed, equalTo(false));
         assertThat(map.remove("ha"), nullValue());
         assertThat(map.get("ha"), nullValue());
@@ -47,15 +42,12 @@ class ExpiringMapTest {
 
     @Test
     void shouldUpdateExpirationAndSupportNegativeValues() {
-        // given
         ExpiringMap<Integer, Integer> map = new ExpiringMap<>(2, TimeUnit.DAYS);
         map.put(2, 4);
         map.put(3, 9);
 
-        // when
         map.setExpiration(-100, TimeUnit.MILLISECONDS);
 
-        // then
         map.put(5, 25);
         assertThat(map.get(2), equalTo(4));
         assertThat(map.get(3), equalTo(9));
@@ -64,7 +56,6 @@ class ExpiringMapTest {
 
     @Test
     void shouldCleanUpExpiredEntries() throws InterruptedException {
-        // given
         ExpiringMap<Integer, Integer> map = new ExpiringMap<>(200, TimeUnit.MILLISECONDS);
         map.put(144, 12);
         map.put(121, 11);
@@ -73,21 +64,17 @@ class ExpiringMapTest {
         map.put(64, 8);
         map.put(25, 5);
 
-        // when
         Thread.sleep(300);
         map.removeExpiredEntries();
 
-        // then
         Map<Integer, ?> internalMap = map.getEntries();
         assertThat(internalMap.keySet(), containsInAnyOrder(64, 25));
     }
 
     @Test
     void shouldReturnIfIsEmpty() {
-        // given
         ExpiringMap<String, String> map = new ExpiringMap<>(-8, TimeUnit.SECONDS);
 
-        // when / then
         assertThat(map.isEmpty(), equalTo(true));
         map.put("hoi", "Welt");
         assertThat(map.isEmpty(), equalTo(false));

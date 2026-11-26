@@ -67,7 +67,6 @@ class LoginSecurityConverterTest extends AbstractConverterTest {
 
     @Test
     void shouldMigrateAccountsAndSkipExistingOnes() throws SQLException, ClassNotFoundException {
-        // given
         Class.forName("org.sqlite.JDBC");
         File dbFile = new File(tempFolder, "LoginSecurity.db");
         try (Connection setup = DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath());
@@ -88,12 +87,10 @@ class LoginSecurityConverterTest extends AbstractConverterTest {
         given(dataSource.isAuthAvailable("ExistingPlayer")).willReturn(true);
         CommandSender sender = mock(CommandSender.class);
 
-        // when
         try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath())) {
             converter.performConversion(sender, connection);
         }
 
-        // then
         verify(dataSource).saveAuth(authCaptor.capture());
         PlayerAuth auth = authCaptor.getValue();
         verify(dataSource).updateSession(auth);
@@ -114,13 +111,10 @@ class LoginSecurityConverterTest extends AbstractConverterTest {
 
     @Test
     void shouldInformSenderIfDatabaseFileIsMissing() {
-        // given
         CommandSender sender = mock(CommandSender.class);
 
-        // when
         converter.execute(sender);
 
-        // then
         verify(sender).sendMessage(argThat(containsString("does not exist")));
         verifyNoInteractions(dataSource);
     }

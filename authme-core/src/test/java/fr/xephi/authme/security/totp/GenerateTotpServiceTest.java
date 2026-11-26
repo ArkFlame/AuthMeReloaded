@@ -32,37 +32,30 @@ class GenerateTotpServiceTest {
 
     @Test
     void shouldGenerateTotpKey() {
-        // given
         TotpGenerationResult givenGenerationResult = new TotpGenerationResult("1234", "http://example.com/link/to/chart");
         Player player = mockPlayerWithName("Spencer");
         given(totpAuthenticator.generateTotpKey(player)).willReturn(givenGenerationResult);
 
-        // when
         TotpGenerationResult result = generateTotpService.generateTotpKey(player);
 
-        // then
         assertThat(result, equalTo(givenGenerationResult));
         assertThat(generateTotpService.getGeneratedTotpKey(player), equalTo(givenGenerationResult));
     }
 
     @Test
     void shouldRemoveGeneratedTotpKey() {
-        // given
         TotpGenerationResult givenGenerationResult = new TotpGenerationResult("1234", "http://example.com/link/to/chart");
         Player player = mockPlayerWithName("Hanna");
         given(totpAuthenticator.generateTotpKey(player)).willReturn(givenGenerationResult);
         generateTotpService.generateTotpKey(player);
 
-        // when
         generateTotpService.removeGenerateTotpKey(player);
 
-        // then
         assertThat(generateTotpService.getGeneratedTotpKey(player), nullValue());
     }
 
     @Test
     void shouldCheckGeneratedTotpKey() {
-        // given
         String generatedKey = "ASLO43KDF2J";
         TotpGenerationResult givenGenerationResult = new TotpGenerationResult(generatedKey, "url");
         Player player = mockPlayerWithName("Aria");
@@ -72,12 +65,10 @@ class GenerateTotpServiceTest {
         given(totpAuthenticator.checkCode("Aria", generatedKey, validCode)).willReturn(true);
         given(totpAuthenticator.checkCode("Aria", generatedKey, "000000")).willReturn(false);
 
-        // when
         boolean invalidCodeResult = generateTotpService.isTotpCodeCorrectForGeneratedTotpKey(player, "000000");
         boolean validCodeResult = generateTotpService.isTotpCodeCorrectForGeneratedTotpKey(player, validCode);
         boolean unknownPlayerResult = generateTotpService.isTotpCodeCorrectForGeneratedTotpKey(mockPlayerWithName("other"), "299874");
 
-        // then
         assertThat(invalidCodeResult, equalTo(false));
         assertThat(validCodeResult, equalTo(true));
         assertThat(unknownPlayerResult, equalTo(false));
@@ -85,7 +76,6 @@ class GenerateTotpServiceTest {
 
     @Test
     void shouldRemoveExpiredEntries() throws InterruptedException {
-        // given
         TotpGenerationResult generationResult = new TotpGenerationResult("key", "url");
         ExpiringMap<String, TotpGenerationResult> generatedKeys =
             ReflectionTestUtils.getFieldValue(GenerateTotpService.class, generateTotpService, "totpKeys");
@@ -94,11 +84,9 @@ class GenerateTotpServiceTest {
         generatedKeys.setExpiration(5, TimeUnit.MINUTES);
         generatedKeys.put("ezra", generationResult);
 
-        // when
         Thread.sleep(2L);
         generateTotpService.performCleanup();
 
-        // then
         assertThat(generateTotpService.getGeneratedTotpKey(mockPlayerWithName("Ezra")), equalTo(generationResult));
         assertThat(generateTotpService.getGeneratedTotpKey(mockPlayerWithName("ghost")), nullValue());
     }

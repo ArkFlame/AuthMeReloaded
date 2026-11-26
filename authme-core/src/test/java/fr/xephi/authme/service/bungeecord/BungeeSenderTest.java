@@ -90,13 +90,17 @@ class BungeeSenderTest {
         verify(messenger).unregisterOutgoingPluginChannel(plugin, "authme:main");
     }
 
-    @Test
-    void shouldSendSingleChunkForEmptyPremiumList() {
+    private void givenEnabledSender() {
         given(settings.getProperty(HooksSettings.BUNGEECORD)).willReturn(true);
         given(settings.getProperty(HooksSettings.BUNGEECORD_SERVER)).willReturn("");
         given(messenger.isOutgoingChannelRegistered(plugin, "BungeeCord")).willReturn(true);
         given(messenger.isOutgoingChannelRegistered(plugin, "authme:main")).willReturn(true);
         given(plugin.isEnabled()).willReturn(true);
+    }
+
+    @Test
+    void shouldSendSingleChunkForEmptyPremiumList() {
+        givenEnabledSender();
 
         BungeeSender sender = new BungeeSender(plugin, bukkitService, settings);
         sender.sendPremiumList(carrier, List.of());
@@ -109,11 +113,7 @@ class BungeeSenderTest {
 
     @Test
     void shouldSendSingleChunkForSmallPremiumList() {
-        given(settings.getProperty(HooksSettings.BUNGEECORD)).willReturn(true);
-        given(settings.getProperty(HooksSettings.BUNGEECORD_SERVER)).willReturn("");
-        given(messenger.isOutgoingChannelRegistered(plugin, "BungeeCord")).willReturn(true);
-        given(messenger.isOutgoingChannelRegistered(plugin, "authme:main")).willReturn(true);
-        given(plugin.isEnabled()).willReturn(true);
+        givenEnabledSender();
         List<String> names = List.of("alice", "bob", "charlie");
 
         BungeeSender sender = new BungeeSender(plugin, bukkitService, settings);
@@ -128,11 +128,7 @@ class BungeeSenderTest {
 
     @Test
     void shouldNormalizePremiumListUsernamesToLowercase() {
-        given(settings.getProperty(HooksSettings.BUNGEECORD)).willReturn(true);
-        given(settings.getProperty(HooksSettings.BUNGEECORD_SERVER)).willReturn("");
-        given(messenger.isOutgoingChannelRegistered(plugin, "BungeeCord")).willReturn(true);
-        given(messenger.isOutgoingChannelRegistered(plugin, "authme:main")).willReturn(true);
-        given(plugin.isEnabled()).willReturn(true);
+        givenEnabledSender();
 
         BungeeSender sender = new BungeeSender(plugin, bukkitService, settings);
         sender.sendPremiumList(carrier, List.of("Alice", "BOB"));
@@ -145,11 +141,7 @@ class BungeeSenderTest {
 
     @Test
     void shouldSendTwoChunksFor1001Names() {
-        given(settings.getProperty(HooksSettings.BUNGEECORD)).willReturn(true);
-        given(settings.getProperty(HooksSettings.BUNGEECORD_SERVER)).willReturn("");
-        given(messenger.isOutgoingChannelRegistered(plugin, "BungeeCord")).willReturn(true);
-        given(messenger.isOutgoingChannelRegistered(plugin, "authme:main")).willReturn(true);
-        given(plugin.isEnabled()).willReturn(true);
+        givenEnabledSender();
         List<String> names = IntStream.range(0, 1001)
             .mapToObj(i -> "player" + i)
             .collect(Collectors.toList());

@@ -24,10 +24,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static fr.xephi.authme.util.FileUtils.copyFileFromResource;
 import static fr.xephi.authme.util.lazytags.TagBuilder.createTag;
@@ -82,10 +82,9 @@ public class WelcomeMessageConfiguration implements Reloadable {
             return;
         }
 
-        List<String> welcomeMessage = new ArrayList<>();
-        for (String line : readWelcomeFile()) {
-            welcomeMessage.add(ChatColor.translateAlternateColorCodes('&', line));
-        }
+        List<String> welcomeMessage = readWelcomeFile().stream()
+            .map(line -> ChatColor.translateAlternateColorCodes('&', line))
+            .collect(Collectors.toList());
         messageSupplier = TagReplacer.newReplacer(availableTags, welcomeMessage);
     }
 

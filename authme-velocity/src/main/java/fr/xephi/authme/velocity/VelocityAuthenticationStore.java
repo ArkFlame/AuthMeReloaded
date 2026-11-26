@@ -30,7 +30,7 @@ final class VelocityAuthenticationStore {
         markLoggedOut(player.getUsername());
     }
 
-    private static String normalizeName(String playerName) {
+    static String normalizeName(String playerName) {
         return playerName.toLowerCase(Locale.ROOT);
     }
 }

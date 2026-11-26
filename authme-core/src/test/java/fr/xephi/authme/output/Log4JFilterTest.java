@@ -27,12 +27,8 @@ class Log4JFilterTest {
     @Test
     void shouldFilterSensitiveLogEvent() {
         // given
-        Message message = mockMessage(SENSITIVE_COMMAND);
-        LogEvent event = Mockito.mock(LogEvent.class);
-        when(event.getMessage()).thenReturn(message);
-
         // when
-        Result result = log4JFilter.filter(event);
+        Result result = filterLogEvent(SENSITIVE_COMMAND);
 
         // then
         assertThat(result, equalTo(Result.DENY));
@@ -41,12 +37,8 @@ class Log4JFilterTest {
     @Test
     void shouldNotFilterIrrelevantLogEvent() {
         // given
-        Message message = mockMessage(NORMAL_COMMAND);
-        LogEvent event = Mockito.mock(LogEvent.class);
-        when(event.getMessage()).thenReturn(message);
-
         // when
-        Result result = log4JFilter.filter(event);
+        Result result = filterLogEvent(NORMAL_COMMAND);
 
         // then
         assertThat(result, equalTo(Result.NEUTRAL));
@@ -55,12 +47,8 @@ class Log4JFilterTest {
     @Test
     void shouldNotFilterNonCommandLogEvent() {
         // given
-        Message message = mockMessage(OTHER_COMMAND);
-        LogEvent event = Mockito.mock(LogEvent.class);
-        when(event.getMessage()).thenReturn(message);
-
         // when
-        Result result = log4JFilter.filter(event);
+        Result result = filterLogEvent(OTHER_COMMAND);
 
         // then
         assertThat(result, equalTo(Result.NEUTRAL));
@@ -69,12 +57,8 @@ class Log4JFilterTest {
     @Test
     void shouldNotFilterLogEventWithNullMessage() {
         // given
-        Message message = mockMessage(null);
-        LogEvent event = Mockito.mock(LogEvent.class);
-        when(event.getMessage()).thenReturn(message);
-
         // when
-        Result result = log4JFilter.filter(event);
+        Result result = filterLogEvent(null);
 
         // then
         assertThat(result, equalTo(Result.NEUTRAL));
@@ -213,6 +197,13 @@ class Log4JFilterTest {
 
         // then
         assertThat(result, equalTo(Result.NEUTRAL));
+    }
+
+    private Result filterLogEvent(String formattedMessage) {
+        Message message = mockMessage(formattedMessage);
+        LogEvent event = Mockito.mock(LogEvent.class);
+        when(event.getMessage()).thenReturn(message);
+        return log4JFilter.filter(event);
     }
 
     /**

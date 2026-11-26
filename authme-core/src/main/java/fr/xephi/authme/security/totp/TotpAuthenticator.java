@@ -45,6 +45,16 @@ public class TotpAuthenticator implements HasCleanup {
         return new GoogleAuthenticator();
     }
 
+    /**
+     * Normalizes a player name for use as a key in the TOTP caches.
+     *
+     * @param playerName the player name
+     * @return the name in lowercase, using the root locale
+     */
+    static String normalizePlayerName(String playerName) {
+        return playerName.toLowerCase(Locale.ROOT);
+    }
+
     public boolean checkCode(PlayerAuth auth, String totpCode) {
         return checkCode(auth.getNickname(), auth.getTotpKey(), totpCode);
     }
@@ -58,7 +68,7 @@ public class TotpAuthenticator implements HasCleanup {
      * @return true if code is valid, false otherwise
      */
     public boolean checkCode(String playerName, String totpKey, String inputCode) {
-        String nameLower = playerName.toLowerCase(Locale.ROOT);
+        String nameLower = normalizePlayerName(playerName);
         Integer totpCode = Ints.tryParse(inputCode);
         if (totpCode != null && !usedCodes.contains(nameLower, totpCode)
             && authenticator.authorize(totpKey, totpCode)) {

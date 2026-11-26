@@ -42,12 +42,7 @@ class SettingsTest {
     void shouldLoadEmailMessage() throws IOException {
         // given
         String emailMessage = "Sample email message\nThat's all!";
-        File emailFile = new File(testPluginFolder, "email.html");
-        createFile(emailFile);
-        Files.write(emailFile.toPath(), emailMessage.getBytes());
-
-        PropertyResource resource = mockPropertyResourceAndReader();
-        Settings settings = new Settings(testPluginFolder, resource, null, CONFIG_DATA);
+        Settings settings = createSettingsWithEmailFile("email.html", emailMessage);
 
         // when
         String result = settings.getPasswordEmailMessage();
@@ -60,12 +55,7 @@ class SettingsTest {
     void shouldLoadRecoveryCodeMessage() throws IOException {
         // given
         String emailMessage = "Your recovery code is %code.";
-        File emailFile = new File(testPluginFolder, "recovery_code_email.html");
-        createFile(emailFile);
-        Files.write(emailFile.toPath(), emailMessage.getBytes());
-
-        PropertyResource resource = mockPropertyResourceAndReader();
-        Settings settings = new Settings(testPluginFolder, resource, null, CONFIG_DATA);
+        Settings settings = createSettingsWithEmailFile("recovery_code_email.html", emailMessage);
 
         // when
         String result = settings.getRecoveryCodeEmailMessage();
@@ -78,18 +68,20 @@ class SettingsTest {
     void shouldLoadVerificationMessage() throws IOException {
         // given
         String emailMessage = "Please verify your identity with <recoverycode />.";
-        File emailFile = new File(testPluginFolder, "verification_code_email.html");
-        createFile(emailFile);
-        Files.write(emailFile.toPath(), emailMessage.getBytes());
-
-        PropertyResource resource = mockPropertyResourceAndReader();
-        Settings settings = new Settings(testPluginFolder, resource, null, CONFIG_DATA);
+        Settings settings = createSettingsWithEmailFile("verification_code_email.html", emailMessage);
 
         // when
         String result = settings.getVerificationEmailMessage();
 
         // then
         assertThat(result, equalTo(emailMessage));
+    }
+
+    private Settings createSettingsWithEmailFile(String fileName, String content) throws IOException {
+        File emailFile = new File(testPluginFolder, fileName);
+        createFile(emailFile);
+        Files.write(emailFile.toPath(), content.getBytes());
+        return new Settings(testPluginFolder, mockPropertyResourceAndReader(), null, CONFIG_DATA);
     }
 
     private static PropertyResource mockPropertyResourceAndReader() {

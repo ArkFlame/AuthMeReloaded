@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
 import static fr.xephi.authme.util.lazytags.TagBuilder.createTag;
@@ -177,23 +178,18 @@ public class CommandManager implements Reloadable {
             .migrationService(commandMigrationService)
             .create();
         CommandConfig commandConfig = settingsManager.getProperty(CommandSettingsHolder.COMMANDS);
-        onJoinCommands = newReplacer(commandConfig.getOnJoin());
-        onLoginCommands = newOnLoginCmdReplacer(commandConfig.getOnLogin());
-        onFirstLoginCommands = newOnLoginCmdReplacer(commandConfig.getOnFirstLogin());
-        onSessionLoginCommands = newReplacer(commandConfig.getOnSessionLogin());
-        onRegisterCommands = newReplacer(commandConfig.getOnRegister());
-        onUnregisterCommands = newReplacer(commandConfig.getOnUnregister());
-        onLogoutCommands = newReplacer(commandConfig.getOnLogout());
+        onJoinCommands = newReplacer(commandConfig.getOnJoin(), Command::copyWithCommand);
+        onLoginCommands = newReplacer(commandConfig.getOnLogin(), OnLoginCommand::copyWithCommand);
+        onFirstLoginCommands = newReplacer(commandConfig.getOnFirstLogin(), OnLoginCommand::copyWithCommand);
+        onSessionLoginCommands = newReplacer(commandConfig.getOnSessionLogin(), Command::copyWithCommand);
+        onRegisterCommands = newReplacer(commandConfig.getOnRegister(), Command::copyWithCommand);
+        onUnregisterCommands = newReplacer(commandConfig.getOnUnregister(), Command::copyWithCommand);
+        onLogoutCommands = newReplacer(commandConfig.getOnLogout(), Command::copyWithCommand);
     }
 
-    private WrappedTagReplacer<Command, Player> newReplacer(Map<String, Command> commands) {
-        return new WrappedTagReplacer<>(availableTags, commands.values(), Command::getCommand,
-            Command::copyWithCommand);
-    }
-
-    private WrappedTagReplacer<OnLoginCommand, Player> newOnLoginCmdReplacer(Map<String, OnLoginCommand> commands) {
-        return new WrappedTagReplacer<>(availableTags, commands.values(), Command::getCommand,
-            OnLoginCommand::copyWithCommand);
+    private <T extends Command> WrappedTagReplacer<T, Player> newReplacer(
+            Map<String, T> commands, BiFunction<T, String, T> itemCreator) {
+        return new WrappedTagReplacer<T, Player>(availableTags, commands.values(), Command::getCommand, itemCreator);
     }
 
     private List<Tag<Player>> buildAvailableTags() {

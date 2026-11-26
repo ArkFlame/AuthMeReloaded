@@ -1,10 +1,16 @@
 package fr.xephi.authme.datasource.converter;
 
+import fr.xephi.authme.ConsoleLogger;
 import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.datasource.SqlConnectionSource;
+import org.bukkit.command.CommandSender;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+
+import static fr.xephi.authme.util.Utils.logAndSendMessage;
 
 /**
  * Base class for converters that read from an external plugin's MySQL/MariaDB table.
@@ -39,5 +45,27 @@ abstract class AbstractSqlPluginConverter implements Converter {
         throw new SQLException(
             "This converter requires AuthMe to be configured with MySQL or MariaDB. "
                 + "SQLite is not supported as a shared data source for plugin converters.");
+    }
+
+    /**
+     * Runs the given query on the shared connection pool and hands the result rows to the importer.
+     * SQL errors are reported to the sender and the log instead of being propagated.
+     *
+     * @param sender the command sender to report errors to
+     * @param query the query to execute
+     * @param pluginName the source plugin name, used in error messages
+     * @param logger logger for SQL errors
+     * @param importer the consumer of the result rows
+     */
+    protected void queryAndImport(CommandSender sender, String query, String pluginName,
+                                  ConsoleLogger logger, ResultSetImporter importer) {
+        try (Connection conn = openConnection();
+             PreparedStatement ps = conn.prepareStatement(query);
+             ResultSet rs = ps.executeQuery()) {
+            importer.importRows(rs);
+        } catch (SQLException e) {
+            logAndSendMessage(sender, pluginName + " conversion failed: " + e.getMessage());
+            logger.logException(pluginName + " conversion error:", e);
+        }
     }
 }

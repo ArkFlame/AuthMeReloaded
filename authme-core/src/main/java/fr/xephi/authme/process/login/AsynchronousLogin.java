@@ -109,7 +109,7 @@ public class AsynchronousLogin implements AsynchronousProcess {
      * @param password the password to log in with
      */
     public void login(Player player, String password) {
-        PlayerAuth auth = getPlayerAuth(player);
+        PlayerAuth auth = getPlayerAuth(player, false);
         if (auth != null && checkPlayerInfo(player, auth, password)) {
             if (auth.getTotpKey() != null) {
                 LimboPlayer limbo = limboService.getLimboPlayer(player);
@@ -133,7 +133,7 @@ public class AsynchronousLogin implements AsynchronousProcess {
      * @param player the player to log in
      */
     public void forceLogin(Player player) {
-        PlayerAuth auth = getPlayerAuth(player);
+        PlayerAuth auth = getPlayerAuth(player, false);
         if (auth != null) {
             performLogin(player, auth);
         }
@@ -149,20 +149,8 @@ public class AsynchronousLogin implements AsynchronousProcess {
     public void forceLoginFromProxy(Player player) {
         PlayerAuth auth = getPlayerAuth(player, true);
         if (auth != null) {
-            performLoginFromProxy(player, auth);
+            doPerformLogin(player, auth, true);
         }
-    }
-
-    /**
-     * Checks the precondition for authentication (like user known) and returns
-     * the player's {@link PlayerAuth} object.
-     *
-     * @param player the player to check
-     * @return the PlayerAuth object, or {@code null} if the player doesn't exist or may not log in
-     *         (e.g. because he is already logged in)
-     */
-    private PlayerAuth getPlayerAuth(Player player) {
-        return getPlayerAuth(player, false);
     }
 
     /**
@@ -242,12 +230,11 @@ public class AsynchronousLogin implements AsynchronousProcess {
         loginCaptchaManager.increaseLoginFailureCount(name);
         tempbanManager.increaseCount(ip, name);
 
-        if (passwordSecurity.comparePassword(password, auth.getPassword(), player.getName())) {
-            return true;
-        } else {
+        if (!passwordSecurity.comparePassword(password, auth.getPassword(), player.getName())) {
             handleWrongPassword(player, auth, ip);
             return false;
         }
+        return true;
     }
 
     /**
@@ -304,17 +291,6 @@ public class AsynchronousLogin implements AsynchronousProcess {
      */
     public void performLogin(Player player, PlayerAuth auth) {
         doPerformLogin(player, auth, false);
-    }
-
-    /**
-     * Sets the player to the logged in state when initiated by the proxy.
-     * Skips the BungeeCord server redirect — the proxy handles routing.
-     *
-     * @param player the player to log in
-     * @param auth the associated PlayerAuth object
-     */
-    private void performLoginFromProxy(Player player, PlayerAuth auth) {
-        doPerformLogin(player, auth, true);
     }
 
     private void doPerformLogin(Player player, PlayerAuth auth, boolean proxyInitiated) {

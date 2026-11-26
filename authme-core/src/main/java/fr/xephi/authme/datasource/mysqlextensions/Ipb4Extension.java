@@ -28,28 +28,22 @@ class Ipb4Extension extends MySqlExtension {
         // Update player group in core_members
         String sql = "UPDATE " + ipbPrefix + tableName
                    + " SET " + tableName + ".member_group_id=? WHERE " + col.NAME + "=?;";
-        try (PreparedStatement pst2 = con.prepareStatement(sql)) {
-            pst2.setInt(1, ipbGroup);
-            pst2.setString(2, auth.getNickname());
-            pst2.executeUpdate();
+        try (PreparedStatement pst = con.prepareStatement(sql)) {
+            pst.setInt(1, ipbGroup);
+            pst.setString(2, auth.getNickname());
+            pst.executeUpdate();
         }
         // Get current time without ms
         long time = System.currentTimeMillis() / 1000;
-        // update joined date
-        sql = "UPDATE " + ipbPrefix + tableName
-            + " SET " + tableName + ".joined=? WHERE " + col.NAME + "=?;";
-        try (PreparedStatement pst2 = con.prepareStatement(sql)) {
-            pst2.setLong(1, time);
-            pst2.setString(2, auth.getNickname());
-            pst2.executeUpdate();
-        }
-        // Update last_visit
-        sql = "UPDATE " + ipbPrefix + tableName
-            + " SET " + tableName + ".last_visit=? WHERE " + col.NAME + "=?;";
-        try (PreparedStatement pst2 = con.prepareStatement(sql)) {
-            pst2.setLong(1, time);
-            pst2.setString(2, auth.getNickname());
-            pst2.executeUpdate();
+        // Update joined date and last visit
+        for (String column : new String[]{"joined", "last_visit"}) {
+            sql = "UPDATE " + ipbPrefix + tableName
+                + " SET " + tableName + "." + column + "=? WHERE " + col.NAME + "=?;";
+            try (PreparedStatement pst = con.prepareStatement(sql)) {
+                pst.setLong(1, time);
+                pst.setString(2, auth.getNickname());
+                pst.executeUpdate();
+            }
         }
     }
 }

@@ -38,7 +38,7 @@ public class ForceLoginCommand implements ExecutableCommand {
 
     @Override
     public void executeCommand(CommandSender sender, List<String> arguments) {
-        String playerName = arguments.isEmpty() ? sender.getName() : arguments.get(0);
+        String playerName = CommandArguments.getTargetPlayerName(sender, arguments);
 
         Player player = bukkitService.getPlayerExact(playerName);
         if (player == null || !player.isOnline()) {

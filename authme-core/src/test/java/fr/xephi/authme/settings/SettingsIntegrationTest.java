@@ -54,8 +54,7 @@ class SettingsIntegrationTest {
         File newFile = TestHelper.createFile(testPluginFolder, "newfile");
 
         // when / then
-        Settings settings = new Settings(testPluginFolder, resource,
-            new PlainMigrationService(), CONFIG_DATA);
+        Settings settings = createSettings(resource);
         Map<Property<?>, Object> expectedValues = ImmutableMap.<Property<?>, Object>builder()
             .put(TestConfiguration.DURATION_IN_SECONDS, 22)
             .put(TestConfiguration.SYSTEM_NAME, "Custom sys name")
@@ -68,10 +67,7 @@ class SettingsIntegrationTest {
             .put(TestConfiguration.USE_COOL_FEATURES, true)
             .put(TestConfiguration.COOL_OPTIONS, Arrays.asList("Dinosaurs", "Explosions", "Big trucks"))
             .build();
-        for (Map.Entry<Property<?>, Object> entry : expectedValues.entrySet()) {
-            assertThat("Property '" + entry.getKey().getPath() + "' has expected value",
-                settings.getProperty(entry.getKey()), equalTo(entry.getValue()));
-        }
+        assertAllProperties(settings, expectedValues);
         assertThat(newFile.length(), equalTo(0L));
     }
 
@@ -81,14 +77,13 @@ class SettingsIntegrationTest {
         File file = copyFileFromResources(INCOMPLETE_FILE);
         PropertyResource resource = new YamlFileResource(file);
         // Expectation: File is rewritten to since it does not have all configurations
-        new Settings(testPluginFolder, resource, new PlainMigrationService(), CONFIG_DATA);
+        createSettings(resource);
 
         // Load the settings again -> checks that what we wrote can be loaded again
         resource = new YamlFileResource(file);
 
         // then
-        Settings settings = new Settings(testPluginFolder, resource,
-            new PlainMigrationService(), CONFIG_DATA);
+        Settings settings = createSettings(resource);
         Map<Property<?>, Object> expectedValues = ImmutableMap.<Property<?>, Object>builder()
             .put(TestConfiguration.DURATION_IN_SECONDS, 22)
             .put(TestConfiguration.SYSTEM_NAME, "[TestDefaultValue]")
@@ -101,10 +96,7 @@ class SettingsIntegrationTest {
             .put(TestConfiguration.USE_COOL_FEATURES, false)
             .put(TestConfiguration.COOL_OPTIONS, Arrays.asList("Dinosaurs", "Explosions", "Big trucks"))
             .build();
-        for (Map.Entry<Property<?>, Object> entry : expectedValues.entrySet()) {
-            assertThat("Property '" + entry.getKey().getPath() + "' has expected value",
-                settings.getProperty(entry.getKey()), equalTo(entry.getValue()));
-        }
+        assertAllProperties(settings, expectedValues);
     }
 
     @Test
@@ -121,6 +113,17 @@ class SettingsIntegrationTest {
 
         // then
         assertThat(settings.getProperty(TestConfiguration.RATIO_ORDER), equalTo(TestEnum.FIRST));
+    }
+
+    private Settings createSettings(PropertyResource resource) {
+        return new Settings(testPluginFolder, resource, new PlainMigrationService(), CONFIG_DATA);
+    }
+
+    private static void assertAllProperties(Settings settings, Map<Property<?>, Object> expectedValues) {
+        for (Map.Entry<Property<?>, Object> entry : expectedValues.entrySet()) {
+            assertThat("Property '" + entry.getKey().getPath() + "' has expected value",
+                settings.getProperty(entry.getKey()), equalTo(entry.getValue()));
+        }
     }
 
     private File copyFileFromResources(String path) {

@@ -133,4 +133,12 @@ public class SessionService implements Reloadable {
     public void reload() {
         this.isEnabled = service.getProperty(PluginSettings.SESSIONS_ENABLED);
     }
+
+    /** Possible outcomes of checking a player's stored session against their current login. */
+    private enum SessionState {
+        VALID,
+        NOT_VALID,
+        OUTDATED,
+        IP_CHANGED
+    }
 }

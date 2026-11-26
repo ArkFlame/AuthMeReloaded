@@ -38,8 +38,7 @@ class MigraterYamlFileResourceTest {
         PropertyReader reader = resource.createReader();
 
         // then
-        assertThat(reader.getString("first"), equalTo("错误的密码"));
-        assertThat(reader.getString("second"), equalTo("为了验证您的身份，您需要将一个电子邮件地址与您的帐户绑定！"));
+        assertCommonKeys(reader);
         assertThat(reader.getString("third"), equalTo("您已经可以在当前会话中执行任何敏感命令！"));
     }
 
@@ -59,9 +58,13 @@ class MigraterYamlFileResourceTest {
 
         // then
         PropertyReader reader = resource.createReader();
+        assertCommonKeys(reader);
+        assertThat(reader.getString("third"), equalTo(newMessage));
+    }
+
+    private static void assertCommonKeys(PropertyReader reader) {
         assertThat(reader.getString("first"), equalTo("错误的密码"));
         assertThat(reader.getString("second"), equalTo("为了验证您的身份，您需要将一个电子邮件地址与您的帐户绑定！"));
-        assertThat(reader.getString("third"), equalTo(newMessage));
     }
 
     private static ConfigurationData buildConfigurationData() {

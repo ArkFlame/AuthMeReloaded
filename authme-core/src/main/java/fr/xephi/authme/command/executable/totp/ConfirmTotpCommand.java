@@ -51,8 +51,7 @@ public class ConfirmTotpCommand extends PlayerCommand {
         if (totpDetails == null) {
             messages.send(player, MessageKey.TWO_FACTOR_ENABLE_ERROR_NO_CODE);
         } else {
-            boolean isCodeValid = generateTotpService.isTotpCodeCorrectForGeneratedTotpKey(player, inputTotpCode);
-            if (isCodeValid) {
+            if (generateTotpService.isTotpCodeCorrectForGeneratedTotpKey(player, inputTotpCode)) {
                 generateTotpService.removeGenerateTotpKey(player);
                 insertTotpKeyIntoDatabase(player, auth, totpDetails);
             } else {

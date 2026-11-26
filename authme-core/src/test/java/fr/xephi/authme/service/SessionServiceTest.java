@@ -95,7 +95,7 @@ class SessionServiceTest {
         // given
         String name = "Bobby";
         String ip = "127.3.12.15";
-        Player player = mockPlayerWithNameAndIp(name, ip);
+        Player player = TestPlayerFactory.mockPlayerWithNameAndIp(name, ip);
         given(commonService.getProperty(PluginSettings.SESSIONS_TIMEOUT)).willReturn(8);
         given(dataSource.hasSession(name)).willReturn(true);
         PlayerAuth auth = PlayerAuth.builder()
@@ -118,7 +118,7 @@ class SessionServiceTest {
         // given
         String name = "Bobby";
         String ip = "127.3.12.15";
-        Player player = mockPlayerWithNameAndIp(name, ip);
+        Player player = TestPlayerFactory.mockPlayerWithNameAndIp(name, ip);
         given(dataSource.hasSession(name)).willReturn(true);
         PlayerAuth auth = PlayerAuth.builder()
             .name(name)
@@ -140,7 +140,7 @@ class SessionServiceTest {
         // given
         String name = "Bobby";
         String ip = "127.3.12.15";
-        Player player = mockPlayerWithNameAndIp(name, ip);
+        Player player = TestPlayerFactory.mockPlayerWithNameAndIp(name, ip);
         given(dataSource.hasSession(name)).willReturn(true);
         given(commonService.getProperty(PluginSettings.SESSIONS_TIMEOUT)).willReturn(8);
         PlayerAuth auth = PlayerAuth.builder()
@@ -164,7 +164,7 @@ class SessionServiceTest {
         // given
         String name = "Bobby";
         String ip = "127.3.12.15";
-        Player player = mockPlayerWithNameAndIp(name, ip);
+        Player player = TestPlayerFactory.mockPlayerWithNameAndIp(name, ip);
         given(commonService.getProperty(PluginSettings.SESSIONS_TIMEOUT)).willReturn(8);
         given(dataSource.hasSession(name)).willReturn(true);
         PlayerAuth auth = PlayerAuth.builder()
@@ -192,7 +192,7 @@ class SessionServiceTest {
     void shouldHandleNullPlayerAuth() {
         // given
         String name = "Bobby";
-        Player player = mockPlayerWithNameAndIp(name, "127.3.12.15");
+        Player player = TestPlayerFactory.mockPlayerWithNameAndIp(name, "127.3.12.15");
         given(dataSource.hasSession(name)).willReturn(true);
         given(dataSource.getAuth(name)).willReturn(null);
 
@@ -209,7 +209,7 @@ class SessionServiceTest {
     void shouldHandlePlayerAuthWithNullLastIp() {
         // given
         String name = "Charles";
-        Player player = mockPlayerWithNameAndIp(name, "144.117.118.145");
+        Player player = TestPlayerFactory.mockPlayerWithNameAndIp(name, "144.117.118.145");
         given(dataSource.hasSession(name)).willReturn(true);
         given(commonService.getProperty(PluginSettings.SESSIONS_TIMEOUT)).willReturn(8);
         PlayerAuth auth = PlayerAuth.builder()
@@ -253,7 +253,7 @@ class SessionServiceTest {
         // given
         String name = "Bobby";
         String ip = "127.3.12.15";
-        Player player = mockPlayerWithNameAndIp(name, ip);
+        Player player = TestPlayerFactory.mockPlayerWithNameAndIp(name, ip);
         given(commonService.getProperty(PluginSettings.SESSIONS_TIMEOUT)).willReturn(8);
         given(dataSource.hasSession(name)).willReturn(true);
         PlayerAuth auth = PlayerAuth.builder()
@@ -331,10 +331,4 @@ class SessionServiceTest {
         verify(dataSource, only()).grantSession("bobby");
     }
 
-    private static Player mockPlayerWithNameAndIp(String name, String ip) {
-        Player player = mock(Player.class);
-        given(player.getName()).willReturn(name);
-        TestHelper.mockIpAddressToPlayer(player, ip);
-        return player;
-    }
 }

@@ -28,7 +28,7 @@ public final class MessagePathHelper {
      * @return local path to the messages file of the given language
      */
     public static String createMessageFilePath(String languageCode) {
-        return "messages/messages_" + languageCode + ".yml";
+        return MESSAGES_FOLDER + "messages_" + languageCode + ".yml";
     }
 
     /**
@@ -38,7 +38,7 @@ public final class MessagePathHelper {
      * @return local path to the help messages file of the given language
      */
     public static String createHelpMessageFilePath(String languageCode) {
-        return "messages/help_" + languageCode + ".yml";
+        return MESSAGES_FOLDER + "help_" + languageCode + ".yml";
     }
 
     /**

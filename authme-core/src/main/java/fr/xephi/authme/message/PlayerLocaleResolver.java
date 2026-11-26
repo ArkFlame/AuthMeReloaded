@@ -38,14 +38,12 @@ public final class PlayerLocaleResolver {
      */
     public static String resolveLanguage(Settings settings, CommandSender sender,
                                          BukkitCompatibilityAdapter compatibilityAdapter) {
-        if (settings != null && sender instanceof Player
-                && settings.getProperty(PluginSettings.PER_PLAYER_LOCALE) && compatibilityAdapter != null) {
-            Optional<String> locale = compatibilityAdapter.getPlayerLocale((Player) sender);
-            if (locale.isPresent()) {
-                return toLanguageCode(locale.get());
-            }
+        if (settings == null || compatibilityAdapter == null || !(sender instanceof Player)
+                || !settings.getProperty(PluginSettings.PER_PLAYER_LOCALE)) {
+            return null;
         }
-        return null;
+        Optional<String> locale = compatibilityAdapter.getPlayerLocale((Player) sender);
+        return locale.isPresent() ? toLanguageCode(locale.get()) : null;
     }
 
     /**

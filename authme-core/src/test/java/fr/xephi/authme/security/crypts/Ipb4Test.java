@@ -23,27 +23,21 @@ class Ipb4Test extends AbstractEncryptionMethodTest {
 
     @Test
     void shouldCreateHashesWith2aAndCostFactor13() {
-        // given
         Ipb4 hashMethod = new Ipb4();
 
-        // when
         HashedPassword result = hashMethod.computeHash("test", "name");
 
-        // then
         assertThat(result.getHash(), startsWith("$2a$13$"));
         assertThat(result.getSalt(), stringWithLength(22));
     }
 
     @Test
     void shouldThrowForInvalidSalt() {
-        // given
         Ipb4 hashMethod = new Ipb4();
 
-        // when
         try {
             hashMethod.computeHash("pass", "invalid salt", "name");
 
-            // then
             fail("Expected exception to be thrown");
         } catch (IllegalStateException e) {
             assertThat(e.getMessage(), containsString("Cannot parse hash with salt"));

@@ -9,6 +9,9 @@ import net.ricecode.similarity.StringSimilarityServiceImpl;
  */
 public final class StringUtils {
 
+    private static final StringSimilarityService SIMILARITY_SERVICE =
+        new StringSimilarityServiceImpl(new LevenshteinDistanceStrategy());
+
     // Utility class
     private StringUtils() {
     }
@@ -26,11 +29,8 @@ public final class StringUtils {
             return 1.0;
         }
 
-        // Create a string similarity service instance, to allow comparison
-        StringSimilarityService service = new StringSimilarityServiceImpl(new LevenshteinDistanceStrategy());
-
         // Determine the difference value, return the result
-        return Math.abs(service.score(first, second) - 1.0);
+        return Math.abs(SIMILARITY_SERVICE.score(first, second) - 1.0);
     }
 
     /**

@@ -21,40 +21,31 @@ class PlayerUtilsLoopbackIpTest {
 
     @Test
     void shouldDetectIpv4LoopbackAddress() {
-        // given
         Player player = mock(Player.class);
         TestHelper.mockIpAddressToPlayer(player, "127.0.0.1");
 
-        // when
         boolean result = PlayerUtils.isPlayerIpLoopback(player);
 
-        // then
         assertThat(result, equalTo(true));
     }
 
     @Test
     void shouldDetectIpv6LoopbackAddress() {
-        // given
         Player player = mock(Player.class);
         TestHelper.mockIpAddressToPlayer(player, "::1");
 
-        // when
         boolean result = PlayerUtils.isPlayerIpLoopback(player);
 
-        // then
         assertThat(result, equalTo(true));
     }
 
     @Test
     void shouldNotDetectNormalAddressAsLoopback() {
-        // given
         Player player = mock(Player.class);
         TestHelper.mockIpAddressToPlayer(player, "124.86.248.62");
 
-        // when
         boolean result = PlayerUtils.isPlayerIpLoopback(player);
 
-        // then
         assertThat(result, equalTo(false));
     }
 }

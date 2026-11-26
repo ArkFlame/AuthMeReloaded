@@ -54,7 +54,8 @@ public class PurgeService {
         int daysBeforePurge = settings.getProperty(PurgeSettings.DAYS_BEFORE_REMOVE_PLAYER);
         if (!settings.getProperty(PurgeSettings.USE_AUTO_PURGE)) {
             return;
-        } else if (daysBeforePurge <= 0) {
+        }
+        if (daysBeforePurge <= 0) {
             logger.warning("Did not run auto purge: configured days before purging must be positive");
             return;
         }

@@ -24,7 +24,7 @@ public class GetEmailCommand implements ExecutableCommand {
 
     @Override
     public void executeCommand(CommandSender sender, List<String> arguments) {
-        String playerName = arguments.isEmpty() ? sender.getName() : arguments.get(0);
+        String playerName = CommandArguments.getTargetPlayerName(sender, arguments);
 
         DataSourceValue<String> email = dataSource.getEmail(playerName);
         if (!email.rowExists()) {

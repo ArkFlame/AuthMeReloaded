@@ -17,7 +17,7 @@ public final class Utils {
     /** Number of milliseconds in a minute. */
     public static final long MILLIS_PER_MINUTE = 60_000L;
 
-    private static ConsoleLogger logger = ConsoleLoggerFactory.get(Utils.class);
+    private static final ConsoleLogger logger = ConsoleLoggerFactory.get(Utils.class);
 
     // Utility class
     private Utils() {
@@ -65,10 +65,7 @@ public final class Utils {
      */
     public static void logAndSendMessage(CommandSender sender, String message) {
         logger.info(message);
-        // Make sure sender is not console user, which will see the message from ConsoleLogger already
-        if (sender != null && !(sender instanceof ConsoleCommandSender)) {
-            sender.sendMessage(message);
-        }
+        sendToNonConsole(sender, message);
     }
 
     /**
@@ -81,9 +78,19 @@ public final class Utils {
      */
     public static void logAndSendWarning(CommandSender sender, String message) {
         logger.warning(message);
-        // Make sure sender is not console user, which will see the message from ConsoleLogger already
+        sendToNonConsole(sender, ChatColor.RED + message);
+    }
+
+    /**
+     * Sends the message to the sender unless it is the console, which already
+     * sees everything written by {@link #logger}.
+     *
+     * @param sender the sender to inform, may be null
+     * @param message the message to send
+     */
+    private static void sendToNonConsole(CommandSender sender, String message) {
         if (sender != null && !(sender instanceof ConsoleCommandSender)) {
-            sender.sendMessage(ChatColor.RED + message);
+            sender.sendMessage(message);
         }
     }
 

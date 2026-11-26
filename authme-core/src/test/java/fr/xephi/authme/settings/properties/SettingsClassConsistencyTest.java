@@ -15,6 +15,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -46,13 +47,10 @@ class SettingsClassConsistencyTest {
     @Test
     void shouldHavePublicStaticFinalFields() {
         for (Class<?> clazz : classes) {
-            Field[] fields = clazz.getDeclaredFields();
-            for (Field field : fields) {
-                if (Property.class.isAssignableFrom(field.getType())) {
-                    String fieldName = "Field " + clazz.getSimpleName() + "#" + field.getName();
-                    assertThat(fieldName + " should be public, static, and final",
-                        isValidConstantField(field), equalTo(true));
-                }
+            for (Field field : getPropertyFields(clazz)) {
+                String fieldName = "Field " + clazz.getSimpleName() + "#" + field.getName();
+                assertThat(fieldName + " should be public, static, and final",
+                    isValidConstantField(field), equalTo(true));
             }
         }
     }
@@ -64,14 +62,11 @@ class SettingsClassConsistencyTest {
     void shouldHaveUniquePaths() {
         Set<String> paths = new HashSet<>();
         for (Class<?> clazz : classes) {
-            Field[] fields = clazz.getDeclaredFields();
-            for (Field field : fields) {
-                if (Property.class.isAssignableFrom(field.getType())) {
-                    Property<?> property =
-                        ReflectionTestUtils.getFieldValue(clazz, null, field.getName());
-                    if (!paths.add(property.getPath())) {
-                        fail("Path '" + property.getPath() + "' should be used by only one constant");
-                    }
+            for (Field field : getPropertyFields(clazz)) {
+                Property<?> property =
+                    ReflectionTestUtils.getFieldValue(clazz, null, field.getName());
+                if (!paths.add(property.getPath())) {
+                    fail("Path '" + property.getPath() + "' should be used by only one constant");
                 }
             }
         }
@@ -85,9 +80,7 @@ class SettingsClassConsistencyTest {
     void shouldHaveAllClassesInConfigurationData() {
         // given
         long totalProperties = classes.stream()
-            .map(Class::getDeclaredFields)
-            .flatMap(Arrays::stream)
-            .filter(field -> Property.class.isAssignableFrom(field.getType()))
+            .flatMap(clazz -> getPropertyFields(clazz).stream())
             .count();
 
         // when
@@ -96,6 +89,12 @@ class SettingsClassConsistencyTest {
         // then
         assertThat("ConfigurationData should have " + totalProperties + " properties (as found manually)",
             configData.getProperties(), hasSize((int) totalProperties));
+    }
+
+    private static List<Field> getPropertyFields(Class<?> clazz) {
+        return Arrays.stream(clazz.getDeclaredFields())
+            .filter(field -> Property.class.isAssignableFrom(field.getType()))
+            .collect(Collectors.toList());
     }
 
     private static boolean isValidConstantField(Field field) {

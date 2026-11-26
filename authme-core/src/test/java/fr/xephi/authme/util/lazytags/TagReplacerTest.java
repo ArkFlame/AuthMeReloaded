@@ -17,16 +17,13 @@ class TagReplacerTest {
 
     @Test
     void shouldReplaceTags() {
-        // given
         TestTagService tagService = new TestTagService();
         List<Tag<Integer>> tags = tagService.getAvailableTags();
         List<String> messages = Arrays.asList("pi = %PI", "for i = %self, i^2 = %square", "%self %self %PI");
 
-        // when
         TagReplacer<Integer> tagReplacer = TagReplacer.newReplacer(tags, messages);
         List<String> result = tagReplacer.getAdaptedMessages(3);
 
-        // then
         assertThat(tagService.piCount, equalTo(1));
         assertThat(tagService.selfCount, equalTo(1));
         assertThat(tagService.doubleCount, equalTo(0));
@@ -36,17 +33,14 @@ class TagReplacerTest {
 
     @Test
     void shouldNotCallUnusedTags() {
-        // given
         TestTagService tagService = new TestTagService();
         List<Tag<Integer>> tags = tagService.getAvailableTags();
         List<String> messages = Arrays.asList("pi = %PI", "double i = %double");
 
-        // when
         TagReplacer<Integer> tagReplacer = TagReplacer.newReplacer(tags, messages);
         List<String> result1 = tagReplacer.getAdaptedMessages(-4);
         List<String> result2 = tagReplacer.getAdaptedMessages(0);
 
-        // then
         assertThat(tagService.piCount, equalTo(2));
         assertThat(tagService.selfCount, equalTo(0));
         assertThat(tagService.doubleCount, equalTo(2));

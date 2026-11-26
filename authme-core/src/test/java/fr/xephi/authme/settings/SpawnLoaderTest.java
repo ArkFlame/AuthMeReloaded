@@ -78,6 +78,11 @@ class SpawnLoaderTest {
         spawnLoader = new SpawnLoader(testFolder, settings, pluginHookService, teleportAdapter, compatibilityAdapter);
     }
 
+    private void reloadWithPriority(String priority) {
+        given(settings.getProperty(RestrictionSettings.SPAWN_PRIORITY)).willReturn(priority);
+        spawnLoader.reload();
+    }
+
     @Test
     void shouldSetSpawn() {
         // given
@@ -116,8 +121,7 @@ class SpawnLoaderTest {
     @Test
     void shouldFallbackToConfiguredSpawnIfDeadPlayerHasNoRespawnLocation() {
         // given
-        given(settings.getProperty(RestrictionSettings.SPAWN_PRIORITY)).willReturn("default");
-        spawnLoader.reload();
+        reloadWithPriority("default");
 
         Player player = mock(Player.class);
         given(player.getHealth()).willReturn(0.0);
@@ -137,8 +141,7 @@ class SpawnLoaderTest {
     @Test
     void shouldFallbackToConfiguredSpawnIfRespawnLocationCannotBeRead() {
         // given
-        given(settings.getProperty(RestrictionSettings.SPAWN_PRIORITY)).willReturn("default");
-        spawnLoader.reload();
+        reloadWithPriority("default");
 
         Player player = mock(Player.class);
         given(player.getHealth()).willReturn(0.0);
@@ -158,8 +161,7 @@ class SpawnLoaderTest {
     @Test
     void shouldReturnExactWorldSpawnForServerPriorityWithZeroRadius() {
         // given
-        given(settings.getProperty(RestrictionSettings.SPAWN_PRIORITY)).willReturn("server");
-        spawnLoader.reload();
+        reloadWithPriority("server");
 
         World world = mock(World.class);
         Location worldSpawn = new Location(world, 10.0, 64.0, -5.0);
@@ -176,8 +178,7 @@ class SpawnLoaderTest {
     @Test
     void shouldReturnExactYAndFaceTowardCenterWhenBaseYIsAlreadySafe() {
         // given
-        given(settings.getProperty(RestrictionSettings.SPAWN_PRIORITY)).willReturn("server");
-        spawnLoader.reload();
+        reloadWithPriority("server");
 
         World world = mock(World.class);
         // worldSpawn at (100, 64, 200); place the result due east (+X) so the expected yaw is -90°
@@ -208,8 +209,7 @@ class SpawnLoaderTest {
     @Test
     void shouldSearchDownwardWhenBaseYIsInAVoid() {
         // given – foot at baseY is passable but head (baseY+1) is solid (1-block-high gap, e.g. near Nether ceiling)
-        given(settings.getProperty(RestrictionSettings.SPAWN_PRIORITY)).willReturn("server");
-        spawnLoader.reload();
+        reloadWithPriority("server");
 
         World world = mock(World.class);
         Location worldSpawn = new Location(world, 0.0, 70.0, 0.0);
@@ -240,8 +240,7 @@ class SpawnLoaderTest {
     @Test
     void shouldSearchUpwardWhenBaseYIsInsideASolidBlock() {
         // given – baseY is inside a solid block (e.g. underground)
-        given(settings.getProperty(RestrictionSettings.SPAWN_PRIORITY)).willReturn("server");
-        spawnLoader.reload();
+        reloadWithPriority("server");
 
         World world = mock(World.class);
         Location worldSpawn = new Location(world, 0.0, 60.0, 0.0);
@@ -276,8 +275,7 @@ class SpawnLoaderTest {
     @Test
     void shouldFallbackToExactWorldSpawnWhenNoSafeSpotFoundWithinMargin() {
         // given
-        given(settings.getProperty(RestrictionSettings.SPAWN_PRIORITY)).willReturn("server");
-        spawnLoader.reload();
+        reloadWithPriority("server");
 
         World world = mock(World.class);
         Location worldSpawn = new Location(world, 12.0, 64.0, -34.0);
@@ -299,8 +297,7 @@ class SpawnLoaderTest {
     @Test
     void shouldIgnoreNullCandidateWorldSpawnLocations() {
         // given
-        given(settings.getProperty(RestrictionSettings.SPAWN_PRIORITY)).willReturn("default");
-        spawnLoader.reload();
+        reloadWithPriority("default");
 
         World world = mock(World.class);
         Location worldSpawn = new Location(world, 0.0, 0.0, 0.0);

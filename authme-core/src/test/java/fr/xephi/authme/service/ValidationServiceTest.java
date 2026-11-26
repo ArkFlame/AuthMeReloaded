@@ -17,6 +17,8 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -112,9 +114,7 @@ class ValidationServiceTest {
     @Test
     void shouldRejectUnsafePassword() {
         // given
-        given(settings.getProperty(SecuritySettings.MIN_PASSWORD_LENGTH)).willReturn(3);
-        given(settings.getProperty(SecuritySettings.MAX_PASSWORD_LENGTH)).willReturn(20);
-        given(settings.getProperty(SecuritySettings.UNSAFE_PASSWORDS)).willReturn(newHashSet("unsafe", "other-unsafe"));
+        givenPasswordSettings();
 
         // when
         ValidationResult error = validationService.validatePassword("unsafe", "playertest");
@@ -126,9 +126,7 @@ class ValidationServiceTest {
     @Test
     void shouldAcceptValidPassword() {
         // given
-        given(settings.getProperty(SecuritySettings.MIN_PASSWORD_LENGTH)).willReturn(3);
-        given(settings.getProperty(SecuritySettings.MAX_PASSWORD_LENGTH)).willReturn(20);
-        given(settings.getProperty(SecuritySettings.UNSAFE_PASSWORDS)).willReturn(newHashSet("unsafe", "other-unsafe"));
+        givenPasswordSettings();
 
         // when
         ValidationResult error = validationService.validatePassword("safePass", "some_user");
@@ -232,22 +230,11 @@ class ValidationServiceTest {
         assertThat(validationService.validateEmail("some.user+tag@example.co.uk"), equalTo(true));
     }
 
-    @Test
-    void shouldRejectInvalidEmail() {
+    @ParameterizedTest(name = "reject invalid email: {0}")
+    @ValueSource(strings = {"invalidinput", "invalidinput@", "your@email.com"})
+    void shouldRejectInvalidEmail(String email) {
         // given / when / then
-        assertThat(validationService.validateEmail("invalidinput"), equalTo(false));
-    }
-
-    @Test
-    void shouldRejectInvalidEmailWithoutDomain() {
-        // given / when / then
-        assertThat(validationService.validateEmail("invalidinput@"), equalTo(false));
-    }
-
-    @Test
-    void shouldRejectDefaultEmail() {
-        // given / when / then
-        assertThat(validationService.validateEmail("your@email.com"), equalTo(false));
+        assertThat(validationService.validateEmail(email), equalTo(false));
     }
 
     @Test
@@ -450,6 +437,12 @@ class ValidationServiceTest {
         ArgumentCaptor<String> stringCaptor = ArgumentCaptor.forClass(String.class);
         verify(logger).warning(stringCaptor.capture());
         assertThat(stringCaptor.getValue(), containsString("Tamara;"));
+    }
+
+    private void givenPasswordSettings() {
+        given(settings.getProperty(SecuritySettings.MIN_PASSWORD_LENGTH)).willReturn(3);
+        given(settings.getProperty(SecuritySettings.MAX_PASSWORD_LENGTH)).willReturn(20);
+        given(settings.getProperty(SecuritySettings.UNSAFE_PASSWORDS)).willReturn(newHashSet("unsafe", "other-unsafe"));
     }
 
     private static Player mockPlayer(String name, String ip) {

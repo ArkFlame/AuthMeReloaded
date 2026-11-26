@@ -63,9 +63,9 @@ import org.bukkit.inventory.InventoryView;
 
 import javax.inject.Inject;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.Locale;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static fr.xephi.authme.settings.properties.RestrictionSettings.ALLOWED_MOVEMENT_RADIUS;
@@ -283,7 +283,7 @@ public class PlayerListener implements Listener {
         }
 
         if (player.isInsideVehicle()) {
-            org.bukkit.entity.Entity vehicle = player.getVehicle();
+            Entity vehicle = player.getVehicle();
             if (vehicle != null) {
                 limboService.saveVehicleForPlayer(player, vehicle.getUniqueId(), vehicle.getType());
             }
@@ -343,11 +343,19 @@ public class PlayerListener implements Listener {
      */
 
     private void removeUnauthorizedRecipients(AsyncPlayerChatEvent event) {
-        if (settings.getProperty(RestrictionSettings.HIDE_CHAT)) {
-            event.getRecipients().removeIf(listenerService::shouldCancelEvent);
-            if (event.getRecipients().isEmpty()) {
-                event.setCancelled(true);
+        if (!settings.getProperty(RestrictionSettings.HIDE_CHAT)) {
+            return;
+        }
+        // Iterate directly instead of removeIf(listenerService::shouldCancelEvent), which would
+        // allocate a new capturing predicate for every chat event.
+        Set<Player> recipients = event.getRecipients();
+        for (Iterator<Player> it = recipients.iterator(); it.hasNext(); ) {
+            if (listenerService.shouldCancelEvent(it.next())) {
+                it.remove();
             }
+        }
+        if (recipients.isEmpty()) {
+            event.setCancelled(true);
         }
     }
 
@@ -358,14 +366,13 @@ public class PlayerListener implements Listener {
         }
 
         final Player player = event.getPlayer();
-        final boolean mayPlayerSendChat = !listenerService.shouldCancelEvent(player)
-            || permissionsManager.hasPermission(player, PlayerStatePermission.ALLOW_CHAT_BEFORE_LOGIN);
-        if (mayPlayerSendChat) {
+        if (!listenerService.shouldCancelEvent(player)
+            || permissionsManager.hasPermission(player, PlayerStatePermission.ALLOW_CHAT_BEFORE_LOGIN)) {
             removeUnauthorizedRecipients(event);
-        } else {
-            event.setCancelled(true);
-            messages.send(player, MessageKey.DENIED_CHAT);
+            return;
         }
+        event.setCancelled(true);
+        messages.send(player, MessageKey.DENIED_CHAT);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
@@ -429,7 +436,7 @@ public class PlayerListener implements Listener {
 
         if (!allowUnauthedMovement) {
             // "cancel" the event
-            event.setTo(event.getFrom());
+            event.setTo(from);
             return;
         }
 
@@ -624,23 +631,24 @@ public class PlayerListener implements Listener {
 
     /*
      * Shared bodies for the simple "cancel if the player is not authenticated" handlers.
-     * The overloads preserve the ListenerService overload used by each event kind.
+     * The overloads preserve the ListenerService overload used by each event kind; the
+     * cancellation itself is handled in one place.
      */
 
-    private void cancelIfUnauthorized(PlayerEvent event) {
-        if (listenerService.shouldCancelEvent(event)) {
-            ((Cancellable) event).setCancelled(true);
-        }
+    private <E extends PlayerEvent & Cancellable> void cancelIfUnauthorized(E event) {
+        cancelEvent(listenerService.shouldCancelEvent(event), event);
     }
 
-    private void cancelIfUnauthorized(EntityEvent event) {
-        if (listenerService.shouldCancelEvent(event)) {
-            ((Cancellable) event).setCancelled(true);
-        }
+    private <E extends EntityEvent & Cancellable> void cancelIfUnauthorized(E event) {
+        cancelEvent(listenerService.shouldCancelEvent(event), event);
     }
 
     private void cancelIfUnauthorized(Player player, Cancellable event) {
-        if (listenerService.shouldCancelEvent(player)) {
+        cancelEvent(listenerService.shouldCancelEvent(player), event);
+    }
+
+    private static void cancelEvent(boolean shouldCancel, Cancellable event) {
+        if (shouldCancel) {
             event.setCancelled(true);
         }
     }

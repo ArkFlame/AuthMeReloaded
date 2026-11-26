@@ -56,10 +56,7 @@ public class ConverterCommand implements ExecutableCommand {
             return;
         }
 
-        // Get the proper converter instance
         final Converter converter = converterFactory.newInstance(converterClass);
-
-        // Run the convert job
         bukkitService.runTaskAsynchronously(() -> {
             try {
                 converter.execute(sender);
@@ -69,7 +66,6 @@ public class ConverterCommand implements ExecutableCommand {
             }
         });
 
-        // Show a status message
         sender.sendMessage("[AuthMe] Successfully started " + arguments.get(0));
     }
 

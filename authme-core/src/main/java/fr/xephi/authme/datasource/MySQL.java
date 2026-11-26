@@ -23,7 +23,7 @@ import java.util.Locale;
  * MySQL data source.
  */
 @SuppressWarnings({"checkstyle:AbbreviationAsWordInName"}) // Justification: Class name cannot be changed anymore
-public class MySQL extends AbstractHikariSqlDataSource implements SqlConnectionSource {
+public class MySQL extends AbstractHikariSqlDataSource {
     private final ConsoleLogger logger = ConsoleLoggerFactory.get(MySQL.class);
 
     private boolean useSsl;
@@ -202,34 +202,29 @@ public class MySQL extends AbstractHikariSqlDataSource implements SqlConnectionS
 
             DatabaseMetaData md = con.getMetaData();
             if (isColumnMissing(md, col.NAME)) {
-                st.executeUpdate("ALTER TABLE " + tableName
-                    + " ADD COLUMN " + col.NAME + " VARCHAR(255) NOT NULL UNIQUE AFTER " + col.ID + ";");
+                addColumn(st, col.NAME, "VARCHAR(255) NOT NULL UNIQUE AFTER " + col.ID + ";");
             }
 
             if (isColumnMissing(md, col.REAL_NAME)) {
-                st.executeUpdate("ALTER TABLE " + tableName
-                    + " ADD COLUMN " + col.REAL_NAME + " VARCHAR(255) NOT NULL AFTER " + col.NAME + ";");
+                addColumn(st, col.REAL_NAME, "VARCHAR(255) NOT NULL AFTER " + col.NAME + ";");
             }
 
             if (isColumnMissing(md, col.PASSWORD)) {
-                st.executeUpdate("ALTER TABLE " + tableName
-                    + " ADD COLUMN " + col.PASSWORD + " VARCHAR(255) CHARACTER SET ascii COLLATE ascii_bin NOT NULL;");
+                addColumn(st, col.PASSWORD, "VARCHAR(255) CHARACTER SET ascii COLLATE ascii_bin NOT NULL;");
             }
 
             if (!col.SALT.isEmpty() && isColumnMissing(md, col.SALT)) {
-                st.executeUpdate("ALTER TABLE " + tableName + " ADD COLUMN " + col.SALT + " VARCHAR(255);");
+                addColumn(st, col.SALT, "VARCHAR(255);");
             }
 
             if (isColumnMissing(md, col.LAST_IP)) {
-                st.executeUpdate("ALTER TABLE " + tableName
-                    + " ADD COLUMN " + col.LAST_IP + " VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin;");
+                addColumn(st, col.LAST_IP, "VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin;");
             } else {
                 MySqlMigrater.migrateLastIpColumn(st, md, tableName, col);
             }
 
             if (isColumnMissing(md, col.LAST_LOGIN)) {
-                st.executeUpdate("ALTER TABLE " + tableName
-                    + " ADD COLUMN " + col.LAST_LOGIN + " BIGINT;");
+                addColumn(st, col.LAST_LOGIN, "BIGINT;");
             } else {
                 MySqlMigrater.migrateLastLoginColumn(st, md, tableName, col);
             }
@@ -239,71 +234,66 @@ public class MySQL extends AbstractHikariSqlDataSource implements SqlConnectionS
             }
 
             if (isColumnMissing(md, col.REGISTRATION_IP)) {
-                st.executeUpdate("ALTER TABLE " + tableName
-                    + " ADD COLUMN " + col.REGISTRATION_IP + " VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin;");
+                addColumn(st, col.REGISTRATION_IP, "VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin;");
             }
 
             if (isColumnMissing(md, col.LASTLOC_X)) {
-                st.executeUpdate("ALTER TABLE " + tableName + " ADD COLUMN "
-                    + col.LASTLOC_X + " DOUBLE NOT NULL DEFAULT '0.0' AFTER " + col.LAST_LOGIN + " , ADD "
-                    + col.LASTLOC_Y + " DOUBLE NOT NULL DEFAULT '0.0' AFTER " + col.LASTLOC_X + " , ADD "
+                alterTable(st, "ADD COLUMN " + col.LASTLOC_X + " DOUBLE NOT NULL DEFAULT '0.0' AFTER " + col.LAST_LOGIN
+                    + " , ADD " + col.LASTLOC_Y + " DOUBLE NOT NULL DEFAULT '0.0' AFTER " + col.LASTLOC_X + " , ADD "
                     + col.LASTLOC_Z + " DOUBLE NOT NULL DEFAULT '0.0' AFTER " + col.LASTLOC_Y);
             } else {
-                st.executeUpdate("ALTER TABLE " + tableName + " MODIFY "
-                    + col.LASTLOC_X + " DOUBLE NOT NULL DEFAULT '0.0', MODIFY "
+                alterTable(st, "MODIFY " + col.LASTLOC_X + " DOUBLE NOT NULL DEFAULT '0.0', MODIFY "
                     + col.LASTLOC_Y + " DOUBLE NOT NULL DEFAULT '0.0', MODIFY "
                     + col.LASTLOC_Z + " DOUBLE NOT NULL DEFAULT '0.0';");
             }
 
             if (isColumnMissing(md, col.LASTLOC_WORLD)) {
-                st.executeUpdate("ALTER TABLE " + tableName + " ADD COLUMN "
-                    + col.LASTLOC_WORLD + " VARCHAR(255) NOT NULL DEFAULT 'world' AFTER " + col.LASTLOC_Z);
+                addColumn(st, col.LASTLOC_WORLD, "VARCHAR(255) NOT NULL DEFAULT 'world' AFTER " + col.LASTLOC_Z);
             }
 
             if (isColumnMissing(md, col.LASTLOC_YAW)) {
-                st.executeUpdate("ALTER TABLE " + tableName + " ADD COLUMN "
-                    + col.LASTLOC_YAW + " FLOAT;");
+                addColumn(st, col.LASTLOC_YAW, "FLOAT;");
             }
 
             if (isColumnMissing(md, col.LASTLOC_PITCH)) {
-                st.executeUpdate("ALTER TABLE " + tableName + " ADD COLUMN "
-                    + col.LASTLOC_PITCH + " FLOAT;");
+                addColumn(st, col.LASTLOC_PITCH, "FLOAT;");
             }
 
             if (isColumnMissing(md, col.EMAIL)) {
-                st.executeUpdate("ALTER TABLE " + tableName + " ADD COLUMN "
-                    + col.EMAIL + " VARCHAR(255);");
+                addColumn(st, col.EMAIL, "VARCHAR(255);");
             }
 
             if (isColumnMissing(md, col.IS_LOGGED)) {
-                st.executeUpdate("ALTER TABLE " + tableName + " ADD COLUMN "
-                    + col.IS_LOGGED + " SMALLINT NOT NULL DEFAULT '0' AFTER " + col.EMAIL);
+                addColumn(st, col.IS_LOGGED, "SMALLINT NOT NULL DEFAULT '0' AFTER " + col.EMAIL);
             }
 
             if (isColumnMissing(md, col.HAS_SESSION)) {
-                st.executeUpdate("ALTER TABLE " + tableName + " ADD COLUMN "
-                    + col.HAS_SESSION + " SMALLINT NOT NULL DEFAULT '0' AFTER " + col.IS_LOGGED);
+                addColumn(st, col.HAS_SESSION, "SMALLINT NOT NULL DEFAULT '0' AFTER " + col.IS_LOGGED);
             }
 
             if (isColumnMissing(md, col.TOTP_KEY)) {
-                st.executeUpdate("ALTER TABLE " + tableName
-                    + " ADD COLUMN " + col.TOTP_KEY + " VARCHAR(32);");
+                addColumn(st, col.TOTP_KEY, "VARCHAR(32);");
             } else if (SqlDataSourceUtils.getColumnSize(md, tableName, col.TOTP_KEY) != 32) {
-                st.executeUpdate("ALTER TABLE " + tableName
-                    + " MODIFY " + col.TOTP_KEY + " VARCHAR(32);");
+                alterTable(st, "MODIFY " + col.TOTP_KEY + " VARCHAR(32);");
             }
 
             if (!col.PLAYER_UUID.isEmpty() && isColumnMissing(md, col.PLAYER_UUID)) {
-                st.executeUpdate("ALTER TABLE " + tableName
-                    + " ADD COLUMN " + col.PLAYER_UUID + " VARCHAR(36)");
+                addColumn(st, col.PLAYER_UUID, "VARCHAR(36)");
             }
 
             if (!col.PREMIUM_UUID.isEmpty() && isColumnMissing(md, col.PREMIUM_UUID)) {
-                st.executeUpdate("ALTER TABLE " + tableName
-                    + " ADD COLUMN " + col.PREMIUM_UUID + " VARCHAR(36)");
+                addColumn(st, col.PREMIUM_UUID, "VARCHAR(36)");
             }
         }
         logger.info("MySQL setup finished");
+    }
+
+    private void addColumn(Statement st, String column, String definition) throws SQLException {
+        alterTable(st, "ADD COLUMN " + column + " " + definition);
+    }
+
+    private void alterTable(Statement st, String alteration) throws SQLException {
+        st.executeUpdate("ALTER TABLE " + tableName + " " + alteration);
     }
 
     private boolean isColumnMissing(DatabaseMetaData metaData, String columnName) throws SQLException {

@@ -9,21 +9,11 @@ import fr.xephi.authme.util.UuidUtils;
 import org.bukkit.command.CommandSender;
 
 import javax.inject.Inject;
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.Base64;
 import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static fr.xephi.authme.util.Utils.logAndSendMessage;
 
@@ -72,11 +62,11 @@ public class LibreLoginConverter implements Converter {
             return;
         }
 
-        String dbType = readHoconValue(configFile, "type", "librelogin-sqlite");
+        String dbType = ConverterUtils.readHoconValue(configFile, "type", "librelogin-sqlite");
 
         switch (dbType) {
             case "librelogin-sqlite": {
-                String sqliteFilename = readHoconValue(configFile, "path", DEFAULT_SQLITE_FILENAME);
+                String sqliteFilename = ConverterUtils.readHoconValue(configFile, "path", DEFAULT_SQLITE_FILENAME);
                 new SqliteImport(dataSource, new File("plugins/LibreLogin/" + sqliteFilename)).execute(sender);
                 break;
             }
@@ -105,11 +95,11 @@ public class LibreLoginConverter implements Converter {
                 continue;
             }
 
-            HashedPassword password = buildHashedPassword(
+            HashedPassword password = ConverterUtils.buildHashedPassword(
                 rs.getString("hashed_password"),
                 rs.getString("salt"),
                 rs.getString("algo"),
-                name);
+                name, "Argon2-ID", "LibreLogin", logger);
             if (password == null) {
                 continue;
             }
@@ -138,103 +128,6 @@ public class LibreLoginConverter implements Converter {
             + skipped + " skipped (already exist)");
     }
 
-    private static HashedPassword buildHashedPassword(String hash, String salt, String algo, String name) {
-        if (hash == null || algo == null) {
-            return null;
-        }
-        switch (algo) {
-            case "BCrypt-2A": {
-                // LibreLogin splits the BCrypt string: hashed_password = "<cost>$<hashRemainder>",
-                // salt = 22-char BCrypt base64 salt. Reconstruct: $2a$<cost>$<salt><hashRemainder>
-                if (salt == null) {
-                    logger.warning("Null salt for BCrypt-2A account '" + name + "', skipping");
-                    return null;
-                }
-                int sep = hash.indexOf('$');
-                if (sep < 0) {
-                    logger.warning("Malformed BCrypt-2A hash for player '" + name + "', skipping");
-                    return null;
-                }
-                return new HashedPassword("$2a$" + hash.substring(0, sep) + "$" + salt + hash.substring(sep + 1));
-            }
-
-            case "Argon2-ID": {
-                String phc = decodeArgon2(hash);
-                if (phc == null) {
-                    logger.warning("Could not decode Argon2-ID hash for player '" + name + "', skipping");
-                    return null;
-                }
-                return new HashedPassword(phc);
-            }
-
-            case "SHA-256":
-                // LibreLogin SHA-256: sha256(sha256(pw) + salt) — same as AuthMe SHA256: $SHA$<salt>$<hash>
-                if (salt == null) {
-                    logger.warning("Null salt for SHA-256 account '" + name + "', skipping");
-                    return null;
-                }
-                return new HashedPassword("$SHA$" + salt + "$" + hash);
-
-            case "SHA-512":
-                // LibreLogin SHA-512: sha512(sha512(pw) + salt) — maps to AuthMe DOUBLE_SHA512
-                if (salt == null) {
-                    logger.warning("Null salt for SHA-512 account '" + name + "', skipping");
-                    return null;
-                }
-                return new HashedPassword(hash, salt);
-
-            case "LOGIT-SHA-256":
-                // LibreLogin LOGIT-SHA-256: sha256(pw + salt) — maps to AuthMe SALTEDSHA256
-                if (salt == null) {
-                    logger.warning("Null salt for LOGIT-SHA-256 account '" + name + "', skipping");
-                    return null;
-                }
-                return new HashedPassword(hash, salt);
-
-            default:
-                logger.warning("Unknown LibreLogin algorithm '" + algo + "' for player '" + name + "', skipping");
-                return null;
-        }
-    }
-
-    private static String decodeArgon2(String value) {
-        if (value.startsWith("$argon2")) {
-            return value;
-        }
-        try {
-            String decoded = new String(Base64.getDecoder().decode(value), StandardCharsets.UTF_8);
-            if (decoded.startsWith("$argon2")) {
-                return decoded;
-            }
-        } catch (IllegalArgumentException ignored) {
-            // fall through
-        }
-        return null;
-    }
-
-    /**
-     * Reads a scalar value from a HOCON config file by scanning for the first line matching
-     * {@code <key> = <value>} or {@code <key>: <value>} (with optional surrounding whitespace
-     * and quotes). Sufficient for LibreLogin's flat scalar keys; not a full HOCON parser.
-     */
-    private static String readHoconValue(File file, String key, String defaultValue) {
-        Pattern pattern = Pattern.compile(
-            "^\\s*" + Pattern.quote(key) + "\\s*[=:]\\s*\"?([^\",\\s}#]+)\"?");
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                Matcher m = pattern.matcher(line);
-                if (m.find()) {
-                    return m.group(1);
-                }
-            }
-        } catch (IOException e) {
-            // fall through to default
-        }
-        return defaultValue;
-    }
-
     private static final class SqliteImport extends AbstractSqlitePluginConverter {
 
         private final File dbFile;
@@ -252,14 +145,8 @@ public class LibreLoginConverter implements Converter {
                 return;
             }
 
-            try (Connection conn = openConnection(dbFile);
-                 PreparedStatement ps = conn.prepareStatement(QUERY);
-                 ResultSet rs = ps.executeQuery()) {
-                importRows(rs, getDataSource(), sender);
-            } catch (SQLException e) {
-                logAndSendMessage(sender, "LibreLogin conversion failed: " + e.getMessage());
-                logger.logException("LibreLogin conversion error:", e);
-            }
+            queryAndImport(dbFile, sender, QUERY, "LibreLogin", logger,
+                rs -> importRows(rs, getDataSource(), sender));
         }
     }
 
@@ -271,14 +158,8 @@ public class LibreLoginConverter implements Converter {
 
         @Override
         public void execute(CommandSender sender) {
-            try (Connection conn = openConnection();
-                 PreparedStatement ps = conn.prepareStatement(QUERY);
-                 ResultSet rs = ps.executeQuery()) {
-                importRows(rs, getDataSource(), sender);
-            } catch (SQLException e) {
-                logAndSendMessage(sender, "LibreLogin conversion failed: " + e.getMessage());
-                logger.logException("LibreLogin conversion error:", e);
-            }
+            queryAndImport(sender, QUERY, "LibreLogin", logger,
+                rs -> importRows(rs, getDataSource(), sender));
         }
     }
 }

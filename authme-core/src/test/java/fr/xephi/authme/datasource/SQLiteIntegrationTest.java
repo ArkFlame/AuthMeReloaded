@@ -80,16 +80,13 @@ class SQLiteIntegrationTest extends AbstractDataSourceIntegrationTest {
 
     @Test
     void shouldSetUpTableIfMissing() throws SQLException {
-        // given
         Statement st = con.createStatement();
         // table is absent
         st.execute("DROP TABLE authme");
         SQLite sqLite = new SQLite(settings, null, con);
 
-        // when
         sqLite.setup();
 
-        // then
         // Save some player to verify database is operational
         sqLite.saveAuth(PlayerAuth.builder().name("Name").build());
         assertThat(sqLite.getAllAuths(), hasSize(1));
@@ -97,7 +94,6 @@ class SQLiteIntegrationTest extends AbstractDataSourceIntegrationTest {
 
     @Test
     void shouldCreateMissingColumns() throws SQLException {
-        // given
         Statement st = con.createStatement();
         // drop table and create one with only some of the columns: SQLite doesn't support ALTER TABLE t DROP COLUMN c
         st.execute("DROP TABLE authme");
@@ -108,10 +104,8 @@ class SQLiteIntegrationTest extends AbstractDataSourceIntegrationTest {
             + "primary key (id));");
         SQLite sqLite = new SQLite(settings, null, con);
 
-        // when
         sqLite.setup();
 
-        // then
         // Save some player to verify database is operational
         sqLite.saveAuth(PlayerAuth.builder().name("Name").build());
         assertThat(sqLite.getAllAuths(), hasSize(1));
@@ -119,10 +113,8 @@ class SQLiteIntegrationTest extends AbstractDataSourceIntegrationTest {
 
     @Test
     void shouldReadPlayerUuidFromGetAllAuths() {
-        // given
         SQLite sqLite = new SQLite(settings, null, con);
 
-        // when
         List<PlayerAuth> auths = sqLite.getAllAuths();
 
         // then - bobby has playerUUID set in test data, user does not

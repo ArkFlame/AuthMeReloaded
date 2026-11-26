@@ -78,11 +78,7 @@ class AsynchronousUnregisterTest {
         // given
         Player player = mock(Player.class);
         String name = "Bobby";
-        given(player.getName()).willReturn(name);
-        PlayerAuth auth = mock(PlayerAuth.class);
-        given(playerCache.getAuth(name)).willReturn(auth);
-        HashedPassword password = new HashedPassword("password", "in_auth_obj");
-        given(auth.getPassword()).willReturn(password);
+        HashedPassword password = givenRegisteredPlayer(player, name);
         String userPassword = "pass";
         given(passwordSecurity.comparePassword(userPassword, password, name)).willReturn(false);
 
@@ -115,12 +111,8 @@ class AsynchronousUnregisterTest {
         // given
         Player player = mock(Player.class);
         String name = "Frank21";
-        given(player.getName()).willReturn(name);
+        HashedPassword password = givenRegisteredPlayer(player, name);
         given(player.isOnline()).willReturn(true);
-        PlayerAuth auth = mock(PlayerAuth.class);
-        given(playerCache.getAuth(name)).willReturn(auth);
-        HashedPassword password = new HashedPassword("password", "in_auth_obj");
-        given(auth.getPassword()).willReturn(password);
         String userPassword = "pass";
         given(passwordSecurity.comparePassword(userPassword, password, name)).willReturn(true);
         given(dataSource.removeAuth(name)).willReturn(true);
@@ -148,12 +140,8 @@ class AsynchronousUnregisterTest {
         // given
         Player player = mock(Player.class);
         String name = "Frank21";
-        given(player.getName()).willReturn(name);
+        HashedPassword password = givenRegisteredPlayer(player, name);
         given(player.isOnline()).willReturn(true);
-        PlayerAuth auth = mock(PlayerAuth.class);
-        given(playerCache.getAuth(name)).willReturn(auth);
-        HashedPassword password = new HashedPassword("password", "in_auth_obj");
-        given(auth.getPassword()).willReturn(password);
         String userPassword = "pass";
         given(passwordSecurity.comparePassword(userPassword, password, name)).willReturn(true);
         given(dataSource.removeAuth(name)).willReturn(true);
@@ -209,11 +197,7 @@ class AsynchronousUnregisterTest {
         // given
         Player player = mock(Player.class);
         String name = "Frank21";
-        given(player.getName()).willReturn(name);
-        PlayerAuth auth = mock(PlayerAuth.class);
-        given(playerCache.getAuth(name)).willReturn(auth);
-        HashedPassword password = new HashedPassword("password", "in_auth_obj");
-        given(auth.getPassword()).willReturn(password);
+        HashedPassword password = givenRegisteredPlayer(player, name);
         String userPassword = "pass";
         given(passwordSecurity.comparePassword(userPassword, password, name)).willReturn(true);
         given(dataSource.removeAuth(name)).willReturn(false);
@@ -233,12 +217,8 @@ class AsynchronousUnregisterTest {
         // given
         Player player = mock(Player.class);
         String name = "Frank21";
-        given(player.getName()).willReturn(name);
+        HashedPassword password = givenRegisteredPlayer(player, name);
         given(player.isOnline()).willReturn(false);
-        PlayerAuth auth = mock(PlayerAuth.class);
-        given(playerCache.getAuth(name)).willReturn(auth);
-        HashedPassword password = new HashedPassword("password", "in_auth_obj");
-        given(auth.getPassword()).willReturn(password);
         String userPassword = "pass";
         given(passwordSecurity.comparePassword(userPassword, password, name)).willReturn(true);
         given(dataSource.removeAuth(name)).willReturn(true);
@@ -310,6 +290,15 @@ class AsynchronousUnregisterTest {
         verify(dataSource).removeAuth(name);
         verify(service).send(initiator, MessageKey.ERROR);
         verifyNoInteractions(playerCache, teleportationService, bukkitService, bungeeSender);
+    }
+
+    private HashedPassword givenRegisteredPlayer(Player player, String name) {
+        given(player.getName()).willReturn(name);
+        PlayerAuth auth = mock(PlayerAuth.class);
+        given(playerCache.getAuth(name)).willReturn(auth);
+        HashedPassword password = new HashedPassword("password", "in_auth_obj");
+        given(auth.getPassword()).willReturn(password);
+        return password;
     }
 
     @SuppressWarnings("unchecked")

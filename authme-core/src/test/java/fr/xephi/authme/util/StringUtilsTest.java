@@ -16,35 +16,27 @@ class StringUtilsTest {
 
     @Test
     void shouldFindContainedItem() {
-        // given
         String text = "This is a test of containsAny()";
         String piece = "test";
 
-        // when
         boolean result = StringUtils.containsAny(text, asList("some", "words", "that", "do not", "exist", piece));
 
-        // then
         assertThat(result, equalTo(true));
     }
 
     @Test
     void shouldReturnFalseIfNoneFound() {
-        // given
         String text = "This is a test string";
 
-        // when
         boolean result = StringUtils.containsAny(text, asList("some", "other", "words", null));
 
-        // then
         assertThat(result, equalTo(false));
     }
 
     @Test
     void shouldReturnFalseForNullString() {
-        // given/when
         boolean result = StringUtils.containsAny(null, asList("some", "words", "to", "check"));
 
-        // then
         assertThat(result, equalTo(false));
     }
 
@@ -62,7 +54,6 @@ class StringUtilsTest {
 
     @Test
     void shouldGetDifferenceWithNullString() {
-        // given/when/then
         assertThat(StringUtils.getDifference(null, "test"), equalTo(1.0));
         assertThat(StringUtils.getDifference("test", null), equalTo(1.0));
         assertThat(StringUtils.getDifference(null, null), equalTo(1.0));
@@ -70,7 +61,6 @@ class StringUtilsTest {
 
     @Test
     void shouldGetDifferenceBetweenTwoString() {
-        // given/when/then
         assertThat(StringUtils.getDifference("test", "taste"), equalTo(0.4));
         assertThat(StringUtils.getDifference("test", "bear"), equalTo(0.75));
         assertThat(StringUtils.getDifference("test", "something"), greaterThan(0.88));
@@ -78,7 +68,6 @@ class StringUtilsTest {
 
     @Test
     void shouldCheckIfHasNeedleInWord() {
-        // given/when/then
         assertThat(StringUtils.isInsideString('@', "@hello"), equalTo(false));
         assertThat(StringUtils.isInsideString('?', "absent"), equalTo(false));
         assertThat(StringUtils.isInsideString('-', "abcd-"), equalTo(false));

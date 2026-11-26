@@ -62,19 +62,15 @@ class HashUtilsTest {
 
     @Test
     void shouldRetrieveMd5Instance() {
-        // given
         MessageDigestAlgorithm algorithm = MessageDigestAlgorithm.MD5;
 
-        // when
         MessageDigest digest = HashUtils.getDigest(algorithm);
 
-        // then
         assertThat(digest.getAlgorithm(), equalTo("MD5"));
     }
 
     @Test
     void shouldCheckForValidBcryptHashStart() {
-        // given / when / then
         assertThat(HashUtils.isValidBcryptHash(""), equalTo(false));
         assertThat(HashUtils.isValidBcryptHash("$2"), equalTo(false));
         assertThat(HashUtils.isValidBcryptHash("#2ae5fc78"), equalTo(false));
@@ -85,7 +81,6 @@ class HashUtilsTest {
 
     @Test
     void shouldCompareStrings() {
-        // given / when / then
         assertThat(HashUtils.isEqual("test", "test"), equalTo(true));
         assertThat(HashUtils.isEqual("test", "Test"), equalTo(false));
         assertThat(HashUtils.isEqual("1234", "1234."), equalTo(false));

@@ -53,62 +53,40 @@ public final class PaperDialogHelper {
     }
 
     public static Dialog createPreJoinLoginDialog(DialogWindowSpec dialog) {
-        DialogBase base = DialogBase.builder(legacyComponent(dialog.title()))
-            .inputs(createInputs(dialog))
-            .body(createBody(dialog))
-            .canCloseWithEscape(dialog.canCloseWithEscape())
-            .afterAction(DialogBase.DialogAfterAction.WAIT_FOR_RESPONSE)
-            .build();
-
-        ActionButton loginButton = ActionButton.builder(legacyComponent(dialog.primaryButtonLabel()))
-            .action(DialogAction.customClick(PaperDialogActionKeys.PRE_JOIN_LOGIN_SUBMIT, null))
-            .build();
-
         // Recovery button if the spec includes a secondary command, otherwise a plain cancel button
         Key secondaryKey = dialog.secondaryButtonCommand() != null
             ? PaperDialogActionKeys.PRE_JOIN_LOGIN_RECOVERY
             : PaperDialogActionKeys.PRE_JOIN_LOGIN_CANCEL;
-
-        return Dialog.create(factory -> factory.empty()
-            .base(base)
-            .type(createButtonDialogType(dialog, createPreJoinButtons(dialog, loginButton, secondaryKey))));
+        return createPreJoinDialog(dialog, dialog.canCloseWithEscape(),
+            PaperDialogActionKeys.PRE_JOIN_LOGIN_SUBMIT, secondaryKey);
     }
 
     public static Dialog createPreJoinRecoveryDialog(DialogWindowSpec dialog) {
+        return createPreJoinDialog(dialog, false, PaperDialogActionKeys.PRE_JOIN_RECOVERY_SUBMIT,
+            PaperDialogActionKeys.PRE_JOIN_RECOVERY_CANCEL);
+    }
+
+    public static Dialog createPreJoinRegisterDialog(DialogWindowSpec dialog) {
+        return createPreJoinDialog(dialog, dialog.canCloseWithEscape(),
+            PaperDialogActionKeys.PRE_JOIN_REGISTER_SUBMIT, PaperDialogActionKeys.PRE_JOIN_REGISTER_CANCEL);
+    }
+
+    private static Dialog createPreJoinDialog(DialogWindowSpec dialog, boolean canCloseWithEscape,
+                                              Key submitKey, Key cancelKey) {
         DialogBase base = DialogBase.builder(legacyComponent(dialog.title()))
             .inputs(createInputs(dialog))
             .body(createBody(dialog))
-            .canCloseWithEscape(false)
+            .canCloseWithEscape(canCloseWithEscape)
             .afterAction(DialogBase.DialogAfterAction.WAIT_FOR_RESPONSE)
             .build();
 
         ActionButton submitButton = ActionButton.builder(legacyComponent(dialog.primaryButtonLabel()))
-            .action(DialogAction.customClick(PaperDialogActionKeys.PRE_JOIN_RECOVERY_SUBMIT, null))
+            .action(DialogAction.customClick(submitKey, null))
             .build();
 
         return Dialog.create(factory -> factory.empty()
             .base(base)
-            .type(createButtonDialogType(dialog, createPreJoinButtons(dialog, submitButton,
-                PaperDialogActionKeys.PRE_JOIN_RECOVERY_CANCEL))));
-    }
-
-    public static Dialog createPreJoinRegisterDialog(DialogWindowSpec dialog) {
-        DialogBase base = DialogBase.builder(legacyComponent(dialog.title()))
-            .inputs(createInputs(dialog))
-            .body(createBody(dialog))
-            .canCloseWithEscape(dialog.canCloseWithEscape())
-            .afterAction(DialogBase.DialogAfterAction.WAIT_FOR_RESPONSE)
-            .build();
-
-        ActionButton registerButton = ActionButton.builder(legacyComponent(dialog.primaryButtonLabel()))
-            .action(DialogAction.customClick(PaperDialogActionKeys.PRE_JOIN_REGISTER_SUBMIT, null))
-            .build();
-
-        return Dialog.create(factory -> factory.empty()
-            .base(base)
-            .type(createButtonDialogType(dialog, createPreJoinButtons(dialog,
-                registerButton,
-                PaperDialogActionKeys.PRE_JOIN_REGISTER_CANCEL))));
+            .type(createButtonDialogType(dialog, createPreJoinButtons(dialog, submitButton, cancelKey))));
     }
 
     private static Dialog createInGameCommandDialog(DialogWindowSpec dialog, String commandTemplate) {
@@ -141,7 +119,7 @@ public final class PaperDialogHelper {
 
     private static List<ActionButton> createPreJoinButtons(DialogWindowSpec dialog,
                                                            ActionButton primaryButton,
-                                                           net.kyori.adventure.key.Key cancelActionKey) {
+                                                           Key cancelActionKey) {
         List<ActionButton> buttons = new ArrayList<>();
         buttons.add(primaryButton);
         if (dialog.showSecondaryButton()) {

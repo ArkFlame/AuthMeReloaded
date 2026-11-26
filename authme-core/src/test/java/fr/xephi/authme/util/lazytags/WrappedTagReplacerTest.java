@@ -20,7 +20,6 @@ class WrappedTagReplacerTest {
 
     @Test
     void shouldApplyTags() {
-        // given
         TestTagService tagService = new TestTagService();
         List<Tag<Integer>> tags = tagService.getAvailableTags();
         List<SampleClass> objects = Arrays.asList(
@@ -28,13 +27,11 @@ class WrappedTagReplacerTest {
             new SampleClass(5, "no tags here"),
             new SampleClass(7, "i+i = %double"));
 
-        // when
         WrappedTagReplacer<SampleClass, Integer> replacer = new WrappedTagReplacer<>(
             tags, objects, SampleClass::getDescription, (o, s) -> new SampleClass(o.number, s));
         List<SampleClass> result1 = replacer.getAdaptedItems(8);
         List<SampleClass> result2 = replacer.getAdaptedItems(1);
 
-        // then
         assertThat(tagService.piCount, equalTo(2));
         assertThat(tagService.selfCount, equalTo(0));
         assertThat(tagService.doubleCount, equalTo(2));

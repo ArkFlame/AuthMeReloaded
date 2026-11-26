@@ -23,34 +23,31 @@ public class PurgeLastPositionCommand implements ExecutableCommand {
 
     @Override
     public void executeCommand(CommandSender sender, List<String> arguments) {
-        String playerName = arguments.isEmpty() ? sender.getName() : arguments.get(0);
+        String playerName = CommandArguments.getTargetPlayerName(sender, arguments);
 
         if ("*".equals(playerName)) {
             for (PlayerAuth auth : dataSource.getAllAuths()) {
-                resetLastPosition(auth);
-                dataSource.updateQuitLoc(auth);
-                // TODO: send an update when a messaging service will be implemented (QUITLOC)
+                resetAndSaveLastPosition(auth);
             }
             sender.sendMessage("All players last position locations are now reset");
         } else {
-            // Get the user auth and make sure the user exists
             PlayerAuth auth = dataSource.getAuth(playerName);
             if (auth == null) {
                 commonService.send(sender, MessageKey.UNKNOWN_USER);
                 return;
             }
 
-            resetLastPosition(auth);
-            dataSource.updateQuitLoc(auth);
-            // TODO: send an update when a messaging service will be implemented (QUITLOC)
+            resetAndSaveLastPosition(auth);
             sender.sendMessage(playerName + "'s last position location is now reset");
         }
     }
 
-    private static void resetLastPosition(PlayerAuth auth) {
+    private void resetAndSaveLastPosition(PlayerAuth auth) {
         auth.setQuitLocX(0d);
         auth.setQuitLocY(0d);
         auth.setQuitLocZ(0d);
         auth.setWorld("world");
+        dataSource.updateQuitLoc(auth);
+        // TODO: send an update when a messaging service will be implemented (QUITLOC)
     }
 }

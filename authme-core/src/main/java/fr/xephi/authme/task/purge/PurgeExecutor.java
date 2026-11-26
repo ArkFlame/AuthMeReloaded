@@ -23,7 +23,9 @@ import static fr.xephi.authme.util.FileUtils.makePath;
  * Executes the purge operations.
  */
 public class PurgeExecutor {
-    
+
+    private static final String[] INVENTORY_FILE_SUFFIXES = {"_creative.yml", "_adventure.yml", ".yml"};
+
     private final ConsoleLogger logger = ConsoleLoggerFactory.get(PurgeExecutor.class);
 
     @Inject
@@ -119,22 +121,7 @@ public class PurgeExecutor {
             return;
         }
         for (String file : dataFolder.list()) {
-            String name = file;
-            int idx;
-            idx = file.lastIndexOf("_creative.yml");
-            if (idx != -1) {
-                name = name.substring(0, idx);
-            } else {
-                idx = file.lastIndexOf("_adventure.yml");
-                if (idx != -1) {
-                    name = name.substring(0, idx);
-                } else {
-                    idx = file.lastIndexOf(".yml");
-                    if (idx != -1) {
-                        name = name.substring(0, idx);
-                    }
-                }
-            }
+            String name = stripInventorySuffix(file);
             if (name.equals(file)) {
                 continue;
             }
@@ -148,6 +135,16 @@ public class PurgeExecutor {
         logger.info("AutoPurge: Removed " + i + " LimitedCreative Survival, Creative and Adventure files");
     }
 
+    private static String stripInventorySuffix(String file) {
+        for (String suffix : INVENTORY_FILE_SUFFIXES) {
+            int idx = file.lastIndexOf(suffix);
+            if (idx != -1) {
+                return file.substring(0, idx);
+            }
+        }
+        return file;
+    }
+
     /**
      * Removes the .dat file of the given players.
      *
@@ -158,18 +155,10 @@ public class PurgeExecutor {
             return;
         }
 
-        int i = 0;
         File dataFolder = new File(server.getWorldContainer(),
             makePath(settings.getProperty(PurgeSettings.DEFAULT_WORLD), "players"));
-
-        for (OfflinePlayer offlinePlayer : cleared) {
-            File playerFile = new File(dataFolder, offlinePlayer.getUniqueId() + ".dat");
-            if (playerFile.delete()) {
-                i++;
-            }
-        }
-
-        logger.info("AutoPurge: Removed " + i + " .dat Files");
+        logger.info("AutoPurge: Removed "
+            + deletePlayerFiles(cleared, dataFolder, ".dat") + " .dat Files");
     }
 
     /**
@@ -188,20 +177,13 @@ public class PurgeExecutor {
             return;
         }
 
-        final File userDataFolder = new File(essentialsDataFolder, "userdata");
+        File userDataFolder = new File(essentialsDataFolder, "userdata");
         if (!userDataFolder.exists() || !userDataFolder.isDirectory()) {
             return;
         }
 
-        int deletedFiles = 0;
-        for (OfflinePlayer offlinePlayer : cleared) {
-            File playerFile = new File(userDataFolder, offlinePlayer.getUniqueId() + ".yml");
-            if (playerFile.exists() && playerFile.delete()) {
-                deletedFiles++;
-            }
-        }
-
-        logger.info("AutoPurge: Removed " + deletedFiles + " EssentialsFiles");
+        logger.info("AutoPurge: Removed "
+            + deletePlayerFiles(cleared, userDataFolder, ".yml") + " EssentialsFiles");
     }
 
     /**
@@ -223,5 +205,16 @@ public class PurgeExecutor {
         }
 
         logger.info("AutoPurge: Removed permissions from " + cleared.size() + " player(s).");
+    }
+
+    private static int deletePlayerFiles(Collection<OfflinePlayer> players, File folder, String extension) {
+        int deleted = 0;
+        for (OfflinePlayer player : players) {
+            File file = new File(folder, player.getUniqueId() + extension);
+            if (file.exists() && file.delete()) {
+                deleted++;
+            }
+        }
+        return deleted;
     }
 }

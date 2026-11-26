@@ -45,10 +45,8 @@ class HashAlgorithmIntegrationTest {
 
     @Test
     void shouldHaveUniqueClassForEntries() {
-        // given
         Set<Class<? extends EncryptionMethod>> classes = new HashSet<>();
 
-        // when / then
         for (HashAlgorithm algorithm : HashAlgorithm.values()) {
             if (!HashAlgorithm.CUSTOM.equals(algorithm)) {
                 if (!classes.add(algorithm.getClazz())) {
@@ -60,7 +58,6 @@ class HashAlgorithmIntegrationTest {
 
     @Test
     void shouldBeAbleToInstantiateEncryptionAlgorithms() {
-        // given / when / then
         for (HashAlgorithm algorithm : HashAlgorithm.values()) {
             if (!HashAlgorithm.CUSTOM.equals(algorithm) && !HashAlgorithm.PLAINTEXT.equals(algorithm)) {
                 EncryptionMethod method = injector.createIfHasDependencies(algorithm.getClazz());
@@ -78,10 +75,8 @@ class HashAlgorithmIntegrationTest {
 
     @Test
     void shouldBeDeprecatedIfEncryptionClassIsDeprecated() throws NoSuchFieldException {
-        // given
         List<String> failedEntries = new LinkedList<>();
 
-        // when
         for (HashAlgorithm hashAlgorithm : HashAlgorithm.values()) {
             if (hashAlgorithm != HashAlgorithm.CUSTOM && hashAlgorithm != HashAlgorithm.PLAINTEXT) {
                 boolean isEnumDeprecated = HashAlgorithm.class.getDeclaredField(hashAlgorithm.name())
@@ -96,7 +91,6 @@ class HashAlgorithmIntegrationTest {
             }
         }
 
-        // then
         if (!failedEntries.isEmpty()) {
             fail("Found inconsistencies:\n" + String.join("\n", failedEntries));
         }

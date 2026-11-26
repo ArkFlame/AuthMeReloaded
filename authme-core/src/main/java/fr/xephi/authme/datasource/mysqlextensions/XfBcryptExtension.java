@@ -18,10 +18,10 @@ import java.util.OptionalInt;
  * Extension for XFBCRYPT.
  */
 class XfBcryptExtension extends MySqlExtension {
-    
+
     private final String xfPrefix;
     private final int xfGroup;
-    
+
     XfBcryptExtension(Settings settings, Columns col) {
         super(settings, col);
         this.xfPrefix = settings.getProperty(HooksSettings.XF_TABLE_PREFIX);
@@ -56,19 +56,14 @@ class XfBcryptExtension extends MySqlExtension {
             pst.setBlob(3, blob);
             pst.executeUpdate();
         }
-        // Update player group in xf_users
-        sql = "UPDATE " + tableName + " SET " + tableName + ".user_group_id=? WHERE " + col.NAME + "=?;";
-        try (PreparedStatement pst = con.prepareStatement(sql)) {
-            pst.setInt(1, xfGroup);
-            pst.setString(2, auth.getNickname());
-            pst.executeUpdate();
-        }
-        // Update player permission combination in xf_users
-        sql = "UPDATE " + tableName + " SET " + tableName + ".permission_combination_id=? WHERE " + col.NAME + "=?;";
-        try (PreparedStatement pst = con.prepareStatement(sql)) {
-            pst.setInt(1, xfGroup);
-            pst.setString(2, auth.getNickname());
-            pst.executeUpdate();
+        // Update player group and permission combination in xf_users
+        for (String column : new String[]{"user_group_id", "permission_combination_id"}) {
+            sql = "UPDATE " + tableName + " SET " + tableName + "." + column + "=? WHERE " + col.NAME + "=?;";
+            try (PreparedStatement pst = con.prepareStatement(sql)) {
+                pst.setInt(1, xfGroup);
+                pst.setString(2, auth.getNickname());
+                pst.executeUpdate();
+            }
         }
         // Insert player privacy combination in xf_user_privacy
         sql = "INSERT INTO " + xfPrefix + "user_privacy (user_id, allow_view_profile, allow_post_profile, "
@@ -124,7 +119,6 @@ class XfBcryptExtension extends MySqlExtension {
                 pst.executeUpdate();
             }
 
-            // ...
             sql = "UPDATE " + xfPrefix + "user_authenticate SET scheme_class=? WHERE " + col.ID + "=?;";
             try (PreparedStatement pst = con.prepareStatement(sql)) {
                 pst.setString(1, XfBCrypt.SCHEME_CLASS);

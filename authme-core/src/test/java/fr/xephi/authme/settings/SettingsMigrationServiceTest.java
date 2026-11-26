@@ -59,8 +59,7 @@ class SettingsMigrationServiceTest {
     @Test
     void shouldPerformMigrationsInMemory() throws IOException {
         // given
-        File configFile = new File(dataFolder, "config.yml");
-        Files.copy(getJarFile(OLD_CONFIG_FILE), configFile);
+        File configFile = copyOldConfigFile();
         PropertyResource resource = new YamlFileResource(configFile);
         SettingsMigrationService migrationService = new SettingsMigrationService(dataFolder);
 
@@ -79,8 +78,7 @@ class SettingsMigrationServiceTest {
     @Test
     void shouldPerformMigrationsAndPersistToDisk() throws IOException {
         // given
-        File configFile = new File(dataFolder, "config.yml");
-        Files.copy(getJarFile(OLD_CONFIG_FILE), configFile);
+        File configFile = copyOldConfigFile();
         PropertyResource resource = new YamlFileResource(configFile);
         TestMigrationServiceExtension migrationService = new TestMigrationServiceExtension(dataFolder);
         ConfigurationData configurationData = AuthMeSettingsRetriever.buildConfigurationData();
@@ -98,8 +96,7 @@ class SettingsMigrationServiceTest {
     @Test
     void shouldKeepOldOtherAccountsSettings() throws IOException {
         // given
-        File configFile = new File(dataFolder, "config.yml");
-        Files.copy(getJarFile(OLD_CONFIG_FILE), configFile);
+        File configFile = copyOldConfigFile();
         PropertyResource resource = new YamlFileResource(configFile);
         SettingsMigrationService migrationService = new SettingsMigrationService(dataFolder);
 
@@ -110,6 +107,12 @@ class SettingsMigrationServiceTest {
         assertThat(migrationService.hasOldOtherAccountsCommand(), equalTo(true));
         assertThat(migrationService.getOldOtherAccountsCommand(), equalTo("msg admin %playername% has a lot of accounts!"));
         assertThat(migrationService.getOldOtherAccountsCommandThreshold(), equalTo(5));
+    }
+
+    private File copyOldConfigFile() throws IOException {
+        File configFile = new File(dataFolder, "config.yml");
+        Files.copy(getJarFile(OLD_CONFIG_FILE), configFile);
+        return configFile;
     }
 
     private void verifyHasUpToDateSettings(Settings settings, File dataFolder) throws IOException {

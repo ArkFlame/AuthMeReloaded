@@ -76,7 +76,7 @@ class SessionServicePendingPremiumTest {
         // given
         String name = "Bobby";
         String ip = "127.3.12.15";
-        Player player = mockPlayerWithNameAndIp(name, ip);
+        Player player = TestPlayerFactory.mockPlayerWithNameAndIp(name, ip);
         given(commonService.getProperty(PluginSettings.SESSIONS_TIMEOUT)).willReturn(8);
         given(dataSource.hasSession(name)).willReturn(true);
         given(dataSource.getAuth(name)).willReturn(PlayerAuth.builder()
@@ -96,10 +96,4 @@ class SessionServicePendingPremiumTest {
         verify(dataSource).revokeSession(name);
     }
 
-    private static Player mockPlayerWithNameAndIp(String name, String ip) {
-        Player player = mock(Player.class);
-        given(player.getName()).willReturn(name);
-        TestHelper.mockIpAddressToPlayer(player, ip);
-        return player;
-    }
 }

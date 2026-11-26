@@ -50,7 +50,7 @@ public final class AuthMeColumns {
 
     public static final PlayerAuthColumn<String> UUID = createString(
         DatabaseSettings.MYSQL_COL_PLAYER_UUID,
-        auth -> ( auth.getUuid() == null ? null : auth.getUuid().toString()),
+        auth -> auth.getUuid() == null ? null : auth.getUuid().toString(),
         OPTIONAL);
 
     public static final PlayerAuthColumn<String> PREMIUM_UUID = createString(

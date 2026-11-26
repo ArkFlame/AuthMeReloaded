@@ -1,9 +1,7 @@
 package fr.xephi.authme.service;
 
 import javax.inject.Inject;
-import java.util.Locale;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Holds in-memory email confirmation requests that have not yet been verified by a code sent
@@ -18,7 +16,7 @@ public class PendingEmailVerificationCache {
 
     static final long TTL_MS = 10 * 60 * 1000L;
 
-    private final ConcurrentHashMap<String, PendingEntry> pending = new ConcurrentHashMap<>();
+    private final ExpiringPendingCache<PendingEntry> pending = new ExpiringPendingCache<>(TTL_MS);
 
     @Inject
     PendingEmailVerificationCache() {
@@ -33,9 +31,8 @@ public class PendingEmailVerificationCache {
      * @param code  the verification code sent to that address
      */
     public void addPending(String name, String email, String code) {
-        evictExpired();
-        pending.put(name.toLowerCase(Locale.ROOT),
-            new PendingEntry(email, code, System.currentTimeMillis() + TTL_MS));
+        pending.purgeExpired();
+        pending.put(name, new PendingEntry(email, code));
     }
 
     /**
@@ -56,15 +53,7 @@ public class PendingEmailVerificationCache {
      * @return the pending entry, or null
      */
     public PendingEntry getEntry(String name) {
-        PendingEntry entry = pending.get(name.toLowerCase(Locale.ROOT));
-        if (entry == null) {
-            return null;
-        }
-        if (System.currentTimeMillis() > entry.expiresAt()) {
-            pending.remove(name.toLowerCase(Locale.ROOT), entry);
-            return null;
-        }
-        return entry;
+        return pending.get(name);
     }
 
     /**
@@ -75,48 +64,27 @@ public class PendingEmailVerificationCache {
      * @return the pending entry if valid, or null
      */
     public PendingEntry removePending(String name) {
-        PendingEntry entry = pending.remove(name.toLowerCase(Locale.ROOT));
-        if (entry == null || System.currentTimeMillis() > entry.expiresAt()) {
-            return null;
-        }
-        return entry;
+        return pending.remove(name);
     }
 
-    private void evictExpired() {
-        long now = System.currentTimeMillis();
-        pending.entrySet().removeIf(e -> now > e.getValue().expiresAt());
-    }
-
+    /**
+     * Value awaiting confirmation. Expiry is managed by {@link ExpiringPendingCache}.
+     */
     public static final class PendingEntry {
         private final String email;
         private final String code;
-        private final long expiresAt;
 
-        public PendingEntry(String email, String code, long expiresAt) {
+        public PendingEntry(String email, String code) {
             this.email = Objects.requireNonNull(email, "email");
             this.code = Objects.requireNonNull(code, "code");
-            this.expiresAt = expiresAt;
         }
 
-        public String email() { return email; }
-        public String code() { return code; }
-        public long expiresAt() { return expiresAt; }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            PendingEntry that = (PendingEntry) o;
-            return expiresAt == that.expiresAt && Objects.equals(email, that.email)
-                && Objects.equals(code, that.code);
+        public String email() {
+            return email;
         }
 
-        @Override
-        public int hashCode() { return Objects.hash(email, code, expiresAt); }
-
-        @Override
-        public String toString() {
-            return "PendingEntry[email=" + email + ", code=" + code + ", expiresAt=" + expiresAt + "]";
+        public String code() {
+            return code;
         }
     }
 }

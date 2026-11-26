@@ -29,9 +29,6 @@ public class UnregisterAdminCommand implements ExecutableCommand {
     @Inject
     private Management management;
 
-    UnregisterAdminCommand() {
-    }
-
     @Override
     public void executeCommand(final CommandSender sender, List<String> arguments) {
         String playerName = arguments.get(0);

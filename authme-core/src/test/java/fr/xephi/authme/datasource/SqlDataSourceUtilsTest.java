@@ -33,20 +33,16 @@ class SqlDataSourceUtilsTest {
 
     @Test
     void shouldLogException() {
-        // given
         String msg = "Hocus pocus did not work";
         SQLException ex = new SQLException(msg);
 
-        // when
         SqlDataSourceUtils.logSqlException(ex);
 
-        // then
         verify(logger).warning(argThat(containsString(msg)));
     }
 
     @Test
     void shouldFetchNullableStatus() throws SQLException {
-        // given
         String tableName = "data";
         String columnName = "category";
         ResultSet resultSet = mock(ResultSet.class);
@@ -54,16 +50,13 @@ class SqlDataSourceUtilsTest {
         given(resultSet.next()).willReturn(true);
         DatabaseMetaData metaData = mockMetaData(tableName, columnName, resultSet);
 
-        // when
         boolean result = SqlDataSourceUtils.isNotNullColumn(metaData, tableName, columnName);
 
-        // then
         assertThat(result, equalTo(false));
     }
 
     @Test
     void shouldReturnFalseForUnknownNullableStatus() throws SQLException {
-        // given
         String tableName = "comments";
         String columnName = "author";
         ResultSet resultSet = mock(ResultSet.class);
@@ -71,30 +64,25 @@ class SqlDataSourceUtilsTest {
         given(resultSet.next()).willReturn(true);
         DatabaseMetaData metaData = mockMetaData(tableName, columnName, resultSet);
 
-        // when
         boolean result = SqlDataSourceUtils.isNotNullColumn(metaData, tableName, columnName);
 
-        // then
         assertThat(result, equalTo(false));
     }
 
     @Test
     void shouldThrowForUnknownColumnInNullableCheck() throws SQLException {
-        // given
         String tableName = "data";
         String columnName = "unknown";
         ResultSet resultSet = mock(ResultSet.class);
         given(resultSet.next()).willReturn(false);
         DatabaseMetaData metaData = mockMetaData(tableName, columnName, resultSet);
 
-        // when / then
         assertThrows(IllegalStateException.class,
             () -> SqlDataSourceUtils.isNotNullColumn(metaData, tableName, columnName));
     }
 
     @Test
     void shouldGetDefaultValue() throws SQLException {
-        // given
         String tableName = "data";
         String columnName = "category";
         ResultSet resultSet = mock(ResultSet.class);
@@ -102,30 +90,25 @@ class SqlDataSourceUtilsTest {
         given(resultSet.next()).willReturn(true);
         DatabaseMetaData metaData = mockMetaData(tableName, columnName, resultSet);
 
-        // when
         Object defaultValue = SqlDataSourceUtils.getColumnDefaultValue(metaData, tableName, columnName);
 
-        // then
         assertThat(defaultValue, equalTo("Literature"));
     }
 
     @Test
     void shouldThrowForUnknownColumnInDefaultValueRetrieval() throws SQLException {
-        // given
         String tableName = "data";
         String columnName = "unknown";
         ResultSet resultSet = mock(ResultSet.class);
         given(resultSet.next()).willReturn(false);
         DatabaseMetaData metaData = mockMetaData(tableName, columnName, resultSet);
 
-        // when / then
         assertThrows(IllegalStateException.class,
             () -> SqlDataSourceUtils.getColumnDefaultValue(metaData, tableName, columnName));
     }
 
     @Test
     void shouldHandleNullDefaultValue() throws SQLException {
-        // given
         String tableName = "data";
         String columnName = "category";
         ResultSet resultSet = mock(ResultSet.class);
@@ -133,10 +116,8 @@ class SqlDataSourceUtilsTest {
         given(resultSet.next()).willReturn(true);
         DatabaseMetaData metaData = mockMetaData(tableName, columnName, resultSet);
 
-        // when
         Object defaultValue = SqlDataSourceUtils.getColumnDefaultValue(metaData, tableName, columnName);
 
-        // then
         assertThat(defaultValue, nullValue());
     }
 

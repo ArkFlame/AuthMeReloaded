@@ -35,7 +35,6 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -305,7 +304,7 @@ public final class BungeeProxyBridge implements Listener {
                 if (!playerName.isEmpty()) {
                     for (String name : playerName.split(",")) {
                         if (!name.isEmpty()) {
-                            newPremiumSet.add(normalizeName(name.trim()));
+                            newPremiumSet.add(BungeeAuthenticationStore.normalizeName(name.trim()));
                         }
                     }
                 }
@@ -348,7 +347,7 @@ public final class BungeeProxyBridge implements Listener {
         if (!csv.isEmpty()) {
             for (String name : csv.split(",")) {
                 if (!name.isEmpty()) {
-                    premiumListBuffer.add(normalizeName(name.trim()));
+                    premiumListBuffer.add(BungeeAuthenticationStore.normalizeName(name.trim()));
                 }
             }
         }
@@ -385,7 +384,7 @@ public final class BungeeProxyBridge implements Listener {
             return;
         }
 
-        String normalizedName = normalizeName(player.getName());
+        String normalizedName = BungeeAuthenticationStore.normalizeName(player.getName());
         UUID verifiedPremiumUuid = premiumVerificationManager.getVerifiedPremiumUuid(normalizedName);
         boolean isPremiumJoin = connectingToAuthServer && verifiedPremiumUuid != null;
         if (!authenticationStore.isAuthenticated(player) && !isPremiumJoin) {
@@ -461,7 +460,7 @@ public final class BungeeProxyBridge implements Listener {
 
     @EventHandler
     public void onPlayerDisconnect(PlayerDisconnectEvent event) {
-        String normalizedName = normalizeName(event.getPlayer().getName());
+        String normalizedName = BungeeAuthenticationStore.normalizeName(event.getPlayer().getName());
         if (pendingAutoLogins.containsKey(normalizedName)) {
             logger.fine("Cancelling pending auto-login for " + normalizedName + " (player disconnected)");
         }
@@ -575,7 +574,7 @@ public final class BungeeProxyBridge implements Listener {
             }
             String argument = input.readUTF();
             boolean rawArgument = type == ProxyMessageType.PREMIUM_LIST || type == ProxyMessageType.PREMIUM_LIST_CHUNK;
-            return new ParsedPluginMessage(type, rawArgument ? argument : normalizeName(argument));
+            return new ParsedPluginMessage(type, rawArgument ? argument : BungeeAuthenticationStore.normalizeName(argument));
         } catch (IllegalStateException e) {
             logger.warning("Received malformed AuthMe plugin message on the authme:main channel");
             return ParsedPluginMessage.ignored();
@@ -638,10 +637,6 @@ public final class BungeeProxyBridge implements Listener {
         output.writeUTF(verifiedPremiumUuid == null ? "" : verifiedPremiumUuid.toString());
         output.writeUTF(hmac);
         return output.toByteArray();
-    }
-
-    private static String normalizeName(String playerName) {
-        return playerName.toLowerCase(Locale.ROOT);
     }
 
     private record ParsedPluginMessage(ProxyMessageType type, String playerName) {

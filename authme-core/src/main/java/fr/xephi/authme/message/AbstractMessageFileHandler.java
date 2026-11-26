@@ -144,12 +144,22 @@ public abstract class AbstractMessageFileHandler implements Reloadable {
     }
 
     private FileConfiguration loadLanguageConfiguration(String language) {
-        String filePath = createFilePath(language);
+        File file = getMessageFile(createFilePath(language));
+        return file.exists() ? YamlConfiguration.loadConfiguration(file) : UNAVAILABLE;
+    }
+
+    /**
+     * Returns the message file for the given path, copying it from the JAR if it is missing.
+     *
+     * @param filePath path to the message file
+     * @return the message file (which may not exist if it could not be copied)
+     */
+    private File getMessageFile(String filePath) {
         File file = new File(dataFolder, filePath);
         if (!file.exists() && FileUtils.getResourceFromJar(filePath) != null) {
             FileUtils.copyFileFromResource(file, filePath);
         }
-        return file.exists() ? YamlConfiguration.loadConfiguration(file) : UNAVAILABLE;
+        return file;
     }
 
     /**
@@ -168,9 +178,8 @@ public abstract class AbstractMessageFileHandler implements Reloadable {
      */
     @VisibleForTesting
     File initializeFile(String filePath) {
-        File file = new File(dataFolder, filePath);
-        // Check that JAR file exists to avoid logging an error
-        if (FileUtils.getResourceFromJar(filePath) != null && FileUtils.copyFileFromResource(file, filePath)) {
+        File file = getMessageFile(filePath);
+        if (file.exists()) {
             return file;
         }
 

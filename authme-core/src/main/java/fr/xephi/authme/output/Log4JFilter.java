@@ -25,10 +25,7 @@ public class Log4JFilter extends AbstractFilter {
      * @return The Result value
      */
     private static Result validateMessage(Message message) {
-        if (message == null) {
-            return Result.NEUTRAL;
-        }
-        return validateMessage(message.getFormattedMessage());
+        return validateMessage(message == null ? null : message.getFormattedMessage());
     }
 
     /**
@@ -47,11 +44,7 @@ public class Log4JFilter extends AbstractFilter {
 
     @Override
     public Result filter(LogEvent event) {
-        Message candidate = null;
-        if (event != null) {
-            candidate = event.getMessage();
-        }
-        return validateMessage(candidate);
+        return validateMessage(event == null ? null : event.getMessage());
     }
 
     @Override
@@ -66,10 +59,6 @@ public class Log4JFilter extends AbstractFilter {
 
     @Override
     public Result filter(Logger logger, Level level, Marker marker, Object msg, Throwable t) {
-        String candidate = null;
-        if (msg != null) {
-            candidate = msg.toString();
-        }
-        return validateMessage(candidate);
+        return validateMessage(msg == null ? null : msg.toString());
     }
 }

@@ -15,10 +15,8 @@ class UuidUtilsTest {
 
     @Test
     void shouldParseUuidSafely() {
-        // given
         UUID correctUuid = UUID.fromString("8e0a9aaa-5eda-42ef-8daf-e6c6359f607e");
 
-        // when / then
         assertThat(UuidUtils.parseUuidSafely("8e0a9aaa-5eda-42ef-8daf-e6c6359f607e"), equalTo(correctUuid));
 
         assertThat(UuidUtils.parseUuidSafely(null), nullValue());

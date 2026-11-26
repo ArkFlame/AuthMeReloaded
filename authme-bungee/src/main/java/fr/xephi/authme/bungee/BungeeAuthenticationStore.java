@@ -30,7 +30,7 @@ final class BungeeAuthenticationStore {
         markLoggedOut(player.getName());
     }
 
-    private static String normalizeName(String playerName) {
+    static String normalizeName(String playerName) {
         return playerName.toLowerCase(Locale.ROOT);
     }
 }

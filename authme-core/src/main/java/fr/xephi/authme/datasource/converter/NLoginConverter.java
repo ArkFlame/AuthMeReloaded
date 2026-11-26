@@ -11,8 +11,6 @@ import org.bukkit.configuration.file.YamlConfiguration;
 
 import javax.inject.Inject;
 import java.io.File;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Locale;
@@ -148,14 +146,8 @@ public class NLoginConverter implements Converter {
             }
 
             String query = "SELECT last_name, password, last_ip, email, creation_date, last_seen, unique_id FROM " + table;
-            try (Connection conn = openConnection(dbFile);
-                 PreparedStatement ps = conn.prepareStatement(query);
-                 ResultSet rs = ps.executeQuery()) {
-                importRows(rs, getDataSource(), sender);
-            } catch (SQLException e) {
-                logAndSendMessage(sender, "nLogin conversion failed: " + e.getMessage());
-                logger.logException("nLogin conversion error:", e);
-            }
+            queryAndImport(dbFile, sender, query, "nLogin", logger,
+                rs -> importRows(rs, getDataSource(), sender));
         }
     }
 
@@ -171,14 +163,8 @@ public class NLoginConverter implements Converter {
         @Override
         public void execute(CommandSender sender) {
             String query = "SELECT last_name, password, last_ip, email, creation_date, last_seen, unique_id FROM " + table;
-            try (Connection conn = openConnection();
-                 PreparedStatement ps = conn.prepareStatement(query);
-                 ResultSet rs = ps.executeQuery()) {
-                importRows(rs, getDataSource(), sender);
-            } catch (SQLException e) {
-                logAndSendMessage(sender, "nLogin conversion failed: " + e.getMessage());
-                logger.logException("nLogin conversion error:", e);
-            }
+            queryAndImport(sender, query, "nLogin", logger,
+                rs -> importRows(rs, getDataSource(), sender));
         }
     }
 }

@@ -92,8 +92,7 @@ class BungeeReceiverTest {
         given(settings.getProperty(HooksSettings.BUNGEECORD)).willReturn(true);
         given(messenger.isIncomingChannelRegistered(plugin, "authme:main")).willReturn(false);
 
-        new BungeeReceiver(plugin, bukkitService, proxySessionManager, management, bungeeSender, dataSource,
-            proxyLoginRequestValidator, settings);
+        newReceiver();
 
         verify(messenger).registerIncomingPluginChannel(eq(plugin), eq("authme:main"), any(BungeeReceiver.class));
     }
@@ -103,9 +102,7 @@ class BungeeReceiverTest {
         given(settings.getProperty(HooksSettings.BUNGEECORD)).willReturn(true, false);
         given(messenger.isIncomingChannelRegistered(plugin, "authme:main")).willReturn(false, true);
 
-        BungeeReceiver bungeeReceiver =
-            new BungeeReceiver(plugin, bukkitService, proxySessionManager, management, bungeeSender, dataSource,
-                proxyLoginRequestValidator, settings);
+        BungeeReceiver bungeeReceiver = newReceiver();
         bungeeReceiver.reload(settings);
 
         verify(messenger).registerIncomingPluginChannel(plugin, "authme:main", bungeeReceiver);
@@ -130,9 +127,7 @@ class BungeeReceiverTest {
         given(bukkitService.getPlayerExact(playerName)).willReturn(player);
         given(proxyLoginRequestValidator.validate(player, null)).willReturn(true);
 
-        BungeeReceiver receiver =
-            new BungeeReceiver(plugin, bukkitService, proxySessionManager, management, bungeeSender, dataSource,
-                proxyLoginRequestValidator, settings);
+        BungeeReceiver receiver = newReceiver();
 
         byte[] payload = buildPerformLoginPayload(playerName, timestamp, hmac);
 
@@ -159,9 +154,7 @@ class BungeeReceiverTest {
         given(messenger.isIncomingChannelRegistered(plugin, "authme:main")).willReturn(false);
         given(bukkitService.getPlayerExact(playerName)).willReturn(null);
 
-        BungeeReceiver receiver =
-            new BungeeReceiver(plugin, bukkitService, proxySessionManager, management, bungeeSender, dataSource,
-                proxyLoginRequestValidator, settings);
+        BungeeReceiver receiver = newReceiver();
 
         Player carrier = mock(Player.class);
         byte[] payload = buildPerformLoginPayload(playerName, timestamp, hmac);
@@ -195,9 +188,7 @@ class BungeeReceiverTest {
         given(bukkitService.getPlayerExact(playerName)).willReturn(player);
         given(proxyLoginRequestValidator.validate(player, verifiedUuid)).willReturn(true);
 
-        BungeeReceiver receiver =
-            new BungeeReceiver(plugin, bukkitService, proxySessionManager, management, bungeeSender, dataSource,
-                proxyLoginRequestValidator, settings);
+        BungeeReceiver receiver = newReceiver();
 
         byte[] payload = buildPerformLoginPayload(playerName, timestamp, verifiedUuid.toString(), hmac);
 
@@ -229,9 +220,7 @@ class BungeeReceiverTest {
         given(bukkitService.getPlayerExact(playerName)).willReturn(player);
         given(proxyLoginRequestValidator.validate(player, verifiedUuid)).willReturn(false);
 
-        BungeeReceiver receiver =
-            new BungeeReceiver(plugin, bukkitService, proxySessionManager, management, bungeeSender, dataSource,
-                proxyLoginRequestValidator, settings);
+        BungeeReceiver receiver = newReceiver();
 
         byte[] payload = buildPerformLoginPayload(playerName, timestamp, verifiedUuid.toString(), hmac);
 
@@ -255,9 +244,7 @@ class BungeeReceiverTest {
         given(settings.getProperty(HooksSettings.BUNGEECORD)).willReturn(true);
         given(settings.getProperty(HooksSettings.PROXY_SHARED_SECRET)).willReturn(sharedSecret);
 
-        BungeeReceiver receiver =
-            new BungeeReceiver(plugin, bukkitService, proxySessionManager, management, bungeeSender, dataSource,
-                proxyLoginRequestValidator, settings);
+        BungeeReceiver receiver = newReceiver();
 
         byte[] payload = buildPerformLoginPayload(playerName, timestamp, hmac);
 
@@ -280,9 +267,7 @@ class BungeeReceiverTest {
         given(settings.getProperty(HooksSettings.BUNGEECORD)).willReturn(true);
         given(settings.getProperty(HooksSettings.PROXY_SHARED_SECRET)).willReturn(sharedSecret);
 
-        BungeeReceiver receiver =
-            new BungeeReceiver(plugin, bukkitService, proxySessionManager, management, bungeeSender, dataSource,
-                proxyLoginRequestValidator, settings);
+        BungeeReceiver receiver = newReceiver();
 
         byte[] payload = buildPerformLoginPayload(playerName, timestamp, "not-a-valid-hmac");
 
@@ -305,9 +290,7 @@ class BungeeReceiverTest {
         Player carrier = mock(Player.class);
         given(bukkitService.getOnlinePlayers()).willReturn(List.of(carrier));
 
-        BungeeReceiver receiver =
-            new BungeeReceiver(plugin, bukkitService, proxySessionManager, management, bungeeSender, dataSource,
-                proxyLoginRequestValidator, settings);
+        BungeeReceiver receiver = newReceiver();
 
         // when
         receiver.onPluginMessageReceived("authme:main", carrier, buildProxyStartedPayload("velocity"));
@@ -328,9 +311,7 @@ class BungeeReceiverTest {
         Player carrier = mock(Player.class);
         given(bukkitService.getOnlinePlayers()).willReturn(List.of(carrier));
 
-        BungeeReceiver receiver =
-            new BungeeReceiver(plugin, bukkitService, proxySessionManager, management, bungeeSender, dataSource,
-                proxyLoginRequestValidator, settings);
+        BungeeReceiver receiver = newReceiver();
 
         // when
         receiver.onPluginMessageReceived("authme:main", carrier, buildProxyStartedPayload("velocity"));
@@ -350,15 +331,18 @@ class BungeeReceiverTest {
 
         Player triggeringPlayer = mock(Player.class);
 
-        BungeeReceiver receiver =
-            new BungeeReceiver(plugin, bukkitService, proxySessionManager, management, bungeeSender, dataSource,
-                proxyLoginRequestValidator, settings);
+        BungeeReceiver receiver = newReceiver();
 
         // when
         receiver.onPluginMessageReceived("authme:main", triggeringPlayer, buildProxyStartedPayload("velocity"));
 
         // then
         verify(bungeeSender).sendPremiumList(triggeringPlayer, List.of("Alice"));
+    }
+
+    private BungeeReceiver newReceiver() {
+        return new BungeeReceiver(plugin, bukkitService, proxySessionManager, management, bungeeSender, dataSource,
+            proxyLoginRequestValidator, settings);
     }
 
     private static byte[] buildProxyStartedPayload(String proxyName) {

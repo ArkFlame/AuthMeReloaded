@@ -2,6 +2,7 @@ package fr.xephi.authme.command.executable.captcha;
 
 import fr.xephi.authme.command.PlayerCommand;
 import fr.xephi.authme.data.auth.PlayerCache;
+import fr.xephi.authme.data.captcha.CaptchaManager;
 import fr.xephi.authme.data.captcha.LoginCaptchaManager;
 import fr.xephi.authme.data.captcha.RegistrationCaptchaManager;
 import fr.xephi.authme.data.limbo.LimboMessageType;
@@ -67,8 +68,7 @@ public class CaptchaCommand extends PlayerCommand {
             commonService.send(player, MessageKey.LOGIN_MESSAGE);
             limboService.unmuteMessageTask(player);
         } else {
-            String newCode = loginCaptchaManager.getCaptchaCodeOrGenerateNew(player.getName());
-            commonService.send(player, MessageKey.CAPTCHA_WRONG_ERROR, newCode);
+            sendWrongCaptchaError(player, loginCaptchaManager);
         }
     }
 
@@ -78,9 +78,13 @@ public class CaptchaCommand extends PlayerCommand {
             commonService.send(player, MessageKey.REGISTER_CAPTCHA_SUCCESS);
             commonService.send(player, MessageKey.REGISTER_MESSAGE);
         } else {
-            String newCode = registrationCaptchaManager.getCaptchaCodeOrGenerateNew(player.getName());
-            commonService.send(player, MessageKey.CAPTCHA_WRONG_ERROR, newCode);
+            sendWrongCaptchaError(player, registrationCaptchaManager);
         }
         limboService.resetMessageTask(player, LimboMessageType.REGISTER);
+    }
+
+    private void sendWrongCaptchaError(Player player, CaptchaManager captchaManager) {
+        String newCode = captchaManager.getCaptchaCodeOrGenerateNew(player.getName());
+        commonService.send(player, MessageKey.CAPTCHA_WRONG_ERROR, newCode);
     }
 }

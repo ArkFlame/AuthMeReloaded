@@ -213,7 +213,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
 
         // Earliest possible hook for integrations: before session lookups, premium bypass, limbo and prompts.
         // The event is dispatched on the player's thread and its decision is applied before we continue.
-        if (handlePreAuthEvent(player, isAuthAvailable, auth)) {
+        if (handlePreAuthEvent(player, auth)) {
             return;
         }
 
@@ -231,7 +231,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
             // Bedrock players verified by Floodgate (Xbox account) — same idea as premium below
             if (floodgateService.canAutoLogin(player.getUniqueId())) {
                 logger.info("The Bedrock player " + player.getName() + " has been automatically logged in (Floodgate).");
-                bukkitService.runTaskOptionallyAsync(() -> asynchronousLogin.forceLogin(player));
+                forceLoginAsync(player);
                 return;
             }
 
@@ -241,9 +241,9 @@ public class AsynchronousJoin implements AsynchronousProcess {
                 // Premium bypass: player has a verified Mojang UUID matching the connecting player's UUID
                 if (bungeeSender.isEnabled()) {
                     // Proxy handles routing; do not attempt backend-side BungeeCord redirect
-                    bukkitService.runTaskOptionallyAsync(() -> asynchronousLogin.forceLoginFromProxy(player));
+                    forceLoginFromProxyAsync(player);
                 } else {
-                    bukkitService.runTaskOptionallyAsync(() -> asynchronousLogin.forceLogin(player));
+                    forceLoginAsync(player);
                 }
                 return;
             } else {
@@ -255,12 +255,11 @@ public class AsynchronousJoin implements AsynchronousProcess {
                         }
                         service.send(player, MessageKey.SESSION_RECONNECTION);
                         // Run commands
-                        bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player,
-                            () -> commandManager.runCommandsOnSessionLogin(player));
+                        runSessionLoginCommands(player);
                         // Use forceLoginFromProxy (quiet=true, no BungeeCord redirect) so that if
                         // BungeeReceiver.performLogin() concurrently already completed the login, this
                         // call is a no-op rather than sending an "already logged in" error.
-                        bukkitService.runTaskOptionallyAsync(() -> asynchronousLogin.forceLoginFromProxy(player));
+                        forceLoginFromProxyAsync(player);
                         logger.info("The user " + player.getName() + " has been automatically logged in, "
                             + "as present in autologin queue.");
                         return;
@@ -273,9 +272,8 @@ public class AsynchronousJoin implements AsynchronousProcess {
             if (sessionService.canResumeSession(player)) {
                 service.send(player, MessageKey.SESSION_RECONNECTION);
                 // Run commands
-                bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player,
-                    () -> commandManager.runCommandsOnSessionLogin(player));
-                bukkitService.runTaskOptionallyAsync(() -> asynchronousLogin.forceLogin(player));
+                runSessionLoginCommands(player);
+                forceLoginAsync(player);
                 return;
             }
         } else if (premiumService.tryAutoRegister(player)) {
@@ -325,11 +323,12 @@ public class AsynchronousJoin implements AsynchronousProcess {
      * The asynchronous join pipeline waits for the listeners to finish, so their decision is final.
      *
      * @param player the joining player
-     * @param registered whether the player has an account
-     * @param auth the account loaded for this join, null for an unregistered player
+     * @param auth the account loaded for this join, null for an unregistered player; its presence is
+     *             the registered flag reported to listeners, so no second lookup is required
      * @return true if the join has been fully handled by a listener (forced login or skipped authentication)
      */
-    private boolean handlePreAuthEvent(Player player, boolean registered, PlayerAuth auth) {
+    private boolean handlePreAuthEvent(Player player, PlayerAuth auth) {
+        final boolean registered = auth != null;
         final PlayerPreAuthEvent.Source source = bungeeSender.isEnabled()
             ? PlayerPreAuthEvent.Source.PROXY : PlayerPreAuthEvent.Source.JOIN;
         final CompletableFuture<PlayerPreAuthEvent> result = new CompletableFuture<>();
@@ -423,6 +422,36 @@ public class AsynchronousJoin implements AsynchronousProcess {
         if (service.getProperty(RestrictionSettings.BAN_UNKNOWN_IP)) {
             bukkitService.runOnGlobalRegion(() -> server.banIP(ip));
         }
+    }
+
+    /**
+     * Runs a passwordless login off the calling thread. All auto-login branches go through this
+     * helper so they schedule exactly one continuation task.
+     *
+     * @param player the player to log in
+     */
+    private void forceLoginAsync(Player player) {
+        bukkitService.runTaskOptionallyAsync(() -> asynchronousLogin.forceLogin(player));
+    }
+
+    /**
+     * Runs a proxy-initiated passwordless login off the calling thread (quiet, no redirect).
+     *
+     * @param player the player to log in
+     */
+    private void forceLoginFromProxyAsync(Player player) {
+        bukkitService.runTaskOptionallyAsync(() -> asynchronousLogin.forceLoginFromProxy(player));
+    }
+
+    /**
+     * Runs the session-login commands on the player's owning thread. Shared by the proxy and the
+     * regular session branch so both schedule the same single task.
+     *
+     * @param player the player resuming a session
+     */
+    private void runSessionLoginCommands(Player player) {
+        bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player,
+            () -> commandManager.runCommandsOnSessionLogin(player));
     }
 
     /**

@@ -23,29 +23,19 @@ public class PurgeCommand implements ExecutableCommand {
 
     @Override
     public void executeCommand(CommandSender sender, List<String> arguments) {
-        // Get the days parameter
-        String daysStr = arguments.get(0);
-
-        // Convert the days string to an integer value, and make sure it's valid
-        Integer days = Ints.tryParse(daysStr);
+        Integer days = Ints.tryParse(arguments.get(0));
         if (days == null) {
             sender.sendMessage(ChatColor.RED + "The value you've entered is invalid!");
             return;
         }
-
-        // Validate the value
         if (days < MINIMUM_LAST_SEEN_DAYS) {
             sender.sendMessage(ChatColor.RED + "You can only purge data older than "
                 + MINIMUM_LAST_SEEN_DAYS + " days");
             return;
         }
 
-        // Create a calender instance to determine the date
         Calendar calendar = Calendar.getInstance();
         calendar.add(Calendar.DATE, -days);
-        long until = calendar.getTimeInMillis();
-
-        // Run the purge
-        purgeService.runPurge(sender, until);
+        purgeService.runPurge(sender, calendar.getTimeInMillis());
     }
 }

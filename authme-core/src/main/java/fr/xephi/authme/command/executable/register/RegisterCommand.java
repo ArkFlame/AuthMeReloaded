@@ -4,8 +4,8 @@ import fr.xephi.authme.ConsoleLogger;
 import fr.xephi.authme.command.PlayerCommand;
 import fr.xephi.authme.data.captcha.RegistrationCaptchaManager;
 import fr.xephi.authme.datasource.DataSource;
-import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.mail.EmailService;
+import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.process.Management;
 import fr.xephi.authme.process.register.RegisterSecondaryArgument;
@@ -126,6 +126,15 @@ public class RegisterCommand extends PlayerCommand {
     }
 
     /**
+     * Returns whether no second argument is needed, i.e. the secondary argument is disabled or
+     * optional and absent, so the argument checks can be skipped.
+     */
+    private static boolean isSecondArgNotRequired(List<String> arguments,
+                                                  RegisterSecondaryArgument secondArgType) {
+        return secondArgType == NONE || secondArgType == EMAIL_OPTIONAL && arguments.size() < 2;
+    }
+
+    /**
      * Verifies that the second argument is valid (based on the configuration)
      * to perform a password registration. The player is informed if the check
      * is unsuccessful.
@@ -136,8 +145,7 @@ public class RegisterCommand extends PlayerCommand {
      */
     private boolean isSecondArgValidForPasswordRegistration(Player player, List<String> arguments) {
         RegisterSecondaryArgument secondArgType = commonService.getProperty(REGISTER_SECOND_ARGUMENT);
-        // cases where args.size < 2
-        if (secondArgType == NONE || secondArgType == EMAIL_OPTIONAL && arguments.size() < 2) {
+        if (isSecondArgNotRequired(arguments, secondArgType)) {
             return true;
         } else if (arguments.size() < 2) {
             commonService.send(player, MessageKey.USAGE_REGISTER);
@@ -202,8 +210,7 @@ public class RegisterCommand extends PlayerCommand {
      */
     private boolean isSecondArgValidForEmailRegistration(Player player, List<String> arguments) {
         RegisterSecondaryArgument secondArgType = commonService.getProperty(REGISTER_SECOND_ARGUMENT);
-        // cases where args.size < 2
-        if (secondArgType == NONE || secondArgType == EMAIL_OPTIONAL && arguments.size() < 2) {
+        if (isSecondArgNotRequired(arguments, secondArgType)) {
             return true;
         } else if (arguments.size() < 2) {
             commonService.send(player, MessageKey.USAGE_REGISTER);

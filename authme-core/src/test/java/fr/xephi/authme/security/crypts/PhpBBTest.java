@@ -22,7 +22,6 @@ class PhpBBTest extends AbstractEncryptionMethodTest {
 
     @Test
     void shouldMatchPhpassSaltedMd5Hashes() {
-        // given
         Map<String, String> givenHashes = ImmutableMap.of(
             "password", "$H$7MaSGQb0xe3Fp/a.Q.Ewpw.UKfCv.t0",
             "PassWord1", "$H$7ESfAVjzqajC7fJFcZKZIhyds41MuW.",
@@ -30,7 +29,6 @@ class PhpBBTest extends AbstractEncryptionMethodTest {
             "âË_3(íù*", "$H$7Brcg8zO9amr2SHVgz.pFxprDu40v4/");
         PhpBB phpBB = new PhpBB();
 
-        // when / then
         for (Map.Entry<String, String> hashEntry : givenHashes.entrySet()) {
             if (!phpBB.comparePassword(hashEntry.getKey(), new HashedPassword(hashEntry.getValue()), null)) {
                 fail("Hash comparison for '" + hashEntry.getKey() + "' failed");
@@ -40,7 +38,6 @@ class PhpBBTest extends AbstractEncryptionMethodTest {
 
     @Test
     void shouldMatchUnsaltedMd5Hashes() {
-        // given
         Map<String, String> givenHashes = ImmutableMap.of(
             "password", "5f4dcc3b5aa765d61d8327deb882cf99",
             "PassWord1", "f2126d405f46ed603ff5b2950f062c96",
@@ -48,7 +45,6 @@ class PhpBBTest extends AbstractEncryptionMethodTest {
             "âË_3(íù*", "e7412bf1a9d312dc2901c3101a097abe");
         PhpBB phpBB = new PhpBB();
 
-        // when / then
         for (Map.Entry<String, String> hashEntry : givenHashes.entrySet()) {
             if (!phpBB.comparePassword(hashEntry.getKey(), new HashedPassword(hashEntry.getValue()), null)) {
                 fail("Hash comparison for '" + hashEntry.getKey() + "' failed");

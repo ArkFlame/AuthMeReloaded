@@ -28,10 +28,8 @@ class SmfTest extends AbstractEncryptionMethodTest {
 
     @Test
     void shouldGenerateFourCharSalt() {
-        // given
         EncryptionMethod method = new Smf();
 
-        // when / then
         assertThat(method.hasSeparateSalt(), equalTo(true));
         for (int i = 0; i < 3; ++i) {
             HashedPassword hash = method.computeHash("pw", "name");

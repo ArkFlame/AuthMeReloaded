@@ -46,11 +46,7 @@ public class CommandMapper {
      * @return The generated {@link FoundCommandResult}
      */
     public FoundCommandResult mapPartsToCommand(CommandSender sender, List<String> parts) {
-        if (Utils.isCollectionEmpty(parts)) {
-            return new FoundCommandResult(null, parts, null, 0.0, MISSING_BASE_COMMAND);
-        }
-
-        CommandDescription base = getBaseCommand(parts.get(0));
+        CommandDescription base = Utils.isCollectionEmpty(parts) ? null : getBaseCommand(parts.get(0));
         if (base == null) {
             return new FoundCommandResult(null, parts, null, 0.0, MISSING_BASE_COMMAND);
         }
@@ -78,7 +74,7 @@ public class CommandMapper {
      * @see CommandInitializer#getCommands
      */
     public Set<Class<? extends ExecutableCommand>> getCommandClasses() {
-        Set<Class<? extends ExecutableCommand>> classes = new HashSet<>(50);
+        Set<Class<? extends ExecutableCommand>> classes = new HashSet<>();
         for (CommandDescription command : baseCommands) {
             classes.add(command.getExecutableCommand());
             for (CommandDescription child : command.getChildren()) {

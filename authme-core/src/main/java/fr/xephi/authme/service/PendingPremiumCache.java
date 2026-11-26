@@ -1,13 +1,8 @@
 package fr.xephi.authme.service;
 
 import javax.inject.Inject;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Holds in-memory premium verification requests that have not yet been confirmed by a
@@ -22,7 +17,7 @@ public class PendingPremiumCache {
 
     static final long TTL_MS = 5 * 60 * 1000L;
 
-    private final ConcurrentHashMap<String, PendingEntry> pending = new ConcurrentHashMap<>();
+    private final ExpiringPendingCache<UUID> pending = new ExpiringPendingCache<>(TTL_MS);
 
     @Inject
     PendingPremiumCache() {
@@ -32,14 +27,13 @@ public class PendingPremiumCache {
      * Registers a pending premium verification for the given player name.
      * Also evicts any already-expired entries.
      *
-     * @param name      the player name (case-insensitive)
+     * @param name       the player name (case-insensitive)
      * @param mojangUuid the Mojang UUID fetched from the profile API
      * @return the names of any entries that were evicted due to expiry
      */
     public Collection<String> addPending(String name, UUID mojangUuid) {
-        Collection<String> evicted = evictExpired();
-        pending.put(name.toLowerCase(Locale.ROOT),
-            new PendingEntry(mojangUuid, System.currentTimeMillis() + TTL_MS));
+        Collection<String> evicted = pending.evictExpired();
+        pending.put(name, mojangUuid);
         return evicted;
     }
 
@@ -50,7 +44,7 @@ public class PendingPremiumCache {
      * @return true if a pending entry exists and has not yet expired
      */
     public boolean isPending(String name) {
-        return getPendingUuid(name) != null;
+        return pending.get(name) != null;
     }
 
     /**
@@ -61,15 +55,7 @@ public class PendingPremiumCache {
      * @return the pending Mojang UUID, or null
      */
     public UUID getPendingUuid(String name) {
-        PendingEntry entry = pending.get(name.toLowerCase(Locale.ROOT));
-        if (entry == null) {
-            return null;
-        }
-        if (System.currentTimeMillis() > entry.expiresAt()) {
-            pending.remove(name.toLowerCase(Locale.ROOT), entry);
-            return null;
-        }
-        return entry.mojangUuid();
+        return pending.get(name);
     }
 
     /**
@@ -79,11 +65,7 @@ public class PendingPremiumCache {
      * @return the pending Mojang UUID if a valid entry existed, or null
      */
     public UUID removePending(String name) {
-        PendingEntry entry = pending.remove(name.toLowerCase(Locale.ROOT));
-        if (entry == null || System.currentTimeMillis() > entry.expiresAt()) {
-            return null;
-        }
-        return entry.mojangUuid();
+        return pending.remove(name);
     }
 
     /**
@@ -93,44 +75,6 @@ public class PendingPremiumCache {
      * @return the names of evicted entries (lowercase)
      */
     public Collection<String> evictExpired() {
-        long now = System.currentTimeMillis();
-        List<String> evicted = new ArrayList<>();
-        pending.entrySet().removeIf(e -> {
-            if (now > e.getValue().expiresAt()) {
-                evicted.add(e.getKey());
-                return true;
-            }
-            return false;
-        });
-        return evicted;
-    }
-
-    private static final class PendingEntry {
-        private final UUID mojangUuid;
-        private final long expiresAt;
-
-        PendingEntry(UUID mojangUuid, long expiresAt) {
-            this.mojangUuid = mojangUuid;
-            this.expiresAt = expiresAt;
-        }
-
-        UUID mojangUuid() { return mojangUuid; }
-        long expiresAt() { return expiresAt; }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            PendingEntry that = (PendingEntry) o;
-            return expiresAt == that.expiresAt && Objects.equals(mojangUuid, that.mojangUuid);
-        }
-
-        @Override
-        public int hashCode() { return Objects.hash(mojangUuid, expiresAt); }
-
-        @Override
-        public String toString() {
-            return "PendingEntry[mojangUuid=" + mojangUuid + ", expiresAt=" + expiresAt + "]";
-        }
+        return pending.evictExpired();
     }
 }

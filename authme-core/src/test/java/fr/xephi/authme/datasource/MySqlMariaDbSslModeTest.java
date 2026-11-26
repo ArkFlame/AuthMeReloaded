@@ -16,25 +16,19 @@ class MySqlMariaDbSslModeTest {
 
     @Test
     void shouldNotSetSslModeForEmptyValue() {
-        // given
         HikariConfig config = new HikariConfig();
 
-        // when
         MySQL.applyMariaDbSslMode(config, MARIA_DB_DRIVER, "");
 
-        // then
         assertThat(config.getDataSourceProperties().getProperty("sslMode"), nullValue());
     }
 
     @Test
     void shouldSetSslModeForMariaDb() {
-        // given
         HikariConfig config = new HikariConfig();
 
-        // when
         MySQL.applyMariaDbSslMode(config, MARIA_DB_DRIVER, "verify-full");
 
-        // then
         assertThat(config.getDataSourceProperties().getProperty("sslMode"), equalTo("verify-full"));
     }
 }

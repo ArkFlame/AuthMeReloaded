@@ -34,7 +34,7 @@ public class UuidCommand implements ExecutableCommand {
 
     @Override
     public void executeCommand(CommandSender sender, List<String> arguments) {
-        String playerName = arguments.isEmpty() ? sender.getName() : arguments.get(0);
+        String playerName = CommandArguments.getTargetPlayerName(sender, arguments);
         String offlineName = playerName.toLowerCase(Locale.ROOT);
         UUID offlineUuid = UUID.nameUUIDFromBytes(("OfflinePlayer:" + offlineName)
             .getBytes(StandardCharsets.UTF_8));

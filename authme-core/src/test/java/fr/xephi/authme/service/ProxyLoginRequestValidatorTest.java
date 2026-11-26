@@ -68,9 +68,7 @@ class ProxyLoginRequestValidatorTest {
     void shouldAcceptStoredPremiumUuidFromProxy() {
         UUID premiumUuid = UUID.randomUUID();
         PlayerAuth auth = PlayerAuth.builder().name("bobby").premiumUuid(premiumUuid).build();
-        given(player.getName()).willReturn("Bobby");
-        given(settings.getProperty(PremiumSettings.ENABLE_PREMIUM)).willReturn(true);
-        given(playerCache.getAuth("Bobby")).willReturn(auth);
+        givenPremiumPlayerWithAuth(auth);
 
         assertTrue(validator.validate(player, premiumUuid));
         verify(premiumService, never()).finalizePendingPremium(player, premiumUuid);
@@ -81,9 +79,7 @@ class ProxyLoginRequestValidatorTest {
         UUID storedUuid = UUID.randomUUID();
         UUID forwardedUuid = UUID.randomUUID();
         PlayerAuth auth = PlayerAuth.builder().name("bobby").premiumUuid(storedUuid).build();
-        given(player.getName()).willReturn("Bobby");
-        given(settings.getProperty(PremiumSettings.ENABLE_PREMIUM)).willReturn(true);
-        given(playerCache.getAuth("Bobby")).willReturn(auth);
+        givenPremiumPlayerWithAuth(auth);
 
         assertFalse(validator.validate(player, forwardedUuid));
         verify(premiumService, never()).finalizePendingPremium(player, forwardedUuid);
@@ -93,9 +89,7 @@ class ProxyLoginRequestValidatorTest {
     void shouldFinalizeMatchingPendingPremiumUuid() {
         UUID pendingUuid = UUID.randomUUID();
         PlayerAuth auth = PlayerAuth.builder().name("bobby").build();
-        given(player.getName()).willReturn("Bobby");
-        given(settings.getProperty(PremiumSettings.ENABLE_PREMIUM)).willReturn(true);
-        given(playerCache.getAuth("Bobby")).willReturn(auth);
+        givenPremiumPlayerWithAuth(auth);
         given(pendingPremiumCache.removePending("Bobby")).willReturn(pendingUuid);
 
         assertTrue(validator.validate(player, pendingUuid));
@@ -108,9 +102,7 @@ class ProxyLoginRequestValidatorTest {
         // the concurrent perform.login validate must not emit a spurious PREMIUM_PENDING_FAIL
         UUID forwardedUuid = UUID.randomUUID();
         PlayerAuth auth = PlayerAuth.builder().name("bobby").build();
-        given(player.getName()).willReturn("Bobby");
-        given(settings.getProperty(PremiumSettings.ENABLE_PREMIUM)).willReturn(true);
-        given(playerCache.getAuth("Bobby")).willReturn(auth);
+        givenPremiumPlayerWithAuth(auth);
         given(pendingPremiumCache.removePending("Bobby")).willReturn(null);
 
         assertFalse(validator.validate(player, forwardedUuid));
@@ -124,9 +116,7 @@ class ProxyLoginRequestValidatorTest {
         UUID pendingUuid = UUID.randomUUID();
         UUID forwardedUuid = UUID.randomUUID();
         PlayerAuth auth = PlayerAuth.builder().name("bobby").build();
-        given(player.getName()).willReturn("Bobby");
-        given(settings.getProperty(PremiumSettings.ENABLE_PREMIUM)).willReturn(true);
-        given(playerCache.getAuth("Bobby")).willReturn(auth);
+        givenPremiumPlayerWithAuth(auth);
         given(pendingPremiumCache.removePending("Bobby")).willReturn(pendingUuid);
 
         assertFalse(validator.validate(player, forwardedUuid));
@@ -145,5 +135,11 @@ class ProxyLoginRequestValidatorTest {
         verify(bungeeSender).sendPremiumUnset("Bobby");
         verify(messages, never()).send(player, MessageKey.PREMIUM_PENDING_FAIL);
         verifyNoInteractions(playerCache, dataSource, pendingPremiumCache, premiumService);
+    }
+
+    private void givenPremiumPlayerWithAuth(PlayerAuth auth) {
+        given(player.getName()).willReturn("Bobby");
+        given(settings.getProperty(PremiumSettings.ENABLE_PREMIUM)).willReturn(true);
+        given(playerCache.getAuth("Bobby")).willReturn(auth);
     }
 }

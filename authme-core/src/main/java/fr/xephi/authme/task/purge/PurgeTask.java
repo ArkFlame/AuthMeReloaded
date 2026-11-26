@@ -48,11 +48,7 @@ class PurgeTask implements Runnable {
         this.purgeService = service;
         this.permissionsManager = permissionsManager;
 
-        if (sender instanceof Player) {
-            this.sender = ((Player) sender).getUniqueId();
-        } else {
-            this.sender = null;
-        }
+        this.sender = sender instanceof Player ? ((Player) sender).getUniqueId() : null;
 
         this.toPurge = toPurge;
         this.totalPurgeCount = toPurge.size();

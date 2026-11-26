@@ -38,12 +38,17 @@ class MessageUpdaterTest {
         TestHelper.setupLogger();
     }
 
+    private File copyMessagesFile(String name, String resourcePath) throws IOException {
+        File messagesFile = createFile(temporaryFolder, name);
+        Files.copy(TestHelper.getJarFile(resourcePath), messagesFile);
+        return messagesFile;
+    }
+
     @Test
     void shouldNotUpdateDefaultFile() throws IOException {
         // given
         String messagesFilePath = DEFAULT_MESSAGES_FILE;
-        File messagesFile = createFile(temporaryFolder, "fffff");
-        Files.copy(TestHelper.getJarFile("/" + messagesFilePath), messagesFile);
+        File messagesFile = copyMessagesFile("fffff", "/" + messagesFilePath);
         long modifiedDate = messagesFile.lastModified();
 
         // when
@@ -57,8 +62,7 @@ class MessageUpdaterTest {
     @Test
     void shouldAddMissingKeys() throws IOException {
         // given
-        File messagesFile = createFile(temporaryFolder, "file");
-        Files.copy(TestHelper.getJarFile(TestHelper.PROJECT_ROOT + "message/messages_test.yml"), messagesFile);
+        File messagesFile = copyMessagesFile("file", TestHelper.PROJECT_ROOT + "message/messages_test.yml");
 
         // when
         boolean wasChanged = messageUpdater.migrateAndSave(messagesFile, "does-not-exist", DEFAULT_MESSAGES_FILE);
@@ -77,8 +81,7 @@ class MessageUpdaterTest {
     @Test
     void shouldMigrateOldEntries() throws IOException {
         // given
-        File messagesFile = createFile(temporaryFolder, "messages.yml");
-        Files.copy(TestHelper.getJarFile(TestHelper.PROJECT_ROOT + "message/messages_en_old.yml"), messagesFile);
+        File messagesFile = copyMessagesFile("messages.yml", TestHelper.PROJECT_ROOT + "message/messages_en_old.yml");
 
         // when
         boolean wasChanged = messageUpdater.migrateAndSave(messagesFile, DEFAULT_MESSAGES_FILE, DEFAULT_MESSAGES_FILE);
@@ -103,8 +106,7 @@ class MessageUpdaterTest {
     @Test
     void shouldPerformNewerMigrations() throws IOException {
         // given
-        File messagesFile = createFile(temporaryFolder, "newFile");
-        Files.copy(TestHelper.getJarFile(TestHelper.PROJECT_ROOT + "message/messages_test2.yml"), messagesFile);
+        File messagesFile = copyMessagesFile("newFile", TestHelper.PROJECT_ROOT + "message/messages_test2.yml");
 
         // when
         boolean wasChanged = messageUpdater.migrateAndSave(messagesFile, DEFAULT_MESSAGES_FILE, DEFAULT_MESSAGES_FILE);

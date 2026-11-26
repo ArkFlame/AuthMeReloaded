@@ -6,6 +6,8 @@ import fr.xephi.authme.security.crypts.description.SaltType;
 import fr.xephi.authme.security.crypts.description.Usage;
 import fr.xephi.authme.util.RandomStringUtils;
 
+import static fr.xephi.authme.security.HashUtils.isEqual;
+
 /**
  * Common type for encryption methods which use a random String of hexadecimal characters
  * and store the salt with the hash itself.
@@ -36,5 +38,19 @@ public abstract class HexSaltedMethod implements EncryptionMethod {
     @Override
     public boolean hasSeparateSalt() {
         return false;
+    }
+
+    /**
+     * Validates a stored hash of the form {@code $prefix$salt$hash}.
+     *
+     * @param password the clear-text password to verify
+     * @param hashedPassword the stored hash
+     * @param name the player name
+     * @return true if the password matches the stored hash, false otherwise
+     */
+    protected boolean comparePrefixedHash(String password, HashedPassword hashedPassword, String name) {
+        String hash = hashedPassword.getHash();
+        String[] line = hash.split("\\$");
+        return line.length == 4 && isEqual(hash, computeHash(password, line[2], name));
     }
 }

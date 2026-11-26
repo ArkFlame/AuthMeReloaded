@@ -11,8 +11,6 @@ import org.bukkit.configuration.file.YamlConfiguration;
 
 import javax.inject.Inject;
 import java.io.File;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Locale;
@@ -145,14 +143,8 @@ public class LimboAuthConverter implements Converter {
                 return;
             }
 
-            try (Connection conn = openConnection(dbFile);
-                 PreparedStatement ps = conn.prepareStatement(QUERY);
-                 ResultSet rs = ps.executeQuery()) {
-                importRows(rs, getDataSource(), sender);
-            } catch (SQLException e) {
-                logAndSendMessage(sender, "LimboAuth conversion failed: " + e.getMessage());
-                logger.logException("LimboAuth conversion error:", e);
-            }
+            queryAndImport(dbFile, sender, QUERY, "LimboAuth", logger,
+                rs -> importRows(rs, getDataSource(), sender));
         }
     }
 
@@ -164,14 +156,8 @@ public class LimboAuthConverter implements Converter {
 
         @Override
         public void execute(CommandSender sender) {
-            try (Connection conn = openConnection();
-                 PreparedStatement ps = conn.prepareStatement(QUERY);
-                 ResultSet rs = ps.executeQuery()) {
-                importRows(rs, getDataSource(), sender);
-            } catch (SQLException e) {
-                logAndSendMessage(sender, "LimboAuth conversion failed: " + e.getMessage());
-                logger.logException("LimboAuth conversion error:", e);
-            }
+            queryAndImport(sender, QUERY, "LimboAuth", logger,
+                rs -> importRows(rs, getDataSource(), sender));
         }
     }
 }

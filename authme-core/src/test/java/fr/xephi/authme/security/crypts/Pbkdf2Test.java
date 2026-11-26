@@ -24,15 +24,12 @@ class Pbkdf2Test extends AbstractEncryptionMethodTest {
 
     @Test
     void shouldDetectMatchForHashWithOtherRoundNumber() {
-        // given
         Pbkdf2 pbkdf2 = new Pbkdf2(mockSettings());
         String hash = "pbkdf2_sha256$4128$3469b0d48b702046$DC8A54351008C6054E12FB19E0BF8A4EA6D4165E0EDC97A1ECD15231037C382DE5BF85D07D5BC9D1ADF9BBFE4CE257C6059FB1B9FF65DB69D8B205F064BE0DA9";
         String clearText = "PassWord1";
 
-        // when
         boolean isMatch = pbkdf2.comparePassword(clearText, new HashedPassword(hash), "");
 
-        // then
         assertThat(isMatch, equalTo(true));
     }
 

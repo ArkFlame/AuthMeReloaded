@@ -53,7 +53,15 @@ public class ProcessSyncPlayerLogout implements SynchronousProcess {
     public void processSyncLogout(Player player) {
         packetEventsService.sendBlankInventoryPacket(player);
 
-        applyLogoutEffect(player);
+        player.leaveVehicle();
+        teleportationService.teleportOnJoin(player);
+
+        if (service.getProperty(RegistrationSettings.APPLY_BLIND_EFFECT)) {
+            int timeout = service.getProperty(RestrictionSettings.LOGIN_TIMEOUT) * TICKS_PER_SECOND;
+            player.addPotionEffect(bukkitService.createBlindnessEffect(timeout));
+        }
+        limboService.createLimboPlayer(player, true);
+
         commandManager.runCommandsOnLogout(player);
 
         // Player is now logout... Time to fire event !
@@ -61,21 +69,6 @@ public class ProcessSyncPlayerLogout implements SynchronousProcess {
 
         service.send(player, MessageKey.LOGOUT_SUCCESS);
         logger.info(player.getName() + " logged out");
-    }
-
-    private void applyLogoutEffect(Player player) {
-        // dismount player
-        player.leaveVehicle();
-        teleportationService.teleportOnJoin(player);
-
-        // Apply Blindness effect
-        if (service.getProperty(RegistrationSettings.APPLY_BLIND_EFFECT)) {
-            int timeout = service.getProperty(RestrictionSettings.LOGIN_TIMEOUT) * TICKS_PER_SECOND;
-            player.addPotionEffect(bukkitService.createBlindnessEffect(timeout));
-        }
-
-        // Set player's data to unauthenticated
-        limboService.createLimboPlayer(player, true);
     }
 
 }

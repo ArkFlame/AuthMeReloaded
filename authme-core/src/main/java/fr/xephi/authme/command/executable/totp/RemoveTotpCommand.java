@@ -40,12 +40,10 @@ public class RemoveTotpCommand extends PlayerCommand {
             messages.send(player, MessageKey.NOT_LOGGED_IN);
         } else if (auth.getTotpKey() == null) {
             messages.send(player, MessageKey.TWO_FACTOR_NOT_ENABLED_ERROR);
+        } else if (totpAuthenticator.checkCode(auth, arguments.get(0))) {
+            removeTotpKeyFromDatabase(player, auth);
         } else {
-            if (totpAuthenticator.checkCode(auth, arguments.get(0))) {
-                removeTotpKeyFromDatabase(player, auth);
-            } else {
-                messages.send(player, MessageKey.TWO_FACTOR_INVALID_CODE);
-            }
+            messages.send(player, MessageKey.TWO_FACTOR_INVALID_CODE);
         }
     }
 

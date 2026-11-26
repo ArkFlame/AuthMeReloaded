@@ -58,11 +58,9 @@ class SqLiteMigraterIntegrationTest {
 
     @Test
     void shouldRun() throws SQLException {
-        // given / when
         sqLite.setup();
         sqLite.migrateIfNeeded();
 
-        // then
         List<PlayerAuth> auths = sqLite.getAllAuths();
         assertThat(Lists.transform(auths, PlayerAuth::getNickname),
             containsInAnyOrder("mysql1", "mysql2", "mysql3", "mysql4", "mysql5", "mysql6"));

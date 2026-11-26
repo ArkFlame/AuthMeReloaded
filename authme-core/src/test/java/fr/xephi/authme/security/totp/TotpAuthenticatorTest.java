@@ -50,7 +50,6 @@ class TotpAuthenticatorTest {
 
     @Test
     void shouldGenerateTotpKey() {
-        // given
         // Use the GoogleAuthenticator instance the TotpAuthenticator normally creates to test its parameters
         totpAuthenticator = new TotpAuthenticator(settings);
 
@@ -58,11 +57,9 @@ class TotpAuthenticatorTest {
         given(player.getName()).willReturn("Bobby");
         given(settings.getProperty(PluginSettings.SERVER_NAME)).willReturn("MCtopia");
 
-        // when
         TotpGenerationResult key1 = totpAuthenticator.generateTotpKey(player);
         TotpGenerationResult key2 = totpAuthenticator.generateTotpKey(player);
 
-        // then
         assertThat(key1.getTotpKey(), stringWithLength(32));
         assertThat(key2.getTotpKey(), stringWithLength(32));
         assertThat(key1.getAuthenticatorQrCodeUrl(), startsWith("https://api.qrserver.com/v1/create-qr-code/?data="));
@@ -74,17 +71,14 @@ class TotpAuthenticatorTest {
 
     @Test
     void shouldGenerateTotpKeyForServerNameWithColon() {
-        // given
         totpAuthenticator = new TotpAuthenticator(settings);
 
         Player player = mock(Player.class);
         given(player.getName()).willReturn("Bobby");
         given(settings.getProperty(PluginSettings.SERVER_NAME)).willReturn("UT:Rebirth");
 
-        // when
         TotpGenerationResult key = totpAuthenticator.generateTotpKey(player);
 
-        // then
         assertThat(key.getTotpKey(), stringWithLength(32));
         assertThat(key.getAuthenticatorQrCodeUrl(), containsString(URLEncoder.encode(
             "otpauth://totp/UT-Rebirth:Bobby?secret=" + key.getTotpKey() + "&issuer=UT-Rebirth&",
@@ -93,16 +87,13 @@ class TotpAuthenticatorTest {
 
     @Test
     void shouldCheckCodeAndDeclareItValidOnlyOnce() {
-        // given
         String secret = "the_secret";
         int code = 21398;
         given(googleAuthenticator.authorize(secret, code)).willReturn(true);
 
-        // when
         boolean result1 = totpAuthenticator.checkCode("pl", secret, Integer.toString(code));
         boolean result2 = totpAuthenticator.checkCode("pl", secret, Integer.toString(code));
 
-        // then
         assertThat(result1, equalTo(true));
         assertThat(result2, equalTo(false));
         verify(googleAuthenticator).authorize(secret, code);
@@ -110,17 +101,14 @@ class TotpAuthenticatorTest {
 
     @Test
     void shouldHandleInvalidNumberInput() {
-        // given / when
         boolean result = totpAuthenticator.checkCode("foo", "Some_Secret", "123ZZ");
 
-        // then
         assertThat(result, equalTo(false));
         verifyNoInteractions(googleAuthenticator);
     }
 
     @Test
     void shouldVerifyCode() {
-        // given
         String totpKey = "ASLO43KDF2J";
         PlayerAuth auth = PlayerAuth.builder()
             .name("Maya")
@@ -129,27 +117,22 @@ class TotpAuthenticatorTest {
         String inputCode = "408435";
         given(totpAuthenticator.checkCode("Maya", totpKey, inputCode)).willReturn(true);
 
-        // when
         boolean result = totpAuthenticator.checkCode(auth, inputCode);
 
-        // then
         assertThat(result, equalTo(true));
         verify(googleAuthenticator).authorize(totpKey, 408435);
     }
 
     @Test
     void shouldRemoveOldEntries() {
-        // given
         Table<String, Integer, Long> usedCodes = ReflectionTestUtils.getFieldValue(
             TotpAuthenticator.class, totpAuthenticator, "usedCodes");
         usedCodes.put("bobby", 414213, System.currentTimeMillis());
         usedCodes.put("charlie", 732050, System.currentTimeMillis() - 6 * Utils.MILLIS_PER_MINUTE);
         usedCodes.put("bobby", 236067, System.currentTimeMillis() - 9 * Utils.MILLIS_PER_MINUTE);
 
-        // when
         totpAuthenticator.performCleanup();
 
-        // then
         assertThat(usedCodes.size(), equalTo(1));
         assertThat(usedCodes.contains("bobby", 414213), equalTo(true));
     }

@@ -33,78 +33,61 @@ class UtilsTest {
 
     @Test
     void shouldCompilePattern() {
-        // given
         String pattern = "gr(a|e)ys?";
 
-        // when
         Pattern result = Utils.safePatternCompile(pattern);
 
-        // then
         assertThat(result.toString(), equalTo(pattern));
     }
 
     @Test
     void shouldDefaultToAllAllowedPattern() {
-        // given
         String invalidPattern = "gr(a|eys?"; // missing closing ')'
 
-        // when
         Pattern result = Utils.safePatternCompile(invalidPattern);
 
-        // then
         assertThat(result.toString(), equalTo(".*?"));
     }
 
     @Test
     void shouldLogAndSendMessage() {
-        // given
         Logger logger = TestHelper.setupLogger();
         Player player = mock(Player.class);
         String message = "Finished adding foo to the bar";
 
-        // when
         Utils.logAndSendMessage(player, message);
 
-        // then
         verify(logger).info(message);
         verify(player).sendMessage(message);
     }
 
     @Test
     void shouldHandleNullAsCommandSender() {
-        // given
         Logger logger = TestHelper.setupLogger();
         String message = "Test test, test.";
 
-        // when
         Utils.logAndSendMessage(null, message);
 
-        // then
         verify(logger).info(message);
     }
 
     @Test
     void shouldNotSendToCommandSenderTwice() {
-        // given
         Logger logger = TestHelper.setupLogger();
         CommandSender sender = mock(ConsoleCommandSender.class);
         String message = "Test test, test.";
 
-        // when
         Utils.logAndSendMessage(sender, message);
 
-        // then
         verify(logger).info(message);
         verifyNoInteractions(sender);
     }
 
     @Test
     void shouldCheckIfCollectionIsEmpty() {
-        // given
         List<String> emptyList = Collections.emptyList();
         Collection<Integer> nonEmptyColl = Arrays.asList(3, 4, 5);
 
-        // when / then
         assertThat(Utils.isCollectionEmpty(emptyList), equalTo(true));
         assertThat(Utils.isCollectionEmpty(nonEmptyColl), equalTo(false));
         assertThat(Utils.isCollectionEmpty(null), equalTo(true));
@@ -112,58 +95,47 @@ class UtilsTest {
 
     @Test
     void shouldLogAndSendWarning() {
-        // given
         Logger logger = TestHelper.setupLogger();
         String message = "Error while performing action";
         CommandSender sender = mock(CommandSender.class);
 
-        // when
         Utils.logAndSendWarning(sender, message);
 
-        // then
         verify(logger).warning(message);
         verify(sender).sendMessage(ChatColor.RED + message);
     }
 
     @Test
     void shouldLogWarningAndNotSendToConsoleSender() {
-        // given
         Logger logger = TestHelper.setupLogger();
         String message = "Error while performing action";
         CommandSender sender = mock(ConsoleCommandSender.class);
 
-        // when
         Utils.logAndSendWarning(sender, message);
 
-        // then
         verify(logger).warning(message);
         verifyNoInteractions(sender);
     }
 
     @Test
     void shouldLogWarningAndHandleNullCommandSender() {
-        // given
         Logger logger = TestHelper.setupLogger();
         String message = "Error while performing action";
         CommandSender sender = null;
 
-        // when
         Utils.logAndSendWarning(sender, message);
 
-        // then
         verify(logger).warning(message);
     }
 
     @Test
     void shouldCheckIfClassIsLoaded() {
-        // given / when / then
         assertThat(Utils.isClassLoaded("org.bukkit.event.player.PlayerFishEvent"), equalTo(true));
         assertThat(Utils.isClassLoaded("com.someclass.doesnot.exist"), equalTo(false));
     }
 
     @Test
     void shouldDetectIfEmailIsEmpty() {
-        // given / when / then
         assertThat(Utils.isEmailEmpty(""), equalTo(true));
         assertThat(Utils.isEmailEmpty(null), equalTo(true));
         assertThat(Utils.isEmailEmpty("your@email.com"), equalTo(true));

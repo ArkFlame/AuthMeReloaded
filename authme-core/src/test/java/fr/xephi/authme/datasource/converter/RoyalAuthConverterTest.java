@@ -64,7 +64,6 @@ class RoyalAuthConverterTest extends AbstractConverterTest {
 
     @Test
     void shouldImportAccountsAndSkipPlayersWithoutData() throws IOException {
-        // given
         OfflinePlayer testPlayer = offlinePlayer("TestPlayer");
         OfflinePlayer existingPlayer = offlinePlayer("ExistingPlayer");
         OfflinePlayer playerWithoutFile = offlinePlayer("NoFilePlayer");
@@ -84,11 +83,9 @@ class RoyalAuthConverterTest extends AbstractConverterTest {
             mockUserDataPath(fileUtils, "existingplayer.yml", new File(tempFolder, "existingplayer.yml"));
             mockUserDataPath(fileUtils, "nofileplayer.yml", new File(tempFolder, "nofileplayer.yml"));
 
-            // when
             converter.execute(mock(CommandSender.class));
         }
 
-        // then
         verify(dataSource).saveAuth(authCaptor.capture());
         PlayerAuth auth = authCaptor.getValue();
         verify(dataSource).updateSession(auth);
@@ -100,7 +97,6 @@ class RoyalAuthConverterTest extends AbstractConverterTest {
 
     @Test
     void shouldNotSaveAccountsForPlayersAlreadyInAuthMe() {
-        // given
         OfflinePlayer existingPlayer = offlinePlayer("ExistingPlayer");
         given(server.getOfflinePlayers()).willReturn(new OfflinePlayer[]{existingPlayer});
         given(dataSource.isAuthAvailable("existingplayer")).willReturn(true);
@@ -108,11 +104,9 @@ class RoyalAuthConverterTest extends AbstractConverterTest {
         try (MockedStatic<FileUtils> fileUtils = mockStatic(FileUtils.class)) {
             mockUserDataPath(fileUtils, "existingplayer.yml", new File(tempFolder, "existingplayer.yml"));
 
-            // when
             converter.execute(mock(CommandSender.class));
         }
 
-        // then
         verify(dataSource, never()).saveAuth(any(PlayerAuth.class));
         verify(dataSource, never()).updateSession(any(PlayerAuth.class));
     }

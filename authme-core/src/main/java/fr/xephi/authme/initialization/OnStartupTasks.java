@@ -84,8 +84,8 @@ public class OnStartupTasks {
 
     // Set the console filter to remove the passwords
     private static void setLog4JFilter() {
-        org.apache.logging.log4j.core.Logger logger;
-        logger = (org.apache.logging.log4j.core.Logger) LogManager.getRootLogger();
+        org.apache.logging.log4j.core.Logger logger =
+            (org.apache.logging.log4j.core.Logger) LogManager.getRootLogger();
         logger.addFilter(new Log4JFilter());
     }
 

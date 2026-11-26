@@ -72,21 +72,32 @@ class AsyncAddEmailTest {
         TestHelper.setupLogger();
     }
 
+    private PlayerAuth givenAuthenticatedPlayerWithoutEmail(String name) {
+        String normalized = name.toLowerCase();
+        given(player.getName()).willReturn(name);
+        given(playerCache.isAuthenticated(normalized)).willReturn(true);
+        PlayerAuth auth = mock(PlayerAuth.class);
+        given(auth.getEmail()).willReturn(null);
+        given(playerCache.getAuth(normalized)).willReturn(auth);
+        return auth;
+    }
+
+    private EmailChangedEvent givenEmailChangedEvent(String email) {
+        EmailChangedEvent event = spy(new EmailChangedEvent(player, null, email, false));
+        given(bukkitService.createAndCallEvent(any(Function.class))).willReturn(event);
+        return event;
+    }
+
     @Test
     void shouldAddEmail() {
         // given
         String email = "my.mail@example.org";
-        given(player.getName()).willReturn("testEr");
-        given(playerCache.isAuthenticated("tester")).willReturn(true);
-        PlayerAuth auth = mock(PlayerAuth.class);
-        given(auth.getEmail()).willReturn(null);
-        given(playerCache.getAuth("tester")).willReturn(auth);
+        PlayerAuth auth = givenAuthenticatedPlayerWithoutEmail("testEr");
         given(dataSource.updateEmail(any(PlayerAuth.class))).willReturn(true);
         given(validationService.validateEmail(email)).willReturn(true);
         given(validationService.isEmailFreeForRegistration(email, player)).willReturn(true);
         given(emailService.hasAllInformation()).willReturn(false);
-        EmailChangedEvent event = spy(new EmailChangedEvent(player, null, email, false));
-        given(bukkitService.createAndCallEvent(any(Function.class))).willReturn(event);
+        givenEmailChangedEvent(email);
 
         // when
         asyncAddEmail.addEmail(player, email);
@@ -102,17 +113,12 @@ class AsyncAddEmailTest {
     void shouldSendConfirmationCodeWhenEmailIsConfigured() {
         // given
         String email = "my.mail@example.org";
-        given(player.getName()).willReturn("testEr");
-        given(playerCache.isAuthenticated("tester")).willReturn(true);
-        PlayerAuth auth = mock(PlayerAuth.class);
-        given(auth.getEmail()).willReturn(null);
-        given(playerCache.getAuth("tester")).willReturn(auth);
+        givenAuthenticatedPlayerWithoutEmail("testEr");
         given(validationService.validateEmail(email)).willReturn(true);
         given(validationService.isEmailFreeForRegistration(email, player)).willReturn(true);
         given(emailService.hasAllInformation()).willReturn(true);
         given(emailService.sendEmailConfirmationMail(any(), any(), any())).willReturn(true);
-        EmailChangedEvent event = spy(new EmailChangedEvent(player, null, email, false));
-        given(bukkitService.createAndCallEvent(any(Function.class))).willReturn(event);
+        givenEmailChangedEvent(email);
 
         // when
         asyncAddEmail.addEmail(player, email);
@@ -127,17 +133,12 @@ class AsyncAddEmailTest {
     void shouldReturnErrorWhenMailCannotBeSaved() {
         // given
         String email = "my.mail@example.org";
-        given(player.getName()).willReturn("testEr");
-        given(playerCache.isAuthenticated("tester")).willReturn(true);
-        PlayerAuth auth = mock(PlayerAuth.class);
-        given(auth.getEmail()).willReturn(null);
-        given(playerCache.getAuth("tester")).willReturn(auth);
+        PlayerAuth auth = givenAuthenticatedPlayerWithoutEmail("testEr");
         given(dataSource.updateEmail(any(PlayerAuth.class))).willReturn(false);
         given(validationService.validateEmail(email)).willReturn(true);
         given(validationService.isEmailFreeForRegistration(email, player)).willReturn(true);
         given(emailService.hasAllInformation()).willReturn(false);
-        EmailChangedEvent event = spy(new EmailChangedEvent(player, null, email, false));
-        given(bukkitService.createAndCallEvent(any(Function.class))).willReturn(event);
+        givenEmailChangedEvent(email);
 
         // when
         asyncAddEmail.addEmail(player, email);
@@ -168,11 +169,7 @@ class AsyncAddEmailTest {
     void shouldNotAddMailIfItIsInvalid() {
         // given
         String email = "invalid_mail";
-        given(player.getName()).willReturn("my_Player");
-        given(playerCache.isAuthenticated("my_player")).willReturn(true);
-        PlayerAuth auth = mock(PlayerAuth.class);
-        given(auth.getEmail()).willReturn(null);
-        given(playerCache.getAuth("my_player")).willReturn(auth);
+        givenAuthenticatedPlayerWithoutEmail("my_Player");
         given(validationService.validateEmail(email)).willReturn(false);
 
         // when
@@ -187,11 +184,7 @@ class AsyncAddEmailTest {
     void shouldNotAddMailIfAlreadyUsed() {
         // given
         String email = "player@mail.tld";
-        given(player.getName()).willReturn("TestName");
-        given(playerCache.isAuthenticated("testname")).willReturn(true);
-        PlayerAuth auth = mock(PlayerAuth.class);
-        given(auth.getEmail()).willReturn(null);
-        given(playerCache.getAuth("testname")).willReturn(auth);
+        givenAuthenticatedPlayerWithoutEmail("TestName");
         given(validationService.validateEmail(email)).willReturn(true);
         given(validationService.isEmailFreeForRegistration(email, player)).willReturn(false);
 
@@ -237,16 +230,11 @@ class AsyncAddEmailTest {
     void shouldNotAddOnCancelledEvent() {
         // given
         String email = "player@mail.tld";
-        given(player.getName()).willReturn("TestName");
-        given(playerCache.isAuthenticated("testname")).willReturn(true);
-        PlayerAuth auth = mock(PlayerAuth.class);
-        given(auth.getEmail()).willReturn(null);
-        given(playerCache.getAuth("testname")).willReturn(auth);
+        givenAuthenticatedPlayerWithoutEmail("TestName");
         given(validationService.validateEmail(email)).willReturn(true);
         given(validationService.isEmailFreeForRegistration(email, player)).willReturn(true);
-        EmailChangedEvent event = spy(new EmailChangedEvent(player, null, email, false));
+        EmailChangedEvent event = givenEmailChangedEvent(email);
         event.setCancelled(true);
-        given(bukkitService.createAndCallEvent(any(Function.class))).willReturn(event);
 
         // when
         asyncAddEmail.addEmail(player, email);

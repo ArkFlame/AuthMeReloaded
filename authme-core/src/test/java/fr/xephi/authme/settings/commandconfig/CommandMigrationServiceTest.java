@@ -48,12 +48,8 @@ class CommandMigrationServiceTest {
     @Test
     void shouldRewriteForEmptyFile() {
         // given
-        File commandFile = TestHelper.getJarFile(TestHelper.PROJECT_ROOT + "settings/commandconfig/commands.empty.yml");
-        PropertyResource resource = new YamlFileResource(commandFile);
-
         // when
-        boolean result = commandMigrationService.checkAndMigrate(
-            resource.createReader(), ConfigurationDataBuilder.createConfiguration(CommandSettingsHolder.class));
+        boolean result = checkAndMigrate("commands.empty.yml");
 
         // then
         assertThat(result, equalTo(true));
@@ -62,12 +58,8 @@ class CommandMigrationServiceTest {
     @Test
     void shouldRewriteIncompleteFile() {
         // given
-        File commandFile = TestHelper.getJarFile(TestHelper.PROJECT_ROOT + "settings/commandconfig/commands.incomplete.yml");
-        PropertyResource resource = new YamlFileResource(commandFile);
-
         // when
-        boolean result = commandMigrationService.checkAndMigrate(
-            resource.createReader(), ConfigurationDataBuilder.createConfiguration(CommandSettingsHolder.class));
+        boolean result = checkAndMigrate("commands.incomplete.yml");
 
         // then
         assertThat(result, equalTo(true));
@@ -76,12 +68,8 @@ class CommandMigrationServiceTest {
     @Test
     void shouldNotChangeCompleteFile() {
         // given
-        File commandFile = TestHelper.getJarFile(TestHelper.PROJECT_ROOT + "settings/commandconfig/commands.complete.yml");
-        PropertyResource resource = new YamlFileResource(commandFile);
-
         // when
-        boolean result = commandMigrationService.checkAndMigrate(
-            resource.createReader(), ConfigurationDataBuilder.createConfiguration(CommandSettingsHolder.class));
+        boolean result = checkAndMigrate("commands.complete.yml");
 
         // then
         assertThat(result, equalTo(false));
@@ -127,6 +115,13 @@ class CommandMigrationServiceTest {
         assertThat(newCommand.getExecutor(), equalTo(Executor.CONSOLE));
         assertThat(newCommand.getIfNumberOfAccountsAtLeast().get(), equalTo(3));
         assertThat(newCommand.getIfNumberOfAccountsLessThan().isPresent(), equalTo(false));
+    }
+
+    private boolean checkAndMigrate(String fileName) {
+        PropertyResource resource = new YamlFileResource(
+            TestHelper.getJarFile(TestHelper.PROJECT_ROOT + "settings/commandconfig/" + fileName));
+        return commandMigrationService.checkAndMigrate(
+            resource.createReader(), ConfigurationDataBuilder.createConfiguration(CommandSettingsHolder.class));
     }
 
     /*

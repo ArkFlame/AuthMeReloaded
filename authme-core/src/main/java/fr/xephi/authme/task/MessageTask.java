@@ -12,13 +12,15 @@ public class MessageTask extends BukkitRunnable {
     private final String[] message;
     private boolean isMuted;
 
-    /*
+    /**
      * Constructor.
+     *
+     * @param player the player to show the message to
+     * @param lines the message lines
      */
     public MessageTask(Player player, String[] lines) {
         this.player = player;
         this.message = lines;
-        isMuted = false;
     }
 
     public void setMuted(boolean isMuted) {

@@ -1,7 +1,5 @@
 package fr.xephi.authme.initialization;
 
-import org.mockito.quality.Strictness;
-import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.junit.jupiter.api.extension.ExtendWith;
 import fr.xephi.authme.AuthMe;
@@ -107,14 +105,11 @@ class TaskCloserTest {
         // Note ljacqu 20160827: This test must be run in its own thread because we throw an InterruptedException.
         // Somehow the java.nio.Files API used in tests that are run subsequently don't like this and fail otherwise.
         ExecutorService executor = Executors.newSingleThreadExecutor();
-        executor.submit(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    shouldStopForInterruptedThread0();
-                } catch (Exception e) {
-                    throw new IllegalStateException(e);
-                }
+        executor.submit(() -> {
+            try {
+                shouldStopForInterruptedThread0();
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
             }
         }).get();
     }

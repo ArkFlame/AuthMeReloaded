@@ -57,14 +57,19 @@ class PlayerLocaleResolverTest {
         assertThat(PlayerLocaleResolver.toLanguageCode(locale), nullValue());
     }
 
+    private static Settings settingsWithPerPlayerLocale(boolean enabled) {
+        Settings settings = mock(Settings.class);
+        given(settings.getProperty(PluginSettings.PER_PLAYER_LOCALE)).willReturn(enabled);
+        return settings;
+    }
+
     @Test
     void shouldResolveLanguageForPlayerWithPerPlayerLocaleEnabled() {
         // given
         Player player = mock(Player.class);
         BukkitCompatibilityAdapter adapter = mock(BukkitCompatibilityAdapter.class);
         given(adapter.getPlayerLocale(player)).willReturn(Optional.of("fr_fr"));
-        Settings settings = mock(Settings.class);
-        given(settings.getProperty(PluginSettings.PER_PLAYER_LOCALE)).willReturn(true);
+        Settings settings = settingsWithPerPlayerLocale(true);
 
         // when / then
         assertThat(PlayerLocaleResolver.resolveLanguage(settings, player, adapter), equalTo("fr"));
@@ -76,8 +81,7 @@ class PlayerLocaleResolverTest {
         Player player = mock(Player.class);
         BukkitCompatibilityAdapter adapter = mock(BukkitCompatibilityAdapter.class);
         given(adapter.getPlayerLocale(player)).willReturn(Optional.of("pt_br"));
-        Settings settings = mock(Settings.class);
-        given(settings.getProperty(PluginSettings.PER_PLAYER_LOCALE)).willReturn(true);
+        Settings settings = settingsWithPerPlayerLocale(true);
 
         // when / then
         assertThat(PlayerLocaleResolver.resolveLanguage(settings, player, adapter), equalTo("br"));
@@ -89,8 +93,7 @@ class PlayerLocaleResolverTest {
         Player player = mock(Player.class);
         BukkitCompatibilityAdapter adapter = mock(BukkitCompatibilityAdapter.class);
         given(adapter.getPlayerLocale(player)).willReturn(Optional.empty());
-        Settings settings = mock(Settings.class);
-        given(settings.getProperty(PluginSettings.PER_PLAYER_LOCALE)).willReturn(true);
+        Settings settings = settingsWithPerPlayerLocale(true);
 
         // when / then
         assertThat(PlayerLocaleResolver.resolveLanguage(settings, player, adapter), nullValue());
@@ -100,8 +103,7 @@ class PlayerLocaleResolverTest {
     void shouldReturnNullWhenAdapterIsNull() {
         // given per-player locale enabled but no adapter capability
         Player player = mock(Player.class);
-        Settings settings = mock(Settings.class);
-        given(settings.getProperty(PluginSettings.PER_PLAYER_LOCALE)).willReturn(true);
+        Settings settings = settingsWithPerPlayerLocale(true);
 
         // when / then
         assertThat(PlayerLocaleResolver.resolveLanguage(settings, player, null), nullValue());
@@ -112,8 +114,7 @@ class PlayerLocaleResolverTest {
         // given
         Player player = mock(Player.class);
         BukkitCompatibilityAdapter adapter = mock(BukkitCompatibilityAdapter.class);
-        Settings settings = mock(Settings.class);
-        given(settings.getProperty(PluginSettings.PER_PLAYER_LOCALE)).willReturn(false);
+        Settings settings = settingsWithPerPlayerLocale(false);
 
         // when / then
         assertThat(PlayerLocaleResolver.resolveLanguage(settings, player, adapter), nullValue());
@@ -124,8 +125,7 @@ class PlayerLocaleResolverTest {
         // given
         CommandSender sender = mock(CommandSender.class);
         BukkitCompatibilityAdapter adapter = mock(BukkitCompatibilityAdapter.class);
-        Settings settings = mock(Settings.class);
-        given(settings.getProperty(PluginSettings.PER_PLAYER_LOCALE)).willReturn(true);
+        Settings settings = settingsWithPerPlayerLocale(true);
 
         // when / then
         assertThat(PlayerLocaleResolver.resolveLanguage(settings, sender, adapter), nullValue());

@@ -53,7 +53,12 @@ public class AsyncRegister implements AsynchronousProcess {
         if (preRegisterCheck(variant, parameters.getPlayer())) {
             RegistrationExecutor<P> executor = registrationExecutorFactory.getSingleton(variant.getExecutorClass());
             if (executor.isRegistrationAdmitted(parameters)) {
-                executeRegistration(parameters, executor);
+                PlayerAuth auth = executor.buildPlayerAuth(parameters);
+                if (database.saveAuth(auth)) {
+                    executor.executePostPersistAction(parameters);
+                } else {
+                    service.send(parameters.getPlayer(), MessageKey.ERROR);
+                }
             }
         }
     }
@@ -86,23 +91,6 @@ public class AsyncRegister implements AsynchronousProcess {
         }
 
         return variant == RegistrationMethod.API_REGISTRATION || isPlayerIpAllowedToRegister(player);
-    }
-
-    /**
-     * Executes the registration.
-     *
-     * @param parameters the registration parameters
-     * @param executor   the executor to perform the registration process with
-     * @param <P>        registration params type
-     */
-    private <P extends RegistrationParameters>
-    void executeRegistration(P parameters, RegistrationExecutor<P> executor) {
-        PlayerAuth auth = executor.buildPlayerAuth(parameters);
-        if (database.saveAuth(auth)) {
-            executor.executePostPersistAction(parameters);
-        } else {
-            service.send(parameters.getPlayer(), MessageKey.ERROR);
-        }
     }
 
     /**

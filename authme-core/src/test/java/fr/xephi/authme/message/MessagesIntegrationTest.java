@@ -19,7 +19,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
 
 import java.io.File;
 import java.io.IOException;
@@ -74,7 +73,9 @@ class MessagesIntegrationTest {
         FileUtils.create(testFile);
         Files.copy(TestHelper.getJarFile(YML_TEST_FILE), testFile);
 
-        messagesFileHandler = createMessagesFileHandler();
+        Settings settings = mock(Settings.class);
+        given(settings.getProperty(PluginSettings.MESSAGES_LANGUAGE)).willReturn("test");
+        messagesFileHandler = createMessagesFileHandler(settings);
         messages = new Messages(messagesFileHandler);
     }
 
@@ -87,8 +88,7 @@ class MessagesIntegrationTest {
     void shouldLoadMessageAndSplitAtNewLines() {
         // given
         MessageKey key = MessageKey.UNKNOWN_USER;
-        CommandSender sender = mock(CommandSender.class);
-        given(sender.getName()).willReturn("Tester");
+        CommandSender sender = mockSender();
 
         // when
         String[] message = messages.retrieve(key, sender);
@@ -102,8 +102,7 @@ class MessagesIntegrationTest {
     void shouldLoadMessageAsStringWithNewLines() {
         // given
         MessageKey key = MessageKey.UNKNOWN_USER;
-        CommandSender sender = mock(CommandSender.class);
-        given(sender.getName()).willReturn("Tester");
+        CommandSender sender = mockSender();
 
         // when
         String message = messages.retrieveSingle(sender, key);
@@ -116,8 +115,7 @@ class MessagesIntegrationTest {
     void shouldFormatColorCodes() {
         // given
         MessageKey key = MessageKey.LOGIN_SUCCESS;
-        CommandSender sender = mock(CommandSender.class);
-        given(sender.getName()).willReturn("Tester");
+        CommandSender sender = mockSender();
 
         // when
         String[] message = messages.retrieve(key, sender);
@@ -131,8 +129,7 @@ class MessagesIntegrationTest {
     void shouldNotSendEmptyMessage() {
         // given
         MessageKey key = MessageKey.EMAIL_ALREADY_USED_ERROR;
-        CommandSender sender = mock(CommandSender.class);
-        given(sender.getName()).willReturn("Tester");
+        CommandSender sender = mockSender();
 
         // when
         messages.send(sender, key);
@@ -145,9 +142,7 @@ class MessagesIntegrationTest {
     void shouldSendMessageToPlayer() {
         // given
         MessageKey key = MessageKey.LOGIN_SUCCESS;
-        Player player = Mockito.mock(Player.class);
-        given(player.getName()).willReturn("Tester");
-        given(player.getDisplayName()).willReturn("§cTesty");
+        Player player = mockPlayer();
 
         // when
         messages.send(player, key);
@@ -160,9 +155,7 @@ class MessagesIntegrationTest {
     void shouldSendMultiLineMessageToPlayer() {
         // given
         MessageKey key = MessageKey.UNKNOWN_USER;
-        Player player = Mockito.mock(Player.class);
-        given(player.getName()).willReturn("Tester");
-        given(player.getDisplayName()).willReturn("§cTesty");
+        Player player = mockPlayer();
 
         // when
         messages.send(player, key);
@@ -178,9 +171,7 @@ class MessagesIntegrationTest {
     void shouldSendMessageToPlayerWithNameReplacement() {
         // given
         MessageKey key = MessageKey.REGISTER_MESSAGE;
-        Player player = Mockito.mock(Player.class);
-        given(player.getName()).willReturn("Tester");
-        given(player.getDisplayName()).willReturn("§cTesty");
+        Player player = mockPlayer();
 
         // when
         messages.send(player, key);
@@ -193,8 +184,7 @@ class MessagesIntegrationTest {
     void shouldSendMessageToPlayerWithTagReplacement() {
         // given
         MessageKey key = MessageKey.CAPTCHA_WRONG_ERROR;
-        CommandSender sender = Mockito.mock(CommandSender.class);
-        given(sender.getName()).willReturn("Tester");
+        CommandSender sender = mockSender();
 
         // when
         messages.send(sender, key, "1234");
@@ -207,8 +197,7 @@ class MessagesIntegrationTest {
     void shouldNotLogErrorForKeyWithNoTagReplacements() {
         // given
         MessageKey key = MessageKey.CAPTCHA_WRONG_ERROR;
-        CommandSender sender = mock(CommandSender.class);
-        given(sender.getName()).willReturn("Tester");
+        CommandSender sender = mockSender();
 
         // when
         messages.send(sender, key);
@@ -223,8 +212,7 @@ class MessagesIntegrationTest {
         Logger logger = mock(Logger.class);
         ConsoleLogger.initialize(logger, null);
         MessageKey key = MessageKey.CAPTCHA_WRONG_ERROR;
-        CommandSender sender = mock(CommandSender.class);
-        given(sender.getName()).willReturn("Tester");
+        CommandSender sender = mockSender();
 
         // when
         messages.send(sender, key, "rep", "rep2");
@@ -239,8 +227,7 @@ class MessagesIntegrationTest {
         Logger logger = mock(Logger.class);
         ConsoleLogger.initialize(logger, null);
         MessageKey key = MessageKey.UNKNOWN_USER;
-        CommandSender sender = mock(CommandSender.class);
-        given(sender.getName()).willReturn("Tester");
+        CommandSender sender = mockSender();
 
         // when
         messages.send(sender, key, "Replacement");
@@ -254,8 +241,7 @@ class MessagesIntegrationTest {
         // given
         // Key is present in both files
         MessageKey key = MessageKey.WRONG_PASSWORD;
-        CommandSender sender = mock(CommandSender.class);
-        given(sender.getName()).willReturn("Tester");
+        CommandSender sender = mockSender();
 
         // when
         String message = messages.retrieveSingle(sender, key);
@@ -268,8 +254,7 @@ class MessagesIntegrationTest {
     void shouldRetrieveMessageWithReplacements() {
         // given
         MessageKey key = MessageKey.CAPTCHA_WRONG_ERROR;
-        CommandSender sender = mock(CommandSender.class);
-        given(sender.getName()).willReturn("Tester");
+        CommandSender sender = mockSender();
 
         // when
         String result = messages.retrieveSingle(sender.getName(), key, "24680");
@@ -306,17 +291,10 @@ class MessagesIntegrationTest {
     @Test
     void shouldUsePlayerLocaleForMessages() {
         // given
-        Settings settings = mock(Settings.class);
-        given(settings.getProperty(PluginSettings.MESSAGES_LANGUAGE)).willReturn("en");
-        given(settings.getProperty(PluginSettings.PER_PLAYER_LOCALE)).willReturn(true);
         BukkitCompatibilityAdapter adapter = mock(BukkitCompatibilityAdapter.class);
+        Messages messagesWithLocale = createMessagesWithLocale(adapter);
 
-        MessagesFileHandler fileHandler = createMessagesFileHandlerForLanguage("en", settings);
-        Messages messagesWithLocale = new Messages(fileHandler, null, settings, adapter);
-
-        Player player = mock(Player.class);
-        given(player.getName()).willReturn("TestPlayer");
-        given(player.getDisplayName()).willReturn("TestPlayer");
+        Player player = mockPlayer("TestPlayer", "TestPlayer");
         given(adapter.getPlayerLocale(player)).willReturn(Optional.of("ru_ru"));
 
         // when
@@ -330,17 +308,10 @@ class MessagesIntegrationTest {
     @Test
     void shouldFallBackToServerLanguageForUnknownLocale() {
         // given
-        Settings settings = mock(Settings.class);
-        given(settings.getProperty(PluginSettings.MESSAGES_LANGUAGE)).willReturn("en");
-        given(settings.getProperty(PluginSettings.PER_PLAYER_LOCALE)).willReturn(true);
         BukkitCompatibilityAdapter adapter = mock(BukkitCompatibilityAdapter.class);
+        Messages messagesWithLocale = createMessagesWithLocale(adapter);
 
-        MessagesFileHandler fileHandler = createMessagesFileHandlerForLanguage("en", settings);
-        Messages messagesWithLocale = new Messages(fileHandler, null, settings, adapter);
-
-        Player player = mock(Player.class);
-        given(player.getName()).willReturn("TestPlayer");
-        given(player.getDisplayName()).willReturn("TestPlayer");
+        Player player = mockPlayer("TestPlayer", "TestPlayer");
         given(adapter.getPlayerLocale(player)).willReturn(Optional.of("xx_xx")); // no such language
 
         // when
@@ -351,16 +322,31 @@ class MessagesIntegrationTest {
         assertThat(result[0], equalTo("§2Successful login!"));
     }
 
-    private MessagesFileHandler createMessagesFileHandler() {
-        Settings settings = mock(Settings.class);
-        given(settings.getProperty(PluginSettings.MESSAGES_LANGUAGE)).willReturn("test");
-
-        MessagesFileHandler messagesFileHandler = new MessagesFileHandler(dataFolder, settings, mock(MessageUpdater.class));
-        ReflectionTestUtils.invokePostConstructMethods(messagesFileHandler);
-        return messagesFileHandler;
+    private static CommandSender mockSender() {
+        CommandSender sender = mock(CommandSender.class);
+        given(sender.getName()).willReturn("Tester");
+        return sender;
     }
 
-    private MessagesFileHandler createMessagesFileHandlerForLanguage(String language, Settings settings) {
+    private static Player mockPlayer() {
+        return mockPlayer("Tester", "§cTesty");
+    }
+
+    private static Player mockPlayer(String name, String displayName) {
+        Player player = mock(Player.class);
+        given(player.getName()).willReturn(name);
+        given(player.getDisplayName()).willReturn(displayName);
+        return player;
+    }
+
+    private Messages createMessagesWithLocale(BukkitCompatibilityAdapter adapter) {
+        Settings settings = mock(Settings.class);
+        given(settings.getProperty(PluginSettings.MESSAGES_LANGUAGE)).willReturn("en");
+        given(settings.getProperty(PluginSettings.PER_PLAYER_LOCALE)).willReturn(true);
+        return new Messages(createMessagesFileHandler(settings), null, settings, adapter);
+    }
+
+    private MessagesFileHandler createMessagesFileHandler(Settings settings) {
         MessagesFileHandler messagesFileHandler = new MessagesFileHandler(dataFolder, settings, mock(MessageUpdater.class));
         ReflectionTestUtils.invokePostConstructMethods(messagesFileHandler);
         return messagesFileHandler;

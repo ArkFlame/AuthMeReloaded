@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class ExpiringSet<E> {
 
-    private Map<E, Long> entries = new ConcurrentHashMap<>();
+    private final Map<E, Long> entries = new ConcurrentHashMap<>();
     private long expirationMillis;
 
     /**

@@ -78,12 +78,7 @@ public class Messages {
      * @param key The key of the message to send
      */
     public void send(CommandSender sender, MessageKey key) {
-        runOnSenderThread(sender, () -> {
-            String[] lines = retrieve(key, sender);
-            for (String line : lines) {
-                sender.sendMessage(line);
-            }
-        });
+        runOnSenderThread(sender, () -> sendLines(sender, retrieve(key, sender)));
     }
 
     /**
@@ -96,12 +91,7 @@ public class Messages {
      * @param replacements The replacements to apply for the tags
      */
     public void send(CommandSender sender, MessageKey key, String... replacements) {
-        runOnSenderThread(sender, () -> {
-            String message = retrieveSingle(sender, key, replacements);
-            for (String line : message.split("\n")) {
-                sender.sendMessage(line);
-            }
-        });
+        runOnSenderThread(sender, () -> sendLines(sender, retrieveSingle(sender, key, replacements).split("\n")));
     }
 
     /**
@@ -145,10 +135,8 @@ public class Messages {
      */
     private String retrieveMessage(MessageKey key, CommandSender sender) {
         String language = PlayerLocaleResolver.resolveLanguage(settings, sender, compatibilityAdapter);
-        String message = MiniMessageConverter.convert(
-            messagesFileHandler.getMessage(key.getKey(), language), isMiniMessageEnabled());
         String displayName = sender instanceof Player ? ((Player) sender).getDisplayName() : sender.getName();
-        return formatMessage(message, sender.getName(), displayName);
+        return retrieveMessage(key, sender.getName(), displayName, language);
     }
 
     /**
@@ -159,9 +147,13 @@ public class Messages {
      * @return The message from the file
      */
     private String retrieveMessage(MessageKey key, String name) {
+        return retrieveMessage(key, name, name, null);
+    }
+
+    private String retrieveMessage(MessageKey key, String name, String displayName, String language) {
         String message = MiniMessageConverter.convert(
-            messagesFileHandler.getMessage(key.getKey()), isMiniMessageEnabled());
-        return formatMessage(message, name, name);
+            messagesFileHandler.getMessage(key.getKey(), language), isMiniMessageEnabled());
+        return formatMessage(message, name, displayName);
     }
 
     private static String formatMessage(String message, String name, String displayName) {
@@ -220,6 +212,12 @@ public class Messages {
             bukkitService.scheduleSyncTaskFromOptionallyAsyncTask((Player) sender, action);
         } else {
             action.run();
+        }
+    }
+
+    private static void sendLines(CommandSender sender, String[] lines) {
+        for (String line : lines) {
+            sender.sendMessage(line);
         }
     }
 }

@@ -1,6 +1,5 @@
 package fr.xephi.authme.security;
 
-import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
@@ -81,7 +80,7 @@ public final class HashUtils {
      * @return True if the salt is valid, false otherwise
      */
     public static boolean isValidBcryptHash(String hash) {
-        return hash.length() == 60 && hash.substring(0, 2).equals("$2");
+        return hash.length() == 60 && hash.startsWith("$2");
     }
 
     /**
@@ -97,7 +96,7 @@ public final class HashUtils {
             Mac mac = Mac.getInstance("HmacSHA256");
             mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
             byte[] digest = mac.doFinal(message.getBytes(StandardCharsets.UTF_8));
-            return String.format("%064x", new BigInteger(1, digest));
+            return toHex(digest);
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
             throw new UnsupportedOperationException("HmacSHA256 is not available on this system", e);
         }
@@ -144,7 +143,7 @@ public final class HashUtils {
         algorithm.reset();
         algorithm.update(message.getBytes());
         byte[] digest = algorithm.digest();
-        return String.format("%0" + (digest.length << 1) + "x", new BigInteger(1, digest));
+        return toHex(digest);
     }
 
     /**

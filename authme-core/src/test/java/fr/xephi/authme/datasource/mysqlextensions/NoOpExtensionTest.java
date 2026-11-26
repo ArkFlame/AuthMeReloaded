@@ -34,7 +34,6 @@ class NoOpExtensionTest {
 
     @Test
     void shouldNotHaveAnyInteractionsWithConnection() throws SQLException {
-        // given
         Connection connection = mock(Connection.class);
         PlayerAuth auth = mock(PlayerAuth.class);
         int id = 3;
@@ -42,13 +41,11 @@ class NoOpExtensionTest {
         HashedPassword password = new HashedPassword("test", "toast");
 
 
-        // when
         extension.extendAuth(auth, id, connection);
         extension.changePassword(name, password, connection);
         extension.removeAuth(name, connection);
         extension.saveAuth(auth, connection);
 
-        // then
         verifyNoInteractions(connection, auth);
     }
 }

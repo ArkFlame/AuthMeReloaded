@@ -21,13 +21,10 @@ class BCrypt2yTest extends AbstractEncryptionMethodTest {
 
     @Test
     void shouldGenerateWith2yPrefixAndCostFactor10() {
-        // given
         BCrypt2y bCrypt2y = new BCrypt2y();
 
-        // when
         HashedPassword result = bCrypt2y.computeHash("test", null);
 
-        // then
         assertThat(result.getHash(), startsWith("$2y$10$"));
         assertThat(result.getSalt(), nullValue());
     }

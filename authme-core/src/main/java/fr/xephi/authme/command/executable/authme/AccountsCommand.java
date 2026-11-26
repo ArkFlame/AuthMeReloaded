@@ -35,20 +35,12 @@ public class AccountsCommand implements ExecutableCommand {
             sender.sendMessage("Usage: /authme accounts <player|ip>");
             return;
         }
-        final String playerName = arguments.isEmpty() ? sender.getName() : arguments.get(0);
+        final String playerName = CommandArguments.getTargetPlayerName(sender, arguments);
 
         // Assumption: a player name cannot contain '.'
         if (playerName.contains(".")) {
-            bukkitService.runTaskAsynchronously(() -> {
-                List<String> accountList = dataSource.getAllAuthsByIp(playerName);
-                if (accountList.isEmpty()) {
-                    commonService.send(sender, MessageKey.ACCOUNTS_IP_NOT_FOUND);
-                } else if (accountList.size() == 1) {
-                    commonService.send(sender, MessageKey.ACCOUNTS_SINGLE, playerName);
-                } else {
-                    outputAccountsList(sender, playerName, accountList);
-                }
-            });
+            bukkitService.runTaskAsynchronously(() ->
+                outputAccountsByIp(sender, playerName, playerName, MessageKey.ACCOUNTS_IP_NOT_FOUND));
         } else {
             bukkitService.runTaskAsynchronously(() -> {
                 PlayerAuth auth = dataSource.getAuth(playerName.toLowerCase(Locale.ROOT));
@@ -59,16 +51,19 @@ public class AccountsCommand implements ExecutableCommand {
                     commonService.send(sender, MessageKey.ACCOUNTS_NO_LAST_IP);
                     return;
                 }
-
-                List<String> accountList = dataSource.getAllAuthsByIp(auth.getLastIp());
-                if (accountList.isEmpty()) {
-                    commonService.send(sender, MessageKey.UNKNOWN_USER);
-                } else if (accountList.size() == 1) {
-                    commonService.send(sender, MessageKey.ACCOUNTS_SINGLE, playerName);
-                } else {
-                    outputAccountsList(sender, playerName, accountList);
-                }
+                outputAccountsByIp(sender, playerName, auth.getLastIp(), MessageKey.UNKNOWN_USER);
             });
+        }
+    }
+
+    private void outputAccountsByIp(CommandSender sender, String playerName, String ip, MessageKey notFoundKey) {
+        List<String> accountList = dataSource.getAllAuthsByIp(ip);
+        if (accountList.isEmpty()) {
+            commonService.send(sender, notFoundKey);
+        } else if (accountList.size() == 1) {
+            commonService.send(sender, MessageKey.ACCOUNTS_SINGLE, playerName);
+        } else {
+            outputAccountsList(sender, playerName, accountList);
         }
     }
 

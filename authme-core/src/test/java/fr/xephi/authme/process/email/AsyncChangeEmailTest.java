@@ -75,10 +75,7 @@ class AsyncChangeEmailTest {
     void shouldChangeEmail() {
         // given
         String newEmail = "new@mail.tld";
-        given(player.getName()).willReturn("Bobby");
-        given(playerCache.isAuthenticated("bobby")).willReturn(true);
-        PlayerAuth auth = authWithMail("old@mail.tld");
-        given(playerCache.getAuth("bobby")).willReturn(auth);
+        PlayerAuth auth = givenAuthenticatedPlayerWithEmail("Bobby", "old@mail.tld");
         given(dataSource.updateEmail(auth)).willReturn(true);
         given(validationService.validateEmail(newEmail)).willReturn(true);
         given(validationService.isEmailFreeForRegistration(newEmail, player)).willReturn(true);
@@ -124,10 +121,7 @@ class AsyncChangeEmailTest {
     void shouldShowErrorIfSaveFails() {
         // given
         String newEmail = "new@mail.tld";
-        given(player.getName()).willReturn("Bobby");
-        given(playerCache.isAuthenticated("bobby")).willReturn(true);
-        PlayerAuth auth = authWithMail("old@mail.tld");
-        given(playerCache.getAuth("bobby")).willReturn(auth);
+        PlayerAuth auth = givenAuthenticatedPlayerWithEmail("Bobby", "old@mail.tld");
         given(dataSource.updateEmail(auth)).willReturn(false);
         given(validationService.validateEmail(newEmail)).willReturn(true);
         given(validationService.isEmailFreeForRegistration(newEmail, player)).willReturn(true);
@@ -156,8 +150,7 @@ class AsyncChangeEmailTest {
         process.changeEmail(player, "old@mail.tld", "new@mailt.tld");
 
         // then
-        verify(dataSource, never()).updateEmail(any(PlayerAuth.class));
-        verify(playerCache, never()).updatePlayerIfPresent(any(PlayerAuth.class));
+        verifyEmailNotUpdated();
         verify(service).send(player, MessageKey.USAGE_ADD_EMAIL);
     }
 
@@ -165,18 +158,14 @@ class AsyncChangeEmailTest {
     void shouldRejectInvalidNewMail() {
         // given
         String newEmail = "bogus";
-        given(player.getName()).willReturn("Bobby");
-        given(playerCache.isAuthenticated("bobby")).willReturn(true);
-        PlayerAuth auth = authWithMail("old@mail.tld");
-        given(playerCache.getAuth("bobby")).willReturn(auth);
+        PlayerAuth auth = givenAuthenticatedPlayerWithEmail("Bobby", "old@mail.tld");
         given(validationService.validateEmail(newEmail)).willReturn(false);
 
         // when
         process.changeEmail(player, "old@mail.tld", newEmail);
 
         // then
-        verify(dataSource, never()).updateEmail(any(PlayerAuth.class));
-        verify(playerCache, never()).updatePlayerIfPresent(any(PlayerAuth.class));
+        verifyEmailNotUpdated();
         verify(service).send(player, MessageKey.INVALID_NEW_EMAIL);
     }
 
@@ -194,8 +183,7 @@ class AsyncChangeEmailTest {
         process.changeEmail(player, "old@mail.tld", newEmail);
 
         // then
-        verify(dataSource, never()).updateEmail(any(PlayerAuth.class));
-        verify(playerCache, never()).updatePlayerIfPresent(any(PlayerAuth.class));
+        verifyEmailNotUpdated();
         verify(service).send(player, MessageKey.INVALID_OLD_EMAIL);
     }
 
@@ -214,8 +202,7 @@ class AsyncChangeEmailTest {
         process.changeEmail(player, "old@example.com", newEmail);
 
         // then
-        verify(dataSource, never()).updateEmail(any(PlayerAuth.class));
-        verify(playerCache, never()).updatePlayerIfPresent(any(PlayerAuth.class));
+        verifyEmailNotUpdated();
         verify(service).send(player, MessageKey.EMAIL_ALREADY_USED_ERROR);
     }
 
@@ -230,8 +217,7 @@ class AsyncChangeEmailTest {
         process.changeEmail(player, "old@mail.tld", "new@mail.tld");
 
         // then
-        verify(dataSource, never()).updateEmail(any(PlayerAuth.class));
-        verify(playerCache, never()).updatePlayerIfPresent(any(PlayerAuth.class));
+        verifyEmailNotUpdated();
         verify(service).send(player, MessageKey.LOGIN_MESSAGE);
     }
 
@@ -246,8 +232,7 @@ class AsyncChangeEmailTest {
         process.changeEmail(player, "old@mail.tld", "new@mail.tld");
 
         // then
-        verify(dataSource, never()).updateEmail(any(PlayerAuth.class));
-        verify(playerCache, never()).updatePlayerIfPresent(any(PlayerAuth.class));
+        verifyEmailNotUpdated();
         verify(service).send(player, MessageKey.REGISTER_MESSAGE);
     }
 
@@ -270,9 +255,21 @@ class AsyncChangeEmailTest {
         process.changeEmail(player, oldEmail, newEmail);
 
         // then
+        verifyEmailNotUpdated();
+        verify(service).send(player, MessageKey.EMAIL_CHANGE_NOT_ALLOWED);
+    }
+
+    private PlayerAuth givenAuthenticatedPlayerWithEmail(String name, String email) {
+        given(player.getName()).willReturn(name);
+        given(playerCache.isAuthenticated(name.toLowerCase())).willReturn(true);
+        PlayerAuth auth = authWithMail(email);
+        given(playerCache.getAuth(name.toLowerCase())).willReturn(auth);
+        return auth;
+    }
+
+    private void verifyEmailNotUpdated() {
         verify(dataSource, never()).updateEmail(any(PlayerAuth.class));
         verify(playerCache, never()).updatePlayerIfPresent(any(PlayerAuth.class));
-        verify(service).send(player, MessageKey.EMAIL_CHANGE_NOT_ALLOWED);
     }
 
     private static PlayerAuth authWithMail(String email) {

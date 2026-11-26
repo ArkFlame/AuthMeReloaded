@@ -106,23 +106,24 @@ public class SettingsMigrationService extends PlainMigrationService {
      */
     private static boolean migrateTimeoutToLoginAndRegisterTimeout(PropertyReader reader,
                                                                    ConfigurationData configData) {
-        Property<Integer> oldTimeout = newProperty("settings.restrictions.timeout", 30);
+        final String oldPath = "settings.restrictions.timeout";
+        Property<Integer> oldTimeout = newProperty(oldPath, 30);
         PropertyValue<Integer> oldValue = oldTimeout.determineValue(reader);
         if (!oldValue.isValidInResource()) {
             return false;
         }
-        boolean changed = false;
-        if (!reader.contains(LOGIN_TIMEOUT.getPath())) {
-            logger.info("Migrating 'settings.restrictions.timeout' to '" + LOGIN_TIMEOUT.getPath() + "'");
-            configData.setValue(LOGIN_TIMEOUT, oldValue.getValue());
-            changed = true;
+        return moveTimeoutSetting(reader, configData, oldPath, oldValue.getValue(), LOGIN_TIMEOUT)
+            | moveTimeoutSetting(reader, configData, oldPath, oldValue.getValue(), REGISTER_TIMEOUT);
+    }
+
+    private static boolean moveTimeoutSetting(PropertyReader reader, ConfigurationData configData,
+                                              String oldPath, int value, Property<Integer> newProperty) {
+        if (reader.contains(newProperty.getPath())) {
+            return false;
         }
-        if (!reader.contains(REGISTER_TIMEOUT.getPath())) {
-            logger.info("Migrating 'settings.restrictions.timeout' to '" + REGISTER_TIMEOUT.getPath() + "'");
-            configData.setValue(REGISTER_TIMEOUT, oldValue.getValue());
-            changed = true;
-        }
-        return changed;
+        logger.info("Migrating '" + oldPath + "' to '" + newProperty.getPath() + "'");
+        configData.setValue(newProperty, value);
+        return true;
     }
 
     /**
@@ -302,19 +303,20 @@ public class SettingsMigrationService extends PlainMigrationService {
     }
 
     private static boolean hasOldHelpHeaderProperty(PropertyReader reader) {
-        if (reader.contains("settings.helpHeader")) {
-            logger.warning("Help header setting is now in messages/help_xx.yml, "
-                + "please check the file to set it again");
-            return true;
-        }
-        return false;
+        return warnIfOldPropertyPresent(reader, "settings.helpHeader",
+            "Help header setting is now in messages/help_xx.yml, please check the file to set it again");
     }
 
     private static boolean hasSupportOldPasswordProperty(PropertyReader reader) {
         String path = "settings.security.supportOldPasswordHash";
+        return warnIfOldPropertyPresent(reader, path,
+            "Property '" + path + "' is no longer supported. Use '"
+                + SecuritySettings.LEGACY_HASHES.getPath() + "' instead.");
+    }
+
+    private static boolean warnIfOldPropertyPresent(PropertyReader reader, String path, String warning) {
         if (reader.contains(path)) {
-            logger.warning("Property '" + path + "' is no longer supported. "
-                + "Use '" + SecuritySettings.LEGACY_HASHES.getPath() + "' instead.");
+            logger.warning(warning);
             return true;
         }
         return false;

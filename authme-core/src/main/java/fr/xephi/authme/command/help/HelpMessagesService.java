@@ -101,9 +101,7 @@ public class HelpMessagesService {
     }
 
     public String getMessage(DefaultPermission defaultPermission) {
-        // e.g. {default_permissions_path}.opOnly for DefaultPermission.OP_ONLY
-        String path = DEFAULT_PERMISSIONS_PATH + getDefaultPermissionsSubPath(defaultPermission);
-        return helpMessagesFileHandler.getMessage(path);
+        return getMessage(defaultPermission, null);
     }
 
     public String getMessage(DefaultPermission defaultPermission, String language) {
