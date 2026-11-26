@@ -76,6 +76,7 @@ public class FoliaPlatformAdapter extends AbstractPaperPlatformAdapter {
     @Override
     public String getCompatibilityError() {
         return getPaperCompatibilityError("This AuthMe Folia build requires the Folia 1.21.11+ API.",
+            "io.papermc.paper.threadedregions.RegionizedServer",
             "io.papermc.paper.threadedregions.scheduler.GlobalRegionScheduler");
     }
 

@@ -18,9 +18,7 @@ modules on JDK 21+.
 | `authme-tools` | jar, Java 17 (21 on JDK 21+) | Standalone converter/utility tooling built on core. |
 | `authme-spigot-1.8` | jar, Java 8 | Shaded old-server jar; carries 14 library relocations and uses the Bukkit scheduler. |
 | `authme-spigot-legacy` | jar, reactor JDK | Legacy server jar; libraries are delivered via `plugin.yml`. |
-| `authme-paper-common` | jar, Java 21 | Shared Paper adapter (`AbstractPaperPlatformAdapter`) and dialog helpers. |
-| `authme-paper` | jar, Java 21 | Shaded Paper server jar. |
-| `authme-folia` | jar, Java 21 | Shaded Folia server jar with a region-aware adapter. |
+| `authme-paper` | jar, Java 21 | One shaded jar for Paper and Folia; the Folia adapter is chosen only on Folia. |
 | `authme-spigot-1.21` | jar, Java 21 | Shaded modern Spigot jar (brigadier/dialog support). |
 | `authme-bungee` | jar, Java 21 | BungeeCord proxy plugin. |
 | `authme-velocity` | jar, Java 25 | Velocity proxy plugin. |
@@ -52,9 +50,9 @@ Three scheduler implementations exist:
 
 - `AbstractSpigotPlatformAdapter` (core, Java 8) maps every context onto the classic
   `BukkitScheduler` — the baseline for the 1.8 and legacy jars.
-- `AbstractPaperPlatformAdapter` (paper-common, Java 21) extends it and routes player-bound work
+- `AbstractPaperPlatformAdapter` (`authme-paper`, Java 21) extends it and routes player-bound work
   through Paper's per-entity scheduler.
-- `FoliaPlatformAdapter` (folia, Java 21) implements the full region model: entity scheduler,
+- `FoliaPlatformAdapter` (`authme-paper`, Java 21, selected only on Folia via `RegionizedServer`) implements the full region model: entity scheduler,
   `Bukkit.getGlobalRegionScheduler()`, `Bukkit.getAsyncScheduler()` and ownership checks.
 
 This separation works, but it forces multiple jars and bytecode levels and repeats scheduling

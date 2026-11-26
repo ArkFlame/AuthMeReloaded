@@ -10,9 +10,7 @@ and [MODULES.md](MODULES.md).
 - JDK 21+ for the `java21-modules` profile, which adds:
   - `authme-bungee`
   - `authme-spigot-1.21`
-  - `authme-paper-common`
   - `authme-paper`
-  - `authme-folia`
 - JDK 25+ for `authme-velocity`, which targets Java 25 bytecode. The `java21-modules` profile
   activates on JDK 21+, so building the full reactor requires JDK 25+.
 - Maven 3.8.8+
@@ -35,9 +33,7 @@ mvn clean package -DskipLongHashTests
 # Build one deliverable with its dependencies
 mvn clean package -pl authme-bungee -am
 mvn clean package -pl authme-velocity -am
-mvn clean package -pl authme-paper-common -am
 mvn clean package -pl authme-paper -am
-mvn clean package -pl authme-folia -am
 mvn clean package -pl authme-spigot-1.21 -am
 
 # Build without generating Javadoc
@@ -61,10 +57,10 @@ mvn test -pl authme-bungee -am
 mvn test -pl authme-velocity -am
 
 # Run tests in Paper-derived modules
-mvn test -am -pl authme-paper-common,authme-paper,authme-folia
+mvn test -am -pl authme-paper
 
 # Run tests in 1.21 version modules
-mvn test -am -pl authme-spigot-1.21,authme-paper,authme-folia
+mvn test -am -pl authme-spigot-1.21,authme-paper
 
 # Run the full test suite
 mvn test -P skipLongHashTests

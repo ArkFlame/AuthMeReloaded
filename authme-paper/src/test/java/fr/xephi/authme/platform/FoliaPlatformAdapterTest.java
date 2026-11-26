@@ -57,8 +57,11 @@ public class FoliaPlatformAdapterTest {
     }
 
     @Test
-    public void getCompatibilityErrorReturnsNullForCompatibleClasspath() {
-        assertThat(adapter.getCompatibilityError(), is((String) null));
+    public void shouldNotBeSelectedOnPlainPaperClasspath() {
+        // The unit-test classpath is Paper only (no RegionizedServer), so the merged jar must
+        // leave the Folia adapter out and fall back to the Paper adapter.
+        assertThat(adapter.getCompatibilityError() != null, is(true));
+        assertThat(new PaperPlatformAdapter().getCompatibilityError(), is((String) null));
     }
 
     @Test

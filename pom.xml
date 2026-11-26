@@ -142,9 +142,7 @@
             <modules>
                 <module>authme-bungee</module>
                 <module>authme-spigot-1.21</module>
-                <module>authme-paper-common</module>
                 <module>authme-paper</module>
-                <module>authme-folia</module>
                 <module>authme-velocity</module>
             </modules>
             <build>

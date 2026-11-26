@@ -12,8 +12,8 @@
 
     <artifactId>authme-paper</artifactId>
     <packaging>jar</packaging>
-    <name>AuthMe Paper</name>
-    <description>AuthMe plugin for PaperMC 1.21</description>
+    <name>AuthMe Paper / Folia</name>
+    <description>AuthMe plugin for Paper and Folia 1.21.11+</description>
 
     <properties>
         <module.java.version>21</module.java.version>
@@ -22,12 +22,6 @@
     </properties>
 
     <dependencies>
-        <dependency>
-            <groupId>fr.xephi</groupId>
-            <artifactId>authme-paper-common</artifactId>
-            <version>${project.version}</version>
-            <scope>compile</scope>
-        </dependency>
         <dependency>
             <groupId>fr.xephi</groupId>
             <artifactId>authme-core</artifactId>
@@ -67,6 +61,16 @@
         <dependency>
             <groupId>org.hamcrest</groupId>
             <artifactId>hamcrest</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>ch.jalu</groupId>
+            <artifactId>datasourcecolumns</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>ch.jalu</groupId>
+            <artifactId>injector</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
