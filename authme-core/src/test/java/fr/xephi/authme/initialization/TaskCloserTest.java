@@ -11,6 +11,8 @@ import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitWorker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -61,21 +63,26 @@ class TaskCloserTest {
         taskCloser = spy(new TaskCloser(authMe, dataSource));
     }
 
-    @Test
-    void shouldWaitForTasksToClose() throws InterruptedException {
+    @ParameterizedTest
+    @CsvSource({"false, 2, 3", "true, 60, 61"})
+    void shouldPollUntilTasksAreDone(boolean neverEnding, int expectedSleeps, int expectedChecks)
+            throws InterruptedException {
         doNothing().when(taskCloser).sleep(); // avoid sleeping in tests
         mockActiveWorkers();
-        given(bukkitScheduler.isCurrentlyRunning(ACTIVE_WORKERS_ID[0])).willReturn(false);
+        given(bukkitScheduler.isCurrentlyRunning(ACTIVE_WORKERS_ID[0])).willReturn(neverEnding);
         given(bukkitScheduler.isCurrentlyRunning(ACTIVE_WORKERS_ID[1]))
-            .willReturn(true) // first time
+            .willReturn(!neverEnding) // first time
             .willReturn(false); // second time
 
         taskCloser.run();
 
         verify(bukkitScheduler, times(3)).isQueued(anyInt());
-        verify(bukkitScheduler, times(3)).isCurrentlyRunning(taskIds.capture());
-        assertThat(taskIds.getAllValues(), contains(ACTIVE_WORKERS_ID[0], ACTIVE_WORKERS_ID[1], ACTIVE_WORKERS_ID[1]));
-        verify(taskCloser, times(2)).sleep();
+        verify(bukkitScheduler, times(expectedChecks)).isCurrentlyRunning(taskIds.capture());
+        if (!neverEnding) {
+            assertThat(taskIds.getAllValues(),
+                contains(ACTIVE_WORKERS_ID[0], ACTIVE_WORKERS_ID[1], ACTIVE_WORKERS_ID[1]));
+        }
+        verify(taskCloser, times(expectedSleeps)).sleep();
         verify(dataSource).closeConnection();
     }
 
@@ -89,22 +96,6 @@ class TaskCloserTest {
         assertThrows(IllegalStateException.class, taskCloser::run);
 
         verify(taskCloser).sleep();
-        verify(dataSource).closeConnection();
-    }
-
-    @Test
-    void shouldAbortForNeverEndingTask() throws InterruptedException {
-        doNothing().when(taskCloser).sleep(); // avoid sleeping in tests
-        mockActiveWorkers();
-        // This task never ends
-        given(bukkitScheduler.isCurrentlyRunning(ACTIVE_WORKERS_ID[0])).willReturn(true);
-        given(bukkitScheduler.isCurrentlyRunning(ACTIVE_WORKERS_ID[1])).willReturn(false);
-
-        taskCloser.run();
-
-        verify(bukkitScheduler, times(3)).isQueued(anyInt());
-        verify(bukkitScheduler, times(61)).isCurrentlyRunning(anyInt());
-        verify(taskCloser, times(60)).sleep();
         verify(dataSource).closeConnection();
     }
 

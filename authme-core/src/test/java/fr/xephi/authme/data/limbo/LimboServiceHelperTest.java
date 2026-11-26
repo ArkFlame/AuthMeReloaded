@@ -6,11 +6,15 @@ import org.bukkit.Location;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Collections;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -36,45 +40,35 @@ class LimboServiceHelperTest {
         TestHelper.setupLogger();
     }
 
-    @Test
-    void shouldMergeLimboPlayers() {
-        // given
+    private static Stream<Arguments> mergeCases() {
         Location newLocation = mock(Location.class);
-        LimboPlayer newLimbo = new LimboPlayer(newLocation, false, Collections.singletonList(new UserGroup("grp-new")), false, 0.0f, 0.0f);
         Location oldLocation = mock(Location.class);
-        LimboPlayer oldLimbo = new LimboPlayer(oldLocation, true, Collections.singletonList(new UserGroup("grp-old")), true, 0.1f, 0.8f);
-
-        // when
-        LimboPlayer result = limboServiceHelper.merge(newLimbo, oldLimbo);
-
-        // then
-        assertThat(result.getLocation(), equalTo(oldLocation));
-        assertThat(result.isOperator(), equalTo(true));
-        assertThat(result.getGroups(), contains(new UserGroup("grp-old")));
-        assertThat(result.isCanFly(), equalTo(true));
-        // speeds come from newLimbo (the more recent reading of the player's actual speed)
-        assertThat(result.getWalkSpeed(), equalTo(0.0f));
-        assertThat(result.getFlySpeed(), equalTo(0.0f));
+        return Stream.of(
+            Arguments.of(
+                new LimboPlayer(newLocation, false, Collections.singletonList(new UserGroup("grp-new")), false, 0.0f, 0.0f),
+                new LimboPlayer(oldLocation, true, Collections.singletonList(new UserGroup("grp-old")), true, 0.1f, 0.8f),
+                oldLocation, true, new UserGroup("grp-old"), true, 0.0f, 0.0f),
+            Arguments.of(
+                new LimboPlayer(newLocation, false, Collections.singletonList(new UserGroup("grp-new")), true, 0.3f, 0.0f),
+                new LimboPlayer(null, false, Collections.emptyList(), false, 0.1f, 0.1f),
+                newLocation, false, new UserGroup("grp-new"), true, 0.3f, 0.0f));
     }
 
-    @Test
-    void shouldFallBackToNewLimboForMissingData() {
-        // given
-        Location newLocation = mock(Location.class);
-        LimboPlayer newLimbo = new LimboPlayer(newLocation, false, Collections.singletonList(new UserGroup("grp-new")), true, 0.3f, 0.0f);
-        LimboPlayer oldLimbo = new LimboPlayer(null, false, Collections.emptyList(), false, 0.1f, 0.1f);
-
+    @ParameterizedTest
+    @MethodSource("mergeCases")
+    void shouldMergeLimboPlayers(LimboPlayer newLimbo, LimboPlayer oldLimbo, Location expectedLocation,
+                                 boolean expectedOperator, UserGroup expectedGroup, boolean expectedCanFly,
+                                 float expectedWalkSpeed, float expectedFlySpeed) {
         // when
         LimboPlayer result = limboServiceHelper.merge(newLimbo, oldLimbo);
 
         // then
-        assertThat(result.getLocation(), equalTo(newLocation));
-        assertThat(result.isOperator(), equalTo(false));
-        assertThat(result.getGroups(), contains(new UserGroup("grp-new")));
-        assertThat(result.isCanFly(), equalTo(true));
-        assertThat(result.getWalkSpeed(), equalTo(0.3f));
-        // flySpeed comes from newLimbo (most recent reading)
-        assertThat(result.getFlySpeed(), equalTo(0.0f));
+        assertThat(result.getLocation(), equalTo(expectedLocation));
+        assertThat(result.isOperator(), equalTo(expectedOperator));
+        assertThat(result.getGroups(), contains(expectedGroup));
+        assertThat(result.isCanFly(), equalTo(expectedCanFly));
+        assertThat(result.getWalkSpeed(), equalTo(expectedWalkSpeed));
+        assertThat(result.getFlySpeed(), equalTo(expectedFlySpeed));
     }
 
     @Test

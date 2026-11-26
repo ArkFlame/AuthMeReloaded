@@ -36,12 +36,8 @@ public class JarMessageSource {
 
     public String getMessageFromJar(Property<?> property) {
         String key = property.getPath();
-        String message = getString(key, localJarMessages);
-        return message == null ? getString(key, defaultJarMessages) : message;
-    }
-
-    private static String getString(String path, PropertyReader reader) {
-        return reader == null ? null : reader.getString(path);
+        String message = localJarMessages == null ? null : localJarMessages.getString(key);
+        return message == null ? defaultJarMessages.getString(key) : message;
     }
 
     private MessageMigraterPropertyReader loadJarFile(String jarPath) {

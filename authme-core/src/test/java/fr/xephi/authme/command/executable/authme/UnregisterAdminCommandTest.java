@@ -7,10 +7,9 @@ import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.service.CommonService;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -28,6 +27,8 @@ import static org.mockito.Mockito.verify;
 @ExtendWith(MockitoExtension.class)
 class UnregisterAdminCommandTest {
 
+    private static final String USER = "bobby";
+
     @InjectMocks
     private UnregisterAdminCommand command;
 
@@ -43,38 +44,29 @@ class UnregisterAdminCommandTest {
     @Mock
     private Management management;
 
-    @Test
-    void shouldHandleUnknownPlayer() {
+    @Mock
+    private CommandSender sender;
+
+    @ParameterizedTest(name = "user exists: {0}, player online: {1}")
+    @CsvSource({"false, false", "true, true", "true, false"})
+    void shouldUnregisterUserOrReportUnknown(boolean userExists, boolean playerOnline) {
         // given
-        String user = "bobby";
-        given(dataSource.isAuthAvailable(user)).willReturn(false);
-        CommandSender sender = mock(CommandSender.class);
+        given(dataSource.isAuthAvailable(USER)).willReturn(userExists);
+        Player player = userExists && playerOnline ? mock(Player.class) : null;
+        if (userExists) {
+            given(bukkitService.getPlayerExact(USER)).willReturn(player);
+        }
 
         // when
-        command.executeCommand(sender, Collections.singletonList(user));
+        command.executeCommand(sender, Collections.singletonList(USER));
 
         // then
-        verify(dataSource, only()).isAuthAvailable(user);
-        verify(commandService).send(sender, MessageKey.UNKNOWN_USER);
+        verify(dataSource, only()).isAuthAvailable(USER);
+        if (userExists) {
+            verify(bukkitService).getPlayerExact(USER);
+            verify(management).performUnregisterByAdmin(sender, USER, player);
+        } else {
+            verify(commandService).send(sender, MessageKey.UNKNOWN_USER);
+        }
     }
-
-    @ParameterizedTest(name = "online player: {0}")
-    @ValueSource(booleans = {true, false})
-    void shouldInvokeUnregisterProcess(boolean playerFound) {
-        // given
-        String user = "personaNonGrata";
-        given(dataSource.isAuthAvailable(user)).willReturn(true);
-        Player player = playerFound ? mock(Player.class) : null;
-        given(bukkitService.getPlayerExact(user)).willReturn(player);
-        CommandSender sender = mock(CommandSender.class);
-
-        // when
-        command.executeCommand(sender, Collections.singletonList(user));
-
-        // then
-        verify(dataSource, only()).isAuthAvailable(user);
-        verify(bukkitService).getPlayerExact(user);
-        verify(management).performUnregisterByAdmin(sender, user, player);
-    }
-
 }

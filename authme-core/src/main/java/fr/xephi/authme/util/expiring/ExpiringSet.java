@@ -43,11 +43,11 @@ public class ExpiringSet<E> extends AbstractExpiring<E, Long> {
      */
     public boolean contains(E entry) {
         Long expiration = getEntries().get(entry);
-        boolean present = expiration != null && expiration > System.currentTimeMillis();
-        if (expiration != null && !present) {
+        if (expiration != null && expiration <= System.currentTimeMillis()) {
             getEntries().remove(entry);
+            return false;
         }
-        return present;
+        return expiration != null;
     }
 
     /**

@@ -80,11 +80,9 @@ public class TempbanManager implements SettingsDependent, HasCleanup {
      * @param name The username
      */
     public void resetCount(String address, String name) {
-        if (isEnabled) {
-            TimedCounter<String> counter = ipLoginFailureCounts.get(address);
-            if (counter != null) {
-                counter.remove(name.toLowerCase(Locale.ROOT));
-            }
+        TimedCounter<String> counter = isEnabled ? ipLoginFailureCounts.get(address) : null;
+        if (counter != null) {
+            counter.remove(name.toLowerCase(Locale.ROOT));
         }
     }
 
@@ -95,13 +93,11 @@ public class TempbanManager implements SettingsDependent, HasCleanup {
      * @return True if the IP should be tempbanned
      */
     public boolean shouldTempban(String address) {
-        if (isEnabled) {
-            TimedCounter<String> countsByName = ipLoginFailureCounts.get(address);
-            if (countsByName != null) {
-                return countsByName.total() >= threshold;
-            }
+        if (!isEnabled) {
+            return false;
         }
-        return false;
+        TimedCounter<String> countsByName = ipLoginFailureCounts.get(address);
+        return countsByName != null && countsByName.total() >= threshold;
     }
 
     /**
@@ -116,9 +112,7 @@ public class TempbanManager implements SettingsDependent, HasCleanup {
             final String ip = PlayerUtils.getPlayerIp(player);
             final String reason = messages.retrieveSingle(player, MessageKey.TEMPBAN_MAX_LOGINS);
 
-            final Date expires = new Date();
-            long newTime = expires.getTime() + (length * MILLIS_PER_MINUTE);
-            expires.setTime(newTime);
+            final Date expires = new Date(System.currentTimeMillis() + length * MILLIS_PER_MINUTE);
 
             if (customCommand.isEmpty()) {
                 bukkitService.runOnGlobalRegion(() -> bukkitService.banIp(ip, reason, expires, "AuthMe"));

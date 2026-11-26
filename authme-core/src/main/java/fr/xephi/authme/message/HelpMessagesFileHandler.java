@@ -30,47 +30,34 @@ public class HelpMessagesFileHandler extends AbstractMessageFileHandler {
         super(dataFolder, settings);
     }
 
-    /**
-     * Returns the message for the given key.
-     *
-     * @param key the key to retrieve the message for
-     * @return the message
-     */
     @Override
     public String getMessage(String key) {
         String message = getMessageIfExists(key);
-
-        if (message == null) {
-            logger.warning("Error getting message with key '" + key + "'. "
-                + "Please update your config file '" + getFilename() + "' or run /authme messages help");
-            return getDefault(key);
+        if (message != null) {
+            return message;
         }
-        return message;
-    }
 
-    /**
-     * Gets the message from the default file.
-     *
-     * @param key the key to retrieve the message for
-     * @return the message from the default file
-     */
-    private String getDefault(String key) {
+        logger.warning("Error getting message with key '" + key + "'. "
+            + "Please update your config file '" + getFilename() + "' or run /authme messages help");
         if (defaultConfiguration == null) {
-            String defaultPath = createFilePath(DEFAULT_LANGUAGE);
-            InputStream stream = FileUtils.getResourceFromJar(defaultPath);
-            if (stream == null) {
-                logger.warning("Could not load default help messages file '" + defaultPath + "' from JAR");
-                defaultConfiguration = new YamlConfiguration();
-            } else {
-                try (InputStreamReader reader = new InputStreamReader(stream)) {
-                    defaultConfiguration = YamlConfiguration.loadConfiguration(reader);
-                } catch (IOException e) {
-                    logger.logException("Could not read default help messages file '" + defaultPath + "'", e);
-                    defaultConfiguration = new YamlConfiguration();
-                }
-            }
+            defaultConfiguration = loadDefaultConfiguration();
         }
         return defaultConfiguration.getString(key, "Error retrieving message '" + key + "'");
+    }
+
+    private FileConfiguration loadDefaultConfiguration() {
+        String defaultPath = createFilePath(DEFAULT_LANGUAGE);
+        InputStream stream = FileUtils.getResourceFromJar(defaultPath);
+        if (stream == null) {
+            logger.warning("Could not load default help messages file '" + defaultPath + "' from JAR");
+            return new YamlConfiguration();
+        }
+        try (InputStreamReader reader = new InputStreamReader(stream)) {
+            return YamlConfiguration.loadConfiguration(reader);
+        } catch (IOException e) {
+            logger.logException("Could not read default help messages file '" + defaultPath + "'", e);
+            return new YamlConfiguration();
+        }
     }
 
     @Override

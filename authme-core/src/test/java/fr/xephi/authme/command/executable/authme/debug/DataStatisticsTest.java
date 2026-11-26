@@ -65,7 +65,6 @@ class DataStatisticsTest {
     @Test
     void shouldOutputStatistics() {
         // given
-        CommandSender sender = mock(CommandSender.class);
         given(singletonStore.retrieveAllOfType()).willReturn(mockListOfSize(Object.class, 7));
         given(singletonStore.retrieveAllOfType(Reloadable.class)).willReturn(mockListOfSize(Reloadable.class, 4));
         given(singletonStore.retrieveAllOfType(SettingsDependent.class)).willReturn(mockListOfSize(SettingsDependent.class, 3));
@@ -80,11 +79,12 @@ class DataStatisticsTest {
         ConsoleLoggerFactory.get(Integer.class);
 
         // when
+        CommandSender sender = mock(CommandSender.class);
         dataStatistics.execute(sender, Collections.emptyList());
-
-        // then
         ArgumentCaptor<String> stringCaptor = ArgumentCaptor.forClass(String.class);
         verify(sender, atLeastOnce()).sendMessage(stringCaptor.capture());
+
+        // then
         assertThat(stringCaptor.getAllValues(), containsInAnyOrder(
             ChatColor.BLUE + "AuthMe statistics",
             "Singleton Java classes: 7",
@@ -93,25 +93,19 @@ class DataStatisticsTest {
             "Total players in DB: 219",
             "PlayerCache size: 12 (= logged in players)",
             "Total logger instances: 2"));
-    }
 
-    @Test
-    void shouldOutputCachedDataSourceStatistics() {
-        // given
+        // Cached data source reports the number of cached PlayerAuth objects
         CacheDataSource cacheDataSource = mock(CacheDataSource.class);
         LoadingCache<String, Optional<PlayerAuth>> cache = mock(LoadingCache.class);
         given(cache.size()).willReturn(11L);
         given(cacheDataSource.getCachedAuths()).willReturn(cache);
         ReflectionTestUtils.setField(DataStatistics.class, dataStatistics, "dataSource", cacheDataSource);
-        CommandSender sender = mock(CommandSender.class);
 
-        // when
-        dataStatistics.execute(sender, Collections.emptyList());
-
-        // then
-        ArgumentCaptor<String> stringCaptor = ArgumentCaptor.forClass(String.class);
-        verify(sender, atLeastOnce()).sendMessage(stringCaptor.capture());
-        assertThat(stringCaptor.getAllValues(), hasItem("Cached PlayerAuth objects: 11"));
+        CommandSender cachedSender = mock(CommandSender.class);
+        dataStatistics.execute(cachedSender, Collections.emptyList());
+        ArgumentCaptor<String> cachedCaptor = ArgumentCaptor.forClass(String.class);
+        verify(cachedSender, atLeastOnce()).sendMessage(cachedCaptor.capture());
+        assertThat(cachedCaptor.getAllValues(), hasItem("Cached PlayerAuth objects: 11"));
     }
 
     private static <T> List<T> mockListOfSize(Class<T> mockClass, int size) {

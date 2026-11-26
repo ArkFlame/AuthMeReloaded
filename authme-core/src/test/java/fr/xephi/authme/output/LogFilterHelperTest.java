@@ -1,13 +1,12 @@
 package fr.xephi.authme.output;
 
-import com.google.common.collect.Lists;
 import fr.xephi.authme.command.CommandDescription;
 import fr.xephi.authme.command.CommandInitializer;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -25,7 +24,6 @@ class LogFilterHelperTest {
      */
     @Test
     void shouldBlacklistAllSensitiveCommands() {
-        // given
         List<CommandDescription> sensitiveCommands = Arrays.asList(
             getCommand("register"), getCommand("login"), getCommand("changepassword"), getCommand("unregister"),
             getCommand("authme", "register"), getCommand("authme", "changepassword"),
@@ -33,14 +31,11 @@ class LogFilterHelperTest {
         );
         // Build array with entries like "/register ", "/authme cp ", "/authme changepass "
         String[] expectedEntries = sensitiveCommands.stream()
-            .map(cmd -> buildCommandSyntaxes(cmd))
-            .flatMap(List::stream)
+            .flatMap(cmd -> buildCommandSyntaxes(cmd).stream())
             .map(syntax -> syntax + " ")
             .toArray(String[]::new);
 
-        // when / then
         assertThat(LogFilterHelper.COMMANDS_TO_SKIP, containsInAnyOrder(expectedEntries));
-
     }
 
     private static CommandDescription getCommand(String label) {
@@ -48,8 +43,7 @@ class LogFilterHelperTest {
     }
 
     private static CommandDescription getCommand(String parentLabel, String childLabel) {
-        CommandDescription parent = getCommand(parentLabel);
-        return findCommandWithLabel(childLabel, parent.getChildren());
+        return findCommandWithLabel(childLabel, getCommand(parentLabel).getChildren());
     }
 
     private static CommandDescription findCommandWithLabel(String label, List<CommandDescription> commands) {
@@ -59,31 +53,32 @@ class LogFilterHelperTest {
     }
 
     /**
-     * Returns all "command syntaxes" from which the given command can be reached.
-     * For example, the result might be a List containing "/authme changepassword", "/authme changepass",
-     * "/authme cp", "/authme:authme changepassword" etc.
+     * Returns all "command syntaxes" from which the given command can be reached, e.g.
+     * "/authme changepassword", "/authme changepass", "/authme cp", "/authme:authme changepassword".
      *
      * @param command the command to build syntaxes for
      * @return command syntaxes
      */
     private static List<String> buildCommandSyntaxes(CommandDescription command) {
         List<String> prefixes = getCommandPrefixes(command);
-
-        return command.getLabels()
-            .stream()
-            .map(label -> Lists.transform(prefixes, p -> p + label))
-            .flatMap(List::stream)
-            .collect(Collectors.toList());
+        List<String> syntaxes = new ArrayList<>();
+        for (String label : command.getLabels()) {
+            for (String prefix : prefixes) {
+                syntaxes.add(prefix + label);
+            }
+        }
+        return syntaxes;
     }
 
     private static List<String> getCommandPrefixes(CommandDescription command) {
         if (command.getParent() == null) {
             return Arrays.asList("/", "/authme:");
         }
-        return command.getParent().getLabels()
-            .stream()
-            .map(label -> new String[]{"/" + label + " ", "/authme:" + label + " "})
-            .flatMap(Arrays::stream)
-            .collect(Collectors.toList());
+        List<String> prefixes = new ArrayList<>();
+        for (String label : command.getParent().getLabels()) {
+            prefixes.add("/" + label + " ");
+            prefixes.add("/authme:" + label + " ");
+        }
+        return prefixes;
     }
 }

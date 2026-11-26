@@ -15,9 +15,6 @@ public class PlayerOpenSignListener implements Listener {
     @Inject
     private ListenerService listenerService;
 
-    PlayerOpenSignListener() {
-    }
-
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onPlayerOpenSign(PlayerOpenSignEvent event) {
         if (listenerService.shouldCancelEvent(event.getPlayer())) {
