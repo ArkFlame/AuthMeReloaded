@@ -14,6 +14,7 @@ import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.service.CommonService;
 import fr.xephi.authme.settings.properties.RegistrationSettings;
 import fr.xephi.authme.settings.properties.RestrictionSettings;
+import fr.xephi.authme.util.InternetProtocolUtils;
 import fr.xephi.authme.util.PlayerUtils;
 import org.bukkit.entity.Player;
 
@@ -50,14 +51,15 @@ public class AsyncRegister implements AsynchronousProcess {
      * @param <P>        parameters type
      */
     public <P extends RegistrationParameters> void register(RegistrationMethod<P> variant, P parameters) {
-        if (preRegisterCheck(variant, parameters.getPlayer())) {
+        Player player = parameters.getPlayer();
+        if (preRegisterCheck(variant, player)) {
             RegistrationExecutor<P> executor = registrationExecutorFactory.getSingleton(variant.getExecutorClass());
             if (executor.isRegistrationAdmitted(parameters)) {
                 PlayerAuth auth = executor.buildPlayerAuth(parameters);
                 if (database.saveAuth(auth)) {
                     executor.executePostPersistAction(parameters);
                 } else {
-                    service.send(parameters.getPlayer(), MessageKey.ERROR);
+                    service.send(player, MessageKey.ERROR);
                 }
             }
         }
@@ -104,12 +106,13 @@ public class AsyncRegister implements AsynchronousProcess {
         int maxRegPerIp = service.getProperty(RestrictionSettings.MAX_REGISTRATION_PER_IP);
         String ip = PlayerUtils.getPlayerIp(player);
         if (maxRegPerIp > 0
-            && !PlayerUtils.isPlayerIpLoopback(player)
+            && !InternetProtocolUtils.isLoopbackAddress(ip)
             && !service.hasPermission(player, ALLOW_MULTIPLE_ACCOUNTS)) {
             List<String> otherAccounts = database.getAllAuthsByIp(ip);
-            if (otherAccounts.size() >= maxRegPerIp) {
+            int accountCount = otherAccounts.size();
+            if (accountCount >= maxRegPerIp) {
                 service.send(player, MessageKey.MAX_REGISTER_EXCEEDED, Integer.toString(maxRegPerIp),
-                    Integer.toString(otherAccounts.size()), String.join(", ", otherAccounts));
+                    Integer.toString(accountCount), String.join(", ", otherAccounts));
                 return false;
             }
         }

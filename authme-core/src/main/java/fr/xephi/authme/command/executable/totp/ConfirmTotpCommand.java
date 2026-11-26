@@ -7,7 +7,6 @@ import fr.xephi.authme.data.auth.PlayerCache;
 import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.message.MessageKey;
-import fr.xephi.authme.message.Messages;
 import fr.xephi.authme.security.totp.GenerateTotpService;
 import fr.xephi.authme.security.totp.TotpAuthenticator.TotpGenerationResult;
 import org.bukkit.entity.Player;
@@ -30,9 +29,6 @@ public class ConfirmTotpCommand extends PlayerCommand {
 
     @Inject
     private DataSource dataSource;
-
-    @Inject
-    private Messages messages;
 
     @Override
     protected void runCommand(Player player, List<String> arguments) {

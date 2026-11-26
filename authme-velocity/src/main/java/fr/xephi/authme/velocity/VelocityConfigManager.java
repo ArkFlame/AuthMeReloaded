@@ -25,7 +25,6 @@ final class VelocityConfigManager {
             .create();
     }
 
-
     VelocityProxyConfiguration getConfiguration() {
         return VelocityProxyConfiguration.from(settingsManager);
     }

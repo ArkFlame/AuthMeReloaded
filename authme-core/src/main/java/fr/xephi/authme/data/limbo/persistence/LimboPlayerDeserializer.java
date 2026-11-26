@@ -184,7 +184,7 @@ class LimboPlayerDeserializer implements JsonDeserializer<LimboPlayer> {
                 JsonObject jsonGroup = arrayElement.getAsJsonObject();
                 Map<String, String> contextMap = null;
                 if (jsonGroup.has(CONTEXT_MAP)) {
-                    JsonElement contextMapJson = jsonGroup.get("contextMap");
+                    JsonElement contextMapJson = jsonGroup.get(CONTEXT_MAP);
                     Type type = new TypeToken<Map<String, String>>() {
                     }.getType();
                     contextMap = new Gson().fromJson(contextMapJson.getAsString(), type);

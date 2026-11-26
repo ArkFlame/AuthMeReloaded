@@ -2,12 +2,14 @@ package fr.xephi.authme.events;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
-import org.bukkit.event.Cancellable;
 
 /**
  * Common supertype for all AuthMe teleport events.
+ * <p>
+ * The player and the origin of the teleport are fixed when the event is created. Listeners may change the
+ * destination with {@link #setTo(Location)}; a {@code null} destination aborts the teleport.
  */
-public abstract class AbstractTeleportEvent extends AbstractCancellableEvent implements Cancellable {
+public abstract class AbstractTeleportEvent extends AbstractCancellableEvent {
 
     private final Player player;
     private final Location from;

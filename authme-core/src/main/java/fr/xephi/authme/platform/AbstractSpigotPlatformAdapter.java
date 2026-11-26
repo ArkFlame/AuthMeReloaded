@@ -19,8 +19,6 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -68,6 +66,9 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
         SPIGOT_GET_LOCALE_METHOD = spigotLocale;
         BLOCK_IS_PASSABLE_METHOD = passable;
     }
+
+    /** The scheduler matching the running server; keeps Spigot and Folia scheduling consistent. */
+    private final SchedulerProvider scheduler = SchedulerProviders.current();
 
     @Override
     public Optional<String> getPlayerLocale(Player player) {
@@ -179,65 +180,53 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
 
     @Override
     public boolean isOwnedByCurrentThread(Entity entity) {
-        return Bukkit.isPrimaryThread();
+        return scheduler.isGlobalThread();
     }
 
     @Override
     public boolean isOwnedByCurrentThread(Location location) {
-        return Bukkit.isPrimaryThread();
+        return scheduler.isGlobalThread();
     }
 
     @Override
     public boolean isGlobalThread() {
-        return Bukkit.isPrimaryThread();
+        return scheduler.isGlobalThread();
     }
 
     @Override
     public void runOnEntityThread(AuthMe plugin, Entity entity, Runnable task) {
-        Bukkit.getScheduler().runTask(plugin, task);
+        scheduler.runOnGlobalThread(plugin, task);
     }
 
     @Override
     public CancellableTask runDelayedOnEntityThread(AuthMe plugin, Entity entity, Runnable task, long delay) {
-        return wrapTask(Bukkit.getScheduler().runTaskLater(plugin, task, delay));
+        return scheduler.runDelayedOnGlobalThread(plugin, task, delay);
     }
 
     @Override
     public CancellableTask runAtFixedRateOnEntityThread(AuthMe plugin, Entity entity, Runnable task,
                                                         long delay, long period) {
-        BukkitRunnable bukkitRunnable = new BukkitRunnable() {
-            @Override
-            public void run() {
-                task.run();
-            }
-        };
-        return wrapTask(bukkitRunnable.runTaskTimer(plugin, delay, period));
+        return scheduler.runAtFixedRateOnGlobalThread(plugin, task, delay, period);
     }
 
     @Override
     public CancellableTask runAsyncTask(AuthMe plugin, Runnable task) {
-        return wrapTask(Bukkit.getScheduler().runTaskAsynchronously(plugin, task));
+        return scheduler.runAsync(plugin, task);
     }
 
     @Override
     public CancellableTask runAsyncTaskTimer(AuthMe plugin, Runnable task, long delay, long period) {
-        BukkitRunnable bukkitRunnable = new BukkitRunnable() {
-            @Override
-            public void run() {
-                task.run();
-            }
-        };
-        return wrapTask(bukkitRunnable.runTaskTimerAsynchronously(plugin, delay, period));
+        return scheduler.runAsyncTimer(plugin, task, delay, period);
     }
 
     @Override
     public void runOnGlobalThread(AuthMe plugin, Runnable task) {
-        Bukkit.getScheduler().runTask(plugin, task);
+        scheduler.runOnGlobalThread(plugin, task);
     }
 
     @Override
     public CancellableTask runDelayedOnGlobalThread(AuthMe plugin, Runnable task, long delay) {
-        return wrapTask(Bukkit.getScheduler().runTaskLater(plugin, task, delay));
+        return scheduler.runDelayedOnGlobalThread(plugin, task, delay);
     }
 
     // Kept lazy so PacketEvents-dependent classes are only loaded after PacketEvents has been confirmed present.
@@ -311,10 +300,6 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
             }
         }
         return null;
-    }
-
-    private static CancellableTask wrapTask(BukkitTask task) {
-        return task::cancel;
     }
 
     private PacketInterceptionAdapter getOrCreatePacketInterceptionAdapter() {

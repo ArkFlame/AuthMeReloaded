@@ -1,6 +1,8 @@
 package fr.xephi.authme.process.email;
 
 import fr.xephi.authme.ConsoleLogger;
+import fr.xephi.authme.data.auth.PlayerAuth;
+import fr.xephi.authme.data.auth.PlayerCache;
 import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.mail.EmailService;
 import fr.xephi.authme.message.MessageKey;
@@ -31,6 +33,23 @@ final class EmailProcessHelper {
             logger.warning("Could not send confirmation email for player '" + player + "'");
             service.send(player, MessageKey.EMAIL_SEND_FAILURE);
         }
+    }
+
+    /**
+     * Persists the new address to the database and the player cache and informs the player.
+     *
+     * @return true if the address was saved successfully
+     */
+    static boolean persistEmail(CommonService service, DataSource dataSource, PlayerCache playerCache,
+                                PlayerAuth auth, Player player, String email, MessageKey successKey) {
+        auth.setEmail(email);
+        if (!dataSource.updateEmail(auth)) {
+            service.send(player, MessageKey.ERROR);
+            return false;
+        }
+        playerCache.updatePlayerIfPresent(auth);
+        service.send(player, successKey);
+        return true;
     }
 
     /**

@@ -55,11 +55,8 @@ public class EmailService {
             return false;
         }
 
-        HtmlEmail email;
-        try {
-            email = sendMailSsl.initializeMail(mailAddress);
-        } catch (EmailException e) {
-            logger.logException("Failed to create email with the given settings:", e);
+        HtmlEmail email = initializeMail(mailAddress, "Failed to create email with the given settings:");
+        if (email == null) {
             return false;
         }
 
@@ -95,11 +92,8 @@ public class EmailService {
             return false;
         }
 
-        HtmlEmail email;
-        try {
-            email = sendMailSsl.initializeMail(mailAddress);
-        } catch (EmailException e) {
-            logger.logException("Failed to create verification email with the given settings:", e);
+        HtmlEmail email = initializeMail(mailAddress, "Failed to create verification email with the given settings:");
+        if (email == null) {
             return false;
         }
 
@@ -122,11 +116,8 @@ public class EmailService {
             return false;
         }
 
-        HtmlEmail htmlEmail;
-        try {
-            htmlEmail = sendMailSsl.initializeMail(email);
-        } catch (EmailException e) {
-            logger.logException("Failed to create email confirmation mail with the given settings:", e);
+        HtmlEmail htmlEmail = initializeMail(email, "Failed to create email confirmation mail with the given settings:");
+        if (htmlEmail == null) {
             return false;
         }
 
@@ -144,17 +135,26 @@ public class EmailService {
      * @return true if email could be sent, false otherwise
      */
     public boolean sendRecoveryCode(String name, String email, String code) {
-        HtmlEmail htmlEmail;
-        try {
-            htmlEmail = sendMailSsl.initializeMail(email);
-        } catch (EmailException e) {
-            logger.logException("Failed to create email for recovery code:", e);
+        HtmlEmail htmlEmail = initializeMail(email, "Failed to create email for recovery code:");
+        if (htmlEmail == null) {
             return false;
         }
 
         String message = replaceTagsForRecoveryCodeMail(settings.getRecoveryCodeEmailMessage(),
             name, code, settings.getProperty(SecuritySettings.RECOVERY_CODE_HOURS_VALID));
         return sendMailSsl.sendEmail(message, htmlEmail);
+    }
+
+    /**
+     * Creates a mail object, logging the given message and returning null if the settings are invalid.
+     */
+    private HtmlEmail initializeMail(String mailAddress, String errorMessage) {
+        try {
+            return sendMailSsl.initializeMail(mailAddress);
+        } catch (EmailException e) {
+            logger.logException(errorMessage, e);
+            return null;
+        }
     }
 
     private File generatePasswordImage(String name, String newPass) throws IOException {
@@ -171,25 +171,24 @@ public class EmailService {
         return content.replace("<image />", "<img src=\"cid:" + tag + "\">");
     }
 
-    private String replaceTagsForPasswordMail(String mailText, String name, String newPass) {
+    private String replaceCommonTags(String mailText, String name) {
         return mailText
             .replace("<playername />", name)
-            .replace("<servername />", settings.getProperty(PluginSettings.SERVER_NAME))
-            .replace("<generatedpass />", newPass);
+            .replace("<servername />", settings.getProperty(PluginSettings.SERVER_NAME));
+    }
+
+    private String replaceTagsForPasswordMail(String mailText, String name, String newPass) {
+        return replaceCommonTags(mailText, name).replace("<generatedpass />", newPass);
     }
 
     private String replaceTagsForVerificationEmail(String mailText, String name, String code, int minutesValid) {
-        return mailText
-            .replace("<playername />", name)
-            .replace("<servername />", settings.getProperty(PluginSettings.SERVER_NAME))
+        return replaceCommonTags(mailText, name)
             .replace("<generatedcode />", code)
             .replace("<minutesvalid />", String.valueOf(minutesValid));
     }
 
     private String replaceTagsForRecoveryCodeMail(String mailText, String name, String code, int hoursValid) {
-        return mailText
-            .replace("<playername />", name)
-            .replace("<servername />", settings.getProperty(PluginSettings.SERVER_NAME))
+        return replaceCommonTags(mailText, name)
             .replace("<recoverycode />", code)
             .replace("<hoursvalid />", String.valueOf(hoursValid));
     }

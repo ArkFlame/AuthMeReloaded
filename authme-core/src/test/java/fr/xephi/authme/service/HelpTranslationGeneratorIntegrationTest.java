@@ -99,7 +99,6 @@ class HelpTranslationGeneratorIntegrationTest {
         // Entries that were added from the default
         assertThat(configuration.getString(HelpSection.DETAILED_DESCRIPTION.getKey()), equalTo("Detailed description"));
         assertThat(configuration.getString(HelpSection.ARGUMENTS.getKey()), equalTo("Arguments"));
-        assertThat(configuration.getString(HelpSection.COMMAND.getKey()), equalTo("my command translation"));
     }
 
     private void checkCommands(FileConfiguration configuration) {

@@ -51,7 +51,7 @@ abstract class AbstractPasswordRegisterExecutor<P extends AbstractPasswordRegist
     @Override
     public boolean isRegistrationAdmitted(P params) {
         ValidationService.ValidationResult passwordValidation = validationService.validatePassword(
-            params.getPassword(), params.getPlayer().getName());
+            params.getPassword(), params.getPlayerName());
         if (passwordValidation.hasError()) {
             commonService.send(params.getPlayer(), passwordValidation.getMessageKey(), passwordValidation.getArgs());
             return false;

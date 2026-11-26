@@ -173,8 +173,9 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
         try (Connection con = getConnection(); PreparedStatement pst = con.prepareStatement(sql)) {
             for (String name : toPurge) {
                 pst.setString(1, name.toLowerCase(Locale.ROOT));
-                pst.executeUpdate();
+                pst.addBatch();
             }
+            pst.executeBatch();
         } catch (SQLException ex) {
             logSqlException(ex);
         }

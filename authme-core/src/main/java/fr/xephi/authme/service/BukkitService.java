@@ -155,9 +155,7 @@ public class BukkitService implements SettingsDependent {
         runOnGlobalRegion(() -> {
             try {
                 future.complete(supplier.get());
-            } catch (RuntimeException e) {
-                future.completeExceptionally(e);
-            } catch (Error e) {
+            } catch (RuntimeException | Error e) {
                 future.completeExceptionally(e);
             }
         });

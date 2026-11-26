@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
@@ -79,12 +80,22 @@ public class MessageUpdater {
     }
 
     private boolean migrateKeys(PropertyReader propertyReader, MessageKeyConfigurationData configurationData) {
-        return moveIfApplicable(propertyReader, configurationData,
-            "misc.two_factor_create", MessageKey.TWO_FACTOR_CREATE);
+        return moveIfApplicable(propertyReader, configurationData, "misc.two_factor_create",
+            MessageKey.TWO_FACTOR_CREATE, UnaryOperator.identity());
     }
 
-    private static boolean moveIfApplicable(PropertyReader reader, MessageKeyConfigurationData configurationData,
-                                            String oldPath, MessageKey messageKey) {
+    /**
+     * Moves a message from an old path to its new key, if the new key has no value yet.
+     *
+     * @param reader the reader to get the old value from
+     * @param configurationData the configuration data to write the value to
+     * @param oldPath the path of the old message
+     * @param messageKey the key to move the message to
+     * @param textTransform transformation to apply to the old text before storing it
+     * @return true if a value was moved, false otherwise
+     */
+    static boolean moveIfApplicable(PropertyReader reader, MessageKeyConfigurationData configurationData,
+                                    String oldPath, MessageKey messageKey, UnaryOperator<String> textTransform) {
         if (configurationData.getMessage(messageKey) != null) {
             return false;
         }
@@ -92,7 +103,7 @@ public class MessageUpdater {
         if (oldValue == null) {
             return false;
         }
-        configurationData.setMessage(messageKey, oldValue);
+        configurationData.setMessage(messageKey, textTransform.apply(oldValue));
         return true;
     }
 

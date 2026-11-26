@@ -1,14 +1,9 @@
 package fr.xephi.authme.platform;
 
 import fr.xephi.authme.listener.PaperChatListener;
-import fr.xephi.authme.listener.PaperDialogFlowListener;
-import fr.xephi.authme.listener.PaperLoginValidationListener;
-import fr.xephi.authme.listener.PaperProxyAutoLoginListener;
-import fr.xephi.authme.listener.PlayerOpenSignListener;
 import fr.xephi.authme.listener.PaperPlayerSpawnLocationListener;
 import org.bukkit.event.Listener;
 
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -32,12 +27,6 @@ public class PaperPlatformAdapter extends AbstractPaperPlatformAdapter {
 
     @Override
     protected List<Class<? extends Listener>> getPlatformListeners() {
-        return Arrays.asList(
-            PaperChatListener.class,
-            PaperDialogFlowListener.class,
-            PaperProxyAutoLoginListener.class,
-            PaperPlayerSpawnLocationListener.class,
-            PaperLoginValidationListener.class,
-            PlayerOpenSignListener.class);
+        return getPaperListeners(PaperChatListener.class, PaperPlayerSpawnLocationListener.class);
     }
 }

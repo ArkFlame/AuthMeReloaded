@@ -63,6 +63,20 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
     }
 
     @Override
+    public CancellableTask runAtFixedRateOnGlobalThread(Plugin plugin, Runnable task,
+                                                        long delayTicks, long periodTicks) {
+        Object scheduler = getGlobalScheduler();
+        Method runAtFixedRate = findMethod(scheduler, "runAtFixedRate", Plugin.class, Consumer.class,
+            long.class, long.class, TimeUnit.class);
+        if (runAtFixedRate == null) {
+            warnUnavailable(plugin, "global region scheduler");
+            return NO_OP_TASK;
+        }
+        return asCancellable(invoke(runAtFixedRate, scheduler, plugin, toConsumer(task),
+            delayTicks * MILLIS_PER_TICK, periodTicks * MILLIS_PER_TICK, TimeUnit.MILLISECONDS));
+    }
+
+    @Override
     public CancellableTask runAsync(Plugin plugin, Runnable task) {
         Object scheduler = getAsyncScheduler();
         Method runNow = findMethod(scheduler, "runNow", Plugin.class, Consumer.class);

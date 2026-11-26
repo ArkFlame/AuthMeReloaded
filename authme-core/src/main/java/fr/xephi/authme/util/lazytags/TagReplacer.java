@@ -92,11 +92,6 @@ public final class TagReplacer<A> {
             this.tag = tag;
             this.value = value;
         }
-
-        @Override
-        public String toString() {
-            return "TagValue[tag='" + tag + "', value='" + value + "']";
-        }
     }
 
 }

@@ -37,8 +37,6 @@ public class SQLite extends AbstractSqlDataSource {
     private final Settings settings;
     private final File dataFolder;
     private final String database;
-    private final String tableName;
-    private final Columns col;
     private Connection con;
 
     /**
@@ -203,9 +201,7 @@ public class SQLite extends AbstractSqlDataSource {
     }
 
     private boolean isColumnMissing(DatabaseMetaData metaData, String columnName) throws SQLException {
-        try (ResultSet rs = metaData.getColumns(null, null, tableName, columnName)) {
-            return !rs.next();
-        }
+        return SqlDataSourceUtils.isColumnMissing(metaData, null, tableName, columnName);
     }
 
     @Override
@@ -263,8 +259,9 @@ public class SQLite extends AbstractSqlDataSource {
         try (PreparedStatement deletePst = con.prepareStatement(delete)) {
             for (String name : toPurge) {
                 deletePst.setString(1, name.toLowerCase(Locale.ROOT));
-                deletePst.executeUpdate();
+                deletePst.addBatch();
             }
+            deletePst.executeBatch();
         } catch (SQLException ex) {
             logSqlException(ex);
         }

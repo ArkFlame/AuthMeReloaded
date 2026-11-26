@@ -1,17 +1,20 @@
 # Building and Development Commands
 
-This page documents the main build, test, and tooling commands used in this repository.
+This page documents the main build, test, and tooling commands used in this repository. For the
+current module layout and the single-jar remaster direction, see [ARCHITECTURE.md](ARCHITECTURE.md)
+and [MODULES.md](MODULES.md).
 
 ## Requirements
 
 - JDK 17+ for `authme-core`, `authme-tools`, and `authme-spigot-legacy`
-- JDK 21+ for the full multi-module build, including:
+- JDK 21+ for the `java21-modules` profile, which adds:
   - `authme-bungee`
   - `authme-spigot-1.21`
   - `authme-paper-common`
   - `authme-paper`
   - `authme-folia`
-  - `authme-velocity`
+- JDK 25+ for `authme-velocity`, which targets Java 25 bytecode. The `java21-modules` profile
+  activates on JDK 21+, so building the full reactor requires JDK 25+.
 - Maven 3.8.8+
 
 ## Build commands

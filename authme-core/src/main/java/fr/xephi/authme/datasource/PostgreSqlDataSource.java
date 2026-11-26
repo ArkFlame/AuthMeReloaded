@@ -13,7 +13,6 @@ import fr.xephi.authme.settings.properties.HooksSettings;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Locale;
@@ -234,9 +233,7 @@ public class PostgreSqlDataSource extends AbstractHikariSqlDataSource {
     }
 
     private boolean isColumnMissing(DatabaseMetaData metaData, String columnName) throws SQLException {
-        try (ResultSet rs = metaData.getColumns(null, null, tableName, columnName.toLowerCase(Locale.ROOT))) {
-            return !rs.next();
-        }
+        return SqlDataSourceUtils.isColumnMissing(metaData, null, tableName, columnName.toLowerCase(Locale.ROOT));
     }
 
     @Override

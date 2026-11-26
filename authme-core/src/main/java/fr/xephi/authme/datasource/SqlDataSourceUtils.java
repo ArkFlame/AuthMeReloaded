@@ -85,6 +85,23 @@ public final class SqlDataSourceUtils {
     }
 
     /**
+     * Returns whether the given column is absent from the table's metadata.
+     *
+     * @param metaData the database meta data
+     * @param catalog the catalog to look in, or null for the default one
+     * @param tableName the name of the table in which the column would be
+     * @param columnName the name of the column to check
+     * @return true if no metadata entry exists for the column
+     * @throws SQLException :)
+     */
+    public static boolean isColumnMissing(DatabaseMetaData metaData, String catalog, String tableName,
+                                          String columnName) throws SQLException {
+        try (ResultSet rs = metaData.getColumns(catalog, null, tableName, columnName)) {
+            return !rs.next();
+        }
+    }
+
+    /**
      * Returns whether the given column has a NOT NULL constraint.
      *
      * @param metaData the database meta data

@@ -1,7 +1,6 @@
 package fr.xephi.authme.events;
 
 import org.bukkit.entity.Player;
-import org.bukkit.event.Cancellable;
 import org.bukkit.event.HandlerList;
 
 /**
@@ -24,7 +23,7 @@ import org.bukkit.event.HandlerList;
  * return before continuing the asynchronous join, so the decision made here is final. The event is
  * never called when the player is not subject to authentication (for example unrestricted names).
  */
-public class PlayerPreAuthEvent extends AbstractCancellableEvent implements Cancellable {
+public class PlayerPreAuthEvent extends AbstractCancellableEvent {
 
     private static final HandlerList handlers = new HandlerList();
 

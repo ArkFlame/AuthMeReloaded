@@ -1,7 +1,6 @@
 package fr.xephi.authme.events;
 
 import org.bukkit.entity.Player;
-import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.bukkit.inventory.ItemStack;
@@ -10,7 +9,7 @@ import org.bukkit.inventory.ItemStack;
  * This event is called before the inventory data of a player is suppressed,
  * i.e. the inventory of the player is not displayed until he has authenticated.
  */
-public class ProtectInventoryEvent extends AbstractCancellableEvent implements Cancellable {
+public class ProtectInventoryEvent extends AbstractCancellableEvent {
 
     private static final HandlerList handlers = new HandlerList();
     private final ItemStack[] storedInventory;

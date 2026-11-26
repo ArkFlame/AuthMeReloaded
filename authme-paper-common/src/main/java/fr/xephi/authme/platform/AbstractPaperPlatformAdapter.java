@@ -5,6 +5,10 @@ import fr.xephi.authme.command.CommandDescription;
 import fr.xephi.authme.command.CommandHandler;
 import fr.xephi.authme.listener.EntityAirChangeListener;
 import fr.xephi.authme.listener.EntityPickupItemListener;
+import fr.xephi.authme.listener.PaperDialogFlowListener;
+import fr.xephi.authme.listener.PaperLoginValidationListener;
+import fr.xephi.authme.listener.PaperProxyAutoLoginListener;
+import fr.xephi.authme.listener.PlayerOpenSignListener;
 import fr.xephi.authme.listener.PlayerSwapHandItemsListener;
 import fr.xephi.authme.process.register.RegisterSecondaryArgument;
 import fr.xephi.authme.process.register.RegistrationType;
@@ -140,6 +144,25 @@ public abstract class AbstractPaperPlatformAdapter extends AbstractSpigotPlatfor
      */
     protected List<Class<? extends Listener>> getPlatformListeners() {
         return List.of();
+    }
+
+    /**
+     * Builds the listener list shared by Paper-derived platforms, placing the platform-specific
+     * chat and spawn listeners at the positions used by both Paper and Folia.
+     *
+     * @param chatListener the platform's chat listener
+     * @param spawnListener the platform's spawn-location listener
+     * @return the platform listeners in registration order
+     */
+    protected final List<Class<? extends Listener>> getPaperListeners(
+            Class<? extends Listener> chatListener, Class<? extends Listener> spawnListener) {
+        return List.<Class<? extends Listener>>of(
+            chatListener,
+            PaperDialogFlowListener.class,
+            PaperProxyAutoLoginListener.class,
+            spawnListener,
+            PaperLoginValidationListener.class,
+            PlayerOpenSignListener.class);
     }
 
     /**

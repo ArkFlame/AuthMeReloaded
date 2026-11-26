@@ -62,12 +62,14 @@ public class LimboAuthConverter implements Converter {
 
         switch (storageType) {
             case "SQLITE":
-                new SqliteImport(dataSource).execute(sender);
+                new SqliteImportTask(dataSource, new File(SQLITE_DB_PATH), QUERY, "LimboAuth", logger,
+                    importer(sender), "LimboAuth conversion failed: SQLite database not found at " + SQLITE_DB_PATH)
+                    .execute(sender);
                 break;
             case "MYSQL":
             case "MARIADB":
             case "POSTGRESQL":
-                new SqlImport(dataSource).execute(sender);
+                new SqlImportTask(dataSource, QUERY, "LimboAuth", logger, importer(sender)).execute(sender);
                 break;
             default:
                 logAndSendMessage(sender,
@@ -75,6 +77,10 @@ public class LimboAuthConverter implements Converter {
                     + "Reconfigure LimboAuth to use SQLite or MySQL/MariaDB/PostgreSQL, migrate the data, "
                     + "then re-run the conversion.");
         }
+    }
+
+    private ResultSetImporter importer(CommandSender sender) {
+        return rs -> importRows(rs, dataSource, sender);
     }
 
     private static void importRows(ResultSet rs, DataSource dataSource, CommandSender sender) throws SQLException {
@@ -126,38 +132,5 @@ public class LimboAuthConverter implements Converter {
 
         logAndSendMessage(sender, "LimboAuth conversion: " + imported + " account(s) imported, "
             + skipped + " skipped (already exist)");
-    }
-
-    private static final class SqliteImport extends AbstractSqlitePluginConverter {
-
-        SqliteImport(DataSource dataSource) {
-            super(dataSource);
-        }
-
-        @Override
-        public void execute(CommandSender sender) {
-            File dbFile = new File(SQLITE_DB_PATH);
-            if (!dbFile.exists()) {
-                logAndSendMessage(sender,
-                    "LimboAuth conversion failed: SQLite database not found at " + SQLITE_DB_PATH);
-                return;
-            }
-
-            queryAndImport(dbFile, sender, QUERY, "LimboAuth", logger,
-                rs -> importRows(rs, getDataSource(), sender));
-        }
-    }
-
-    private static final class SqlImport extends AbstractSqlPluginConverter {
-
-        SqlImport(DataSource dataSource) {
-            super(dataSource);
-        }
-
-        @Override
-        public void execute(CommandSender sender) {
-            queryAndImport(sender, QUERY, "LimboAuth", logger,
-                rs -> importRows(rs, getDataSource(), sender));
-        }
     }
 }

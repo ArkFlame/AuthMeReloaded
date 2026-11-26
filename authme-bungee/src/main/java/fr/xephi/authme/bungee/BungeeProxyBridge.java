@@ -33,6 +33,7 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -301,13 +302,7 @@ public final class BungeeProxyBridge implements Listener {
             }
             case PREMIUM_LIST -> {
                 Set<String> newPremiumSet = ConcurrentHashMap.newKeySet();
-                if (!playerName.isEmpty()) {
-                    for (String name : playerName.split(",")) {
-                        if (!name.isEmpty()) {
-                            newPremiumSet.add(BungeeAuthenticationStore.normalizeName(name.trim()));
-                        }
-                    }
-                }
+                addNormalizedPremiumNames(newPremiumSet, playerName);
                 premiumUsernames = newPremiumSet;
                 logger.info("Premium list received from backend: " + premiumUsernames.size() + " premium player(s)");
                 savePremiumNamesAsync();
@@ -343,14 +338,7 @@ public final class BungeeProxyBridge implements Listener {
             return;
         }
         ++expectedPremiumListChunk;
-        String csv = parts[2];
-        if (!csv.isEmpty()) {
-            for (String name : csv.split(",")) {
-                if (!name.isEmpty()) {
-                    premiumListBuffer.add(BungeeAuthenticationStore.normalizeName(name.trim()));
-                }
-            }
-        }
+        addNormalizedPremiumNames(premiumListBuffer, parts[2]);
         if ("1".equals(parts[1])) {
             Set<String> newPremiumSet = ConcurrentHashMap.newKeySet();
             newPremiumSet.addAll(premiumListBuffer);
@@ -359,6 +347,17 @@ public final class BungeeProxyBridge implements Listener {
             expectedPremiumListChunk = -1;
             logger.info("Premium list received from backend: " + premiumUsernames.size() + " premium player(s)");
             savePremiumNamesAsync();
+        }
+    }
+
+    private static void addNormalizedPremiumNames(Collection<String> target, String csv) {
+        if (csv.isEmpty()) {
+            return;
+        }
+        for (String name : csv.split(",")) {
+            if (!name.isEmpty()) {
+                target.add(BungeeAuthenticationStore.normalizeName(name.trim()));
+            }
         }
     }
 

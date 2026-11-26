@@ -29,20 +29,17 @@ public class MessagesFileHandler extends AbstractMessageFileHandler {
 
     @Override
     public void reload() {
-        reloadInternal(false);
-    }
-
-    private void reloadInternal(boolean isFromReload) {
-        super.reload();
-
-        String language = getLanguage();
-        boolean hasChange = messageUpdater.migrateAndSave(
-            getUserLanguageFile(), createFilePath(language), createFilePath(DEFAULT_LANGUAGE));
-        if (hasChange) {
-            if (isFromReload) {
+        // A migration may rewrite the user's file, so load it again before using it. If a second
+        // migration is still needed, warn instead of retrying indefinitely.
+        for (int attempt = 0; attempt < 2; ++attempt) {
+            super.reload();
+            boolean hasChange = messageUpdater.migrateAndSave(
+                getUserLanguageFile(), createFilePath(getLanguage()), createFilePath(DEFAULT_LANGUAGE));
+            if (!hasChange) {
+                return;
+            }
+            if (attempt == 1) {
                 logger.warning("Migration after reload attempt");
-            } else {
-                reloadInternal(true);
             }
         }
     }

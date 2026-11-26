@@ -8,14 +8,13 @@ import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import fr.xephi.authme.data.limbo.EnderPearlRestoreData;
 import fr.xephi.authme.data.limbo.LimboPlayer;
+import fr.xephi.authme.data.limbo.UserGroup;
 import org.bukkit.Location;
 import org.bukkit.util.Vector;
 
 import java.lang.reflect.Type;
 import java.util.Collection;
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * Converts a LimboPlayer to a JsonElement.
@@ -63,17 +62,15 @@ class LimboPlayerSerializer implements JsonSerializer<LimboPlayer> {
             obj.add(LOCATION, locationObject);
         }
 
-        List<JsonObject> groups = limboPlayer.getGroups().stream().map(g -> {
-            JsonObject jsonGroup = new JsonObject();
-            jsonGroup.addProperty("groupName", g.getGroupName());
-            if (g.getContextMap() != null) {
-                jsonGroup.addProperty("contextMap", GSON.toJson(g.getContextMap()));
-            }
-            return jsonGroup;
-        }).collect(Collectors.toList());
-
         JsonArray jsonGroups = new JsonArray();
-        groups.forEach(jsonGroups::add);
+        for (UserGroup group : limboPlayer.getGroups()) {
+            JsonObject jsonGroup = new JsonObject();
+            jsonGroup.addProperty("groupName", group.getGroupName());
+            if (group.getContextMap() != null) {
+                jsonGroup.addProperty("contextMap", GSON.toJson(group.getContextMap()));
+            }
+            jsonGroups.add(jsonGroup);
+        }
         obj.add(GROUPS, jsonGroups);
 
         obj.addProperty(IS_OP, limboPlayer.isOperator());

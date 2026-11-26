@@ -8,13 +8,12 @@ import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-
-import static java.util.stream.Collectors.toList;
 
 /**
  * Represents a player which is not logged in and keeps track of certain states (like OP status, flying)
@@ -36,8 +35,8 @@ public class LimboPlayer {
     private CancellableTask messageTaskHandle = null;
     private LimboPlayerState state = LimboPlayerState.PASSWORD_REQUIRED;
     private int failedTotpAttempts;
-    private Set<UUID> enderPearlUuids = new HashSet<>();
-    private Map<UUID, EnderPearlRestoreData> enderPearls = new HashMap<>();
+    // The pearl UUIDs are the keys of this map; a separate set would duplicate the same state.
+    private Map<UUID, EnderPearlRestoreData> enderPearls = Collections.emptyMap();
     private UUID vehicleUuid;
     private EntityType vehicleType;
 
@@ -172,10 +171,10 @@ public class LimboPlayer {
      * Returns the entity UUIDs of ender pearls in flight for this player,
      * used to restore stasis chambers after a reconnect.
      *
-     * @return mutable set of ender pearl entity UUIDs (never null)
+     * @return snapshot of the ender pearl entity UUIDs (never null)
      */
     public Set<UUID> getEnderPearlUuids() {
-        return enderPearlUuids;
+        return new HashSet<>(enderPearls.keySet());
     }
 
     /**
@@ -184,11 +183,11 @@ public class LimboPlayer {
      * @param pearlUuids the set of pearl entity UUIDs to track
      */
     public void setEnderPearlUuids(Set<UUID> pearlUuids) {
-        this.enderPearlUuids = new HashSet<>(pearlUuids);
-        this.enderPearls = new HashMap<>();
+        Map<UUID, EnderPearlRestoreData> pearls = new HashMap<>();
         for (UUID pearlUuid : pearlUuids) {
-            enderPearls.put(pearlUuid, new EnderPearlRestoreData(pearlUuid, null, null));
+            pearls.put(pearlUuid, new EnderPearlRestoreData(pearlUuid, null, null));
         }
+        this.enderPearls = pearls.isEmpty() ? Collections.emptyMap() : pearls;
     }
 
     /**
@@ -198,9 +197,7 @@ public class LimboPlayer {
      * @return tracked ender pearls for this player
      */
     public Collection<EnderPearlRestoreData> getEnderPearls() {
-        return enderPearlUuids.stream()
-            .map(uuid -> enderPearls.getOrDefault(uuid, new EnderPearlRestoreData(uuid, null, null)))
-            .collect(toList());
+        return new ArrayList<>(enderPearls.values());
     }
 
     /**
@@ -209,14 +206,13 @@ public class LimboPlayer {
      * @param pearls tracked ender pearls to restore on reconnect
      */
     public void setEnderPearls(Collection<EnderPearlRestoreData> pearls) {
-        this.enderPearlUuids = new HashSet<>();
-        this.enderPearls = new HashMap<>();
+        Map<UUID, EnderPearlRestoreData> pearlMap = new HashMap<>();
         for (EnderPearlRestoreData pearl : pearls) {
             if (pearl != null) {
-                enderPearlUuids.add(pearl.getUuid());
-                enderPearls.put(pearl.getUuid(), pearl);
+                pearlMap.put(pearl.getUuid(), pearl);
             }
         }
+        this.enderPearls = pearlMap.isEmpty() ? Collections.emptyMap() : pearlMap;
     }
 
     /**

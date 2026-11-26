@@ -18,12 +18,12 @@ public enum PermissionsSystemType {
     /**
      * The display name of the permissions system.
      */
-    private String displayName;
+    private final String displayName;
 
     /**
      * The name of the permissions system plugin.
      */
-    private String pluginName;
+    private final String pluginName;
 
     /**
      * Constructor for PermissionsSystemType.

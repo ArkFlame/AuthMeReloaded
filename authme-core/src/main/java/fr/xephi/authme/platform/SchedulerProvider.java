@@ -44,6 +44,17 @@ public interface SchedulerProvider {
     CancellableTask runDelayedOnGlobalThread(Plugin plugin, Runnable task, long delayTicks);
 
     /**
+     * Runs a repeating task on the server's global/main execution context.
+     *
+     * @param plugin the plugin scheduling the task
+     * @param task the task to run
+     * @param delayTicks the delay in ticks before the first run
+     * @param periodTicks the period in ticks between runs
+     * @return a handle that cancels the scheduled task
+     */
+    CancellableTask runAtFixedRateOnGlobalThread(Plugin plugin, Runnable task, long delayTicks, long periodTicks);
+
+    /**
      * Runs a task asynchronously, off the global/main thread.
      *
      * @param plugin the plugin scheduling the task

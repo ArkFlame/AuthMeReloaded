@@ -216,21 +216,23 @@ public class AsynchronousLogin implements AsynchronousProcess {
      *         false otherwise
      */
     private boolean checkPlayerInfo(Player player, PlayerAuth auth, String password) {
-        String name = player.getName().toLowerCase(Locale.ROOT);
+        String name = player.getName();
+        String lowerCaseName = name.toLowerCase(Locale.ROOT);
 
         // If captcha is required send a message to the player and deny to log in
-        if (loginCaptchaManager.isCaptchaRequired(name)) {
-            service.send(player, MessageKey.USAGE_CAPTCHA, loginCaptchaManager.getCaptchaCodeOrGenerateNew(name));
+        if (loginCaptchaManager.isCaptchaRequired(lowerCaseName)) {
+            service.send(player, MessageKey.USAGE_CAPTCHA,
+                loginCaptchaManager.getCaptchaCodeOrGenerateNew(lowerCaseName));
             return false;
         }
 
         String ip = PlayerUtils.getPlayerIp(player);
 
         // Increase the counts here before knowing the result of the login.
-        loginCaptchaManager.increaseLoginFailureCount(name);
-        tempbanManager.increaseCount(ip, name);
+        loginCaptchaManager.increaseLoginFailureCount(lowerCaseName);
+        tempbanManager.increaseCount(ip, lowerCaseName);
 
-        if (!passwordSecurity.comparePassword(password, auth.getPassword(), player.getName())) {
+        if (!passwordSecurity.comparePassword(password, auth.getPassword(), name)) {
             handleWrongPassword(player, auth, ip);
             return false;
         }
@@ -245,7 +247,8 @@ public class AsynchronousLogin implements AsynchronousProcess {
      * @param ip the ip address of the player
      */
     private void handleWrongPassword(Player player, PlayerAuth auth, String ip) {
-        logger.fine(player.getName() + " used the wrong password");
+        String name = player.getName();
+        logger.fine(name + " used the wrong password");
 
         bukkitService.createAndCallEvent(isAsync -> new FailedLoginEvent(player, isAsync));
         if (tempbanManager.shouldTempban(ip)) {
@@ -257,10 +260,10 @@ public class AsynchronousLogin implements AsynchronousProcess {
             service.send(player, MessageKey.WRONG_PASSWORD);
 
             // If the authentication fails check if Captcha is required and send a message to the player
-            if (loginCaptchaManager.isCaptchaRequired(player.getName())) {
+            if (loginCaptchaManager.isCaptchaRequired(name)) {
                 limboService.muteMessageTask(player);
                 service.send(player, MessageKey.USAGE_CAPTCHA,
-                    loginCaptchaManager.getCaptchaCodeOrGenerateNew(player.getName()));
+                    loginCaptchaManager.getCaptchaCodeOrGenerateNew(name));
             } else if (emailService.hasAllInformation() && !Utils.isEmailEmpty(auth.getEmail())) {
                 service.send(player, MessageKey.FORGOT_PASSWORD_MESSAGE);
             }
@@ -294,12 +297,13 @@ public class AsynchronousLogin implements AsynchronousProcess {
     }
 
     private void doPerformLogin(Player player, PlayerAuth auth, boolean proxyInitiated) {
+        String name = player.getName();
         if (player.isOnline()) {
             boolean isFirstLogin = (auth.getLastLogin() == null);
 
             // Update auth to reflect this new login
             String ip = PlayerUtils.getPlayerIp(player);
-            auth.setRealName(player.getName());
+            auth.setRealName(name);
             auth.setLastLogin(System.currentTimeMillis());
             auth.setLastIp(ip);
             dataSource.updateSession(auth);
@@ -307,7 +311,6 @@ public class AsynchronousLogin implements AsynchronousProcess {
             // TODO: send an update when a messaging service will be implemented (SESSION)
 
             // Successful login, so reset the captcha & temp ban count
-            String name = player.getName();
             loginCaptchaManager.resetLoginFailureCount(name);
             tempbanManager.resetCount(ip, name);
 
@@ -322,7 +325,7 @@ public class AsynchronousLogin implements AsynchronousProcess {
                 service.send(player, MessageKey.ADD_EMAIL_MESSAGE);
             }
 
-            logger.fine(player.getName() + " logged in " + ip);
+            logger.fine(name + " logged in " + ip);
 
             // makes player loggedin
             playerCache.updatePlayer(auth);
@@ -354,7 +357,7 @@ public class AsynchronousLogin implements AsynchronousProcess {
                 syncProcessManager.processSyncPlayerLogin(player, isFirstLogin, auths);
             }
         } else {
-            logger.warning("Player '" + player.getName() + "' wasn't online during login process, aborted...");
+            logger.warning("Player '" + name + "' wasn't online during login process, aborted...");
         }
     }
 
@@ -365,11 +368,13 @@ public class AsynchronousLogin implements AsynchronousProcess {
      * @param player the player
      */
     private void displayOtherAccounts(List<String> auths, Player player) {
-        if (!service.getProperty(RestrictionSettings.DISPLAY_OTHER_ACCOUNTS) || auths.size() <= 1) {
+        int accountCount = auths.size();
+        if (!service.getProperty(RestrictionSettings.DISPLAY_OTHER_ACCOUNTS) || accountCount <= 1) {
             return;
         }
 
-        List<String> formattedNames = new ArrayList<>(auths.size());
+        String playerName = player.getName();
+        List<String> formattedNames = new ArrayList<>(accountCount);
         for (String currentName : auths) {
             Player currentPlayer = bukkitService.getPlayerExact(currentName);
             if (currentPlayer != null && currentPlayer.isOnline()) {
@@ -381,19 +386,20 @@ public class AsynchronousLogin implements AsynchronousProcess {
 
         String message = ChatColor.GRAY + String.join(", ", formattedNames) + ".";
 
-        logger.fine("The user " + player.getName() + " has " + auths.size() + " accounts:");
+        logger.fine("The user " + playerName + " has " + accountCount + " accounts:");
         logger.fine(message);
 
+        String accountCountText = Integer.toString(accountCount);
         for (Player onlinePlayer : bukkitService.getOnlinePlayers()) {
             MessageKey headerKey;
             String[] headerArgs;
-            if (onlinePlayer.getName().equalsIgnoreCase(player.getName())
+            if (onlinePlayer.getName().equalsIgnoreCase(playerName)
                 && service.hasPermission(onlinePlayer, PlayerPermission.SEE_OWN_ACCOUNTS)) {
                 headerKey = MessageKey.ACCOUNTS_OWNED_SELF;
-                headerArgs = new String[]{Integer.toString(auths.size())};
+                headerArgs = new String[]{accountCountText};
             } else if (service.hasPermission(onlinePlayer, AdminPermission.SEE_OTHER_ACCOUNTS)) {
                 headerKey = MessageKey.ACCOUNTS_OWNED_OTHER;
-                headerArgs = new String[]{player.getName(), Integer.toString(auths.size())};
+                headerArgs = new String[]{playerName, accountCountText};
             } else {
                 continue;
             }
@@ -415,8 +421,9 @@ public class AsynchronousLogin implements AsynchronousProcess {
      */
     @VisibleForTesting
     boolean hasReachedMaxLoggedInPlayersForIp(Player player, String ip) {
+        int maxLoggedInPerIp = service.getProperty(RestrictionSettings.MAX_LOGIN_PER_IP);
         // Do not perform the check if player has multiple accounts permission or if IP is localhost
-        if (service.getProperty(RestrictionSettings.MAX_LOGIN_PER_IP) <= 0
+        if (maxLoggedInPerIp <= 0
             || service.hasPermission(player, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS)
             || InternetProtocolUtils.isLoopbackAddress(ip)) {
             return false;
@@ -426,12 +433,13 @@ public class AsynchronousLogin implements AsynchronousProcess {
         String name = player.getName();
         int count = 0;
         for (Player onlinePlayer : bukkitService.getOnlinePlayers()) {
+            String onlineName = onlinePlayer.getName();
             if (ip.equalsIgnoreCase(PlayerUtils.getPlayerIp(onlinePlayer))
-                && !onlinePlayer.getName().equals(name)
-                && dataSource.isLogged(onlinePlayer.getName().toLowerCase(Locale.ROOT))) {
+                && !onlineName.equals(name)
+                && dataSource.isLogged(onlineName.toLowerCase(Locale.ROOT))) {
                 ++count;
             }
         }
-        return count >= service.getProperty(RestrictionSettings.MAX_LOGIN_PER_IP);
+        return count >= maxLoggedInPerIp;
     }
 }

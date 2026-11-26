@@ -19,7 +19,6 @@ public class PasswordEncryptionEvent extends CustomEvent {
      * @param method The method used to encrypt the password
      */
     public PasswordEncryptionEvent(EncryptionMethod method) {
-        super(false);
         this.method = method;
     }
 

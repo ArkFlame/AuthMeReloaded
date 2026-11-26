@@ -24,9 +24,10 @@ final class PlayerAuthBuilderHelper {
      * @return the generated PlayerAuth object
      */
     static PlayerAuth createPlayerAuth(Player player, HashedPassword hashedPassword, String email) {
+        String playerName = player.getName();
         return PlayerAuth.builder()
-            .name(player.getName().toLowerCase(Locale.ROOT))
-            .realName(player.getName())
+            .name(playerName.toLowerCase(Locale.ROOT))
+            .realName(playerName)
             .password(hashedPassword)
             .email(email)
             .registrationIp(PlayerUtils.getPlayerIp(player))

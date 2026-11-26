@@ -17,11 +17,6 @@ import java.util.List;
  */
 public class SpigotPlatformAdapter extends AbstractSpigotPlatformAdapter {
 
-    private static final SpigotCompatibility COMPATIBILITY = new SpigotCompatibility(
-        "This AuthMe Spigot 1.21 build requires the Spigot 1.20+ API.",
-        "org.spigotmc.event.player.PlayerSpawnLocationEvent",
-        "org.bukkit.event.player.PlayerSignOpenEvent");
-
     @Override
     public String getPlatformName() {
         return "spigot-1.21";
@@ -29,7 +24,10 @@ public class SpigotPlatformAdapter extends AbstractSpigotPlatformAdapter {
 
     @Override
     public String getCompatibilityError() {
-        return COMPATIBILITY.getError();
+        return getCompatibilityError(
+            "This AuthMe Spigot 1.21 build requires the Spigot 1.20+ API.",
+            "org.spigotmc.event.player.PlayerSpawnLocationEvent",
+            "org.bukkit.event.player.PlayerSignOpenEvent");
     }
 
     @Override

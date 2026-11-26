@@ -2,6 +2,7 @@ package fr.xephi.authme.command.executable.authme;
 
 import fr.xephi.authme.ConsoleLogger;
 import fr.xephi.authme.command.ExecutableCommand;
+import fr.xephi.authme.command.executable.CommandValidation;
 import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
@@ -11,7 +12,6 @@ import fr.xephi.authme.security.crypts.HashedPassword;
 import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.service.CommonService;
 import fr.xephi.authme.service.ValidationService;
-import fr.xephi.authme.service.ValidationService.ValidationResult;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -49,9 +49,8 @@ public class RegisterAdminCommand implements ExecutableCommand {
         final String playerNameLowerCase = playerName.toLowerCase(Locale.ROOT);
 
         // Command logic
-        ValidationResult passwordValidation = validationService.validatePassword(playerPass, playerName);
-        if (passwordValidation.hasError()) {
-            commonService.send(sender, passwordValidation.getMessageKey(), passwordValidation.getArgs());
+        if (!CommandValidation.isValid(commonService, sender,
+            validationService.validatePassword(playerPass, playerName))) {
             return;
         }
 

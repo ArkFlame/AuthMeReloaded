@@ -54,12 +54,12 @@ public enum PlayerStatePermission implements PermissionNode {
     /**
      * The permission node.
      */
-    private String node;
+    private final String node;
 
     /**
      * The default permission level.
      */
-    private DefaultPermission defaultPermission;
+    private final DefaultPermission defaultPermission;
 
     /**
      * Constructor.

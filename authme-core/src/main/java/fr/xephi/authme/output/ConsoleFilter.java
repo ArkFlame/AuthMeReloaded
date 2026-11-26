@@ -12,7 +12,10 @@ public class ConsoleFilter implements Filter {
 
     @Override
     public boolean isLoggable(LogRecord record) {
-        String message = record == null ? null : record.getMessage();
+        if (record == null) {
+            return true;
+        }
+        String message = record.getMessage();
         if (LogFilterHelper.isSensitiveAuthMeCommand(message)) {
             String playerName = message.split(" ")[0];
             record.setMessage(playerName + " issued an AuthMe command");

@@ -44,8 +44,7 @@ public abstract class AbstractMessageFileHandler implements Reloadable {
     @Override
     @PostConstruct
     public void reload() {
-        String language = settings.getProperty(PluginSettings.MESSAGES_LANGUAGE);
-        filename = createFilePath(language);
+        filename = createFilePath(getLanguage());
         File messagesFile = initializeFile(filename);
         configuration = YamlConfiguration.loadConfiguration(messagesFile);
         languageCache.clear();
@@ -80,7 +79,7 @@ public abstract class AbstractMessageFileHandler implements Reloadable {
      * @return the message
      */
     public String getMessage(String key) {
-        String message = configuration.getString(key);
+        String message = getMessageIfExists(key);
         return message == null
             ? "Error retrieving message '" + key + "'"
             : message;

@@ -9,8 +9,6 @@ import org.bukkit.command.CommandSender;
 
 import javax.inject.Inject;
 import java.io.File;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Locale;
@@ -47,52 +45,47 @@ public class OpeNLoginConverter extends AbstractSqlitePluginConverter {
             return;
         }
 
-        try (Connection conn = openConnection(dbFile);
-             PreparedStatement ps = conn.prepareStatement(QUERY);
-             ResultSet rs = ps.executeQuery()) {
+        queryAndImport(dbFile, sender, QUERY, "OpeNLogin", logger, rs -> importRows(rs, sender));
+    }
 
-            long imported = 0;
-            long skipped = 0;
-            while (rs.next()) {
-                String name = rs.getString("name");
-                if (name == null || name.isEmpty()) {
-                    continue;
-                }
-                name = name.toLowerCase(Locale.ROOT);
+    private void importRows(ResultSet rs, CommandSender sender) throws SQLException {
+        long imported = 0;
+        long skipped = 0;
+        while (rs.next()) {
+            String name = rs.getString("name");
+            if (name == null || name.isEmpty()) {
+                continue;
+            }
+            name = name.toLowerCase(Locale.ROOT);
 
-                if (getDataSource().isAuthAvailable(name)) {
-                    ++skipped;
-                    continue;
-                }
-
-                String hash = rs.getString("password");
-                if (hash == null || hash.isEmpty()) {
-                    logger.warning("No password for player '" + name + "', skipping");
-                    continue;
-                }
-
-                String realName = rs.getString("realname");
-                long lastLogin = rs.getLong("lastlogin");
-
-                PlayerAuth auth = PlayerAuth.builder()
-                    .name(name)
-                    .realName(realName != null && !realName.isEmpty() ? realName : name)
-                    .password(new HashedPassword(hash))
-                    .lastIp(rs.getString("address"))
-                    .registrationDate(rs.getLong("regdate"))
-                    .lastLogin(lastLogin > 0 ? lastLogin : null)
-                    .build();
-
-                getDataSource().saveAuth(auth);
-                ++imported;
+            if (getDataSource().isAuthAvailable(name)) {
+                ++skipped;
+                continue;
             }
 
-            logAndSendMessage(sender, "OpeNLogin conversion: " + imported + " account(s) imported, "
-                + skipped + " skipped (already exist)");
+            String hash = rs.getString("password");
+            if (hash == null || hash.isEmpty()) {
+                logger.warning("No password for player '" + name + "', skipping");
+                continue;
+            }
 
-        } catch (SQLException e) {
-            logAndSendMessage(sender, "OpeNLogin conversion failed: " + e.getMessage());
-            logger.logException("OpeNLogin conversion error:", e);
+            String realName = rs.getString("realname");
+            long lastLogin = rs.getLong("lastlogin");
+
+            PlayerAuth auth = PlayerAuth.builder()
+                .name(name)
+                .realName(realName != null && !realName.isEmpty() ? realName : name)
+                .password(new HashedPassword(hash))
+                .lastIp(rs.getString("address"))
+                .registrationDate(rs.getLong("regdate"))
+                .lastLogin(lastLogin > 0 ? lastLogin : null)
+                .build();
+
+            getDataSource().saveAuth(auth);
+            ++imported;
         }
+
+        logAndSendMessage(sender, "OpeNLogin conversion: " + imported + " account(s) imported, "
+            + skipped + " skipped (already exist)");
     }
 }

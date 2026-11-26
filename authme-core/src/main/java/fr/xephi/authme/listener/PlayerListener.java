@@ -134,8 +134,7 @@ public class PlayerListener implements Listener {
         try {
             onJoinVerifier.checkIsValidName(name, event.getUniqueId());
         } catch (FailedVerificationException e) {
-            event.setKickMessage(messages.retrieveSingle(name, e.getReason(), e.getArgs()));
-            event.setLoginResult(AsyncPlayerPreLoginEvent.Result.KICK_OTHER);
+            denyPreLogin(event, name, e);
         }
     }
 
@@ -173,9 +172,14 @@ public class PlayerListener implements Listener {
             final String ip = event.getAddress().getHostAddress();
             onJoinVerifier.checkPlayerCountry(name, ip, isAuthAvailable);
         } catch (FailedVerificationException e) {
-            event.setKickMessage(messages.retrieveSingle(name, e.getReason(), e.getArgs()));
-            event.setLoginResult(AsyncPlayerPreLoginEvent.Result.KICK_OTHER);
+            denyPreLogin(event, name, e);
         }
+    }
+
+    /** Shared denial path for both pre-login verification phases. */
+    private void denyPreLogin(AsyncPlayerPreLoginEvent event, String name, FailedVerificationException e) {
+        event.setKickMessage(messages.retrieveSingle(name, e.getReason(), e.getArgs()));
+        event.setLoginResult(AsyncPlayerPreLoginEvent.Result.KICK_OTHER);
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -343,9 +347,6 @@ public class PlayerListener implements Listener {
      */
 
     private void removeUnauthorizedRecipients(AsyncPlayerChatEvent event) {
-        if (!settings.getProperty(RestrictionSettings.HIDE_CHAT)) {
-            return;
-        }
         // Iterate directly instead of removeIf(listenerService::shouldCancelEvent), which would
         // allocate a new capturing predicate for every chat event.
         Set<Player> recipients = event.getRecipients();
@@ -368,7 +369,10 @@ public class PlayerListener implements Listener {
         final Player player = event.getPlayer();
         if (!listenerService.shouldCancelEvent(player)
             || permissionsManager.hasPermission(player, PlayerStatePermission.ALLOW_CHAT_BEFORE_LOGIN)) {
-            removeUnauthorizedRecipients(event);
+            // Read HIDE_CHAT only on the path that actually needs it.
+            if (settings.getProperty(RestrictionSettings.HIDE_CHAT)) {
+                removeUnauthorizedRecipients(event);
+            }
             return;
         }
         event.setCancelled(true);
@@ -454,10 +458,13 @@ public class PlayerListener implements Listener {
             if (current == null) {
                 current = from;
             }
-            if (spawn.distance(current) > allowedRadius) {
+            // The radius is positive here, so comparing squared distances is equivalent to
+            // distance(...) > allowedRadius but avoids two square roots on this hot path.
+            double radiusSquared = (double) allowedRadius * allowedRadius;
+            if (spawn.distanceSquared(current) > radiusSquared) {
                 // Already outside the radius: there is no in-radius location to fall back to.
                 teleportAdapter.teleportPlayer(player, spawn);
-            } else if (spawn.distance(to) > allowedRadius) {
+            } else if (spawn.distanceSquared(to) > radiusSquared) {
                 // #3081: prevent crossing the boundary without teleporting the player to spawn.
                 event.setTo(from);
             }

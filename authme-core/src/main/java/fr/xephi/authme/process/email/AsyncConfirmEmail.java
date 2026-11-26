@@ -66,13 +66,9 @@ public class AsyncConfirmEmail implements AsynchronousProcess {
         pendingEmailVerificationCache.removePending(player.getName());
 
         PlayerAuth auth = playerCache.getAuth(playerName);
-        auth.setEmail(entry.email());
-        if (dataSource.updateEmail(auth)) {
-            playerCache.updatePlayerIfPresent(auth);
-            service.send(player, MessageKey.EMAIL_CONFIRM_SUCCESS);
-        } else {
+        if (!EmailProcessHelper.persistEmail(service, dataSource, playerCache, auth, player, entry.email(),
+                MessageKey.EMAIL_CONFIRM_SUCCESS)) {
             logger.warning("Could not save confirmed email for player '" + player + "'");
-            service.send(player, MessageKey.ERROR);
         }
     }
 }

@@ -14,7 +14,7 @@ The build is a Maven reactor (`authme-parent`) with a small set of always-built 
 | --- | --- | --- |
 | `authme-api` | jar, Java 8 | Public API contracts; depends only on `spigot-api`, `joml` and `bungeecord-chat`. |
 | `authme-core` | jar, Java 8 (`core.java.version=8`) | All authentication logic, services, commands, data sources and the platform abstraction layer. Tests run on the reactor JDK. Core must stay Java 8 for the 1.8 deliverable. |
-| `authme-tools` | jar, reactor JDK | Standalone converter/utility tooling built on top of core. |
+| `authme-tools` | jar, Java 17 (21 on JDK 21+) | Standalone converter/utility tooling built on top of core. |
 | `authme-spigot-1.8` | jar, Java 8 | Shaded server jar for old Spigot/CraftBukkit; uses the Bukkit scheduler. |
 | `authme-spigot-legacy` | jar, reactor JDK | Legacy server jar variant with its own shading/antrun packaging. |
 | `authme-paper-common` | jar, Java 21 | Shared Paper code, notably `AbstractPaperPlatformAdapter` and dialog helpers. |
@@ -88,7 +88,9 @@ separate per-server builds.
 The direction is to collapse the server-side modules into a **single Java 8 module/jar** (the proxy
 plugins remain separate deliverables because they target BungeeCord/Velocity, not Bukkit). Core
 stays at Java 8 bytecode so the jar keeps working on Spigot 1.8+. Platform differences become
-runtime capability detection rather than build-time module selection.
+runtime capability detection rather than build-time module selection. The merge is staged:
+[MODULES.md](MODULES.md) details the step-by-step consolidation of the server jars, while this page
+describes the end state.
 
 Scheduling is expressed as a small stack of providers behind the existing `SchedulingAdapter`
 contract, so callers (notably `BukkitService`) keep using global / entity-owned / async operations

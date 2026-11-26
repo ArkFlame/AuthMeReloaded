@@ -158,16 +158,12 @@ public class AntiBotService implements SettingsDependent {
 
     private void notifyAdmins(MessageKey key, String... args) {
         bukkitService.runOnGlobalRegion(() -> {
-            Object[] players = bukkitService.getOnlinePlayers().toArray();
-            for (Object onlinePlayer : players) {
-                if (onlinePlayer instanceof Player) {
-                    Player player = (Player) onlinePlayer;
-                    bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, () -> {
-                        if (permissionsManager.hasPermission(player, AdminPermission.ANTIBOT_MESSAGES)) {
-                            messages.send(player, key, args);
-                        }
-                    });
-                }
+            for (Player player : bukkitService.getOnlinePlayers().toArray(new Player[0])) {
+                bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, () -> {
+                    if (permissionsManager.hasPermission(player, AdminPermission.ANTIBOT_MESSAGES)) {
+                        messages.send(player, key, args);
+                    }
+                });
             }
         });
     }

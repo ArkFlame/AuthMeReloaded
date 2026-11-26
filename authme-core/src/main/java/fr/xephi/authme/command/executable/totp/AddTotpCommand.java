@@ -4,7 +4,6 @@ import fr.xephi.authme.command.PlayerCommand;
 import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.data.auth.PlayerCache;
 import fr.xephi.authme.message.MessageKey;
-import fr.xephi.authme.message.Messages;
 import fr.xephi.authme.security.totp.GenerateTotpService;
 import fr.xephi.authme.security.totp.TotpAuthenticator.TotpGenerationResult;
 import org.bukkit.entity.Player;
@@ -22,9 +21,6 @@ public class AddTotpCommand extends PlayerCommand {
 
     @Inject
     private PlayerCache playerCache;
-
-    @Inject
-    private Messages messages;
 
     @Override
     protected void runCommand(Player player, List<String> arguments) {

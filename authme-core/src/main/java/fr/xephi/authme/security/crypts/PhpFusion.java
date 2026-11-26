@@ -4,7 +4,6 @@ import fr.xephi.authme.security.HashUtils;
 import fr.xephi.authme.security.crypts.description.AsciiRestricted;
 import fr.xephi.authme.security.crypts.description.Recommendation;
 import fr.xephi.authme.security.crypts.description.Usage;
-import fr.xephi.authme.util.RandomStringUtils;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -14,7 +13,7 @@ import java.security.NoSuchAlgorithmException;
 
 @Recommendation(Usage.DO_NOT_USE)
 @AsciiRestricted
-public class PhpFusion extends SeparateSaltMethod {
+public class PhpFusion extends HexSeparateSaltMethod {
 
     @Override
     public String computeHash(String password, String salt, String name) {
@@ -32,9 +31,7 @@ public class PhpFusion extends SeparateSaltMethod {
     }
 
     @Override
-    public String generateSalt() {
-        return RandomStringUtils.generateHex(12);
+    public int getSaltLength() {
+        return 12;
     }
-
-
 }

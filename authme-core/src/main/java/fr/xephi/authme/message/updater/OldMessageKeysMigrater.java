@@ -136,23 +136,11 @@ final class OldMessageKeysMigrater {
     static boolean migrateOldPaths(PropertyReader reader, MessageKeyConfigurationData configurationData) {
         boolean wasPropertyMoved = false;
         for (Map.Entry<MessageKey, String> migrationEntry : KEYS_TO_OLD_PATH.entrySet()) {
-            wasPropertyMoved |= moveIfApplicable(reader, configurationData,
-                migrationEntry.getKey(), migrationEntry.getValue());
+            MessageKey messageKey = migrationEntry.getKey();
+            wasPropertyMoved |= MessageUpdater.moveIfApplicable(reader, configurationData,
+                migrationEntry.getValue(), messageKey, text -> replaceOldPlaceholders(messageKey, text));
         }
         return wasPropertyMoved;
-    }
-
-    private static boolean moveIfApplicable(PropertyReader reader, MessageKeyConfigurationData configurationData,
-                                            MessageKey messageKey, String oldPath) {
-        if (configurationData.getMessage(messageKey) == null) {
-            String textAtOldPath = reader.getString(oldPath);
-            if (textAtOldPath != null) {
-                textAtOldPath = replaceOldPlaceholders(messageKey, textAtOldPath);
-                configurationData.setMessage(messageKey, textAtOldPath);
-                return true;
-            }
-        }
-        return false;
     }
 
     private static String replaceOldPlaceholders(MessageKey key, String text) {

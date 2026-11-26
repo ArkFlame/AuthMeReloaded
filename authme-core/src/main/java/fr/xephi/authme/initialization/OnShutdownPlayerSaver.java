@@ -66,18 +66,18 @@ public class OnShutdownPlayerSaver {
                 limboService.restoreData(player);
             } else {
                 limboService.restorePendingOperator(player);
-                saveLoggedinPlayer(player);
+                saveLoggedinPlayer(player, name);
             }
         } finally {
             playerCache.removePlayer(name);
         }
     }
 
-    private void saveLoggedinPlayer(Player player) {
+    private void saveLoggedinPlayer(Player player, String name) {
         if (settings.getProperty(RestrictionSettings.SAVE_QUIT_LOCATION)) {
             Location loc = spawnLoader.getPlayerLocationOrSpawn(player);
             PlayerAuth auth = PlayerAuth.builder()
-                .name(player.getName().toLowerCase(Locale.ROOT))
+                .name(name)
                 .realName(player.getName())
                 .location(loc).build();
             dataSource.updateQuitLoc(auth);

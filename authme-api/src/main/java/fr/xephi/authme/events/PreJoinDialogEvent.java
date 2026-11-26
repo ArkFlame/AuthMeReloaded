@@ -1,6 +1,5 @@
 package fr.xephi.authme.events;
 
-import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
@@ -19,8 +18,11 @@ import java.util.UUID;
  * ({@link #isAsynchronous()} is {@code true} when AuthMe fires it). Handlers must not use
  * synchronous Bukkit API and should return quickly, because the configuration thread waits for
  * the dialog to be answered.
+ * <p>
+ * The identity data of this event is captured when it is created and never changes. Callers must handle
+ * a {@code null} player id or client address; only the player name is always present.
  */
-public class PreJoinDialogEvent extends AbstractCancellableEvent implements Cancellable {
+public class PreJoinDialogEvent extends AbstractCancellableEvent {
 
     /** Which pre-join dialog is about to be shown. */
     public enum DialogType {
@@ -73,6 +75,8 @@ public class PreJoinDialogEvent extends AbstractCancellableEvent implements Canc
     }
 
     /**
+     * Return the name of the player the dialog is for.
+     *
      * @return the name of the player the dialog is for
      */
     public String getPlayerName() {
@@ -80,7 +84,9 @@ public class PreJoinDialogEvent extends AbstractCancellableEvent implements Canc
     }
 
     /**
-     * @return the unique id of the player the dialog is for, possibly {@code null}
+     * Return the unique id of the player the dialog is for.
+     *
+     * @return the unique id of the player, or {@code null} if the profile has none
      */
     public UUID getPlayerId() {
         return playerId;
@@ -89,13 +95,15 @@ public class PreJoinDialogEvent extends AbstractCancellableEvent implements Canc
     /**
      * Alias for {@link #getPlayerId()}.
      *
-     * @return the unique id of the player, possibly {@code null}
+     * @return the unique id of the player, or {@code null} if the profile has none
      */
     public UUID getUuid() {
         return playerId;
     }
 
     /**
+     * Return the client address of the player the dialog is for.
+     *
      * @return the client address, or {@code null} if it was not available during the configuration phase
      */
     public InetAddress getAddress() {
@@ -105,7 +113,7 @@ public class PreJoinDialogEvent extends AbstractCancellableEvent implements Canc
     /**
      * Alias for {@link #getAddress()}.
      *
-     * @return the client address, possibly {@code null}
+     * @return the client address, or {@code null} if it was not available during the configuration phase
      */
     public InetAddress getInetAddress() {
         return address;

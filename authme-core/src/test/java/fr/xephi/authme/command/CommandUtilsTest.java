@@ -3,11 +3,15 @@ package fr.xephi.authme.command;
 import org.bukkit.ChatColor;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -122,76 +126,33 @@ class CommandUtilsTest {
         assertThat(result, equalTo(ChatColor.WHITE + "/email" + ChatColor.YELLOW + " [player]"));
     }
 
-    @Test
-    void shouldReturnEmptyListForNullInput() {
-        assertSplitInput(null);
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("splitInputCases")
+    void shouldSplitInput(String input, String[] expectedParts) {
+        assertThat(CommandUtils.splitInput(input), equalTo(Arrays.asList(expectedParts)));
     }
 
-    @Test
-    void shouldReturnEmptyListForBlankInput() {
-        assertSplitInput("   \t  \n ");
+    static Stream<Arguments> splitInputCases() {
+        return Stream.of(
+            Arguments.of(null, new String[0]),
+            Arguments.of("   \t  \n ", new String[0]),
+            Arguments.of("/", new String[0]),
+            Arguments.of("/   \t   ", new String[0]),
+            Arguments.of("authme", new String[]{"authme"}),
+            Arguments.of("/authme", new String[]{"authme"}),
+            Arguments.of("   /authme register   ", new String[]{"authme", "register"}),
+            Arguments.of("/authme    register     player    password",
+                new String[]{"authme", "register", "player", "password"}),
+            Arguments.of("/authme\tregister\nplayer\r\npassword",
+                new String[]{"authme", "register", "player", "password"}),
+            Arguments.of("/   authme   register", new String[]{"authme", "register"}),
+            Arguments.of("//authme register", new String[]{"/authme", "register"}),
+            Arguments.of("/login p@ss-word_123", new String[]{"login", "p@ss-word_123"}));
     }
-
-    @Test
-    void shouldReturnEmptyListForSlashOnlyInput() {
-        assertSplitInput("/");
-    }
-
-    @Test
-    void shouldReturnEmptyListForSlashWithOnlyWhitespace() {
-        assertSplitInput("/   \t   ");
-    }
-
-    @Test
-    void shouldSplitSingleCommandWithoutLeadingSlash() {
-        assertSplitInput("authme", "authme");
-    }
-
-    @Test
-    void shouldSplitSingleCommandWithLeadingSlash() {
-        assertSplitInput("/authme", "authme");
-    }
-
-    @Test
-    void shouldTrimInputBeforeRemovingLeadingSlash() {
-        assertSplitInput("   /authme register   ", "authme", "register");
-    }
-
-    @Test
-    void shouldIgnoreRepeatedWhitespaceBetweenParts() {
-        assertSplitInput("/authme    register     player    password",
-            "authme", "register", "player", "password");
-    }
-
-    @Test
-    void shouldSplitTabsAndNewlinesAsWhitespace() {
-        assertSplitInput("/authme\tregister\nplayer\r\npassword",
-            "authme", "register", "player", "password");
-    }
-
-    @Test
-    void shouldSupportSlashSeparatedByWhitespaceFromCommand() {
-        assertSplitInput("/   authme   register", "authme", "register");
-    }
-
-    @Test
-    void shouldPreserveAdditionalLeadingSlashInFirstPart() {
-        assertSplitInput("//authme register", "/authme", "register");
-    }
-
-    @Test
-    void shouldPreserveNonEmptySpecialCharactersInsideParts() {
-        assertSplitInput("/login p@ss-word_123", "login", "p@ss-word_123");
-    }
-
 
     private static void checkArgumentCount(CommandDescription command, int expectedMin, int expectedMax) {
         assertThat(CommandUtils.getMinNumberOfArguments(command), equalTo(expectedMin));
         assertThat(CommandUtils.getMaxNumberOfArguments(command), equalTo(expectedMax));
-    }
-
-    private static void assertSplitInput(String input, String... expectedParts) {
-        assertThat(CommandUtils.splitInput(input), equalTo(Arrays.asList(expectedParts)));
     }
 
     private static CommandDescription.CommandBuilder getBuilderForArgsTest() {

@@ -7,7 +7,6 @@ import fr.xephi.authme.data.auth.PlayerCache;
 import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.message.MessageKey;
-import fr.xephi.authme.message.Messages;
 import fr.xephi.authme.security.totp.TotpAuthenticator;
 import org.bukkit.entity.Player;
 
@@ -29,9 +28,6 @@ public class RemoveTotpCommand extends PlayerCommand {
 
     @Inject
     private TotpAuthenticator totpAuthenticator;
-
-    @Inject
-    private Messages messages;
 
     @Override
     protected void runCommand(Player player, List<String> arguments) {

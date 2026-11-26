@@ -24,6 +24,8 @@ public class FailedLoginEvent extends CustomEvent {
     }
 
     /**
+     * Return the player who entered a wrong password.
+     *
      * @return The player entering a wrong password
      */
     public Player getPlayer() {

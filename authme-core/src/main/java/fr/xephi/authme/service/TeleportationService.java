@@ -315,16 +315,10 @@ public class TeleportationService implements Reloadable {
     }
 
     private boolean isUnregisteredWithOptionalAuth(String playerName) {
-        if (settings.getProperty(RegistrationSettings.FORCE)) {
+        if (settings.getProperty(RegistrationSettings.FORCE) || playerName == null) {
             return false;
         }
-        String key = normalizePlayerName(playerName);
-        if (key == null) {
-            return false;
-        }
-        Boolean cached = preloadedAuthStatus.get(key);
-        boolean isRegistered = cached != null ? cached : dataSource.isAuthAvailable(playerName);
-        return !isRegistered;
+        return !isRegistered(playerName);
     }
 
     private boolean mustForceSpawnAfterLogin(String worldName) {

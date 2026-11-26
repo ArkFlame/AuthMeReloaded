@@ -25,6 +25,15 @@ Every commit to `master` is built and published automatically:
 AuthMeRemastered is a distribution by **ArkFlame Studios**; the plugin id/name stays `AuthMe`, so existing
 configs, permissions and databases keep working.
 
+## Remaster goal
+
+The long-term goal is to collapse the server-side jars into a **single Java 8 artifact** that runs on
+Spigot 1.8+, Paper and Folia through runtime capability detection instead of separate bytecode-level
+builds. `authme-core` stays at Java 8 bytecode, and the BungeeCord/Velocity proxies remain separate
+deliverables because they target different APIs. Until that consolidation lands, the per-platform
+jars listed above continue to ship. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the target
+design and [docs/MODULES.md](docs/MODULES.md) for the staged merge plan.
+
 ## Description
 
 Prevent username stealing on your server!<br>
@@ -131,7 +140,7 @@ Minecraft login phase — no password prompt is ever shown.
         <dependency>
             <groupId>fr.xephi</groupId>
             <artifactId>authme-core</artifactId>
-            <version>6.0.0-SNAPSHOT</version>
+            <version>6.0.2-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
@@ -157,13 +166,13 @@ Minecraft login phase — no password prompt is ever shown.
 
 ##### Running requirements:
 >- Use the jar matching your server platform/version:
->  - Java 8+: `AuthMe-*-Spigot-1.8.jar` — Bukkit/Spigot 1.8.8–1.15.2
->  - Java 17+: `AuthMe-*-Spigot-Legacy.jar` — Spigot 1.16.x–1.19.x
->  - Java 21+: `AuthMe-*-Spigot-1.21.jar` — Spigot 1.20.x – 1.21.x
->  - Java 21+: `AuthMe-*-Paper.jar` — Paper 1.21+
->  - Java 21+: `AuthMe-*-Folia.jar` — Folia 1.21+
->  - Java 21+: `AuthMe-*-Bungee.jar` — BungeeCord / Waterfall proxy (1.19 API)
->  - Java 21+: `AuthMe-*-Velocity.jar` — Velocity 3.4+ proxy
+>  - Java 8+: `AuthMeRemastered-*-Spigot-1.8.jar` — Bukkit/Spigot 1.8.8–1.15.2
+>  - Java 17+: `AuthMeRemastered-*-Spigot-Legacy.jar` — Spigot 1.16.x–1.19.x
+>  - Java 21+: `AuthMeRemastered-*-Spigot-1.21.jar` — Spigot 1.20.x – 1.21.x
+>  - Java 21+: `AuthMeRemastered-*-Paper.jar` — Paper 1.21+
+>  - Java 21+: `AuthMeRemastered-*-Folia.jar` — Folia 1.21+
+>  - Java 21+: `AuthMeRemastered-*-Bungee.jar` — BungeeCord / Waterfall proxy (1.19 API)
+>  - Java 25+: `AuthMeRemastered-*-Velocity.jar` — Velocity 3.4+ proxy
 >- [PacketEvents](https://github.com/retrooper/packetevents) 2.x (optional plugin; required for inventory protection, tab-complete blocking, and premium bypass in direct-connection mode)
 
 ## Credits

@@ -11,7 +11,6 @@ import fr.xephi.authme.data.limbo.LimboService;
 import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.message.MessageKey;
-import fr.xephi.authme.message.Messages;
 import fr.xephi.authme.process.login.AsynchronousLogin;
 import fr.xephi.authme.security.totp.TotpAuthenticator;
 import fr.xephi.authme.service.BukkitService;
@@ -36,9 +35,6 @@ public class TotpCodeCommand extends PlayerCommand {
 
     @Inject
     private PlayerCache playerCache;
-
-    @Inject
-    private Messages messages;
 
     @Inject
     private TotpAuthenticator totpAuthenticator;

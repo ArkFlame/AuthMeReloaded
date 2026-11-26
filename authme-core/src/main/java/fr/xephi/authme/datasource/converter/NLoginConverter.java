@@ -60,12 +60,19 @@ public class NLoginConverter implements Converter {
         YamlConfiguration nLoginConfig = YamlConfiguration.loadConfiguration(configFile);
         String dbType = nLoginConfig.getString("database.type", "SQLite");
         String table = nLoginConfig.getString("database.table.account.table-name", DEFAULT_TABLE);
+        String query = "SELECT last_name, password, last_ip, email, creation_date, last_seen, unique_id FROM " + table;
 
         if ("SQLite".equalsIgnoreCase(dbType)) {
-            new SqliteImport(dataSource, table).execute(sender);
+            new SqliteImportTask(dataSource, new File(SQLITE_DB_PATH), query, "nLogin", logger,
+                importer(sender), "nLogin conversion failed: SQLite database not found at " + SQLITE_DB_PATH)
+                .execute(sender);
         } else {
-            new SqlImport(dataSource, table).execute(sender);
+            new SqlImportTask(dataSource, query, "nLogin", logger, importer(sender)).execute(sender);
         }
+    }
+
+    private ResultSetImporter importer(CommandSender sender) {
+        return rs -> importRows(rs, dataSource, sender);
     }
 
     private static void importRows(ResultSet rs, DataSource dataSource, CommandSender sender) throws SQLException {
@@ -126,45 +133,5 @@ public class NLoginConverter implements Converter {
                 + value.substring(20);
         }
         return UuidUtils.parseUuidSafely(value);
-    }
-
-    private static final class SqliteImport extends AbstractSqlitePluginConverter {
-
-        private final String table;
-
-        SqliteImport(DataSource dataSource, String table) {
-            super(dataSource);
-            this.table = table;
-        }
-
-        @Override
-        public void execute(CommandSender sender) {
-            File dbFile = new File(SQLITE_DB_PATH);
-            if (!dbFile.exists()) {
-                logAndSendMessage(sender, "nLogin conversion failed: SQLite database not found at " + SQLITE_DB_PATH);
-                return;
-            }
-
-            String query = "SELECT last_name, password, last_ip, email, creation_date, last_seen, unique_id FROM " + table;
-            queryAndImport(dbFile, sender, query, "nLogin", logger,
-                rs -> importRows(rs, getDataSource(), sender));
-        }
-    }
-
-    private static final class SqlImport extends AbstractSqlPluginConverter {
-
-        private final String table;
-
-        SqlImport(DataSource dataSource, String table) {
-            super(dataSource);
-            this.table = table;
-        }
-
-        @Override
-        public void execute(CommandSender sender) {
-            String query = "SELECT last_name, password, last_ip, email, creation_date, last_seen, unique_id FROM " + table;
-            queryAndImport(sender, query, "nLogin", logger,
-                rs -> importRows(rs, getDataSource(), sender));
-        }
     }
 }

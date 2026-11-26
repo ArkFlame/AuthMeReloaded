@@ -10,7 +10,6 @@ import fr.xephi.authme.security.crypts.description.Usage;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
-import java.util.Arrays;
 
 import static fr.xephi.authme.security.HashUtils.isEqual;
 
@@ -20,42 +19,16 @@ import static fr.xephi.authme.security.HashUtils.isEqual;
 // and isn't exposed to the outside, so we treat it as an unsalted implementation
 public class Wordpress extends UnsaltedMethod {
 
-    private static final String itoa64 = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
     private final SecureRandom randomGen = new SecureRandom();
 
     private String encode64(byte[] src, int count) {
-        int i, value;
-        StringBuilder output = new StringBuilder();
-        i = 0;
-
         if (src.length < count) {
             byte[] t = new byte[count];
             System.arraycopy(src, 0, t, 0, src.length);
-            Arrays.fill(t, src.length, count - 1, (byte) 0);
             src = t;
         }
-
-        do {
-            value = src[i] + (src[i] < 0 ? 256 : 0);
-            ++i;
-            output.append(itoa64.charAt(value & 63));
-            if (i < count) {
-                value |= (src[i] + (src[i] < 0 ? 256 : 0)) << 8;
-            }
-            output.append(itoa64.charAt((value >> 6) & 63));
-            if (i++ >= count) {
-                break;
-            }
-            if (i < count) {
-                value |= (src[i] + (src[i] < 0 ? 256 : 0)) << 16;
-            }
-            output.append(itoa64.charAt((value >> 12) & 63));
-            if (i++ >= count) {
-                break;
-            }
-            output.append(itoa64.charAt((value >> 18) & 63));
-        } while (i < count);
-        return output.toString();
+        final byte[] bytes = src;
+        return PhpassCodec.encode64(i -> bytes[i] & 0xFF, count);
     }
 
     private String crypt(String password, String setting) {
@@ -67,7 +40,7 @@ public class Wordpress extends UnsaltedMethod {
         if (!(id.equals("$P$") || id.equals("$H$"))) {
             return output;
         }
-        int countLog2 = itoa64.indexOf(setting.charAt(3));
+        int countLog2 = PhpassCodec.ITOA64.indexOf(setting.charAt(3));
         if (countLog2 < 7 || countLog2 > 30) {
             return output;
         }
@@ -93,7 +66,7 @@ public class Wordpress extends UnsaltedMethod {
     private String gensaltPrivate(byte[] input) {
         String output = "$P$";
         int iterationCountLog2 = 8;
-        output += itoa64.charAt(Math.min(iterationCountLog2 + 5, 30));
+        output += PhpassCodec.ITOA64.charAt(Math.min(iterationCountLog2 + 5, 30));
         output += encode64(input, 6);
         return output;
     }

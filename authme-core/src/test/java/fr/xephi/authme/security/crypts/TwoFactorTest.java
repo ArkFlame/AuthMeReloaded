@@ -3,6 +3,11 @@ package fr.xephi.authme.security.crypts;
 import fr.xephi.authme.TestHelper;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -30,10 +35,10 @@ class TwoFactorTest {
         assertThat(url, equalTo(expected));
     }
 
-    @Test
-    void shouldHandleInvalidHash() {
-        HashedPassword password = new HashedPassword("!@&#@!(*&@");
-        String inputPassword = "12345";
+    @ParameterizedTest(name = "reject hash {0} with input {1}")
+    @MethodSource("invalidCredentials")
+    void shouldRejectInvalidCredentials(String givenHash, String inputPassword) {
+        HashedPassword password = new HashedPassword(givenHash);
         TwoFactor twoFactor = new TwoFactor();
 
         boolean result = twoFactor.comparePassword(inputPassword, password, "name");
@@ -41,14 +46,9 @@ class TwoFactorTest {
         assertThat(result, equalTo(false));
     }
 
-    @Test
-    void shouldHandleInvalidInput() {
-        HashedPassword password = new HashedPassword("3AK6Y4KWGRLJMEQW");
-        String inputPassword = "notA_number!";
-        TwoFactor twoFactor = new TwoFactor();
-
-        boolean result = twoFactor.comparePassword(inputPassword, password, "name");
-
-        assertThat(result, equalTo(false));
+    static Stream<Arguments> invalidCredentials() {
+        return Stream.of(
+            Arguments.of("!@&#@!(*&@", "12345"),
+            Arguments.of("3AK6Y4KWGRLJMEQW", "notA_number!"));
     }
 }

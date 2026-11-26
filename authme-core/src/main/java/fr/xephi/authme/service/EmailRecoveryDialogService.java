@@ -6,7 +6,6 @@ import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.mail.EmailService;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.platform.DialogAdapter;
-import fr.xephi.authme.platform.DialogWindowSpec;
 import fr.xephi.authme.platform.EmailRecoveryDialogSpec;
 import fr.xephi.authme.settings.properties.RegistrationSettings;
 import fr.xephi.authme.util.Utils;

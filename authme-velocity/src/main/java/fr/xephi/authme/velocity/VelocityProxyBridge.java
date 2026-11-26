@@ -37,6 +37,7 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -314,13 +315,7 @@ final class VelocityProxyBridge {
             logger.debug("Pending premium verification started for '{}'", parsedMessage.playerName());
         } else if (parsedMessage.type() == ProxyMessageType.PREMIUM_LIST) {
             Set<String> newPremiumSet = ConcurrentHashMap.newKeySet();
-            if (!parsedMessage.playerName().isEmpty()) {
-                for (String name : parsedMessage.playerName().split(",")) {
-                    if (!name.isEmpty()) {
-                        newPremiumSet.add(VelocityAuthenticationStore.normalizeName(name.trim()));
-                    }
-                }
-            }
+            addNormalizedPremiumNames(newPremiumSet, parsedMessage.playerName());
             premiumUsernames = newPremiumSet;
             logger.info("Premium list received from backend: {} premium player(s)", premiumUsernames.size());
             savePremiumNamesAsync();
@@ -352,14 +347,7 @@ final class VelocityProxyBridge {
             return;
         }
         ++expectedPremiumListChunk;
-        String csv = parts[2];
-        if (!csv.isEmpty()) {
-            for (String name : csv.split(",")) {
-                if (!name.isEmpty()) {
-                    premiumListBuffer.add(VelocityAuthenticationStore.normalizeName(name.trim()));
-                }
-            }
-        }
+        addNormalizedPremiumNames(premiumListBuffer, parts[2]);
         if ("1".equals(parts[1])) {
             Set<String> newPremiumSet = ConcurrentHashMap.newKeySet();
             newPremiumSet.addAll(premiumListBuffer);
@@ -368,6 +356,17 @@ final class VelocityProxyBridge {
             expectedPremiumListChunk = -1;
             logger.info("Premium list received from backend: {} premium player(s)", premiumUsernames.size());
             savePremiumNamesAsync();
+        }
+    }
+
+    private static void addNormalizedPremiumNames(Collection<String> target, String csv) {
+        if (csv.isEmpty()) {
+            return;
+        }
+        for (String name : csv.split(",")) {
+            if (!name.isEmpty()) {
+                target.add(VelocityAuthenticationStore.normalizeName(name.trim()));
+            }
         }
     }
 
@@ -522,14 +521,7 @@ final class VelocityProxyBridge {
         if (!(event.getCommandSource() instanceof Player player)) {
             return;
         }
-        Optional<ServerConnection> serverOpt = player.getCurrentServer();
-        if (serverOpt.isEmpty() || !configuration.isAuthServer(serverOpt.get().getServer())) {
-            return;
-        }
-        if (authenticationStore.isAuthenticated(player)) {
-            return;
-        }
-        if (configuration.isWhitelistedCommand(event.getCommand())) {
+        if (!isUnauthenticatedOnAuthServer(player) || configuration.isWhitelistedCommand(event.getCommand())) {
             return;
         }
         logger.debug("Blocking command '{}' from unauthenticated player {}", event.getCommand(), player.getUsername());
@@ -541,15 +533,17 @@ final class VelocityProxyBridge {
             return;
         }
         Player player = event.getPlayer();
-        Optional<ServerConnection> serverOpt = player.getCurrentServer();
-        if (serverOpt.isEmpty() || !configuration.isAuthServer(serverOpt.get().getServer())) {
-            return;
+        if (isUnauthenticatedOnAuthServer(player)) {
+            logger.debug("Blocking chat from unauthenticated player {}", player.getUsername());
+            event.setResult(PlayerChatEvent.ChatResult.denied());
         }
-        if (authenticationStore.isAuthenticated(player)) {
-            return;
-        }
-        logger.debug("Blocking chat from unauthenticated player {}", player.getUsername());
-        event.setResult(PlayerChatEvent.ChatResult.denied());
+    }
+
+    private boolean isUnauthenticatedOnAuthServer(Player player) {
+        Optional<ServerConnection> server = player.getCurrentServer();
+        return server.isPresent()
+            && configuration.isAuthServer(server.get().getServer())
+            && !authenticationStore.isAuthenticated(player);
     }
 
     void onDisconnect(DisconnectEvent event) {

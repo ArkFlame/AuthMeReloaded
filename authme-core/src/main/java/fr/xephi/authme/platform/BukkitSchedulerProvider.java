@@ -33,6 +33,12 @@ final class BukkitSchedulerProvider implements SchedulerProvider {
     }
 
     @Override
+    public CancellableTask runAtFixedRateOnGlobalThread(Plugin plugin, Runnable task,
+                                                        long delayTicks, long periodTicks) {
+        return asCancellable(Bukkit.getScheduler().runTaskTimer(plugin, task, delayTicks, periodTicks));
+    }
+
+    @Override
     public CancellableTask runAsync(Plugin plugin, Runnable task) {
         return asCancellable(Bukkit.getScheduler().runTaskAsynchronously(plugin, task));
     }

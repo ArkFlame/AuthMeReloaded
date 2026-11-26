@@ -118,28 +118,36 @@ public class AsynchronousUnregister implements AsynchronousProcess {
      * @param player the according Player object (nullable)
      */
     private void performPostUnregisterActions(String name, Player player) {
-        if (player != null && playerCache.isAuthenticated(name)) {
-            bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player,
-                () -> bungeeSender.sendAuthMeBungeecordMessage(player, MessageType.LOGOUT));
-        }
+        boolean sendBungeeLogout = player != null && playerCache.isAuthenticated(name);
         playerCache.removePlayer(name);
 
         // TODO: send an update when a messaging service will be implemented (UNREGISTER)
 
         if (player == null || !player.isOnline()) {
+            if (sendBungeeLogout) {
+                bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player,
+                    () -> bungeeSender.sendAuthMeBungeecordMessage(player, MessageType.LOGOUT));
+            }
             return;
         }
-        bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player,
-            () -> commandManager.runCommandsOnUnregister(player));
 
-        if (service.getProperty(RegistrationSettings.FORCE)) {
+        boolean force = service.getProperty(RegistrationSettings.FORCE);
+        if (force) {
             teleportationService.teleportOnJoin(player);
+        }
 
-            bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, () -> {
+        // Run all player-facing actions in a single hop on the player's thread
+        bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, () -> {
+            if (sendBungeeLogout) {
+                bungeeSender.sendAuthMeBungeecordMessage(player, MessageType.LOGOUT);
+            }
+            commandManager.runCommandsOnUnregister(player);
+            if (force) {
                 limboService.createLimboPlayer(player, false);
                 applyBlindEffect(player);
-            });
-        }
+            }
+        });
+
         service.send(player, MessageKey.UNREGISTERED_SUCCESS);
     }
 

@@ -1,7 +1,6 @@
 package fr.xephi.authme.listener;
 
 import fr.xephi.authme.service.BukkitService;
-import io.papermc.paper.event.player.AsyncPlayerSpawnLocationEvent;
 import org.bukkit.Location;
 
 import javax.inject.Inject;
@@ -13,12 +12,6 @@ public class PaperPlayerSpawnLocationListener extends AbstractPaperAsyncPlayerSp
 
     @Inject
     private BukkitService bukkitService;
-
-    /**
-     * Constructor.
-     */
-    public PaperPlayerSpawnLocationListener() {
-    }
 
     @Override
     protected Location determineCustomSpawnLocation(String playerName, Location originalSpawnLocation) {

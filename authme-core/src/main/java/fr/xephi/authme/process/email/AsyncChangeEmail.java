@@ -93,13 +93,8 @@ public class AsyncChangeEmail implements AsynchronousProcess {
     }
 
     private void saveEmailDirectly(PlayerAuth auth, Player player, String newEmail) {
-        auth.setEmail(newEmail);
-        if (dataSource.updateEmail(auth)) {
-            playerCache.updatePlayerIfPresent(auth);
-            service.send(player, MessageKey.EMAIL_CHANGED_SUCCESS);
-        } else {
-            service.send(player, MessageKey.ERROR);
-        }
+        EmailProcessHelper.persistEmail(service, dataSource, playerCache, auth, player, newEmail,
+            MessageKey.EMAIL_CHANGED_SUCCESS);
     }
 
 }

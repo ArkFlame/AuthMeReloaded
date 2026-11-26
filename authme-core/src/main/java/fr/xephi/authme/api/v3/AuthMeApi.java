@@ -20,12 +20,12 @@ import org.bukkit.entity.Player;
 
 import javax.inject.Inject;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * The current API of AuthMe.
@@ -241,7 +241,7 @@ public class AuthMeApi {
      */
     public boolean registerPlayer(String playerName, String password) {
         String name = playerName.toLowerCase(Locale.ROOT);
-        if (isRegistered(name)) {
+        if (dataSource.isAuthAvailable(name)) {
             return false;
         }
         HashedPassword result = passwordSecurity.computeHash(password, name);
@@ -362,9 +362,7 @@ public class AuthMeApi {
     }
 
     private List<String> getPlayerNames(Function<PlayerAuth, String> nameExtractor) {
-        List<String> names = new ArrayList<>();
-        dataSource.getAllAuths().forEach(auth -> names.add(nameExtractor.apply(auth)));
-        return names;
+        return dataSource.getAllAuths().stream().map(nameExtractor).collect(Collectors.toList());
     }
 
     /**

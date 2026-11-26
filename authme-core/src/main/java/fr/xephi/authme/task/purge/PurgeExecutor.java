@@ -16,6 +16,7 @@ import javax.inject.Inject;
 import java.io.File;
 import java.util.Collection;
 import java.util.Locale;
+import java.util.function.Function;
 
 import static fr.xephi.authme.util.FileUtils.makePath;
 
@@ -76,22 +77,9 @@ public class PurgeExecutor {
             return;
         }
 
-        int i = 0;
         File dataFolder = new File(makePath(".", "plugins", "AntiXRayData", "PlayerData"));
-        if (!dataFolder.exists() || !dataFolder.isDirectory()) {
-            return;
-        }
-
-        for (String file : dataFolder.list()) {
-            if (cleared.contains(file.toLowerCase(Locale.ROOT))) {
-                File playerFile = new File(dataFolder, file);
-                if (playerFile.exists() && playerFile.delete()) {
-                    i++;
-                }
-            }
-        }
-
-        logger.info("AutoPurge: Removed " + i + " AntiXRayData Files");
+        logger.info("AutoPurge: Removed "
+            + deleteFilesMatching(dataFolder, cleared, Function.identity()) + " AntiXRayData Files");
     }
 
     /**
@@ -115,24 +103,38 @@ public class PurgeExecutor {
             return;
         }
 
-        int i = 0;
         File dataFolder = new File(makePath(".", "plugins", "LimitedCreative", "inventories"));
-        if (!dataFolder.exists() || !dataFolder.isDirectory()) {
-            return;
+        logger.info("AutoPurge: Removed "
+            + deleteFilesMatching(dataFolder, cleared, PurgeExecutor::inventoryOwner)
+            + " LimitedCreative Survival, Creative and Adventure files");
+    }
+
+    /**
+     * Deletes every file in the folder whose name (as extracted by the given function) is in the collection.
+     * A null extracted name means the file is not associated with a player and is skipped.
+     *
+     * @return the number of files deleted
+     */
+    private static int deleteFilesMatching(File folder, Collection<String> names,
+                                           Function<String, String> nameExtractor) {
+        if (!folder.exists() || !folder.isDirectory()) {
+            return 0;
         }
-        for (String file : dataFolder.list()) {
-            String name = stripInventorySuffix(file);
-            if (name.equals(file)) {
-                continue;
-            }
-            if (cleared.contains(name.toLowerCase(Locale.ROOT))) {
-                File dataFile = new File(dataFolder, file);
-                if (dataFile.exists() && dataFile.delete()) {
-                    i++;
-                }
+
+        int deleted = 0;
+        for (String file : folder.list()) {
+            String name = nameExtractor.apply(file);
+            if (name != null && names.contains(name.toLowerCase(Locale.ROOT))
+                && new File(folder, file).delete()) {
+                deleted++;
             }
         }
-        logger.info("AutoPurge: Removed " + i + " LimitedCreative Survival, Creative and Adventure files");
+        return deleted;
+    }
+
+    private static String inventoryOwner(String file) {
+        String name = stripInventorySuffix(file);
+        return name.equals(file) ? null : name;
     }
 
     private static String stripInventorySuffix(String file) {

@@ -107,12 +107,8 @@ public class PremiumService implements HasCleanup {
                     messages.send(player, MessageKey.PREMIUM_ACCOUNT_NOT_FOUND);
                     return;
                 }
-                Collection<String> evicted = pendingPremiumCache.addPending(playerName, mojangUuid.get());
-                evicted.forEach(bungeeSender::sendPremiumUnset);
-                bungeeSender.sendPremiumPendingSet(playerName);
-                String kickMsg = messages.retrieveSingle(player, MessageKey.PREMIUM_PENDING_KICK);
-                bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player,
-                    () -> player.kickPlayer(kickMsg));
+                setPendingPremium(playerName, mojangUuid.get());
+                kickPlayerWithMessage(player, MessageKey.PREMIUM_PENDING_KICK);
             });
         }
     }
@@ -189,9 +185,7 @@ public class PremiumService implements HasCleanup {
             // If someone is online with that name but a different UUID, they are an impostor — kick them
             Player onlinePlayer = bukkitService.getPlayerExact(playerName);
             if (onlinePlayer != null && !mojangUuid.get().equals(onlinePlayer.getUniqueId())) {
-                String kickMsg = messages.retrieveSingle(onlinePlayer, MessageKey.PREMIUM_ADMIN_KICK_REASON);
-                bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(onlinePlayer,
-                    () -> onlinePlayer.kickPlayer(kickMsg));
+                kickPlayerWithMessage(onlinePlayer, MessageKey.PREMIUM_ADMIN_KICK_REASON);
                 messages.send(sender, MessageKey.PREMIUM_ADMIN_IMPOSTOR_KICKED, playerName);
             }
 
@@ -201,24 +195,16 @@ public class PremiumService implements HasCleanup {
             if (onlinePlayer != null
                     && onlinePlayer.getUniqueId().version() == 4
                     && mojangUuid.get().equals(onlinePlayer.getUniqueId())) {
-                auth.setPremiumUuid(mojangUuid.get());
-                if (dataSource.updatePremiumUuid(auth)) {
-                    playerCache.updatePlayerIfPresent(auth);
-                    bungeeSender.sendPremiumSet(playerName);
+                if (savePremiumUuid(auth, mojangUuid.get(), playerName, true)) {
                     messages.send(sender, MessageKey.PREMIUM_ADMIN_ENABLE_SUCCESS, playerName);
                 } else {
-                    logger.warning("Failed to save premium UUID for player " + playerName);
                     messages.send(sender, MessageKey.PREMIUM_ERROR);
                 }
             } else {
-                Collection<String> evicted = pendingPremiumCache.addPending(playerName, mojangUuid.get());
-                evicted.forEach(bungeeSender::sendPremiumUnset);
-                bungeeSender.sendPremiumPendingSet(playerName);
+                setPendingPremium(playerName, mojangUuid.get());
                 messages.send(sender, MessageKey.PREMIUM_ADMIN_PENDING, playerName);
                 if (onlinePlayer != null) {
-                    String kickMsg = messages.retrieveSingle(onlinePlayer, MessageKey.PREMIUM_PENDING_KICK);
-                    bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(onlinePlayer,
-                        () -> onlinePlayer.kickPlayer(kickMsg));
+                    kickPlayerWithMessage(onlinePlayer, MessageKey.PREMIUM_PENDING_KICK);
                 }
             }
         });
@@ -262,9 +248,7 @@ public class PremiumService implements HasCleanup {
 
             Player onlinePlayer = bukkitService.getPlayerExact(playerName);
             if (onlinePlayer != null) {
-                String kickMsg = messages.retrieveSingle(onlinePlayer, MessageKey.PREMIUM_ADMIN_KICK_REASON);
-                bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(onlinePlayer,
-                    () -> onlinePlayer.kickPlayer(kickMsg));
+                kickPlayerWithMessage(onlinePlayer, MessageKey.PREMIUM_ADMIN_KICK_REASON);
             }
 
             messages.send(sender, MessageKey.PREMIUM_ADMIN_DISABLE_SUCCESS, playerName);
@@ -302,17 +286,36 @@ public class PremiumService implements HasCleanup {
 
     private void storePremiumUuid(PlayerAuth auth, UUID uuid, CommandSender feedbackTarget, String playerName,
                                    boolean updateCache) {
-        auth.setPremiumUuid(uuid);
-        if (dataSource.updatePremiumUuid(auth)) {
-            if (updateCache) {
-                playerCache.updatePlayerIfPresent(auth);
-            }
-            bungeeSender.sendPremiumSet(playerName);
+        if (savePremiumUuid(auth, uuid, playerName, updateCache)) {
             messages.send(feedbackTarget, MessageKey.PREMIUM_ENABLE_SUCCESS);
         } else {
-            logger.warning("Failed to save premium UUID for player " + playerName);
             messages.send(feedbackTarget, MessageKey.PREMIUM_ERROR);
         }
+    }
+
+    /** Persists the UUID, updates the cache when requested and notifies the proxy, without player feedback. */
+    private boolean savePremiumUuid(PlayerAuth auth, UUID uuid, String playerName, boolean updateCache) {
+        auth.setPremiumUuid(uuid);
+        if (!dataSource.updatePremiumUuid(auth)) {
+            logger.warning("Failed to save premium UUID for player " + playerName);
+            return false;
+        }
+        if (updateCache) {
+            playerCache.updatePlayerIfPresent(auth);
+        }
+        bungeeSender.sendPremiumSet(playerName);
+        return true;
+    }
+
+    private void setPendingPremium(String playerName, UUID mojangUuid) {
+        Collection<String> evicted = pendingPremiumCache.addPending(playerName, mojangUuid);
+        evicted.forEach(bungeeSender::sendPremiumUnset);
+        bungeeSender.sendPremiumPendingSet(playerName);
+    }
+
+    private void kickPlayerWithMessage(Player player, MessageKey key) {
+        String kickMsg = messages.retrieveSingle(player, key);
+        bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, () -> player.kickPlayer(kickMsg));
     }
 
 }

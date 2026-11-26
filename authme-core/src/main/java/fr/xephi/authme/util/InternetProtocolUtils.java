@@ -23,7 +23,7 @@ public final class InternetProtocolUtils {
             InetAddress inetAddress = InetAddress.getByName(address);
 
             // Examples: 127.0.0.1, localhost or [::1]
-            return isLoopbackAddress(address)
+            return inetAddress.isLoopbackAddress()
                     // Example: 10.0.0.0, 172.16.0.0, 192.168.0.0, fec0::/10 (deprecated)
                     // Ref: https://en.wikipedia.org/wiki/IP_address#Private_addresses
                     || inetAddress.isSiteLocalAddress()
@@ -59,10 +59,11 @@ public final class InternetProtocolUtils {
 
     private static boolean isIPv6UniqueSiteLocal(InetAddress address) {
         // ref: https://en.wikipedia.org/wiki/Unique_local_address
+        int firstByte = address.getAddress()[0] & 0xFF;
 
         // currently undefined but could be used in the near future fc00::/8
-        return (address.getAddress()[0] & 0xFF) == 0xFC
+        return firstByte == 0xFC
                 // in use for unique site-local fd00::/8
-                || (address.getAddress()[0] & 0xFF) == 0xFD;
+                || firstByte == 0xFD;
     }
 }

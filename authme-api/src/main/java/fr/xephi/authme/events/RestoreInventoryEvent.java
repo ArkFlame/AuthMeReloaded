@@ -1,7 +1,6 @@
 package fr.xephi.authme.events;
 
 import org.bukkit.entity.Player;
-import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
@@ -9,7 +8,7 @@ import org.bukkit.event.HandlerList;
  * This event is fired when the inventory of a player is restored
  * (the inventory data is no longer hidden from the user).
  */
-public class RestoreInventoryEvent extends AbstractCancellableEvent implements Cancellable {
+public class RestoreInventoryEvent extends AbstractCancellableEvent {
 
     private static final HandlerList handlers = new HandlerList();
     private final Player player;

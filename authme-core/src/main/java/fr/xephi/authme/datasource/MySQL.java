@@ -14,7 +14,6 @@ import fr.xephi.authme.settings.properties.HooksSettings;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Locale;
@@ -297,9 +296,7 @@ public class MySQL extends AbstractHikariSqlDataSource {
     }
 
     private boolean isColumnMissing(DatabaseMetaData metaData, String columnName) throws SQLException {
-        try (ResultSet rs = metaData.getColumns(database, null, tableName, columnName)) {
-            return !rs.next();
-        }
+        return SqlDataSourceUtils.isColumnMissing(metaData, database, tableName, columnName);
     }
 
     @Override

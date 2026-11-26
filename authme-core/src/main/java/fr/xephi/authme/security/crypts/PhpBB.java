@@ -69,8 +69,6 @@ public class PhpBB implements EncryptionMethod {
      */
     private static final class PhpassSaltedMd5 {
 
-        private static final String itoa64 = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-
         private static String md5(String data) {
             byte[] bytes = data.getBytes(StandardCharsets.ISO_8859_1);
             MessageDigest md5er = HashUtils.getDigest(MessageDigestAlgorithm.MD5);
@@ -98,31 +96,14 @@ public class PhpBB implements EncryptionMethod {
         }
 
         private static String _hash_encode64(String input, int count) {
-            StringBuilder output = new StringBuilder();
-            int i = 0;
-            do {
-                int value = input.charAt(i++);
-                output.append(itoa64.charAt(value & 0x3f));
-                if (i < count)
-                    value |= input.charAt(i) << 8;
-                output.append(itoa64.charAt((value >> 6) & 0x3f));
-                if (i++ >= count)
-                    break;
-                if (i < count)
-                    value |= input.charAt(i) << 16;
-                output.append(itoa64.charAt((value >> 12) & 0x3f));
-                if (i++ >= count)
-                    break;
-                output.append(itoa64.charAt((value >> 18) & 0x3f));
-            } while (i < count);
-            return output.toString();
+            return PhpassCodec.encode64(input::charAt, count);
         }
 
         private static String _hash_crypt_private(String password, String setting) {
             String output = "*";
             if (!setting.substring(0, 3).equals("$H$"))
                 return output;
-            int count_log2 = itoa64.indexOf(setting.charAt(3));
+            int count_log2 = PhpassCodec.ITOA64.indexOf(setting.charAt(3));
             if (count_log2 < 7 || count_log2 > 30)
                 return output;
             int count = 1 << count_log2;

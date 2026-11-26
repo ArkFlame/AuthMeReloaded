@@ -13,9 +13,14 @@ import org.bukkit.Server;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -52,22 +57,20 @@ class OnJoinVerifierNicknamePatternTest {
         TestHelper.setupLogger();
     }
 
-    @Test
-    void shouldAllowNonAsciiNameWithSingleDotPattern() {
+    @ParameterizedTest(name = "{0} allows {1}")
+    @MethodSource("allowedNicknames")
+    void shouldAllowNameMatchingPattern(String pattern, String name) {
         // given
-        configureNicknamePattern(".");
+        configureNicknamePattern(pattern);
 
         // when / then
-        assertDoesNotThrow(() -> onJoinVerifier.checkIsValidName("中文"));
+        assertDoesNotThrow(() -> onJoinVerifier.checkIsValidName(name));
     }
 
-    @Test
-    void shouldAllowBedrockNameWithDotStarPattern() {
-        // given
-        configureNicknamePattern(".*");
-
-        // when / then
-        assertDoesNotThrow(() -> onJoinVerifier.checkIsValidName("中文Player"));
+    static Stream<Arguments> allowedNicknames() {
+        return Stream.of(
+            Arguments.of(".", "中文"),
+            Arguments.of(".*", "中文Player"));
     }
 
     @Test

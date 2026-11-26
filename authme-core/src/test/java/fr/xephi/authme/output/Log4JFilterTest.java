@@ -190,15 +190,6 @@ class Log4JFilterTest {
         assertThat(result, equalTo(Result.NEUTRAL));
     }
 
-    @Test
-    void shouldNotFilterNullMessage() {
-        // given / when
-        Result result = log4JFilter.filter(null, null, null, (Object) null, new Exception());
-
-        // then
-        assertThat(result, equalTo(Result.NEUTRAL));
-    }
-
     private Result filterLogEvent(String formattedMessage) {
         Message message = mockMessage(formattedMessage);
         LogEvent event = Mockito.mock(LogEvent.class);

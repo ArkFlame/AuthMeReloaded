@@ -1,27 +1,25 @@
 package fr.xephi.authme.events;
 
 import org.bukkit.entity.Player;
-import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
 /**
  * This event is called when a player adds or changes his email address.
  */
-public class EmailChangedEvent extends AbstractCancellableEvent implements Cancellable {
+public class EmailChangedEvent extends AbstractCancellableEvent {
     private static final HandlerList handlers = new HandlerList();
     private final Player player;
     private final String oldEmail;
     private final String newEmail;
 
     /**
-     * Constructor
+     * Constructor.
      *
-     * @param player The player that changed email
-     * @param oldEmail Old email player had on file. Can be null when user adds an email
-     * @param newEmail New email that player tries to set. In case of adding email, this will contain
-     *                the email is trying to set.
-     * @param isAsync should this event be called asynchronously?
+     * @param player The player that changed the email
+     * @param oldEmail The old email the player had on file, or {@code null} when the player adds an email
+     * @param newEmail The new email the player tries to set
+     * @param isAsync whether this event should be called asynchronously
      */
     public EmailChangedEvent(Player player, String oldEmail, String newEmail, boolean isAsync) {
         super(isAsync);
@@ -31,7 +29,7 @@ public class EmailChangedEvent extends AbstractCancellableEvent implements Cance
     }
 
     /**
-     * Gets the player who changes the email
+     * Returns the player who changed the email.
      *
      * @return The player who changed the email
      */
@@ -40,9 +38,9 @@ public class EmailChangedEvent extends AbstractCancellableEvent implements Cance
     }
 
     /**
-     * Gets the old email in case user tries to change existing email.
+     * Gets the old email in case the user tries to change an existing email.
      *
-     * @return old email stored on file. Can be null when user never had an email and adds a new one.
+     * @return The old email stored on file, or {@code null} when the user never had an email and adds a new one
      */
     public String getOldEmail() {
         return this.oldEmail;
@@ -51,8 +49,8 @@ public class EmailChangedEvent extends AbstractCancellableEvent implements Cance
     /**
      * Gets the new email.
      *
-     * @return the email user is trying to set. If user adds email and never had one before,
-     *        this is where such email can be found.
+     * @return The email the user is trying to set; when the user adds an email and never had one before,
+     *         this is where that email can be found
      */
     public String getNewEmail() {
         return this.newEmail;

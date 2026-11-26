@@ -62,11 +62,13 @@ public class TiAuthConverter implements Converter {
 
         switch (dbType) {
             case "SQLITE":
-                new SqliteImport(dataSource).execute(sender);
+                new SqliteImportTask(dataSource, new File(SQLITE_DB_PATH), QUERY, "tiAuth", logger,
+                    importer(sender), "tiAuth conversion failed: SQLite database not found at " + SQLITE_DB_PATH)
+                    .execute(sender);
                 break;
             case "MYSQL":
             case "POSTGRESQL":
-                new SqlImport(dataSource).execute(sender);
+                new SqlImportTask(dataSource, QUERY, "tiAuth", logger, importer(sender)).execute(sender);
                 break;
             default:
                 logAndSendMessage(sender,
@@ -74,6 +76,10 @@ public class TiAuthConverter implements Converter {
                     + "Reconfigure tiAuth to use SQLite or MySQL/PostgreSQL, migrate the data, "
                     + "then re-run the conversion.");
         }
+    }
+
+    private ResultSetImporter importer(CommandSender sender) {
+        return rs -> importRows(rs, dataSource, sender);
     }
 
     private static void importRows(ResultSet rs, DataSource dataSource, CommandSender sender) throws SQLException {
@@ -115,37 +121,5 @@ public class TiAuthConverter implements Converter {
 
         logAndSendMessage(sender, "tiAuth conversion: " + imported + " account(s) imported, "
             + skipped + " skipped (already exist)");
-    }
-
-    private static final class SqliteImport extends AbstractSqlitePluginConverter {
-
-        SqliteImport(DataSource dataSource) {
-            super(dataSource);
-        }
-
-        @Override
-        public void execute(CommandSender sender) {
-            File dbFile = new File(SQLITE_DB_PATH);
-            if (!dbFile.exists()) {
-                logAndSendMessage(sender, "tiAuth conversion failed: SQLite database not found at " + SQLITE_DB_PATH);
-                return;
-            }
-
-            queryAndImport(dbFile, sender, QUERY, "tiAuth", logger,
-                rs -> importRows(rs, getDataSource(), sender));
-        }
-    }
-
-    private static final class SqlImport extends AbstractSqlPluginConverter {
-
-        SqlImport(DataSource dataSource) {
-            super(dataSource);
-        }
-
-        @Override
-        public void execute(CommandSender sender) {
-            queryAndImport(sender, QUERY, "tiAuth", logger,
-                rs -> importRows(rs, getDataSource(), sender));
-        }
     }
 }

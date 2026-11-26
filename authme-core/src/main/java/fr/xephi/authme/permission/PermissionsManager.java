@@ -25,6 +25,7 @@ import javax.inject.Inject;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.UUID;
+import java.util.function.BiFunction;
 
 /**
  * PermissionsManager.
@@ -74,36 +75,41 @@ public class PermissionsManager implements Reloadable {
     void setup() {
         if (settings.getProperty(PluginSettings.FORCE_VAULT_HOOK)) {
             try {
-                PermissionHandler handler = createPermissionHandler(PermissionsSystemType.VAULT);
-                if (handler != null) {
-                    // Show a success message and return
-                    this.handler = handler;
-                    logger.info("Hooked into " + PermissionsSystemType.VAULT.getDisplayName() + "!");
+                if (hookInto(PermissionsSystemType.VAULT)) {
                     return;
                 }
             } catch (PermissionHandlerException e) {
                 logger.logException("Failed to create Vault hook (forced):", e);
             }
         } else {
-            // Loop through all the available permissions system types
             for (PermissionsSystemType type : PermissionsSystemType.values()) {
                 try {
-                    PermissionHandler handler = createPermissionHandler(type);
-                    if (handler != null) {
-                        // Show a success message and return
-                        this.handler = handler;
-                        logger.info("Hooked into " + type.getDisplayName() + "!");
+                    if (hookInto(type)) {
                         return;
                     }
                 } catch (Exception ex) {
-                    // An error occurred, show a warning message
                     logger.logException("Error while hooking into " + type.getDisplayName(), ex);
                 }
             }
         }
 
-        // No recognized permissions system found, show a message and return
         logger.info("No supported permissions system found! Permissions are disabled!");
+    }
+
+    /**
+     * Creates the handler for the given type and stores it if the hook succeeded.
+     *
+     * @return true if a handler was created and stored
+     * @throws PermissionHandlerException if the handler could not be initialized
+     */
+    private boolean hookInto(PermissionsSystemType type) throws PermissionHandlerException {
+        PermissionHandler newHandler = createPermissionHandler(type);
+        if (newHandler == null) {
+            return false;
+        }
+        this.handler = newHandler;
+        logger.info("Hooked into " + type.getDisplayName() + "!");
+        return true;
     }
 
     /**
@@ -334,21 +340,7 @@ public class PermissionsManager implements Reloadable {
      *         False is also returned if this feature isn't supported for the current permissions system.
      */
     public boolean addGroups(OfflinePlayer player, Collection<UserGroup> groupNames) {
-        // If no permissions system is used, return false
-        if (!isEnabled()) {
-            return false;
-        }
-
-        // Add each group to the user
-        boolean result = false;
-        for (UserGroup group : groupNames) {
-            if (!group.getGroupName().isEmpty()) {
-                result |= handler.addToGroup(player, group);
-            }
-        }
-
-        // Return the result
-        return result;
+        return changeGroups(player, groupNames, (p, g) -> handler.addToGroup(p, g));
     }
 
     /**
@@ -374,20 +366,21 @@ public class PermissionsManager implements Reloadable {
      *         False is also returned if this feature isn't supported for the current permissions system.
      */
     public boolean removeGroups(OfflinePlayer player, Collection<UserGroup> groupNames) {
-        // If no permissions system is used, return false
+        return changeGroups(player, groupNames, (p, g) -> handler.removeFromGroup(p, g));
+    }
+
+    private boolean changeGroups(OfflinePlayer player, Collection<UserGroup> groupNames,
+                                 BiFunction<OfflinePlayer, UserGroup, Boolean> action) {
         if (!isEnabled()) {
             return false;
         }
 
-        // Add each group to the user
         boolean result = false;
         for (UserGroup group : groupNames) {
             if (!group.getGroupName().isEmpty()) {
-                result |= handler.removeFromGroup(player, group);
+                result |= action.apply(player, group);
             }
         }
-
-        // Return the result
         return result;
     }
 
@@ -416,16 +409,7 @@ public class PermissionsManager implements Reloadable {
      *         False will also be returned if this feature isn't supported for the used permissions system.
      */
     public boolean removeAllGroups(OfflinePlayer player) {
-        // If no permissions system is used, return false
-        if (!isEnabled()) {
-            return false;
-        }
-
-        // Get a list of current groups
-        Collection<UserGroup> groups = getGroups(player);
-
-        // Remove each group
-        return removeGroups(player, groups);
+        return isEnabled() && removeGroups(player, getGroups(player));
     }
 
     /**

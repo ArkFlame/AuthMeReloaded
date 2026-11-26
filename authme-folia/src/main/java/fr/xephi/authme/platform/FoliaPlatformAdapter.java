@@ -2,96 +2,70 @@ package fr.xephi.authme.platform;
 
 import fr.xephi.authme.AuthMe;
 import fr.xephi.authme.listener.FoliaChatListener;
-import fr.xephi.authme.listener.PaperLoginValidationListener;
 import fr.xephi.authme.listener.FoliaPlayerSpawnLocationListener;
-import fr.xephi.authme.listener.PaperDialogFlowListener;
-import fr.xephi.authme.listener.PaperProxyAutoLoginListener;
-import fr.xephi.authme.listener.PlayerOpenSignListener;
 import fr.xephi.authme.service.CancellableTask;
-import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
+import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.event.Listener;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Platform adapter implementation for Folia 1.21.11+.
- * Reuses the Paper-derived API surface exposed by Folia while relying on
- * the core scheduler abstraction for region-safe task dispatch.
+ * Reuses the Paper-derived API surface exposed by Folia while delegating every task
+ * dispatch to {@link FoliaTaskScheduler}, which preserves region-safe scheduling.
  */
 public class FoliaPlatformAdapter extends AbstractPaperPlatformAdapter {
 
-    private static final CancellableTask NO_OP_TASK = () -> { };
-
     @Override
     public boolean isOwnedByCurrentThread(Entity entity) {
-        return Bukkit.isOwnedByCurrentRegion(entity);
+        return FoliaTaskScheduler.isOwnedByCurrentThread(entity);
     }
 
     @Override
     public boolean isOwnedByCurrentThread(Location location) {
-        return Bukkit.isOwnedByCurrentRegion(location);
+        return FoliaTaskScheduler.isOwnedByCurrentThread(location);
     }
 
     @Override
     public boolean isGlobalThread() {
-        return Bukkit.isGlobalTickThread();
+        return FoliaTaskScheduler.isGlobalThread();
     }
 
     @Override
     public void runOnEntityThread(AuthMe plugin, Entity entity, Runnable task) {
-        ScheduledTask scheduledTask = entity.getScheduler().run(plugin, ignored -> task.run(), null);
-        if (scheduledTask == null) {
-            plugin.getLogger().fine("Skipped entity task because the entity scheduler was retired");
-        }
+        FoliaTaskScheduler.runOnEntityThread(plugin, entity, task);
     }
 
     @Override
     public CancellableTask runDelayedOnEntityThread(AuthMe plugin, Entity entity, Runnable task, long delay) {
-        ScheduledTask scheduledTask = entity.getScheduler().runDelayed(plugin, ignored -> task.run(), null, delay);
-        if (scheduledTask == null) {
-            plugin.getLogger().fine("Skipped delayed entity task because the entity scheduler was retired");
-            return NO_OP_TASK;
-        }
-        return scheduledTask::cancel;
+        return FoliaTaskScheduler.runDelayedOnEntityThread(plugin, entity, task, delay);
     }
 
     @Override
     public CancellableTask runAtFixedRateOnEntityThread(AuthMe plugin, Entity entity, Runnable task,
                                                         long delay, long period) {
-        ScheduledTask scheduledTask = entity.getScheduler().runAtFixedRate(plugin, ignored -> task.run(), null,
-            delay, period);
-        if (scheduledTask == null) {
-            plugin.getLogger().fine("Skipped repeating entity task because the entity scheduler was retired");
-            return NO_OP_TASK;
-        }
-        return scheduledTask::cancel;
+        return FoliaTaskScheduler.runAtFixedRateOnEntityThread(plugin, entity, task, delay, period);
     }
 
     @Override
     public CancellableTask runAsyncTask(AuthMe plugin, Runnable task) {
-        return Bukkit.getAsyncScheduler().runNow(plugin, ignored -> task.run())::cancel;
+        return FoliaTaskScheduler.runAsyncTask(plugin, task);
     }
 
     @Override
     public CancellableTask runAsyncTaskTimer(AuthMe plugin, Runnable task, long delay, long period) {
-        return Bukkit.getAsyncScheduler()
-            .runAtFixedRate(plugin, ignored -> task.run(), ticksToMillis(delay), ticksToMillis(period),
-                TimeUnit.MILLISECONDS)::cancel;
+        return FoliaTaskScheduler.runAsyncTaskTimer(plugin, task, delay, period);
     }
 
     @Override
     public void runOnGlobalThread(AuthMe plugin, Runnable task) {
-        Bukkit.getGlobalRegionScheduler().run(plugin, ignored -> task.run());
+        FoliaTaskScheduler.runOnGlobalThread(plugin, task);
     }
 
     @Override
     public CancellableTask runDelayedOnGlobalThread(AuthMe plugin, Runnable task, long delay) {
-        return Bukkit.getGlobalRegionScheduler().runDelayed(plugin, ignored -> task.run(), delay)::cancel;
+        return FoliaTaskScheduler.runDelayedOnGlobalThread(plugin, task, delay);
     }
 
     @Override
@@ -107,16 +81,6 @@ public class FoliaPlatformAdapter extends AbstractPaperPlatformAdapter {
 
     @Override
     protected List<Class<? extends Listener>> getPlatformListeners() {
-        return Arrays.asList(
-            FoliaChatListener.class,
-            PaperDialogFlowListener.class,
-            PaperProxyAutoLoginListener.class,
-            FoliaPlayerSpawnLocationListener.class,
-            PaperLoginValidationListener.class,
-            PlayerOpenSignListener.class);
-    }
-
-    private static long ticksToMillis(long ticks) {
-        return ticks * 50L;
+        return getPaperListeners(FoliaChatListener.class, FoliaPlayerSpawnLocationListener.class);
     }
 }

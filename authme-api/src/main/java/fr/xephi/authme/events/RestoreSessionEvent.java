@@ -1,13 +1,12 @@
 package fr.xephi.authme.events;
 
 import org.bukkit.entity.Player;
-import org.bukkit.event.Cancellable;
 import org.bukkit.event.HandlerList;
 
 /**
  * Event fired before a session is restored.
  */
-public class RestoreSessionEvent extends AbstractCancellableEvent implements Cancellable {
+public class RestoreSessionEvent extends AbstractCancellableEvent {
 
     private static final HandlerList handlers = new HandlerList();
     private final Player player;
@@ -24,6 +23,8 @@ public class RestoreSessionEvent extends AbstractCancellableEvent implements Can
     }
 
     /**
+     * Return the player whose session is about to be restored.
+     *
      * @return the player for which the session will be enabled
      */
     public Player getPlayer() {
