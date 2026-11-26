@@ -24,9 +24,7 @@ import javax.inject.Inject;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 import java.util.UUID;
-
 
 public class BungeeReceiver implements PluginMessageListener, SettingsDependent {
 
@@ -93,12 +91,11 @@ public class BungeeReceiver implements PluginMessageListener, SettingsDependent 
             return;
         }
 
-        Optional<MessageType> type = MessageType.fromId(typeId);
-        if (!type.isPresent()) {
+        MessageType messageType = MessageType.fromId(typeId).orElse(null);
+        if (messageType == null) {
             logger.debug("Received unsupported AuthMe plugin message type: {0}", typeId);
             return;
         }
-        MessageType messageType = type.get();
 
         String argument = readField(in,
             "Received invalid AuthMe plugin message of type " + messageType.name() + ": argument is missing!");
@@ -113,22 +110,8 @@ public class BungeeReceiver implements PluginMessageListener, SettingsDependent 
                 // lets the proxy replace a stale premium cache. With premium disabled, stored
                 // premium names must not reach the proxy, or it keeps verifying those players.
                 List<String> premiumNames = premiumEnabled ? dataSource.getPremiumUsernames() : Collections.<String>emptyList();
-                bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(() -> {
-                    // Re-fetch a carrier at send-time: the original player may have gone offline
-                    // during the async DB query. Fall back to the triggering player so the list
-                    // still goes out when no fully-joined player exists yet (first join during
-                    // the login phase) or the single online player disconnected mid-query.
-                    Player freshCarrier = bukkitService.getOnlinePlayers().stream()
-                        .findFirst().orElse(null);
-                    Player carrier = freshCarrier != null ? freshCarrier : player;
-                    if (carrier != null) {
-                        bungeeSender.sendPremiumList(carrier, premiumNames);
-                        logger.info("Sent premium list (" + premiumNames.size() + " player(s)) to proxy '" + argument + "'");
-                    } else {
-                        logger.warning("Cannot send premium list to proxy '" + argument
-                            + "': no online player available as carrier.");
-                    }
-                });
+                bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(
+                    () -> sendPremiumList(player, argument, premiumNames));
             });
         } else if (messageType == MessageType.PERFORM_LOGIN) {
             VerifiedProxyLogin verified = parseAndVerifyPerformLogin(in, argument);
@@ -136,6 +119,21 @@ public class BungeeReceiver implements PluginMessageListener, SettingsDependent 
                 performLogin(verified.name, verified.verifiedPremiumUuid);
             }
         }
+    }
+
+    private void sendPremiumList(Player player, String proxyName, List<String> premiumNames) {
+        // Re-fetch a carrier at send-time: the original player may have gone offline
+        // during the async DB query. Fall back to the triggering player so the list
+        // still goes out when no fully-joined player exists yet (first join during
+        // the login phase) or the single online player disconnected mid-query.
+        Player carrier = bukkitService.getOnlinePlayers().stream().findFirst().orElse(player);
+        if (carrier == null) {
+            logger.warning("Cannot send premium list to proxy '" + proxyName
+                + "': no online player available as carrier.");
+            return;
+        }
+        bungeeSender.sendPremiumList(carrier, premiumNames);
+        logger.info("Sent premium list (" + premiumNames.size() + " player(s)) to proxy '" + proxyName + "'");
     }
 
     /**
@@ -167,28 +165,27 @@ public class BungeeReceiver implements PluginMessageListener, SettingsDependent 
     private VerifiedProxyLogin parseAndVerifyPerformLogin(ByteArrayDataInput in, String playerName) {
         long timestamp;
         String uuidOrHmac;
-        UUID verifiedPremiumUuid = null;
+        UUID premiumUuid;
         try {
             timestamp = in.readLong();
             uuidOrHmac = in.readUTF();
+            premiumUuid = UuidUtils.parseUuidSafely(uuidOrHmac);
         } catch (IllegalStateException e) {
             logger.warning("Received perform.login without HMAC — update your proxy plugin");
             return null;
         }
         String hmac = uuidOrHmac;
-        try {
-            UUID parsedUuid = UuidUtils.parseUuidSafely(uuidOrHmac);
-            if (parsedUuid != null || uuidOrHmac.isEmpty()) {
-                verifiedPremiumUuid = parsedUuid;
+        if (premiumUuid != null || uuidOrHmac.isEmpty()) {
+            try {
                 hmac = in.readUTF();
+            } catch (IllegalStateException e) {
+                // HMAC was concatenated into uuidOrHmac; keep using it as the HMAC.
             }
-        } catch (IllegalStateException e) {
-            // HMAC was concatenated into uuidOrHmac; keep using it as the HMAC.
         }
-        if (!verifyHmac(playerName, timestamp, verifiedPremiumUuid, hmac)) {
+        if (!verifyHmac(playerName, timestamp, premiumUuid, hmac)) {
             return null;
         }
-        return new VerifiedProxyLogin(playerName, verifiedPremiumUuid);
+        return new VerifiedProxyLogin(playerName, premiumUuid);
     }
 
     /**
@@ -224,22 +221,21 @@ public class BungeeReceiver implements PluginMessageListener, SettingsDependent 
     }
 
     private boolean verifyHmac(String playerName, long timestamp, UUID verifiedPremiumUuid, String providedHmac) {
+        String rejectionReason;
         if (proxySharedSecret.isEmpty()) {
-            logger.warning("Rejected perform.login for " + playerName
-                + ": Hooks.proxySharedSecret is not configured — set the same secret on all backend servers and the proxy");
-            return false;
+            rejectionReason = "Hooks.proxySharedSecret is not configured — set the same secret on all backend servers and the proxy";
+        } else if (Math.abs(System.currentTimeMillis() - timestamp) > MAX_AGE_MILLIS) {
+            rejectionReason = "message has expired";
+        } else {
+            String expectedHmac = HashUtils.hmacSha256(proxySharedSecret,
+                playerName + ":" + timestamp + ":" + (verifiedPremiumUuid == null ? "" : verifiedPremiumUuid));
+            if (HashUtils.isEqual(expectedHmac, providedHmac)) {
+                return true;
+            }
+            rejectionReason = "invalid HMAC";
         }
-        if (Math.abs(System.currentTimeMillis() - timestamp) > MAX_AGE_MILLIS) {
-            logger.warning("Rejected perform.login for " + playerName + ": message has expired");
-            return false;
-        }
-        String expectedHmac = HashUtils.hmacSha256(proxySharedSecret,
-            playerName + ":" + timestamp + ":" + (verifiedPremiumUuid == null ? "" : verifiedPremiumUuid));
-        if (!HashUtils.isEqual(expectedHmac, providedHmac)) {
-            logger.warning("Rejected perform.login for " + playerName + ": invalid HMAC");
-            return false;
-        }
-        return true;
+        logger.warning("Rejected perform.login for " + playerName + ": " + rejectionReason);
+        return false;
     }
 
     private void performLogin(String name, UUID verifiedPremiumUuid) {
@@ -251,27 +247,27 @@ public class BungeeReceiver implements PluginMessageListener, SettingsDependent 
         Player player = bukkitService.getPlayerExact(name);
         logger.info("performLogin: " + name + " verifiedPremiumUuid=" + verifiedPremiumUuid
             + " playerOnline=" + (player != null && player.isOnline()));
-        if (player != null && player.isOnline()) {
-            if (verifiedPremiumUuid == null) {
-                completeProxyLogin(player);
-            } else {
-                bukkitService.runTaskAsynchronously(() -> {
-                    if (!proxyLoginRequestValidator.validate(player, verifiedPremiumUuid)) {
-                        logger.debug("performLogin: validate() rejected/deferred {0}; removing queued login request", name);
-                        proxySessionManager.removeLoginRequest(name);
-                        return;
-                    }
-                    logger.info(name + " premium login accepted by validate(); completing proxy login");
-                    bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, () -> {
-                        if (player.isOnline()) {
-                            completeProxyLogin(player);
-                        }
-                    });
-                });
-            }
-        } else {
+        if (player == null || !player.isOnline()) {
             logger.info(name + " is not yet online; queued for auto-login when they connect.");
+            return;
         }
+        if (verifiedPremiumUuid == null) {
+            completeProxyLogin(player);
+            return;
+        }
+        bukkitService.runTaskAsynchronously(() -> {
+            if (!proxyLoginRequestValidator.validate(player, verifiedPremiumUuid)) {
+                logger.debug("performLogin: validate() rejected/deferred {0}; removing queued login request", name);
+                proxySessionManager.removeLoginRequest(name);
+                return;
+            }
+            logger.info(name + " premium login accepted by validate(); completing proxy login");
+            bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, () -> {
+                if (player.isOnline()) {
+                    completeProxyLogin(player);
+                }
+            });
+        });
     }
 
     private void completeProxyLogin(Player player) {

@@ -10,6 +10,8 @@ import fr.xephi.authme.settings.properties.RegistrationSettings;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -77,33 +79,19 @@ class DialogWindowServiceTest {
         assertThat(dialog.inputs().stream().map(input -> input.id()).toList(), contains("password", "email"));
     }
 
-    @Test
-    void shouldNotShowForgotPasswordButtonWhenEmailServiceNotConfigured() {
+    @ParameterizedTest
+    @CsvSource({"true", "false"})
+    void shouldNotShowForgotPasswordButtonWhenEmailServiceNotConfigured(boolean showForgotPasswordButton) {
         // given
         Player player = mockPlayerWithRetrievedMessages();
-        given(commonService.getProperty(RegistrationSettings.DIALOG_SHOW_FORGOT_PASSWORD_BUTTON)).willReturn(true);
-        given(commonService.getProperty(RegistrationSettings.DIALOG_SHOW_BODY)).willReturn(false);
-        given(commonService.getProperty(RegistrationSettings.DIALOG_STACK_BUTTONS_VERTICALLY)).willReturn(false);
-        given(emailService.hasAllInformation()).willReturn(false);
-
-        // when — email service not configured: recovery must not appear regardless of the flag
-        DialogWindowSpec dialog = dialogWindowService.createLoginDialog(player);
-
-        // then
-        assertThat(dialog.showSecondaryButton(), is(false));
-        assertThat(dialog.secondaryButtonCommand(), is(nullValue()));
-        assertThat(dialog.inputs().stream().map(input -> input.id()).toList(), contains("password"));
-    }
-
-    @Test
-    void shouldBuildPostJoinLoginDialogWithoutForgotPasswordButtonWhenDisabledByConfig() {
-        // given
-        Player player = mockPlayerWithRetrievedMessages();
-        given(commonService.getProperty(RegistrationSettings.DIALOG_SHOW_FORGOT_PASSWORD_BUTTON)).willReturn(false);
+        given(commonService.getProperty(RegistrationSettings.DIALOG_SHOW_FORGOT_PASSWORD_BUTTON)).willReturn(showForgotPasswordButton);
+        if (showForgotPasswordButton) {
+            given(emailService.hasAllInformation()).willReturn(false);
+        }
         given(commonService.getProperty(RegistrationSettings.DIALOG_SHOW_BODY)).willReturn(false);
         given(commonService.getProperty(RegistrationSettings.DIALOG_STACK_BUTTONS_VERTICALLY)).willReturn(false);
 
-        // when — disabled by config even when email service is available
+        // when — recovery must not appear when unavailable or disabled regardless of the flag
         DialogWindowSpec dialog = dialogWindowService.createLoginDialog(player);
 
         // then
@@ -113,8 +101,11 @@ class DialogWindowServiceTest {
         assertThat(dialog.inputs().stream().map(input -> input.id()).toList(), contains("password"));
     }
 
-    @Test
-    void shouldBuildPostJoinRegisterDialogWithEmailBeforePasswordForMandatoryEmailFlow() {
+    @ParameterizedTest
+    @CsvSource({"EMAIL_MANDATORY, email, password", "EMAIL_OPTIONAL, password, email"})
+    void shouldBuildPostJoinRegisterDialogWithInputsOrderedByEmailFlow(String secondArgument,
+                                                                      String firstInput,
+                                                                      String secondInput) {
         // given
         Player player = mockPlayerWithRetrievedMessages();
         given(commonService.getProperty(RegistrationSettings.DIALOG_SHOW_BODY)).willReturn(false);
@@ -122,29 +113,15 @@ class DialogWindowServiceTest {
 
         // when
         DialogWindowSpec dialog = dialogWindowService.createRegisterDialog(
-            player, RegistrationType.PASSWORD, RegisterSecondaryArgument.EMAIL_MANDATORY);
+            player, RegistrationType.PASSWORD, RegisterSecondaryArgument.valueOf(secondArgument));
 
-        // then — email comes before password for mandatory email flow
-        assertThat(dialog.inputs().stream().map(input -> input.id()).toList(), contains("email", "password"));
-    }
-
-    @Test
-    void shouldBuildPostJoinRegisterDialogForOptionalEmailFlow() {
-        // given
-        Player player = mockPlayerWithRetrievedMessages();
-        given(commonService.getProperty(RegistrationSettings.DIALOG_SHOW_BODY)).willReturn(false);
-        given(commonService.getProperty(RegistrationSettings.DIALOG_STACK_BUTTONS_VERTICALLY)).willReturn(false);
-
-        // when
-        DialogWindowSpec dialog = dialogWindowService.createRegisterDialog(
-            player, RegistrationType.PASSWORD, RegisterSecondaryArgument.EMAIL_OPTIONAL);
-
-        // then — password first, then optional email
+        // then
         assertThat(dialog.title(), is("dialog.register.title"));
         assertThat(dialog.primaryButtonLabel(), is("dialog.register.button"));
         assertThat(dialog.showSecondaryButton(), is(false));
         assertThat(dialog.canCloseWithEscape(), is(false));
-        assertThat(dialog.inputs().stream().map(input -> input.id()).toList(), contains("password", "email"));
+        assertThat(dialog.body(), is(nullValue()));
+        assertThat(dialog.inputs().stream().map(input -> input.id()).toList(), contains(firstInput, secondInput));
     }
 
     @Test

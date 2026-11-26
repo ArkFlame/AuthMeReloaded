@@ -168,22 +168,22 @@ public abstract class AbstractSqlDataSource implements DataSource {
 
     @Override
     public void setLogged(String user) {
-        setFlag(user, AuthMeColumns.IS_LOGGED, 1);
+        columnsHandler.update(user, AuthMeColumns.IS_LOGGED, 1);
     }
 
     @Override
     public void setUnlogged(String user) {
-        setFlag(user, AuthMeColumns.IS_LOGGED, 0);
+        columnsHandler.update(user, AuthMeColumns.IS_LOGGED, 0);
     }
 
     @Override
     public void grantSession(String user) {
-        setFlag(user, AuthMeColumns.HAS_SESSION, 1);
+        columnsHandler.update(user, AuthMeColumns.HAS_SESSION, 1);
     }
 
     @Override
     public void revokeSession(String user) {
-        setFlag(user, AuthMeColumns.HAS_SESSION, 0);
+        columnsHandler.update(user, AuthMeColumns.HAS_SESSION, 0);
     }
 
     @Override
@@ -302,13 +302,10 @@ public abstract class AbstractSqlDataSource implements DataSource {
 
     /** Adds the configured UUID columns to the table when they are not there yet. */
     protected void addUuidColumnsIfAbsent(DatabaseMetaData md, Statement st) throws SQLException {
-        addUuidColumnIfAbsent(md, st, col.PLAYER_UUID);
-        addUuidColumnIfAbsent(md, st, col.PREMIUM_UUID);
-    }
-
-    private void addUuidColumnIfAbsent(DatabaseMetaData md, Statement st, String uuidColumn) throws SQLException {
-        if (!uuidColumn.isEmpty()) {
-            addColumnIfAbsent(md, st, uuidColumn, "VARCHAR(36)");
+        for (String uuidColumn : new String[] {col.PLAYER_UUID, col.PREMIUM_UUID}) {
+            if (!uuidColumn.isEmpty()) {
+                addColumnIfAbsent(md, st, uuidColumn, "VARCHAR(36)");
+            }
         }
     }
 
@@ -336,13 +333,6 @@ public abstract class AbstractSqlDataSource implements DataSource {
             logSqlException(e);
             return false;
         }
-    }
-
-    /**
-     * Updates the given integer flag to the supplied value for the user.
-     */
-    private void setFlag(String user, DataSourceColumn<Integer> column, int value) {
-        columnsHandler.update(user, column, value);
     }
 
     abstract String getJdbcUrl(String host, String port, String database);

@@ -246,10 +246,9 @@ public class SQLite extends AbstractSqlDataSource {
         return DataSourceType.SQLITE;
     }
 
-    @Override
-    public synchronized List<PlayerAuth> getAllAuths() {
+    private List<PlayerAuth> getAuths(String sql) {
         List<PlayerAuth> auths = new ArrayList<>();
-        try (PreparedStatement pst = con.prepareStatement(findAllSql); ResultSet rs = pst.executeQuery()) {
+        try (PreparedStatement pst = con.prepareStatement(sql); ResultSet rs = pst.executeQuery()) {
             while (rs.next()) {
                 auths.add(SqlDataSourceUtils.buildAuthFromResultSet(rs, col, false));
             }
@@ -257,6 +256,11 @@ public class SQLite extends AbstractSqlDataSource {
             logSqlException(ex);
         }
         return auths;
+    }
+
+    @Override
+    public synchronized List<PlayerAuth> getAllAuths() {
+        return getAuths(findAllSql);
     }
 
     @Override
@@ -271,16 +275,7 @@ public class SQLite extends AbstractSqlDataSource {
 
     @Override
     public synchronized List<PlayerAuth> getRecentlyLoggedInPlayers() {
-        List<PlayerAuth> players = new ArrayList<>();
-        try (PreparedStatement pst = con.prepareStatement(findRecentLoginsSql);
-             ResultSet rs = pst.executeQuery()) {
-            while (rs.next()) {
-                players.add(SqlDataSourceUtils.buildAuthFromResultSet(rs, col, false));
-            }
-        } catch (SQLException e) {
-            logSqlException(e);
-        }
-        return players;
+        return getAuths(findRecentLoginsSql);
     }
 
     @Override

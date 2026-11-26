@@ -143,42 +143,44 @@ class PasswordSecurityTest {
         verify(method, never()).comparePassword(anyString(), any(HashedPassword.class), anyString());
     }
 
-    private void withAlgorithm(HashAlgorithm algorithm) {
-        given(settings.getProperty(SecuritySettings.PASSWORD_HASH)).willReturn(algorithm);
-    }
-
     private void withAlgorithms(HashAlgorithm algorithm, HashAlgorithm... legacy) {
-        withAlgorithm(algorithm);
+        given(settings.getProperty(SecuritySettings.PASSWORD_HASH)).willReturn(algorithm);
         given(settings.getProperty(SecuritySettings.LEGACY_HASHES)).willReturn(newHashSet(legacy));
     }
 
-    @Test
-    void shouldTryOtherMethodsForFailedPassword() {
-        // BCRYPT hash for "Test"
-        HashedPassword password =
-            new HashedPassword("$2y$10$2e6d2193f43501c926e25elvWlPmWczmrfrnbZV0dUZGITjYjnkkW");
+    @ParameterizedTest
+    @CsvSource({
+        "MD5, $2y$10$2e6d2193f43501c926e25elvWlPmWczmrfrnbZV0dUZGITjYjnkkW, BCRYPT, true",
+        "CUSTOM, 0cbc6611f5540bd0809a388dc95a615b, MD5, false"})
+    void shouldAuthenticateWithLegacyHash(HashAlgorithm current, String storedHash, HashAlgorithm legacy,
+                                          boolean rehash) {
         String playerName = "somePlayer";
         String playerLowerCase = playerName.toLowerCase(Locale.ROOT);
         String clearTextPass = "Test";
-        // MD5 hash for "Test"
-        HashedPassword newPassword = new HashedPassword("0cbc6611f5540bd0809a388dc95a615b");
-
+        HashedPassword password = new HashedPassword(storedHash);
+        HashedPassword newPassword = new HashedPassword("0cbc6611f5540bd0809a388dc95a615b"); // MD5 hash for "Test"
         given(dataSource.getPassword(argThat(equalToIgnoringCase(playerName)))).willReturn(password);
-        given(method.comparePassword(clearTextPass, password, playerLowerCase)).willReturn(false);
-        given(method.computeHash(clearTextPass, playerLowerCase)).willReturn(newPassword);
-        withAlgorithms(HashAlgorithm.MD5, HashAlgorithm.BCRYPT);
+        if (rehash) { // BCRYPT hash stored: current method rejects it, legacy BCRYPT matches and re-hashes
+            given(method.comparePassword(clearTextPass, password, playerLowerCase)).willReturn(false);
+            given(method.computeHash(clearTextPass, playerLowerCase)).willReturn(newPassword);
+        } else {
+            reset(pluginManager); // leave the null method from CUSTOM untouched by the encryption event
+        }
+        withAlgorithms(current, legacy);
         passwordSecurity.reload();
 
         boolean result = passwordSecurity.comparePassword(clearTextPass, playerName);
 
         assertThat(result, equalTo(true));
-        // Note ljacqu 20151230: We need to check the player name in a case-insensitive way because the methods within
-        // PasswordSecurity may convert the name into all lower-case. This is desired because EncryptionMethod methods
-        // should only be invoked with all lower-case names. Data source is case-insensitive itself, so this is fine.
+        // Data source is case-insensitive, so the player name may be queried with any case.
         verify(dataSource).getPassword(argThat(equalToIgnoringCase(playerName)));
-        verify(pluginManager, times(2)).callEvent(any(PasswordEncryptionEvent.class));
-        verify(method).comparePassword(clearTextPass, password, playerLowerCase);
-        verify(dataSource).updatePassword(playerLowerCase, newPassword);
+        if (rehash) {
+            verify(pluginManager, times(2)).callEvent(any(PasswordEncryptionEvent.class));
+            verify(method).comparePassword(clearTextPass, password, playerLowerCase);
+            verify(dataSource).updatePassword(playerLowerCase, newPassword);
+        } else {
+            verify(dataSource, never()).updatePassword(anyString(), any(HashedPassword.class));
+        }
     }
 
     @Test
@@ -205,7 +207,7 @@ class PasswordSecurityTest {
         String usernameLowerCase = username.toLowerCase(Locale.ROOT);
         HashedPassword hashedPassword = new HashedPassword("$T$est#Hash", "__someSalt__");
         given(method.computeHash(password, usernameLowerCase)).willReturn(hashedPassword);
-        withAlgorithm(HashAlgorithm.JOOMLA);
+        given(settings.getProperty(SecuritySettings.PASSWORD_HASH)).willReturn(HashAlgorithm.JOOMLA);
         passwordSecurity.reload();
 
         HashedPassword result = passwordSecurity.computeHash(password, username);
@@ -222,7 +224,7 @@ class PasswordSecurityTest {
         String username = "someone12";
         HashedPassword hashedPassword = new HashedPassword("~T!est#Hash");
         given(method.hasSeparateSalt()).willReturn(true);
-        withAlgorithm(HashAlgorithm.SHA256);
+        given(settings.getProperty(SecuritySettings.PASSWORD_HASH)).willReturn(HashAlgorithm.SHA256);
         passwordSecurity.reload();
 
         boolean result = passwordSecurity.comparePassword(password, hashedPassword, username);
@@ -246,23 +248,5 @@ class PasswordSecurityTest {
         Set<HashAlgorithm> legacyHashesSet = newHashSet(HashAlgorithm.CUSTOM, HashAlgorithm.BCRYPT);
         assertThat(ReflectionTestUtils.getFieldValue(PasswordSecurity.class, passwordSecurity, "legacyAlgorithms"),
             equalTo(legacyHashesSet));
-    }
-
-    @Test
-    void shouldAuthenticateWithLegacyHashWhenCurrentAlgorithmIsUnavailable() {
-        String playerName = "somePlayer";
-        String clearTextPass = "Test";
-        // MD5 hash for "Test"
-        HashedPassword password = new HashedPassword("0cbc6611f5540bd0809a388dc95a615b");
-
-        given(dataSource.getPassword(playerName)).willReturn(password);
-        withAlgorithms(HashAlgorithm.CUSTOM, HashAlgorithm.MD5);
-        reset(pluginManager); // leave the null method from CUSTOM untouched by the encryption event
-        passwordSecurity.reload();
-
-        boolean result = passwordSecurity.comparePassword(clearTextPass, playerName);
-
-        assertThat(result, equalTo(true));
-        verify(dataSource, never()).updatePassword(anyString(), any(HashedPassword.class));
     }
 }

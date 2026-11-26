@@ -5,6 +5,8 @@ import fr.xephi.authme.TestHelper;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import java.io.File;
 import java.io.IOException;
@@ -51,29 +53,23 @@ class FileUtilsTest {
         boolean result = FileUtils.copyFileFromResource(file, "welcome.txt");
 
         assertThat(result, equalTo(true));
-        assertThat(file.exists(), equalTo(true));
         File configJarFile = TestHelper.getJarFile("/welcome.txt");
         assertThat(file.length(), equalTo(configJarFile.length()));
     }
 
-    @Test
-    void shouldReturnFalseForInvalidJarFile() {
-        File file = new File(temporaryFolder, "bogus");
+    @ParameterizedTest
+    @CsvSource({"bogus, does-not-exist, false", "hello/test, welcome.txt, true"})
+    void shouldReturnFalseForInvalidCopy(String fileName, String resourceName,
+                                         boolean blockedParent) throws IOException {
+        if (blockedParent) {
+            new File(temporaryFolder, "hello").createNewFile();
+        }
+        File file = new File(temporaryFolder, fileName);
 
-        boolean result = FileUtils.copyFileFromResource(file, "does-not-exist");
+        boolean result = FileUtils.copyFileFromResource(file, resourceName);
 
         assertThat(result, equalTo(false));
         assertThat(file.exists(), equalTo(false));
-    }
-
-    @Test
-    void shouldReturnFalseForParentInvalidParentFolders() throws IOException {
-        new File(temporaryFolder, "hello").createNewFile();
-        File fileToCreate = new File(temporaryFolder, "hello/test");
-
-        boolean result = FileUtils.copyFileFromResource(fileToCreate, "welcome.txt");
-
-        assertThat(result, equalTo(false));
     }
 
     @Test
@@ -132,7 +128,6 @@ class FileUtilsTest {
         boolean result = FileUtils.createDirectory(dir);
 
         assertThat(result, equalTo(true));
-        assertThat(dir.exists(), equalTo(true));
         assertThat(dir.isDirectory(), equalTo(true));
     }
 

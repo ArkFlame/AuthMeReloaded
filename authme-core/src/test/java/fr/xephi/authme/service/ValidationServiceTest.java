@@ -29,6 +29,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.net.InetSocketAddress;
 import java.util.Collections;
+import java.util.List;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
@@ -114,28 +115,27 @@ class ValidationServiceTest {
         assertErrorEquals(error, MessageKey.INVALID_PASSWORD_LENGTH);
     }
 
-    @Test
-    void shouldRejectUnsafePassword() {
+    @ParameterizedTest(name = "{0} / {1}: {2}")
+    @MethodSource("passwordSafetyCases")
+    void shouldCheckPasswordSafety(String password, String username, MessageKey expectedError) {
         // given
         givenPasswordSettings();
 
         // when
-        ValidationResult error = validationService.validatePassword("unsafe", "playertest");
+        ValidationResult result = validationService.validatePassword(password, username);
 
         // then
-        assertErrorEquals(error, MessageKey.PASSWORD_UNSAFE_ERROR);
+        if (expectedError == null) {
+            assertThat(result.hasError(), equalTo(false));
+        } else {
+            assertErrorEquals(result, expectedError);
+        }
     }
 
-    @Test
-    void shouldAcceptValidPassword() {
-        // given
-        givenPasswordSettings();
-
-        // when
-        ValidationResult error = validationService.validatePassword("safePass", "some_user");
-
-        // then
-        assertThat(error.hasError(), equalTo(false));
+    private static Stream<Arguments> passwordSafetyCases() {
+        return Stream.of(
+            Arguments.of("unsafe", "playertest", MessageKey.PASSWORD_UNSAFE_ERROR),
+            Arguments.of("safePass", "some_user", null));
     }
 
     @Test
@@ -152,11 +152,14 @@ class ValidationServiceTest {
     }
 
     @ParameterizedTest(name = "{0}: {1}")
-    @MethodSource("whitelistEmails")
-    void shouldCheckEmailAgainstWhitelist(String email, boolean expected) {
+    @MethodSource("domainFilterEmails")
+    void shouldCheckEmailAgainstDomainFilters(String email, boolean expected, List<String> whitelist,
+                                              List<String> blacklist) {
         // given
-        given(settings.getProperty(EmailSettings.DOMAIN_WHITELIST))
-            .willReturn(asList("domain.tld", "example.com"));
+        given(settings.getProperty(EmailSettings.DOMAIN_WHITELIST)).willReturn(whitelist);
+        if (whitelist.isEmpty()) {
+            given(settings.getProperty(EmailSettings.DOMAIN_BLACKLIST)).willReturn(blacklist);
+        }
 
         // when
         boolean result = validationService.validateEmail(email);
@@ -165,40 +168,12 @@ class ValidationServiceTest {
         assertThat(result, equalTo(expected));
     }
 
-    private static Stream<Arguments> whitelistEmails() {
+    private static Stream<Arguments> domainFilterEmails() {
         return Stream.of(
-            Arguments.of("TesT@Example.com", true),
-            Arguments.of("email@other-domain.abc", false));
-    }
-
-    @Test
-    void shouldRejectEmailWithSeveralAtSigns() {
-        // given / when
-        boolean result = validationService.validateEmail("user@example.com@other-domain.abc");
-
-        // then
-        assertThat(result, equalTo(false));
-    }
-
-    @ParameterizedTest(name = "{0}: {1}")
-    @MethodSource("blacklistEmails")
-    void shouldCheckEmailAgainstBlacklist(String email, boolean expected) {
-        // given
-        given(settings.getProperty(EmailSettings.DOMAIN_WHITELIST)).willReturn(Collections.emptyList());
-        given(settings.getProperty(EmailSettings.DOMAIN_BLACKLIST))
-            .willReturn(asList("Example.org", "a-test-name.tld"));
-
-        // when
-        boolean result = validationService.validateEmail(email);
-
-        // then
-        assertThat(result, equalTo(expected));
-    }
-
-    private static Stream<Arguments> blacklistEmails() {
-        return Stream.of(
-            Arguments.of("sample@valid-name.tld", true),
-            Arguments.of("sample@a-Test-name.tld", false));
+            Arguments.of("TesT@Example.com", true, asList("domain.tld", "example.com"), Collections.emptyList()),
+            Arguments.of("email@other-domain.abc", false, asList("domain.tld", "example.com"), Collections.emptyList()),
+            Arguments.of("sample@valid-name.tld", true, Collections.emptyList(), asList("Example.org", "a-test-name.tld")),
+            Arguments.of("sample@a-Test-name.tld", false, Collections.emptyList(), asList("Example.org", "a-test-name.tld")));
     }
 
     @Test
@@ -221,7 +196,7 @@ class ValidationServiceTest {
     }
 
     @ParameterizedTest(name = "reject invalid email: {0}")
-    @ValueSource(strings = {"invalidinput", "invalidinput@", "your@email.com"})
+    @ValueSource(strings = {"invalidinput", "invalidinput@", "your@email.com", "user@example.com@other-domain.abc"})
     void shouldRejectInvalidEmail(String email) {
         // given / when / then
         assertThat(validationService.validateEmail(email), equalTo(false));
@@ -298,31 +273,14 @@ class ValidationServiceTest {
     }
 
     @ParameterizedTest(name = "{0}: {1}")
-    @MethodSource("whitelistCountries")
-    void shouldCheckCountryAgainstWhitelist(String ip, String countryCode, boolean expected) {
+    @MethodSource("countryCases")
+    void shouldCheckCountryAgainstFilters(String ip, String countryCode, boolean expected, List<String> whitelist,
+                                          List<String> blacklist) {
         // given
-        given(settings.getProperty(ProtectionSettings.COUNTRIES_WHITELIST)).willReturn(asList("ch", "it"));
-        given(geoIpService.getCountryCode(ip)).willReturn(countryCode);
-
-        // when
-        boolean result = validationService.isCountryAdmitted(ip);
-
-        // then
-        assertThat(result, equalTo(expected));
-    }
-
-    private static Stream<Arguments> whitelistCountries() {
-        return Stream.of(
-            Arguments.of("127.0.0.1", "CH", true),
-            Arguments.of("123.45.67.89", "BR", false));
-    }
-
-    @ParameterizedTest(name = "{0}: {1}")
-    @MethodSource("blacklistCountries")
-    void shouldCheckCountryAgainstBlacklist(String ip, String countryCode, boolean expected) {
-        // given
-        given(settings.getProperty(ProtectionSettings.COUNTRIES_WHITELIST)).willReturn(Collections.emptyList());
-        given(settings.getProperty(ProtectionSettings.COUNTRIES_BLACKLIST)).willReturn(asList("ch", "it"));
+        given(settings.getProperty(ProtectionSettings.COUNTRIES_WHITELIST)).willReturn(whitelist);
+        if (whitelist.isEmpty()) {
+            given(settings.getProperty(ProtectionSettings.COUNTRIES_BLACKLIST)).willReturn(blacklist);
+        }
         given(geoIpService.getCountryCode(ip)).willReturn(countryCode);
 
         // when
@@ -333,10 +291,12 @@ class ValidationServiceTest {
         verify(geoIpService).getCountryCode(ip);
     }
 
-    private static Stream<Arguments> blacklistCountries() {
+    private static Stream<Arguments> countryCases() {
         return Stream.of(
-            Arguments.of("127.0.0.1", "BR", true),
-            Arguments.of("123.45.67.89", "IT", false));
+            Arguments.of("127.0.0.1", "CH", true, asList("ch", "it"), Collections.emptyList()),
+            Arguments.of("123.45.67.89", "BR", false, asList("ch", "it"), Collections.emptyList()),
+            Arguments.of("127.0.0.1", "BR", true, Collections.emptyList(), asList("ch", "it")),
+            Arguments.of("123.45.67.89", "IT", false, Collections.emptyList(), asList("ch", "it")));
     }
 
     @Test

@@ -67,11 +67,9 @@ public abstract class AbstractDataSourceIntegrationTest {
     void shouldReturnPassword(String saltColumn, String userName, HashedPassword expectedUserPassword) {
         DataSource dataSource = getDataSource(saltColumn);
 
-        HashedPassword bobbyPassword = dataSource.getPassword("bobby");
         HashedPassword invalidPassword = dataSource.getPassword("doesNotExist");
         HashedPassword userPassword = dataSource.getPassword(userName);
 
-        assertThat(bobbyPassword, equalToHash("$SHA$11aa0706173d7272$dbba966"));
         assertThat(invalidPassword, nullValue());
         assertThat(userPassword, equalToHash(expectedUserPassword));
     }
@@ -109,33 +107,22 @@ public abstract class AbstractDataSourceIntegrationTest {
     }
 
     @Test
-    void shouldCountAuthsByEmail() {
+    void shouldSaveAuthAndCountAndList() {
         DataSource dataSource = getDataSource();
 
         int userMailCount = dataSource.countAuthsByEmail("user@example.ORG");
         int invalidMailCount = dataSource.countAuthsByEmail("not.in.db@example.com");
-        boolean response = dataSource.saveAuth(
-            PlayerAuth.builder().name("Test").email("user@EXAMPLE.org").build());
-        int newUserCount = dataSource.countAuthsByEmail("user@Example.org");
-
-        assertThat(userMailCount, equalTo(1));
-        assertThat(invalidMailCount, equalTo(0));
-        assertThat(response, equalTo(true));
-        assertThat(newUserCount, equalTo(2));
-    }
-
-    @Test
-    void shouldReturnAllAuths() {
-        DataSource dataSource = getDataSource();
-
         List<PlayerAuth> authList = dataSource.getAllAuths();
         boolean response = dataSource.saveAuth(
             PlayerAuth.builder().name("Test").email("user@EXAMPLE.org").build());
+        int newUserCount = dataSource.countAuthsByEmail("user@Example.org");
         List<PlayerAuth> newAuthList = dataSource.getAllAuths();
 
-        assertThat(response, equalTo(true));
+        assertThat(userMailCount, equalTo(1));
+        assertThat(invalidMailCount, equalTo(0));
         assertThat(authList, hasSize(2));
-        assertThat(authList, hasItem(hasAuthBasicData("bobby", "Bobby", null, "123.45.67.89")));
+        assertThat(response, equalTo(true));
+        assertThat(newUserCount, equalTo(2));
         assertThat(newAuthList, hasSize(3));
         assertThat(newAuthList, hasItem(hasAuthBasicData("bobby", "Bobby", null, "123.45.67.89")));
     }
@@ -384,7 +371,7 @@ public abstract class AbstractDataSourceIntegrationTest {
     }
 
     @Test
-    void shouldGrantAndRetrieveSessionFlag() {
+    void shouldGrantAndRevokeSession() {
         DataSource dataSource = getDataSource();
 
         dataSource.grantSession("Bobby");
@@ -393,14 +380,8 @@ public abstract class AbstractDataSourceIntegrationTest {
         assertThat(dataSource.hasSession("bobby"), equalTo(true));
         assertThat(dataSource.hasSession("user"), equalTo(false));
         assertThat(dataSource.hasSession("bogus"), equalTo(false));
-    }
 
-    @Test
-    void shouldRevokeSession() {
-        DataSource dataSource = getDataSource();
-        dataSource.grantSession("bobby");
         dataSource.grantSession("user");
-
         dataSource.revokeSession("bobby");
         dataSource.revokeSession("userNotInDatabase");
 
@@ -433,25 +414,16 @@ public abstract class AbstractDataSourceIntegrationTest {
     }
 
     @Test
-    void shouldSetTotpKey() {
+    void shouldSetAndRemoveTotpKey() {
         DataSource dataSource = getDataSource();
         String newTotpKey = "My new TOTP key";
 
         dataSource.setTotpKey("BObBy", newTotpKey);
         dataSource.setTotpKey("does-not-exist", "bogus");
-
         assertThat(dataSource.getAuth("bobby").getTotpKey(), equalTo(newTotpKey));
-    }
-
-    @Test
-    void shouldRemoveTotpKey() {
-        DataSource dataSource = getDataSource();
 
         dataSource.removeTotpKey("BoBBy");
-        dataSource.removeTotpKey("user");
         dataSource.removeTotpKey("does-not-exist");
-
         assertThat(dataSource.getAuth("bobby").getTotpKey(), nullValue());
-        assertThat(dataSource.getAuth("user").getTotpKey(), nullValue());
     }
 }

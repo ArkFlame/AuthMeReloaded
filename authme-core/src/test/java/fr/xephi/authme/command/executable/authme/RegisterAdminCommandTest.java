@@ -15,6 +15,8 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -115,39 +117,24 @@ class RegisterAdminCommandTest {
         assertAuthHasInfo(captor.getValue(), user, hashedPassword);
     }
 
-    @Test
-    void shouldRegisterOfflinePlayer() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldRegisterPlayer(boolean playerOnline) {
         // given
         String user = "someone";
         String password = "Al1O3P49S5%";
-        HashedPassword hashedPassword = givenValidRegistration(user, password, "$aea2345EW235dfsa@#R%987048", true);
-        given(bukkitService.getPlayerExact(user)).willReturn(null);
-        CommandSender sender = mock(CommandSender.class);
-        setBukkitServiceToRunTaskOptionallyAsync(bukkitService);
-
-        // when
-        command.executeCommand(sender, Arrays.asList(user, password));
-
-        // then
-        verify(validationService).validatePassword(password, user);
-        verify(commandService).send(sender, MessageKey.REGISTER_SUCCESS);
-        ArgumentCaptor<PlayerAuth> captor = ArgumentCaptor.forClass(PlayerAuth.class);
-        verify(dataSource).saveAuth(captor.capture());
-        assertAuthHasInfo(captor.getValue(), user, hashedPassword);
-    }
-
-    @Test
-    void shouldRegisterOnlinePlayer() {
-        // given
-        String user = "someone";
-        String password = "Al1O3P49S5%";
-        HashedPassword hashedPassword = givenValidRegistration(user, password, "$aea2345EW235dfsa@#R%987048", true);
-        Player player = mock(Player.class);
-        given(bukkitService.getPlayerExact(user)).willReturn(player);
         String kickForAdminRegister = "Admin registered you -- log in again";
-        given(commandService.retrieveSingleMessage(player, MessageKey.KICK_FOR_ADMIN_REGISTER)).willReturn(kickForAdminRegister);
+        HashedPassword hashedPassword = givenValidRegistration(user, password, "$aea2345EW235dfsa@#R%987048", true);
+        Player player = null;
+        if (playerOnline) {
+            player = mock(Player.class);
+            given(bukkitService.getPlayerExact(user)).willReturn(player);
+            given(commandService.retrieveSingleMessage(player, MessageKey.KICK_FOR_ADMIN_REGISTER)).willReturn(kickForAdminRegister);
+            setBukkitServiceToScheduleSyncEntityTaskFromOptionallyAsyncTask(bukkitService);
+        } else {
+            given(bukkitService.getPlayerExact(user)).willReturn(null);
+        }
         CommandSender sender = mock(CommandSender.class);
-        setBukkitServiceToScheduleSyncEntityTaskFromOptionallyAsyncTask(bukkitService);
         setBukkitServiceToRunTaskOptionallyAsync(bukkitService);
 
         // when
@@ -159,7 +146,9 @@ class RegisterAdminCommandTest {
         ArgumentCaptor<PlayerAuth> captor = ArgumentCaptor.forClass(PlayerAuth.class);
         verify(dataSource).saveAuth(captor.capture());
         assertAuthHasInfo(captor.getValue(), user, hashedPassword);
-        verify(player).kickPlayer(kickForAdminRegister);
+        if (playerOnline) {
+            verify(player).kickPlayer(kickForAdminRegister);
+        }
     }
 
     private HashedPassword givenValidRegistration(String user, String password, String hash, boolean saveSuccessful) {

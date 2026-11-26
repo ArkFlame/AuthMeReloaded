@@ -285,8 +285,6 @@ public class AsynchronousJoin implements AsynchronousProcess {
                 welcomeMessageConfiguration.sendWelcomeMessage(player);
             });
 
-            // Skip if registration is optional
-
             ProcessSharedActions.sendLoginMessageToProxy(bukkitService, bungeeSender, player);
             return true;
         }
@@ -448,13 +446,9 @@ public class AsynchronousJoin implements AsynchronousProcess {
      * @param fromProxy whether the login was initiated through the proxy (quiet, no redirect)
      */
     private void forceLoginAsync(Player player, boolean fromProxy) {
-        bukkitService.runTaskOptionallyAsync(() -> {
-            if (fromProxy) {
-                asynchronousLogin.forceLoginFromProxy(player);
-            } else {
-                asynchronousLogin.forceLogin(player);
-            }
-        });
+        bukkitService.runTaskOptionallyAsync(fromProxy
+            ? () -> asynchronousLogin.forceLoginFromProxy(player)
+            : () -> asynchronousLogin.forceLogin(player));
     }
 
     /**
@@ -677,7 +671,13 @@ public class AsynchronousJoin implements AsynchronousProcess {
             return finalizePremiumFromProxy(player, name);
         }
         // No proxy: require cryptographic session verification via PacketEvents.
-        return finalizePremiumFromSession(player, name);
+        UUID pendingUuid = pendingPremiumCache.getPendingUuid(name);
+        if (pendingUuid == null) {
+            return false;
+        }
+        UUID verified = premiumLoginVerifier.consumeVerifiedUuid(name);
+        pendingPremiumCache.removePending(name);
+        return finalizeWithProof(player, name, pendingUuid, verified);
     }
 
     /** Finalizes a pending enrollment from a queued signed perform.login behind a proxy. */
@@ -706,17 +706,6 @@ public class AsynchronousJoin implements AsynchronousProcess {
             logger.warning("canBypassWithPremium[v3/proxy]: verified UUID " + verified
                 + " does not match pending UUID " + pendingUuid + " for " + name + "; failing enrollment");
         }
-        return finalizeWithProof(player, name, pendingUuid, verified);
-    }
-
-    /** Finalizes a pending enrollment with a session UUID verified via PacketEvents. */
-    private boolean finalizePremiumFromSession(Player player, String name) {
-        UUID pendingUuid = pendingPremiumCache.getPendingUuid(name);
-        if (pendingUuid == null) {
-            return false;
-        }
-        UUID verified = premiumLoginVerifier.consumeVerifiedUuid(name);
-        pendingPremiumCache.removePending(name);
         return finalizeWithProof(player, name, pendingUuid, verified);
     }
 

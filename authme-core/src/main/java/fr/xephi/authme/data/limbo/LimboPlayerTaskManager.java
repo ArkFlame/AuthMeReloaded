@@ -59,24 +59,21 @@ class LimboPlayerTaskManager {
             MessageTask messageTask = new MessageTask(player, joinMessage);
             CancellableTask taskHandle = messageType == LimboMessageType.REGISTER
                 ? scheduleRegistrationMessageTask(player, messageTask, interval)
-                : bukkitService.runTaskTimer(player, messageTask, loginMessageDelayTicks(),
+                : bukkitService.runTaskTimer(player, messageTask,
+                    toTicks(settings.getProperty(RegistrationSettings.LOGIN_MESSAGE_DELAY)),
                     interval * (long) TICKS_PER_SECOND);
             limbo.setMessageTask(messageTask, taskHandle);
         }
     }
 
-    private long loginMessageDelayTicks() {
-        int configuredDelay = settings.getProperty(RegistrationSettings.LOGIN_MESSAGE_DELAY);
-        return Math.max(0, configuredDelay) * (long) TICKS_PER_SECOND;
+    private static long toTicks(int configuredSeconds) {
+        return Math.max(0, configuredSeconds) * (long) TICKS_PER_SECOND;
     }
 
     private CancellableTask scheduleRegistrationMessageTask(Player player, MessageTask messageTask, int interval) {
-        int configuredDelay = settings.getProperty(RegistrationSettings.REGISTER_MESSAGE_DELAY);
-        long delayTicks = Math.max(0, configuredDelay) * (long) TICKS_PER_SECOND;
-        long intervalTicks = interval * (long) TICKS_PER_SECOND;
-        RegistrationMessageTaskHandle taskHandle =
-            new RegistrationMessageTaskHandle(player, messageTask, intervalTicks);
-        taskHandle.scheduleInitialCheck(delayTicks);
+        RegistrationMessageTaskHandle taskHandle = new RegistrationMessageTaskHandle(
+            player, messageTask, interval * (long) TICKS_PER_SECOND);
+        taskHandle.scheduleInitialCheck(toTicks(settings.getProperty(RegistrationSettings.REGISTER_MESSAGE_DELAY)));
         return taskHandle;
     }
 
@@ -121,14 +118,15 @@ class LimboPlayerTaskManager {
     private MessageResult getMessageKey(String name, LimboMessageType messageType) {
         if (messageType == LimboMessageType.LOG_IN) {
             return new MessageResult(MessageKey.LOGIN_MESSAGE);
-        } else if (messageType == LimboMessageType.TOTP_CODE) {
-            return new MessageResult(MessageKey.TWO_FACTOR_CODE_REQUIRED);
-        } else if (registrationCaptchaManager.isCaptchaRequired(name)) {
-            final String captchaCode = registrationCaptchaManager.getCaptchaCodeOrGenerateNew(name);
-            return new MessageResult(MessageKey.CAPTCHA_FOR_REGISTRATION_REQUIRED, captchaCode);
-        } else {
-            return new MessageResult(MessageKey.REGISTER_MESSAGE);
         }
+        if (messageType == LimboMessageType.TOTP_CODE) {
+            return new MessageResult(MessageKey.TWO_FACTOR_CODE_REQUIRED);
+        }
+        if (registrationCaptchaManager.isCaptchaRequired(name)) {
+            String captchaCode = registrationCaptchaManager.getCaptchaCodeOrGenerateNew(name);
+            return new MessageResult(MessageKey.CAPTCHA_FOR_REGISTRATION_REQUIRED, captchaCode);
+        }
+        return new MessageResult(MessageKey.REGISTER_MESSAGE);
     }
 
     private final class RegistrationMessageTaskHandle implements CancellableTask {

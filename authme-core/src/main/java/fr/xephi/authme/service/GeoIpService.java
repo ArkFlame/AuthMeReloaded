@@ -108,10 +108,13 @@ public class GeoIpService {
 
         if (Files.exists(dataFile)) {
             try {
-                if (loadDatabaseIfUpToDate()) {
+                FileTime lastModifiedTime = Files.getLastModifiedTime(dataFile);
+                if (Duration.between(lastModifiedTime.toInstant(), Instant.now()).toDays() <= UPDATE_INTERVAL_DAYS) {
+                    startReading();
                     // don't fire the update task - we are up-to-date
                     return true;
                 }
+                logger.debug("GEO IP database is older than " + UPDATE_INTERVAL_DAYS + " Days");
             } catch (IOException ioEx) {
                 logger.logException("Failed to load GeoLiteAPI database", ioEx);
                 return false;
@@ -124,22 +127,6 @@ public class GeoIpService {
         // File is outdated or doesn't exist - let's try to download the data file!
         // use bukkit's cached threads
         bukkitService.runTaskAsynchronously(this::updateDatabase);
-        return false;
-    }
-
-    /**
-     * Loads the existing database if it is recent enough.
-     *
-     * @return true if the reader was initialized from the existing file, false if the file is outdated
-     * @throws IOException if the file's timestamp cannot be read or the reader cannot be built
-     */
-    private boolean loadDatabaseIfUpToDate() throws IOException {
-        FileTime lastModifiedTime = Files.getLastModifiedTime(dataFile);
-        if (Duration.between(lastModifiedTime.toInstant(), Instant.now()).toDays() <= UPDATE_INTERVAL_DAYS) {
-            startReading();
-            return true;
-        }
-        logger.debug("GEO IP database is older than " + UPDATE_INTERVAL_DAYS + " Days");
         return false;
     }
 
@@ -244,10 +231,6 @@ public class GeoIpService {
     /**
      * Parses the {@code Last-Modified} header, turning missing or malformed values into a checked
      * failure so the async update task logs it instead of aborting with an unchecked exception.
-     *
-     * @param rawModifiedDate the raw header value, may be null
-     * @return the parsed modification timestamp
-     * @throws IOException if the header is missing or cannot be parsed
      */
     private static Instant parseModifiedDate(String rawModifiedDate) throws IOException {
         if (rawModifiedDate == null) {
@@ -262,10 +245,6 @@ public class GeoIpService {
 
     /**
      * Opens the download connection with authentication and, when known, the last modification date.
-     *
-     * @param lastModified modification timestamp of the already present file, or null if unknown
-     * @return the configured connection, or null if no MaxMind credentials are available
-     * @throws IOException if opening the connection fails
      */
     private HttpURLConnection openConnection(Instant lastModified) throws IOException {
         String clientId = settings.getProperty(ProtectionSettings.MAXMIND_API_CLIENT_ID);
@@ -292,8 +271,6 @@ public class GeoIpService {
 
     /**
      * Applies bounded connect and read timeouts before any network I/O is performed.
-     *
-     * @param connection the freshly opened download connection
      */
     private static void configureConnection(HttpURLConnection connection) {
         connection.setConnectTimeout(CONNECTION_TIMEOUT_MS);
@@ -370,16 +347,10 @@ public class GeoIpService {
     }
 
     /**
-     * Get the country of the given IP address
+     * Get the country of the given IP address.
      *
      * @param ip textual IP address to lookup
-     * @return the wrapped Country model or {@link Optional#empty()} if
-     *   <ul>
-     *     <li>Database reader isn't initialized</li>
-     *     <li>MaxMind has no record about this IP address</li>
-     *     <li>IP address is local</li>
-     *     <li>Textual representation is not a valid IP address</li>
-     *   </ul>
+     * @return the wrapped Country model, or empty if the database is unavailable or has no record
      */
     private Optional<Country> getCountry(String ip) {
         if (ip == null || ip.isEmpty() || !isDataAvailable()) {

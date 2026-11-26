@@ -558,9 +558,12 @@ class PlayerListenerTest {
         verify(bukkitService).runTaskLater(eq(player), any(Runnable.class), eq(1L));
     }
 
+    /** Location only weakly references its world, so keep a strong reference for the test's lifetime. */
+    private static final World LOADED_WORLD = mock(World.class);
+
     private static Stream<Arguments> respawnLocations() {
         return Stream.of(
-            Arguments.of("spawn with loaded world", new Location(mock(World.class), 0, 90, 0), true),
+            Arguments.of("spawn with loaded world", new Location(LOADED_WORLD, 0, 90, 0), true),
             Arguments.of("spawn with unloaded world", new Location(null, 0, 90, 0), false),
             Arguments.of("no spawn location", null, false));
     }

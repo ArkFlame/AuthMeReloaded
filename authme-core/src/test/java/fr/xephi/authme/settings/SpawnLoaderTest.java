@@ -17,6 +17,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -24,6 +28,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.both;
@@ -118,14 +123,19 @@ class SpawnLoaderTest {
         assertThat(result, equalTo(bedSpawnLocation));
     }
 
-    @Test
-    void shouldFallbackToConfiguredSpawnIfDeadPlayerHasNoRespawnLocation() {
+    @ParameterizedTest
+    @ValueSource(strings = {"null", "throws"})
+    void shouldFallbackToConfiguredSpawnIfRespawnLocationUnavailable(String mode) {
         // given
         reloadWithPriority("default");
 
         Player player = mock(Player.class);
         given(player.getHealth()).willReturn(0.0);
-        given(teleportAdapter.getPlayerRespawnLocation(player)).willReturn(null);
+        if ("throws".equals(mode)) {
+            given(teleportAdapter.getPlayerRespawnLocation(player)).willThrow(IllegalStateException.class);
+        } else {
+            given(teleportAdapter.getPlayerRespawnLocation(player)).willReturn(null);
+        }
         World world = mock(World.class);
         Location worldSpawn = new Location(world, 5.0, 65.0, 5.0);
         given(player.getWorld()).willReturn(world);
@@ -138,35 +148,21 @@ class SpawnLoaderTest {
         assertThat(result, equalTo(worldSpawn));
     }
 
-    @Test
-    void shouldFallbackToConfiguredSpawnIfRespawnLocationCannotBeRead() {
-        // given
-        reloadWithPriority("default");
-
-        Player player = mock(Player.class);
-        given(player.getHealth()).willReturn(0.0);
-        given(teleportAdapter.getPlayerRespawnLocation(player)).willThrow(IllegalStateException.class);
-        World world = mock(World.class);
-        Location worldSpawn = new Location(world, 5.0, 65.0, 5.0);
-        given(player.getWorld()).willReturn(world);
-        given(world.getSpawnLocation()).willReturn(worldSpawn);
-
-        // when
-        Location result = spawnLoader.getPlayerLocationOrSpawn(player);
-
-        // then
-        assertThat(result, equalTo(worldSpawn));
-    }
-
-    @Test
-    void shouldReturnExactWorldSpawnForServerPriorityWithZeroRadius() {
+    @ParameterizedTest
+    @ValueSource(ints = {0, 5})
+    void shouldReturnExactWorldSpawnWhenNoSafeSpotIsAvailable(int radius) {
         // given
         reloadWithPriority("server");
 
         World world = mock(World.class);
         Location worldSpawn = new Location(world, 10.0, 64.0, -5.0);
         given(world.getSpawnLocation()).willReturn(worldSpawn);
-        given(compatibilityAdapter.getSpawnRadius(world)).willReturn(0);
+        given(compatibilityAdapter.getSpawnRadius(world)).willReturn(radius);
+        if (radius > 0) {
+            Block solid = mock(Block.class);
+            given(compatibilityAdapter.isBlockPassable(solid)).willReturn(false);
+            given(world.getBlockAt(anyInt(), anyInt(), anyInt())).willReturn(solid);
+        }
 
         // when
         Location result = spawnLoader.getSpawnLocation(world);
@@ -206,13 +202,14 @@ class SpawnLoaderTest {
         assertThat((double) result.getYaw(), closeTo(expectedYaw, 0.001));
     }
 
-    @Test
-    void shouldSearchDownwardWhenBaseYIsInAVoid() {
-        // given – foot at baseY is passable but head (baseY+1) is solid (1-block-high gap, e.g. near Nether ceiling)
+    @ParameterizedTest
+    @MethodSource("safeSpotCases")
+    void shouldFindNearestSafeSpotY(int baseY, int expectedY, int[] solidYs, int[] passableYs) {
+        // given
         reloadWithPriority("server");
 
         World world = mock(World.class);
-        Location worldSpawn = new Location(world, 0.0, 70.0, 0.0);
+        Location worldSpawn = new Location(world, 0.0, baseY, 0.0);
         given(world.getSpawnLocation()).willReturn(worldSpawn);
         given(compatibilityAdapter.getSpawnRadius(world)).willReturn(5);
 
@@ -220,78 +217,26 @@ class SpawnLoaderTest {
         given(compatibilityAdapter.isBlockPassable(passable)).willReturn(true);
         Block solid = mock(Block.class);
         given(compatibilityAdapter.isBlockPassable(solid)).willReturn(false);
-
-        // y=70 passable, y=71 solid → initial check fails; foot is passable → search downward
-        given(world.getBlockAt(anyInt(), eq(70), anyInt()))
-            .willReturn(passable);
-        given(world.getBlockAt(anyInt(), eq(71), anyInt()))
-            .willReturn(solid);
-        // y=69 passable → isPassable(69) && isPassable(70) = true → safe at y=69
-        given(world.getBlockAt(anyInt(), eq(69), anyInt()))
-            .willReturn(passable);
-
-        // when
-        Location result = spawnLoader.getSpawnLocation(world);
-
-        // then – first clear 2-block gap found going downward is at y=69
-        assertThat(result.getY(), equalTo(69.0));
-    }
-
-    @Test
-    void shouldSearchUpwardWhenBaseYIsInsideASolidBlock() {
-        // given – baseY is inside a solid block (e.g. underground)
-        reloadWithPriority("server");
-
-        World world = mock(World.class);
-        Location worldSpawn = new Location(world, 0.0, 60.0, 0.0);
-        given(world.getSpawnLocation()).willReturn(worldSpawn);
-        given(compatibilityAdapter.getSpawnRadius(world)).willReturn(5);
-
-        Block passable = mock(Block.class);
-        given(compatibilityAdapter.isBlockPassable(passable)).willReturn(true);
-        Block solid = mock(Block.class);
-        given(compatibilityAdapter.isBlockPassable(solid)).willReturn(false);
-
-        // y=60 is solid → search upward
-        given(world.getBlockAt(anyInt(), eq(60), anyInt()))
-            .willReturn(solid);
-        // y=61 solid, y=62 solid, y=63 passable, y=64 passable → safe at y=63
-        given(world.getBlockAt(anyInt(), eq(61), anyInt()))
-            .willReturn(solid);
-        given(world.getBlockAt(anyInt(), eq(62), anyInt()))
-            .willReturn(solid);
-        given(world.getBlockAt(anyInt(), eq(63), anyInt()))
-            .willReturn(passable);
-        given(world.getBlockAt(anyInt(), eq(64), anyInt()))
-            .willReturn(passable);
+        for (int y : solidYs) {
+            given(world.getBlockAt(anyInt(), eq(y), anyInt())).willReturn(solid);
+        }
+        for (int y : passableYs) {
+            given(world.getBlockAt(anyInt(), eq(y), anyInt())).willReturn(passable);
+        }
 
         // when
         Location result = spawnLoader.getSpawnLocation(world);
 
         // then
-        assertThat(result.getY(), equalTo(63.0));
+        assertThat(result.getY(), equalTo((double) expectedY));
     }
 
-    @Test
-    void shouldFallbackToExactWorldSpawnWhenNoSafeSpotFoundWithinMargin() {
-        // given
-        reloadWithPriority("server");
-
-        World world = mock(World.class);
-        Location worldSpawn = new Location(world, 12.0, 64.0, -34.0);
-        given(world.getSpawnLocation()).willReturn(worldSpawn);
-        given(compatibilityAdapter.getSpawnRadius(world)).willReturn(5);
-
-        Block solid = mock(Block.class);
-        given(compatibilityAdapter.isBlockPassable(solid)).willReturn(false);
-        given(world.getBlockAt(anyInt(), anyInt(), anyInt()))
-            .willReturn(solid);
-
-        // when
-        Location result = spawnLoader.getSpawnLocation(world);
-
-        // then – falls back to exact worldSpawn (X/Y/Z unchanged)
-        assertThat(result, equalTo(worldSpawn));
+    private static Stream<Arguments> safeSpotCases() {
+        return Stream.of(
+            // foot passable but head solid at baseY: search downward to the first 2-block gap
+            Arguments.of(70, 69, new int[]{71}, new int[]{70, 69}),
+            // baseY inside a solid block: search upward to the first 2-block gap
+            Arguments.of(60, 63, new int[]{60, 61, 62}, new int[]{63, 64}));
     }
 
     @Test

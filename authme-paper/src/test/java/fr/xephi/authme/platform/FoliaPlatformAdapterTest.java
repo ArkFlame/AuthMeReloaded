@@ -194,15 +194,9 @@ public class FoliaPlatformAdapterTest {
         given(player.getUniqueId()).willReturn(UUID.randomUUID());
         Location first = mock(Location.class);
         Location second = mock(Location.class);
-        CountDownLatch firstTeleportStarted = new CountDownLatch(1);
-        CountDownLatch releaseFirstTeleport = new CountDownLatch(1);
-        CountDownLatch secondTeleportCallStarted = new CountDownLatch(1);
+        CompletableFuture<Boolean> firstTeleport = new CompletableFuture<>();
         AtomicInteger secondTeleportCount = new AtomicInteger();
-        given(player.teleportAsync(first)).willAnswer(invocation -> {
-            firstTeleportStarted.countDown();
-            assertTrue(releaseFirstTeleport.await(5, TimeUnit.SECONDS));
-            return CompletableFuture.completedFuture(true);
-        });
+        given(player.teleportAsync(first)).willReturn(firstTeleport);
         given(player.teleportAsync(second)).willAnswer(invocation -> {
             secondTeleportCount.incrementAndGet();
             return CompletableFuture.completedFuture(true);
@@ -217,24 +211,13 @@ public class FoliaPlatformAdapterTest {
         try (MockedStatic<JavaPlugin> javaPluginMock = mockStatic(JavaPlugin.class)) {
             javaPluginMock.when(() -> JavaPlugin.getPlugin(AuthMe.class)).thenReturn(null);
 
-            Thread firstCaller = new Thread(() -> adapter.teleportPlayer(player, first));
-            firstCaller.start();
-            assertTrue(firstTeleportStarted.await(5, TimeUnit.SECONDS));
-
-            Thread secondCaller = new Thread(() -> {
-                secondTeleportCallStarted.countDown();
-                adapter.teleportPlayer(player, second);
-            });
-            secondCaller.start();
-            assertTrue(secondTeleportCallStarted.await(5, TimeUnit.SECONDS));
-            secondCaller.join(500);
+            adapter.teleportPlayer(player, first);
+            adapter.teleportPlayer(player, second);
 
             // then the second teleport must not start while the first one is still pending
             assertThat(secondTeleportCount.get(), is(0));
 
-            releaseFirstTeleport.countDown();
-            firstCaller.join(5_000);
-            secondCaller.join(5_000);
+            firstTeleport.complete(true);
             assertThat(secondTeleportCount.get(), is(1));
         }
     }

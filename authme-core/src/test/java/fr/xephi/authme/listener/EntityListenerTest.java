@@ -179,27 +179,20 @@ class EntityListenerTest {
     }
 
     @Test
-    void shouldCancelHangingBreakByUnauthenticatedPlayer() {
-        HangingBreakByEntityEvent event = mock(HangingBreakByEntityEvent.class);
+    void shouldCancelHangingBreakAndVehicleDamageByUnauthenticatedPlayer() {
+        HangingBreakByEntityEvent breakEvent = mock(HangingBreakByEntityEvent.class);
         Entity remover = mock(Player.class);
-        given(event.getRemover()).willReturn(remover);
+        given(breakEvent.getRemover()).willReturn(remover);
         given(listenerService.shouldCancelEvent(remover)).willReturn(true);
+        listener.onHangingBreakByEntity(breakEvent);
+        verify(breakEvent).setCancelled(true);
 
-        listener.onHangingBreakByEntity(event);
-
-        verify(event).setCancelled(true);
-    }
-
-    @Test
-    void shouldCancelVehicleDamageByUnauthenticatedPlayer() {
-        VehicleDamageEvent event = mock(VehicleDamageEvent.class);
+        VehicleDamageEvent damageEvent = mock(VehicleDamageEvent.class);
         Entity attacker = mock(Player.class);
-        given(event.getAttacker()).willReturn(attacker);
+        given(damageEvent.getAttacker()).willReturn(attacker);
         given(listenerService.shouldCancelEvent(attacker)).willReturn(true);
-
-        listener.onVehicleDamage(event);
-
-        verify(event).setCancelled(true);
+        listener.onVehicleDamage(damageEvent);
+        verify(damageEvent).setCancelled(true);
     }
 
     @ParameterizedTest(name = "vehicle destroy, shouldCancel={0}")

@@ -58,14 +58,17 @@ class ListenerServiceTest {
     @ParameterizedTest(name = "non-player entity: {0}")
     @MethodSource("nonPlayerEntities")
     void shouldHandleEventWithNonPlayerEntity(Entity entity) {
-        EntityEvent event = mock(EntityEvent.class);
-        given(event.getEntity()).willReturn(entity);
-
-        assertThat(listenerService.shouldCancelEvent(event), equalTo(false));
+        assertThat(listenerService.shouldCancelEvent(eventWith(entity)), equalTo(false));
     }
 
     private static Stream<Entity> nonPlayerEntities() {
         return Stream.of(null, mock(Entity.class));
+    }
+
+    private static EntityEvent eventWith(Entity entity) {
+        EntityEvent event = mock(EntityEvent.class);
+        given(event.getEntity()).willReturn(entity);
+        return event;
     }
 
     @ParameterizedTest(name = "authenticated={0}")
@@ -74,10 +77,8 @@ class ListenerServiceTest {
         String playerName = authenticated ? "Bobby" : "Tester";
         Player player = mockPlayerWithName(playerName);
         given(playerCache.isAuthenticated(playerName)).willReturn(authenticated);
-        EntityEvent event = mock(EntityEvent.class);
-        given(event.getEntity()).willReturn(player);
 
-        assertThat(listenerService.shouldCancelEvent(event), equalTo(!authenticated));
+        assertThat(listenerService.shouldCancelEvent(eventWith(player)), equalTo(!authenticated));
         verify(playerCache).isAuthenticated(playerName);
         // makes sure the setting is checked first = avoid unnecessary DB operation
         verifyNoInteractions(dataSource);
@@ -89,57 +90,40 @@ class ListenerServiceTest {
         Player player = mockPlayerWithName(playerName);
         given(playerCache.isAuthenticated(playerName)).willReturn(false);
         given(settings.getProperty(RegistrationSettings.FORCE)).willReturn(false);
-        EntityEvent event = mock(EntityEvent.class);
-        given(event.getEntity()).willReturn(player);
         listenerService.reload(settings);
 
-        assertThat(listenerService.shouldCancelEvent(event), equalTo(false));
+        assertThat(listenerService.shouldCancelEvent(eventWith(player)), equalTo(false));
         verify(playerCache).isAuthenticated(playerName);
         verify(dataSource).isAuthAvailable(playerName);
     }
 
-    @Test
-    void shouldAllowUnrestrictedName() {
-        String playerName = "Npc2";
+    @ParameterizedTest(name = "unrestricted={0}")
+    @ValueSource(booleans = {true, false})
+    void shouldAllowNonRegularPlayer(boolean unrestricted) {
+        String playerName = unrestricted ? "Npc2" : "other_npc";
         Player player = mockPlayerWithName(playerName);
-        EntityEvent event = mock(EntityEvent.class);
-        given(event.getEntity()).willReturn(player);
-        given(validationService.isUnrestricted(playerName)).willReturn(true);
+        if (unrestricted) {
+            given(validationService.isUnrestricted(playerName)).willReturn(true);
+        } else {
+            given(player.hasMetadata("NPC")).willReturn(true);
+        }
 
-        assertThat(listenerService.shouldCancelEvent(event), equalTo(false));
+        assertThat(listenerService.shouldCancelEvent(eventWith(player)), equalTo(false));
         verifyNoInteractions(dataSource);
     }
 
-    @Test
-    void shouldAllowNpcPlayer() {
-        String playerName = "other_npc";
-        Player player = mockPlayerWithName(playerName);
-        EntityEvent event = mock(EntityEvent.class);
-        given(event.getEntity()).willReturn(player);
-        given(player.hasMetadata("NPC")).willReturn(true);
+    @ParameterizedTest(name = "player event with player={0}")
+    @MethodSource("playerEventPlayers")
+    void shouldHandlePlayerEvent(Player player) {
+        if (player != null) {
+            given(playerCache.isAuthenticated(player.getName())).willReturn(true);
+        }
 
-        assertThat(listenerService.shouldCancelEvent(event), equalTo(false));
-        verify(player).hasMetadata("NPC");
+        assertThat(listenerService.shouldCancelEvent(new TestPlayerEvent(player)), equalTo(false));
     }
 
-    @Test
-    // This simply forwards to shouldCancelEvent(Player), so the rest is already tested
-    void shouldHandlePlayerEvent() {
-        String playerName = "example";
-        Player player = mockPlayerWithName(playerName);
-        PlayerEvent event = new TestPlayerEvent(player);
-        given(playerCache.isAuthenticated(playerName)).willReturn(true);
-
-        assertThat(listenerService.shouldCancelEvent(event), equalTo(false));
-        verify(playerCache).isAuthenticated(playerName);
-        verifyNoInteractions(dataSource);
-    }
-
-    @Test
-    void shouldHandlePlayerEventWithNullPlayer() {
-        PlayerEvent event = new TestPlayerEvent(null);
-
-        assertThat(listenerService.shouldCancelEvent(event), equalTo(false));
+    private static Stream<Player> playerEventPlayers() {
+        return Stream.of(null, mockPlayerWithName("example"));
     }
 
     @Test
@@ -152,7 +136,6 @@ class ListenerServiceTest {
         verify(playerCache).isAuthenticated(playerName);
         verifyNoInteractions(dataSource);
     }
-
 
     /**
      * Test implementation of {@link PlayerEvent}.

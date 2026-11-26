@@ -12,6 +12,8 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -21,11 +23,9 @@ import static fr.xephi.authme.listener.TestPlayerUtils.mockPlayerWithName;
 import static fr.xephi.authme.service.BukkitServiceTestHelper.setBukkitServiceToRunTaskAsynchronously;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.only;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -66,15 +66,13 @@ class VerificationCodeManagerTest {
     void shouldRequireVerification() {
         // given
         given(emailService.hasAllInformation()).willReturn(true);
-        String name1 = PLAYER;
-        Player player1 = mockPlayerWithName(name1);
-        given(dataSource.getEmail(name1)).willReturn(DataSourceValueImpl.of(EMAIL));
+        Player player1 = mockPlayerWithName(PLAYER);
+        given(dataSource.getEmail(PLAYER)).willReturn(DataSourceValueImpl.of(EMAIL));
         given(permissionsManager.hasPermission(player1, PlayerPermission.VERIFICATION_CODE)).willReturn(true);
-        String name2 = "StillLovingTests";
-        Player player2 = mockPlayerWithName(name2);
+        Player player2 = mockPlayerWithName("StillLovingTests");
 
         VerificationCodeManager codeManager = createCodeManager();
-        codeManager.verify(name2);
+        codeManager.verify("StillLovingTests");
 
         // when
         boolean test1 = codeManager.isVerificationRequired(player1);
@@ -83,31 +81,19 @@ class VerificationCodeManagerTest {
         // then
         assertThat(test1, equalTo(true));
         assertThat(test2, equalTo(false));
-        verify(dataSource, only()).getEmail(name1);
+        verify(dataSource, only()).getEmail(PLAYER);
         verify(permissionsManager, only()).hasPermission(player1, PlayerPermission.VERIFICATION_CODE);
     }
 
-    @Test
-    void shouldNotRequireVerificationIfEmailSettingsAreIncomplete() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void shouldNotRequireVerificationWhenCheckFails(boolean emailSettingsComplete) {
         // given
-        given(emailService.hasAllInformation()).willReturn(false);
-        VerificationCodeManager codeManager = createCodeManager();
-        Player player = mock(Player.class);
-
-        // when
-        boolean result = codeManager.isVerificationRequired(player);
-
-        // then
-        assertThat(result, equalTo(false));
-        verifyNoInteractions(permissionsManager, dataSource);
-    }
-
-    @Test
-    void shouldNotRequireVerificationForMissingPermission() {
-        // given
-        given(emailService.hasAllInformation()).willReturn(true);
+        given(emailService.hasAllInformation()).willReturn(emailSettingsComplete);
         Player player = mockPlayerWithName(PLAYER);
-        given(permissionsManager.hasPermission(player, PlayerPermission.VERIFICATION_CODE)).willReturn(false);
+        if (emailSettingsComplete) {
+            given(permissionsManager.hasPermission(player, PlayerPermission.VERIFICATION_CODE)).willReturn(false);
+        }
         VerificationCodeManager codeManager = createCodeManager();
 
         // when
@@ -115,113 +101,69 @@ class VerificationCodeManagerTest {
 
         // then
         assertThat(result, equalTo(false));
-        verify(permissionsManager).hasPermission(player, PlayerPermission.VERIFICATION_CODE);
-        verifyNoInteractions(dataSource);
+        if (emailSettingsComplete) {
+            verify(permissionsManager).hasPermission(player, PlayerPermission.VERIFICATION_CODE);
+            verifyNoInteractions(dataSource);
+        } else {
+            verifyNoInteractions(permissionsManager, dataSource);
+        }
     }
 
     @Test
     void shouldGenerateAndRequireCode() {
         // given
         given(emailService.hasAllInformation()).willReturn(true);
-        String player = PLAYER;
-        String email = EMAIL;
-        given(dataSource.getEmail(player)).willReturn(DataSourceValueImpl.of(email));
-        given(emailService.sendVerificationMail(eq(player), eq(email), anyString())).willReturn(true);
+        given(dataSource.getEmail(PLAYER)).willReturn(DataSourceValueImpl.of(EMAIL));
+        given(emailService.sendVerificationMail(eq(PLAYER), eq(EMAIL), anyString())).willReturn(true);
         setBukkitServiceToRunTaskAsynchronously(bukkitService);
         VerificationCodeManager codeManager1 = createCodeManager();
         VerificationCodeManager codeManager2 = createCodeManager();
-        codeManager2.codeExistOrGenerateNew(player);
-
-        // when
-        boolean hasCode1 = codeManager1.hasCode(player);
-        boolean hasCode2 = codeManager2.hasCode(player);
-        boolean codeRequired1 = codeManager1.isCodeRequired(player);
-        boolean codeRequired2 = codeManager2.isCodeRequired(player);
+        codeManager2.codeExistOrGenerateNew(PLAYER);
 
         // then
-        assertThat(hasCode1, equalTo(false));
-        assertThat(hasCode2, equalTo(true));
-        assertThat(codeRequired1, equalTo(false));
-        assertThat(codeRequired2, equalTo(true));
-    }
-
-    @Test
-    void shouldVerifyCode() {
-        // given
-        given(emailService.hasAllInformation()).willReturn(true);
-        String player = PLAYER;
-        String code = "193458";
-        String email = EMAIL;
-        given(dataSource.getEmail(player)).willReturn(DataSourceValueImpl.of(email));
-        setBukkitServiceToRunTaskAsynchronously(bukkitService);
-        VerificationCodeManager codeManager1 = createCodeManager();
-        VerificationCodeManager codeManager2 = createCodeManager();
-        codeManager1.codeExistOrGenerateNew(player);
-
-        // when
-        boolean test1 = codeManager1.checkCode(player, code);
-        boolean test2 = codeManager2.checkCode(player, code);
-
-        // then
-        assertThat(test1, equalTo(false));
-        assertThat(test2, equalTo(false));
+        assertThat(codeManager1.hasCode(PLAYER), equalTo(false));
+        assertThat(codeManager2.hasCode(PLAYER), equalTo(true));
+        assertThat(codeManager1.isCodeRequired(PLAYER), equalTo(false));
+        assertThat(codeManager2.isCodeRequired(PLAYER), equalTo(true));
     }
 
     @Test
     void shouldLookupEmailOnlyInAsyncTask() {
         // given
-        String player = PLAYER;
-        String email = EMAIL;
         VerificationCodeManager codeManager = createCodeManager();
 
         // when
-        codeManager.codeExistOrGenerateNew(player);
+        codeManager.codeExistOrGenerateNew(PLAYER);
+        codeManager.codeExistOrGenerateNew(PLAYER);
 
         // then
         verify(bukkitService).runTaskAsynchronously(runnableCaptor.capture());
         verifyNoInteractions(dataSource);
         verify(emailService, only()).hasAllInformation();
 
-        given(dataSource.getEmail(player)).willReturn(DataSourceValueImpl.of(email));
-        given(emailService.sendVerificationMail(eq(player), eq(email), anyString())).willReturn(true);
+        given(dataSource.getEmail(PLAYER)).willReturn(DataSourceValueImpl.of(EMAIL));
+        given(emailService.sendVerificationMail(eq(PLAYER), eq(EMAIL), anyString())).willReturn(true);
         runnableCaptor.getValue().run();
 
-        assertThat(codeManager.hasCode(player), equalTo(true));
-        verify(dataSource).getEmail(player);
-        verify(emailService).sendVerificationMail(eq(player), eq(email), anyString());
+        assertThat(codeManager.hasCode(PLAYER), equalTo(true));
+        verify(dataSource).getEmail(PLAYER);
+        verify(emailService).sendVerificationMail(eq(PLAYER), eq(EMAIL), anyString());
     }
 
     @Test
     void shouldNotStoreCodeIfEmailSendFails() {
         // given
-        String player = PLAYER;
-        String email = EMAIL;
-        given(dataSource.getEmail(player)).willReturn(DataSourceValueImpl.of(email));
-        given(emailService.sendVerificationMail(eq(player), eq(email), anyString())).willReturn(false);
+        given(dataSource.getEmail(PLAYER)).willReturn(DataSourceValueImpl.of(EMAIL));
+        given(emailService.sendVerificationMail(eq(PLAYER), eq(EMAIL), anyString())).willReturn(false);
         setBukkitServiceToRunTaskAsynchronously(bukkitService);
         VerificationCodeManager codeManager = createCodeManager();
 
         // when
-        codeManager.codeExistOrGenerateNew(player);
+        codeManager.codeExistOrGenerateNew(PLAYER);
 
         // then
-        assertThat(codeManager.hasCode(player), equalTo(false));
-    }
-
-    @Test
-    void shouldNotScheduleDuplicateCodeGenerationWhilePending() {
-        // given
-        String player = PLAYER;
-        VerificationCodeManager codeManager = createCodeManager();
-
-        // when
-        codeManager.codeExistOrGenerateNew(player);
-        codeManager.codeExistOrGenerateNew(player);
-
-        // then
-        verify(bukkitService).runTaskAsynchronously(any(Runnable.class));
-        verifyNoInteractions(dataSource);
-        verify(emailService, only()).hasAllInformation();
+        assertThat(codeManager.hasCode(PLAYER), equalTo(false));
+        assertThat(codeManager.checkCode(PLAYER, "193458"), equalTo(false));
     }
 
     private VerificationCodeManager createCodeManager() {

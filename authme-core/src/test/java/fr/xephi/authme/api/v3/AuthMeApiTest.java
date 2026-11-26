@@ -36,7 +36,6 @@ import static fr.xephi.authme.IsEqualByReflectionMatcher.hasEqualValuesOnAllFiel
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.ArgumentMatchers.any;
@@ -44,6 +43,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.only;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
@@ -148,7 +148,6 @@ class AuthMeApiTest {
         Location result = api.getLastLocation(player);
 
         // then
-        assertThat(result, not(nullValue()));
         assertThat(result.getX(), equalTo(auth.getQuitLocX()));
         assertThat(result.getY(), equalTo(auth.getQuitLocY()));
         assertThat(result.getZ(), equalTo(auth.getQuitLocZ()));
@@ -171,7 +170,6 @@ class AuthMeApiTest {
         String result = api.getLastIp(player.getName());
 
         // then
-        assertThat(result, not(nullValue()));
         assertThat(result, equalTo("93.23.44.55"));
     }
 
@@ -201,11 +199,12 @@ class AuthMeApiTest {
         given(playerCache.getAuth(name)).willReturn(auth);
 
         // when
-        Date result = api.getLastLogin(name);
+        Date dateResult = api.getLastLogin(name);
+        Instant instantResult = api.getLastLoginTime(name);
 
         // then
-        assertThat(result, not(nullValue()));
-        assertThat(result, equalTo(new Date(1501597979L)));
+        assertThat(dateResult, equalTo(new Date(1501597979L)));
+        assertThat(instantResult, equalTo(Instant.ofEpochMilli(1501597979L)));
     }
 
     @Test
@@ -218,28 +217,13 @@ class AuthMeApiTest {
         given(dataSource.getAuth(name)).willReturn(auth);
 
         // when
-        Date result = api.getLastLogin(name);
+        Date dateResult = api.getLastLogin(name);
+        Instant instantResult = api.getLastLoginTime(name);
 
         // then
-        assertThat(result, nullValue());
-        verify(dataSource).getAuth(name);
-    }
-
-    @Test
-    void shouldGetLastLoginTime() {
-        // given
-        String name = "David";
-        PlayerAuth auth = PlayerAuth.builder().name(name)
-            .lastLogin(1501597979L)
-            .build();
-        given(playerCache.getAuth(name)).willReturn(auth);
-
-        // when
-        Instant result = api.getLastLoginTime(name);
-
-        // then
-        assertThat(result, not(nullValue()));
-        assertThat(result, equalTo(Instant.ofEpochMilli(1501597979L)));
+        assertThat(dateResult, nullValue());
+        assertThat(instantResult, nullValue());
+        verify(dataSource, times(2)).getAuth(name);
     }
 
     @Test
@@ -249,23 +233,6 @@ class AuthMeApiTest {
 
         // then
         assertThat(result, nullValue());
-    }
-
-    @Test
-    void shouldHandleNullLastLoginTime() {
-        // given
-        String name = "John";
-        PlayerAuth auth = PlayerAuth.builder().name(name)
-            .lastLogin(null)
-            .build();
-        given(dataSource.getAuth(name)).willReturn(auth);
-
-        // when
-        Instant result = api.getLastLoginTime(name);
-
-        // then
-        assertThat(result, nullValue());
-        verify(dataSource).getAuth(name);
     }
 
     @Test

@@ -67,10 +67,10 @@ public class MySQL extends AbstractHikariSqlDataSource {
      */
     private void setParameters(Settings settings, MySqlExtensionsFactory extensionsFactory) {
         setCommonParameters(settings, extensionsFactory);
-        this.useSsl = settings.getProperty(DatabaseSettings.MYSQL_USE_SSL);
-        this.serverCertificateVerification = settings.getProperty(DatabaseSettings.MYSQL_CHECK_SERVER_CERTIFICATE);
-        this.allowPublicKeyRetrieval = settings.getProperty(DatabaseSettings.MYSQL_ALLOW_PUBLIC_KEY_RETRIEVAL);
-        this.mariaDbSslMode = settings.getProperty(DatabaseSettings.MARIADB_SSL_MODE);
+        useSsl = settings.getProperty(DatabaseSettings.MYSQL_USE_SSL);
+        serverCertificateVerification = settings.getProperty(DatabaseSettings.MYSQL_CHECK_SERVER_CERTIFICATE);
+        allowPublicKeyRetrieval = settings.getProperty(DatabaseSettings.MYSQL_ALLOW_PUBLIC_KEY_RETRIEVAL);
+        mariaDbSslMode = settings.getProperty(DatabaseSettings.MARIADB_SSL_MODE);
     }
 
     /**
@@ -85,7 +85,7 @@ public class MySQL extends AbstractHikariSqlDataSource {
         ds.setMaxLifetime(getMaxLifetime() * 1000L);
 
         // Database URL
-        ds.setJdbcUrl(this.getJdbcUrl(getHost(), getPort(), getDatabase()));
+        ds.setJdbcUrl(getJdbcUrl(getHost(), getPort(), getDatabase()));
 
         // Auth
         ds.setUsername(getUsername());
@@ -105,19 +105,15 @@ public class MySQL extends AbstractHikariSqlDataSource {
             ds.addDataSourceProperty("allowPublicKeyRetrieval", "true");
         }
 
-        // Encoding
-        ds.addDataSourceProperty("characterEncoding", "utf8");
-        ds.addDataSourceProperty("encoding", "UTF-8");
-        ds.addDataSourceProperty("useUnicode", "true");
-
-        // Random stuff
-        ds.addDataSourceProperty("rewriteBatchedStatements", "true");
-        ds.addDataSourceProperty("jdbcCompliantTruncation", "false");
-
-        // Caching
-        ds.addDataSourceProperty("cachePrepStmts", "true");
-        ds.addDataSourceProperty("prepStmtCacheSize", "275");
-        ds.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
+        // Encoding, batching and caching options
+        String[][] extraProperties = {
+            {"characterEncoding", "utf8"}, {"encoding", "UTF-8"}, {"useUnicode", "true"},
+            {"rewriteBatchedStatements", "true"}, {"jdbcCompliantTruncation", "false"},
+            {"cachePrepStmts", "true"}, {"prepStmtCacheSize", "275"}, {"prepStmtCacheSqlLimit", "2048"}
+        };
+        for (String[] property : extraProperties) {
+            ds.addDataSourceProperty(property[0], property[1]);
+        }
 
         logger.info("Connection arguments loaded, Hikari ConnectionPool ready!");
     }
