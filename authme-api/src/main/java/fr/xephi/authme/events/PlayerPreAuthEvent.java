@@ -33,9 +33,7 @@ public class PlayerPreAuthEvent extends AbstractCancellableEvent {
     private boolean forceLoginRequested;
 
     /**
-     * Constructor.
-     *
-     * @param player the joining player
+     * @param player the joining player, never {@code null}
      * @param registered true if the player has an AuthMe account, false if they still have to register
      * @param source how the player reached this server
      * @param isAsync true if the event is called asynchronously, false otherwise

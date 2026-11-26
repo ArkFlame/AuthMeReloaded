@@ -50,28 +50,20 @@ class RecoverEmailCommandTest {
 
     @Mock
     private CommonService commonService;
-
     @Mock
     private DataSource dataSource;
-
     @Mock
     private PlayerCache playerCache;
-
     @Mock
     private EmailService emailService;
-
     @Mock
     private PasswordRecoveryService recoveryService;
-
     @Mock
     private RecoveryCodeService recoveryCodeService;
-
     @Mock
     private BukkitService bukkitService;
-
     @Mock
     private ValidationService validationService;
-
     @Mock
     private EmailRecoveryDialogService dialogRecoveryService;
 
@@ -115,11 +107,7 @@ class RecoverEmailCommandTest {
     @Test
     void shouldRejectInvalidEmailFormat() {
         // given
-        String name = "SomePlayer";
-        Player sender = mock(Player.class);
-        given(sender.getName()).willReturn(name);
-        given(emailService.hasAllInformation()).willReturn(true);
-        given(playerCache.isAuthenticated(name)).willReturn(false);
+        Player sender = initSender("SomePlayer");
         given(validationService.validateEmail("notanemail")).willReturn(false);
 
         // when
@@ -134,10 +122,7 @@ class RecoverEmailCommandTest {
     void shouldShowRegisterMessageForUnregisteredPlayer() {
         // given
         String name = "Player123";
-        Player sender = mock(Player.class);
-        given(sender.getName()).willReturn(name);
-        given(emailService.hasAllInformation()).willReturn(true);
-        given(playerCache.isAuthenticated(name)).willReturn(false);
+        Player sender = initSender(name);
         given(validationService.validateEmail("someone@example.com")).willReturn(true);
         given(dataSource.getEmail(name)).willReturn(DataSourceValueImpl.unknownRow());
 
@@ -154,10 +139,7 @@ class RecoverEmailCommandTest {
     void shouldRejectInvalidEmail(String requestedEmail, String storedEmail) {
         // given
         String name = "Tract0r";
-        Player sender = mock(Player.class);
-        given(sender.getName()).willReturn(name);
-        given(emailService.hasAllInformation()).willReturn(true);
-        given(playerCache.isAuthenticated(name)).willReturn(false);
+        Player sender = initSender(name);
         given(validationService.validateEmail(requestedEmail)).willReturn(true);
         given(dataSource.getEmail(name)).willReturn(DataSourceValueImpl.of(storedEmail));
 
@@ -179,10 +161,7 @@ class RecoverEmailCommandTest {
     void shouldGenerateRecoveryCode() {
         // given
         String name = "Vultur3";
-        Player sender = mock(Player.class);
-        given(sender.getName()).willReturn(name);
-        given(emailService.hasAllInformation()).willReturn(true);
-        given(playerCache.isAuthenticated(name)).willReturn(false);
+        Player sender = initSender(name);
         String email = "v@example.com";
         given(validationService.validateEmail("V@EXAMPLE.COM")).willReturn(true);
         given(dataSource.getEmail(name)).willReturn(DataSourceValueImpl.of(email));
@@ -200,10 +179,7 @@ class RecoverEmailCommandTest {
     void shouldGenerateNewPasswordWithoutRecoveryCode() {
         // given
         String name = "Vultur3";
-        Player sender = mock(Player.class);
-        given(sender.getName()).willReturn(name);
-        given(emailService.hasAllInformation()).willReturn(true);
-        given(playerCache.isAuthenticated(name)).willReturn(false);
+        Player sender = initSender(name);
         String email = "vulture@example.com";
         given(validationService.validateEmail(email)).willReturn(true);
         given(dataSource.getEmail(name)).willReturn(DataSourceValueImpl.of(email));
@@ -221,5 +197,13 @@ class RecoverEmailCommandTest {
     void shouldDefineArgumentMismatchMessage() {
         // given / when / then
         assertThat(command.getArgumentsMismatchMessage(), equalTo(MessageKey.USAGE_RECOVER_EMAIL));
+    }
+
+    private Player initSender(String name) {
+        Player sender = mock(Player.class);
+        given(sender.getName()).willReturn(name);
+        given(emailService.hasAllInformation()).willReturn(true);
+        given(playerCache.isAuthenticated(name)).willReturn(false);
+        return sender;
     }
 }

@@ -45,10 +45,8 @@ class HelpMessageConsistencyTest {
     @Test
     void shouldHaveRequiredEntries() {
         for (File file : helpFiles) {
-            // given
             PropertyReader reader = new YamlFileReader(file);
 
-            // when / then
             assertHasAllHelpSectionEntries(file.getName(), reader);
         }
     }

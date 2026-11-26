@@ -90,7 +90,7 @@ class PasswordRegisterExecutorTest {
 
         assertThat(auth, hasAuthBasicData("s1m0n", "S1m0N", "mail@example.org", null));
         assertThat(auth.getRegistrationIp(), equalTo("123.45.67.89"));
-        assertIsCloseTo(auth.getRegistrationDate(), System.currentTimeMillis(), 500);
+        assertThat(Math.abs(auth.getRegistrationDate() - System.currentTimeMillis()), not(greaterThan(500L)));
         assertThat(auth.getPassword(), equalToHash("pass"));
     }
 
@@ -119,9 +119,5 @@ class PasswordRegisterExecutorTest {
         Player player = mock(Player.class);
         given(player.getName()).willReturn(name);
         return player;
-    }
-
-    private static void assertIsCloseTo(long value1, long value2, long tolerance) {
-        assertThat(Math.abs(value1 - value2), not(greaterThan(tolerance)));
     }
 }

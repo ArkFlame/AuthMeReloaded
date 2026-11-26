@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+import static fr.xephi.authme.datasource.SqlDataSourceTestUtil.silentClose;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -131,17 +132,5 @@ class SQLiteIntegrationTest extends AbstractDataSourceIntegrationTest {
     protected DataSource getDataSource(String saltColumn) {
         when(settings.getProperty(DatabaseSettings.MYSQL_COL_SALT)).thenReturn(saltColumn);
         return new SQLite(settings, null, con);
-    }
-
-    private static void silentClose(Connection con) {
-        if (con != null) {
-            try {
-                if (!con.isClosed()) {
-                    con.close();
-                }
-            } catch (SQLException e) {
-                // silent
-            }
-        }
     }
 }

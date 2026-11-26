@@ -15,6 +15,7 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -52,48 +53,32 @@ class EmailRegisterExecutorTest {
     @Mock
     private PasswordSecurity passwordSecurity;
 
-    @Test
-    void shouldNotPassEmailValidation() {
-        given(commonService.getProperty(EmailSettings.MAX_REG_PER_EMAIL)).willReturn(3);
+    @ParameterizedTest(name = "maxReg={0}, otherAccounts={1}, permission={2}, admitted={3}")
+    @CsvSource({"3, 4, false, false", "3, 0, true, true", "1, 0, false, true"})
+    void shouldCheckRegistrationAdmitted(int maxReg, int otherAccounts, boolean hasMultipleAccountsPermission,
+                                         boolean admitted) {
         String email = "test@example.com";
-        given(dataSource.countAuthsByEmail(email)).willReturn(4);
         Player player = mock(Player.class);
+        given(commonService.getProperty(EmailSettings.MAX_REG_PER_EMAIL)).willReturn(maxReg);
+        if (hasMultipleAccountsPermission) {
+            given(commonService.hasPermission(player, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS)).willReturn(true);
+        }
+        if (!hasMultipleAccountsPermission) {
+            given(dataSource.countAuthsByEmail(email)).willReturn(otherAccounts);
+        }
         EmailRegisterParams params = EmailRegisterParams.of(player, email);
 
         boolean result = executor.isRegistrationAdmitted(params);
 
-        assertThat(result, equalTo(false));
-        verify(dataSource).countAuthsByEmail(email);
+        assertThat(result, equalTo(admitted));
         verify(commonService).hasPermission(player, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS);
-        verify(commonService).send(player, MessageKey.MAX_REGISTER_EXCEEDED, "3", "4", "@");
-    }
-
-    @Test
-    void shouldPassVerificationForPlayerWithPermission() {
-        given(commonService.getProperty(EmailSettings.MAX_REG_PER_EMAIL)).willReturn(3);
-        Player player = mock(Player.class);
-        given(commonService.hasPermission(player, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS)).willReturn(true);
-        EmailRegisterParams params = EmailRegisterParams.of(player, "test@example.com");
-
-        boolean result = executor.isRegistrationAdmitted(params);
-
-        assertThat(result, equalTo(true));
-        verify(commonService).hasPermission(player, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS);
-    }
-
-    @Test
-    void shouldPassVerificationForPreviouslyUnregisteredIp() {
-        given(commonService.getProperty(EmailSettings.MAX_REG_PER_EMAIL)).willReturn(1);
-        String email = "test@example.com";
-        given(dataSource.countAuthsByEmail(email)).willReturn(0);
-        Player player = mock(Player.class);
-        EmailRegisterParams params = EmailRegisterParams.of(player, "test@example.com");
-
-        boolean result = executor.isRegistrationAdmitted(params);
-
-        assertThat(result, equalTo(true));
-        verify(commonService).hasPermission(player, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS);
-        verify(dataSource).countAuthsByEmail(email);
+        if (!hasMultipleAccountsPermission) {
+            verify(dataSource).countAuthsByEmail(email);
+        }
+        if (!admitted) {
+            verify(commonService).send(player, MessageKey.MAX_REGISTER_EXCEEDED,
+                Integer.toString(maxReg), Integer.toString(otherAccounts), "@");
+        }
     }
 
     @Test
@@ -110,7 +95,7 @@ class EmailRegisterExecutorTest {
 
         assertThat(auth, hasAuthBasicData("veronica", "Veronica", "test@example.com", null));
         assertThat(auth.getRegistrationIp(), equalTo("123.45.67.89"));
-        assertIsCloseTo(auth.getRegistrationDate(), System.currentTimeMillis(), 1000);
+        assertThat(Math.abs(auth.getRegistrationDate() - System.currentTimeMillis()), not(greaterThan(1000L)));
         assertThat(auth.getPassword().getHash(), stringWithLength(12));
     }
 
@@ -133,9 +118,5 @@ class EmailRegisterExecutorTest {
             verify(commonService).send(player, MessageKey.EMAIL_SEND_FAILURE);
             verifyNoInteractions(syncProcessManager);
         }
-    }
-
-    private static void assertIsCloseTo(long value1, long value2, long tolerance) {
-        assertThat(Math.abs(value1 - value2), not(greaterThan(tolerance)));
     }
 }

@@ -46,28 +46,22 @@ class MessageUpdaterTest {
 
     @Test
     void shouldNotUpdateDefaultFile() throws IOException {
-        // given
         String messagesFilePath = DEFAULT_MESSAGES_FILE;
         File messagesFile = copyMessagesFile("fffff", "/" + messagesFilePath);
         long modifiedDate = messagesFile.lastModified();
 
-        // when
         boolean wasChanged = messageUpdater.migrateAndSave(messagesFile, messagesFilePath, messagesFilePath);
 
-        // then
         assertThat(wasChanged, equalTo(false));
         assertThat(messagesFile.lastModified(), equalTo(modifiedDate));
     }
 
     @Test
     void shouldAddMissingKeys() throws IOException {
-        // given
         File messagesFile = copyMessagesFile("file", TestHelper.PROJECT_ROOT + "message/messages_test.yml");
 
-        // when
         boolean wasChanged = messageUpdater.migrateAndSave(messagesFile, "does-not-exist", DEFAULT_MESSAGES_FILE);
 
-        // then
         assertThat(wasChanged, equalTo(true));
         PropertyReader reader = new YamlFileReader(messagesFile);
         // Existing keys should not be overridden
@@ -80,13 +74,10 @@ class MessageUpdaterTest {
 
     @Test
     void shouldMigrateOldEntries() throws IOException {
-        // given
         File messagesFile = copyMessagesFile("messages.yml", TestHelper.PROJECT_ROOT + "message/messages_en_old.yml");
 
-        // when
         boolean wasChanged = messageUpdater.migrateAndSave(messagesFile, DEFAULT_MESSAGES_FILE, DEFAULT_MESSAGES_FILE);
 
-        // then
         assertThat(wasChanged, equalTo(true));
         PropertyReader reader = new YamlFileReader(messagesFile);
         assertThat(reader.getString(MessageKey.PASSWORD_MATCH_ERROR.getKey()),
@@ -105,13 +96,10 @@ class MessageUpdaterTest {
 
     @Test
     void shouldPerformNewerMigrations() throws IOException {
-        // given
         File messagesFile = copyMessagesFile("newFile", TestHelper.PROJECT_ROOT + "message/messages_test2.yml");
 
-        // when
         boolean wasChanged = messageUpdater.migrateAndSave(messagesFile, DEFAULT_MESSAGES_FILE, DEFAULT_MESSAGES_FILE);
 
-        // then
         assertThat(wasChanged, equalTo(true));
         PropertyReader reader = new YamlFileReader(messagesFile);
         assertThat(reader.getString(MessageKey.TWO_FACTOR_CREATE.getKey()), equalTo("Old 2fa create text"));
@@ -121,31 +109,25 @@ class MessageUpdaterTest {
 
     @Test
     void shouldHaveAllKeysInConfigurationData() {
-        // given
         Set<String> messageKeysFromEnum = Arrays.stream(MessageKey.values())
             .map(MessageKey::getKey)
             .collect(Collectors.toSet());
 
-        // when
         Set<String> messageKeysFromConfigData = MessageUpdater.createConfigurationData().getProperties().stream()
             .map(Property::getPath)
             .collect(Collectors.toSet());
 
-        // then
         assertThat(messageKeysFromConfigData, equalTo(messageKeysFromEnum));
     }
 
     @Test
     void shouldHaveCommentForAllRootPathsInConfigurationData() {
-        // given
         Set<String> rootPaths = Arrays.stream(MessageKey.values())
             .map(key -> key.getKey().split("\\.")[0])
             .collect(Collectors.toSet());
 
-        // when
         Map<String, List<String>> comments = MessageUpdater.createConfigurationData().getAllComments();
 
-        // then
         assertThat(comments.keySet(), equalTo(rootPaths));
     }
 }

@@ -33,17 +33,14 @@ public class PlayerSignOpenListenerTest {
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     public void shouldCancelEventOnlyForUnauthenticatedPlayer(boolean shouldCancel) {
-        // given
         // PlayerSignOpenEvent#getPlayer is final (PlayerEvent), so use spy on a real instance
         Player player = mock(Player.class);
         PlayerSignOpenEvent event = spy(new PlayerSignOpenEvent(
             player, mock(Sign.class), Side.FRONT, PlayerSignOpenEvent.Cause.UNKNOWN));
         given(listenerService.shouldCancelEvent(player)).willReturn(shouldCancel);
 
-        // when
         listener.onPlayerSignOpen(event);
 
-        // then
         if (shouldCancel) {
             verify(event).setCancelled(true);
         } else {

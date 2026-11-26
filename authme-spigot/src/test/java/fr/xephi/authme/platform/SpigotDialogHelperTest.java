@@ -22,21 +22,17 @@ public class SpigotDialogHelperTest {
 
     @Test
     public void showLoginDialogSendsCorrectCommandTemplate() {
-        // given
         Player player = mock(Player.class);
         DialogWindowSpec dialog = createDialogSpec("Login", "Password", "Login");
 
-        // when
         SpigotDialogHelper.showLoginDialog(player, dialog);
 
-        // then
         RunCommandAction action = captureRunCommandAction(player);
         assertThat(action.template(), is("login $(password)"));
     }
 
     @Test
     public void showLoginDialogStacksButtonsWhenEnabled() {
-        // given
         Player player = mock(Player.class);
         DialogWindowSpec dialog = new DialogWindowSpec("Login",
             java.util.List.of(new DialogInputSpec("password", "Password", 100)),
@@ -48,18 +44,14 @@ public class SpigotDialogHelperTest {
             null,
             true);
 
-        // when
         SpigotDialogHelper.showLoginDialog(player, dialog);
 
-        // then
-        ArgumentCaptor<MultiActionDialog> captor = ArgumentCaptor.forClass(MultiActionDialog.class);
-        verify(player).showDialog(captor.capture());
-        assertThat(captor.getValue().columns(), is(1));
+        MultiActionDialog shown = captureDialog(player);
+        assertThat(shown.columns(), is(1));
     }
 
     @Test
     public void showLoginDialogIncludesForgotPasswordButtonWhenSpecified() {
-        // given
         Player player = mock(Player.class);
         DialogWindowSpec dialog = new DialogWindowSpec("Login",
             java.util.List.of(
@@ -71,27 +63,21 @@ public class SpigotDialogHelperTest {
             false,
             "email recover $(email)");
 
-        // when
         SpigotDialogHelper.showLoginDialog(player, dialog);
 
-        // then
-        ArgumentCaptor<MultiActionDialog> captor = ArgumentCaptor.forClass(MultiActionDialog.class);
-        verify(player).showDialog(captor.capture());
-        assertThat(captor.getValue().actions().size(), is(2));
-        assertThat(((RunCommandAction) captor.getValue().actions().get(0).action()).template(), is("login $(password)"));
-        assertThat(((RunCommandAction) captor.getValue().actions().get(1).action()).template(), is("email recover $(email)"));
+        MultiActionDialog shown = captureDialog(player);
+        assertThat(shown.actions().size(), is(2));
+        assertThat(((RunCommandAction) shown.actions().get(0).action()).template(), is("login $(password)"));
+        assertThat(((RunCommandAction) shown.actions().get(1).action()).template(), is("email recover $(email)"));
     }
 
     @Test
     public void showTotpDialogSendsCorrectCommandTemplate() {
-        // given
         Player player = mock(Player.class);
         DialogWindowSpec dialog = createDialogSpec("2FA", "Code", "Verify");
 
-        // when
         SpigotDialogHelper.showTotpDialog(player, dialog);
 
-        // then
         RunCommandAction action = captureRunCommandAction(player);
         assertThat(action.template(), is("2fa code $(code)"));
     }
@@ -101,7 +87,10 @@ public class SpigotDialogHelperTest {
     public void showRegisterDialogSendsExpectedTemplate(String inputLabel, RegistrationType type,
                                                          RegisterSecondaryArgument secondArg,
                                                          String expectedTemplate) {
-        assertRegisterTemplate(inputLabel, type, secondArg, expectedTemplate);
+        Player player = mock(Player.class);
+        DialogWindowSpec dialog = createDialogSpec("Register", inputLabel, "Register");
+        SpigotDialogHelper.showRegisterDialog(player, type, secondArg, dialog);
+        assertThat(captureRunCommandAction(player).template(), is(expectedTemplate));
     }
 
     private static Stream<Arguments> registerTemplates() {
@@ -120,18 +109,14 @@ public class SpigotDialogHelperTest {
                 "register $(email) $(confirm)"));
     }
 
-    private static void assertRegisterTemplate(String inputLabel, RegistrationType type,
-                                                RegisterSecondaryArgument secondArg, String expectedTemplate) {
-        Player player = mock(Player.class);
-        DialogWindowSpec dialog = createDialogSpec("Register", inputLabel, "Register");
-        SpigotDialogHelper.showRegisterDialog(player, type, secondArg, dialog);
-        assertThat(captureRunCommandAction(player).template(), is(expectedTemplate));
+    private static MultiActionDialog captureDialog(Player player) {
+        ArgumentCaptor<MultiActionDialog> captor = ArgumentCaptor.forClass(MultiActionDialog.class);
+        verify(player).showDialog(captor.capture());
+        return captor.getValue();
     }
 
     private static RunCommandAction captureRunCommandAction(Player player) {
-        ArgumentCaptor<MultiActionDialog> captor = ArgumentCaptor.forClass(MultiActionDialog.class);
-        verify(player).showDialog(captor.capture());
-        return (RunCommandAction) captor.getValue().actions().get(0).action();
+        return (RunCommandAction) captureDialog(player).actions().get(0).action();
     }
 
     private static DialogWindowSpec createDialogSpec(String title, String inputLabel, String primaryButtonLabel) {

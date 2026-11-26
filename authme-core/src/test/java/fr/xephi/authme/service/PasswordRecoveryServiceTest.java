@@ -38,6 +38,9 @@ import static org.mockito.Mockito.verify;
 @ExtendWith(MockitoExtension.class)
 class PasswordRecoveryServiceTest {
 
+    private static final String NAME = "Carl";
+    private static final String EMAIL = "test@example.com";
+
     @InjectMocks
     private PasswordRecoveryService recoveryService;
 
@@ -74,61 +77,52 @@ class PasswordRecoveryServiceTest {
     @Test
     void shouldSendRecoveryCode() {
         // given
-        Player player = mock(Player.class);
-        String name = "Carl";
-        given(player.getName()).willReturn(name);
-        String email = "test@example.com";
+        Player player = mockPlayer();
         String code = "qwerty";
-        given(codeService.generateCode(name)).willReturn(code);
-        given(emailService.sendRecoveryCode(player.getName(), email, code)).willReturn(true);
+        given(codeService.generateCode(NAME)).willReturn(code);
+        given(emailService.sendRecoveryCode(NAME, EMAIL, code)).willReturn(true);
 
         // when
-        recoveryService.createAndSendRecoveryCode(player, email);
+        recoveryService.createAndSendRecoveryCode(player, EMAIL);
 
         // then
-        verify(codeService).generateCode(name);
-        verify(emailService).sendRecoveryCode(name, email, code);
+        verify(codeService).generateCode(NAME);
+        verify(emailService).sendRecoveryCode(NAME, EMAIL, code);
         verify(commonService).send(player, MessageKey.RECOVERY_CODE_SENT);
     }
 
     @Test
     void shouldSendNewPasswordAndThenSaveIt() {
         // given
-        Player player = mock(Player.class);
-        String name = "Carl";
-        given(player.getName()).willReturn(name);
-        String email = "test@example.com";
+        Player player = mockPlayer();
         given(commonService.getProperty(EmailSettings.RECOVERY_PASSWORD_LENGTH)).willReturn(12);
         HashedPassword hash = new HashedPassword("new-hash");
-        given(passwordSecurity.computeHash(anyString(), eq(name))).willReturn(hash);
-        given(emailService.sendPasswordMail(eq(name), eq(email), anyString())).willReturn(true);
-        given(dataSource.updatePassword(name, hash)).willReturn(true);
+        given(passwordSecurity.computeHash(anyString(), eq(NAME))).willReturn(hash);
+        given(emailService.sendPasswordMail(eq(NAME), eq(EMAIL), anyString())).willReturn(true);
+        given(dataSource.updatePassword(NAME, hash)).willReturn(true);
 
         // when
-        recoveryService.generateAndSendNewPassword(player, email);
+        recoveryService.generateAndSendNewPassword(player, EMAIL);
 
         // then
         ArgumentCaptor<String> passwordCaptor = ArgumentCaptor.forClass(String.class);
         InOrder inOrder = inOrder(emailService, dataSource);
-        inOrder.verify(emailService).sendPasswordMail(eq(name), eq(email), passwordCaptor.capture());
-        inOrder.verify(dataSource).updatePassword(name, hash);
-        verify(passwordSecurity).computeHash(passwordCaptor.getValue(), name);
+        inOrder.verify(emailService).sendPasswordMail(eq(NAME), eq(EMAIL), passwordCaptor.capture());
+        inOrder.verify(dataSource).updatePassword(NAME, hash);
+        verify(passwordSecurity).computeHash(passwordCaptor.getValue(), NAME);
         verify(commonService).send(player, MessageKey.RECOVERY_EMAIL_SENT_MESSAGE);
     }
 
     @Test
     void shouldNotChangePasswordIfNewPasswordMailCannotBeSent() {
         // given
-        Player player = mock(Player.class);
-        String name = "Carl";
-        given(player.getName()).willReturn(name);
-        String email = "test@example.com";
+        Player player = mockPlayer();
         given(commonService.getProperty(EmailSettings.RECOVERY_PASSWORD_LENGTH)).willReturn(12);
-        given(passwordSecurity.computeHash(anyString(), eq(name))).willReturn(new HashedPassword("new-hash"));
-        given(emailService.sendPasswordMail(eq(name), eq(email), anyString())).willReturn(false);
+        given(passwordSecurity.computeHash(anyString(), eq(NAME))).willReturn(new HashedPassword("new-hash"));
+        given(emailService.sendPasswordMail(eq(NAME), eq(EMAIL), anyString())).willReturn(false);
 
         // when
-        recoveryService.generateAndSendNewPassword(player, email);
+        recoveryService.generateAndSendNewPassword(player, EMAIL);
 
         // then
         verify(dataSource, never()).updatePassword(anyString(), any(HashedPassword.class));
@@ -139,18 +133,15 @@ class PasswordRecoveryServiceTest {
     @Test
     void shouldReportErrorIfNewPasswordCannotBeSaved() {
         // given
-        Player player = mock(Player.class);
-        String name = "Carl";
-        given(player.getName()).willReturn(name);
-        String email = "test@example.com";
+        Player player = mockPlayer();
         given(commonService.getProperty(EmailSettings.RECOVERY_PASSWORD_LENGTH)).willReturn(12);
         HashedPassword hash = new HashedPassword("new-hash");
-        given(passwordSecurity.computeHash(anyString(), eq(name))).willReturn(hash);
-        given(emailService.sendPasswordMail(eq(name), eq(email), anyString())).willReturn(true);
-        given(dataSource.updatePassword(name, hash)).willReturn(false);
+        given(passwordSecurity.computeHash(anyString(), eq(NAME))).willReturn(hash);
+        given(emailService.sendPasswordMail(eq(NAME), eq(EMAIL), anyString())).willReturn(true);
+        given(dataSource.updatePassword(NAME, hash)).willReturn(false);
 
         // when
-        recoveryService.generateAndSendNewPassword(player, email);
+        recoveryService.generateAndSendNewPassword(player, EMAIL);
 
         // then
         verify(commonService).send(player, MessageKey.ERROR);
@@ -160,17 +151,9 @@ class PasswordRecoveryServiceTest {
     @Test
     void shouldKeepTrackOfSuccessfulRecoversByIp() {
         // given
-        Player bobby = mock(Player.class);
-        TestHelper.mockIpAddressToPlayer(bobby, "192.168.8.8");
-        given(bobby.getName()).willReturn("bobby");
-
-        Player bobby2 = mock(Player.class);
-        TestHelper.mockIpAddressToPlayer(bobby2, "127.0.0.1");
-        given(bobby2.getName()).willReturn("bobby");
-
-        Player other = mock(Player.class);
-        TestHelper.mockIpAddressToPlayer(other, "192.168.8.8");
-        given(other.getName()).willReturn("other");
+        Player bobby = mockPlayer("bobby", "192.168.8.8");
+        Player bobby2 = mockPlayer("bobby", "127.0.0.1");
+        Player other = mockPlayer("other", "192.168.8.8");
 
         // when
         recoveryService.addSuccessfulRecovery(bobby);
@@ -184,14 +167,10 @@ class PasswordRecoveryServiceTest {
     @Test
     void shouldRemovePlayerFromSuccessfulRecovers() {
         // given
-        Player bobby = mock(Player.class);
-        TestHelper.mockIpAddressToPlayer(bobby, "192.168.8.8");
-        given(bobby.getName()).willReturn("bobby");
+        Player bobby = mockPlayer("bobby", "192.168.8.8");
         recoveryService.addSuccessfulRecovery(bobby);
 
-        Player other = mock(Player.class);
-        TestHelper.mockIpAddressToPlayer(other, "8.8.8.8");
-        given(other.getName()).willReturn("other");
+        Player other = mockPlayer("other", "8.8.8.8");
         recoveryService.addSuccessfulRecovery(other);
 
         // when
@@ -200,5 +179,18 @@ class PasswordRecoveryServiceTest {
         // then
         assertThat(recoveryService.canChangePassword(bobby), equalTo(true));
         assertThat(recoveryService.canChangePassword(other), equalTo(false));
+    }
+
+    private Player mockPlayer() {
+        Player player = mock(Player.class);
+        given(player.getName()).willReturn(NAME);
+        return player;
+    }
+
+    private static Player mockPlayer(String name, String ip) {
+        Player player = mock(Player.class);
+        TestHelper.mockIpAddressToPlayer(player, ip);
+        given(player.getName()).willReturn(name);
+        return player;
     }
 }

@@ -11,7 +11,6 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Arrays;
 import java.util.Locale;
 
 /**
@@ -137,11 +136,7 @@ public class PostgreSqlDataSource extends AbstractHikariSqlDataSource {
                 alterTable(st, "ALTER COLUMN " + col.TOTP_KEY + " TYPE VARCHAR(32);");
             }
 
-            for (String uuidColumn : Arrays.asList(col.PLAYER_UUID, col.PREMIUM_UUID)) {
-                if (!uuidColumn.isEmpty()) {
-                    addColumnIfAbsent(md, st, uuidColumn, "VARCHAR(36)");
-                }
-            }
+            addUuidColumnsIfAbsent(md, st);
         }
         logger.info("PostgreSQL setup finished");
     }

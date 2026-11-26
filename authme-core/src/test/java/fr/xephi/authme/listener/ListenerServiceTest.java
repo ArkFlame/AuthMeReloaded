@@ -61,9 +61,7 @@ class ListenerServiceTest {
         EntityEvent event = mock(EntityEvent.class);
         given(event.getEntity()).willReturn(entity);
 
-        boolean result = listenerService.shouldCancelEvent(event);
-
-        assertThat(result, equalTo(false));
+        assertThat(listenerService.shouldCancelEvent(event), equalTo(false));
     }
 
     private static Stream<Entity> nonPlayerEntities() {
@@ -79,9 +77,7 @@ class ListenerServiceTest {
         EntityEvent event = mock(EntityEvent.class);
         given(event.getEntity()).willReturn(player);
 
-        boolean result = listenerService.shouldCancelEvent(event);
-
-        assertThat(result, equalTo(!authenticated));
+        assertThat(listenerService.shouldCancelEvent(event), equalTo(!authenticated));
         verify(playerCache).isAuthenticated(playerName);
         // makes sure the setting is checked first = avoid unnecessary DB operation
         verifyNoInteractions(dataSource);
@@ -97,9 +93,7 @@ class ListenerServiceTest {
         given(event.getEntity()).willReturn(player);
         listenerService.reload(settings);
 
-        boolean result = listenerService.shouldCancelEvent(event);
-
-        assertThat(result, equalTo(false));
+        assertThat(listenerService.shouldCancelEvent(event), equalTo(false));
         verify(playerCache).isAuthenticated(playerName);
         verify(dataSource).isAuthAvailable(playerName);
     }
@@ -112,9 +106,7 @@ class ListenerServiceTest {
         given(event.getEntity()).willReturn(player);
         given(validationService.isUnrestricted(playerName)).willReturn(true);
 
-        boolean result = listenerService.shouldCancelEvent(event);
-
-        assertThat(result, equalTo(false));
+        assertThat(listenerService.shouldCancelEvent(event), equalTo(false));
         verifyNoInteractions(dataSource);
     }
 
@@ -126,9 +118,7 @@ class ListenerServiceTest {
         given(event.getEntity()).willReturn(player);
         given(player.hasMetadata("NPC")).willReturn(true);
 
-        boolean result = listenerService.shouldCancelEvent(event);
-
-        assertThat(result, equalTo(false));
+        assertThat(listenerService.shouldCancelEvent(event), equalTo(false));
         verify(player).hasMetadata("NPC");
     }
 
@@ -140,9 +130,7 @@ class ListenerServiceTest {
         PlayerEvent event = new TestPlayerEvent(player);
         given(playerCache.isAuthenticated(playerName)).willReturn(true);
 
-        boolean result = listenerService.shouldCancelEvent(event);
-
-        assertThat(result, equalTo(false));
+        assertThat(listenerService.shouldCancelEvent(event), equalTo(false));
         verify(playerCache).isAuthenticated(playerName);
         verifyNoInteractions(dataSource);
     }
@@ -151,9 +139,7 @@ class ListenerServiceTest {
     void shouldHandlePlayerEventWithNullPlayer() {
         PlayerEvent event = new TestPlayerEvent(null);
 
-        boolean result = listenerService.shouldCancelEvent(event);
-
-        assertThat(result, equalTo(false));
+        assertThat(listenerService.shouldCancelEvent(event), equalTo(false));
     }
 
     @Test
@@ -162,9 +148,7 @@ class ListenerServiceTest {
         String playerName = "player";
         Player player = mockPlayerWithName(playerName);
 
-        boolean result = listenerService.shouldCancelEvent(player);
-
-        assertThat(result, equalTo(true));
+        assertThat(listenerService.shouldCancelEvent(player), equalTo(true));
         verify(playerCache).isAuthenticated(playerName);
         verifyNoInteractions(dataSource);
     }

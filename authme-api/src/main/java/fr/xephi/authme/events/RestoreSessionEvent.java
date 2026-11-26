@@ -12,9 +12,7 @@ public class RestoreSessionEvent extends AbstractCancellableEvent {
     private final Player player;
 
     /**
-     * Constructor.
-     *
-     * @param player the player whose session is about to be restored
+     * @param player the player whose session is about to be restored, never {@code null}
      * @param isAsync {@code true} to fire the event asynchronously, false otherwise
      */
     public RestoreSessionEvent(Player player, boolean isAsync) {

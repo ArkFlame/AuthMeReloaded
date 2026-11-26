@@ -22,10 +22,10 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import static fr.xephi.authme.command.executable.authme.debug.DebugSectionUtils.castToTypeOrNull;
+import static fr.xephi.authme.command.executable.authme.debug.DebugSectionUtils.matchEnumByName;
 import static fr.xephi.authme.command.executable.authme.debug.DebugSectionUtils.unwrapSourceFromCacheDataSource;
 import static fr.xephi.authme.data.auth.PlayerAuth.DB_EMAIL_DEFAULT;
 import static fr.xephi.authme.data.auth.PlayerAuth.DB_LAST_IP_DEFAULT;
@@ -266,13 +266,7 @@ class MySqlDefaultChanger implements DebugSection {
     }
 
     private static <E extends Enum<E>> E matchToEnum(List<String> arguments, int index, Class<E> clazz) {
-        if (arguments.size() <= index) {
-            return null;
-        }
-        String str = arguments.get(index);
-        return Arrays.stream(clazz.getEnumConstants())
-            .filter(e -> e.name().equalsIgnoreCase(str))
-            .findFirst().orElse(null);
+        return arguments.size() > index ? matchEnumByName(clazz, arguments.get(index)) : null;
     }
 
     private enum Operation {

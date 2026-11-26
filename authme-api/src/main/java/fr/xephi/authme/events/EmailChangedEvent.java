@@ -13,8 +13,6 @@ public class EmailChangedEvent extends AbstractCancellableEvent {
     private final String newEmail;
 
     /**
-     * Constructor.
-     *
      * @param player The player that changed the email
      * @param oldEmail The old email the player had on file, or {@code null} when the player adds an email
      * @param newEmail The new email the player tries to set

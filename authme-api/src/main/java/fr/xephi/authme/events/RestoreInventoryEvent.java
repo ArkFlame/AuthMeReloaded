@@ -13,9 +13,7 @@ public class RestoreInventoryEvent extends AbstractCancellableEvent {
     private final Player player;
 
     /**
-     * Constructor.
-     *
-     * @param player The player
+     * @param player the player, never {@code null}
      */
     public RestoreInventoryEvent(Player player) {
         this.player = player;
@@ -39,5 +37,4 @@ public class RestoreInventoryEvent extends AbstractCancellableEvent {
     public HandlerList getHandlers() {
         return handlers;
     }
-
 }

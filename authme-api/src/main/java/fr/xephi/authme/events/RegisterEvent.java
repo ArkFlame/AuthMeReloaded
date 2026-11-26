@@ -12,9 +12,7 @@ public class RegisterEvent extends CustomEvent {
     private final Player player;
 
     /**
-     * Constructor.
-     *
-     * @param player The player
+     * @param player the player, never {@code null}
      */
     public RegisterEvent(Player player) {
         this.player = player;
@@ -38,5 +36,4 @@ public class RegisterEvent extends CustomEvent {
     public HandlerList getHandlers() {
         return handlers;
     }
-
 }

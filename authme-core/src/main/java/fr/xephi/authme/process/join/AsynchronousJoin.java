@@ -664,18 +664,13 @@ public class AsynchronousJoin implements AsynchronousProcess {
     private boolean tryFinalizePendingPremium(Player player, String name) {
         UUID playerId = player.getUniqueId();
         if (playerId.version() == 4) {
-            return finalizePremiumFromConnectingUuid(player, name, playerId);
+            // Atomic gate prevents double-finalization with concurrent validate().
+            return finalizeWithProof(player, name, pendingPremiumCache.removePending(name), playerId);
         } else if (bungeeSender.isEnabled()) {
             return finalizePremiumFromProxy(player, name);
         }
         // No proxy: require cryptographic session verification via PacketEvents.
         return finalizePremiumFromSession(player, name);
-    }
-
-    /** Finalizes a pending enrollment using the connecting UUID as proof (v4 / proxy path). */
-    private boolean finalizePremiumFromConnectingUuid(Player player, String name, UUID playerId) {
-        // Atomic gate prevents double-finalization with concurrent validate().
-        return finalizeWithProof(player, name, pendingPremiumCache.removePending(name), playerId);
     }
 
     /** Finalizes a pending enrollment from a queued signed perform.login behind a proxy. */

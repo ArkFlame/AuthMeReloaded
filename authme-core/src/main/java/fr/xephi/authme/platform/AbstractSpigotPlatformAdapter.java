@@ -220,16 +220,12 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
 
     @Override
     public void unregisterInventoryProtection() {
-        if (packetInterceptionAdapter != null) {
-            packetInterceptionAdapter.unregisterInventoryProtection();
-        }
+        packetAdapter().ifPresent(PacketInterceptionAdapter::unregisterInventoryProtection);
     }
 
     @Override
     public void sendBlankInventoryPacket(Player player) {
-        if (packetInterceptionAdapter != null) {
-            packetInterceptionAdapter.sendBlankInventoryPacket(player);
-        }
+        packetAdapter().ifPresent(adapter -> adapter.sendBlankInventoryPacket(player));
     }
 
     @Override
@@ -239,9 +235,7 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
 
     @Override
     public void unregisterTabCompleteBlock() {
-        if (packetInterceptionAdapter != null) {
-            packetInterceptionAdapter.unregisterTabCompleteBlock();
-        }
+        packetAdapter().ifPresent(PacketInterceptionAdapter::unregisterTabCompleteBlock);
     }
 
     @Override
@@ -253,9 +247,7 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
 
     @Override
     public void unregisterPremiumVerification() {
-        if (packetInterceptionAdapter != null) {
-            packetInterceptionAdapter.unregisterPremiumVerification();
-        }
+        packetAdapter().ifPresent(PacketInterceptionAdapter::unregisterPremiumVerification);
     }
 
     @Override
@@ -279,6 +271,11 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
             }
         }
         return null;
+    }
+
+    /** Returns the lazily created packet adapter only if it has been requested already. */
+    private Optional<PacketInterceptionAdapter> packetAdapter() {
+        return Optional.ofNullable(packetInterceptionAdapter);
     }
 
     private PacketInterceptionAdapter getOrCreatePacketInterceptionAdapter() {

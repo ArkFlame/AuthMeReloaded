@@ -16,6 +16,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import static fr.xephi.authme.datasource.SqlDataSourceTestUtil.silentClose;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -82,10 +83,4 @@ abstract class AbstractH2DataSourceIntegrationTest extends AbstractDataSourceInt
 
     /** Creates the data source under test with the shared settings and connection. */
     protected abstract DataSource createDataSource(Settings settings, HikariDataSource hikariSource);
-
-    private static void silentClose(HikariDataSource con) {
-        if (con != null && !con.isClosed()) {
-            con.close();
-        }
-    }
 }

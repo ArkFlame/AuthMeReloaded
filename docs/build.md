@@ -5,13 +5,10 @@ background on the module layout and the single-jar remaster direction, see
 [ARCHITECTURE.md](ARCHITECTURE.md) and [MODULES.md](MODULES.md).
 
 The reactor comprises **eight modules**: four built by default and four added by the
-`java21-modules` profile (listed under Requirements below). The former `authme-spigot-legacy` and
-`authme-spigot-1.21` modules have been merged into a single `authme-spigot` module that produces one
-`-Spigot.jar` covering Spigot 1.16 through 1.21.x; those two old module names no longer exist. The
-Java 17 / Java 21 bytecode conflict that kept the Spigot jars apart is resolved by a two-pass
-compile (see [The merged Spigot jar](#the-merged-spigot-jar)). Only `authme-spigot-1.8` remains a
-separate server jar, so the build produces **five plugin jars** — Spigot-1.8, Spigot, Paper, Bungee
-and Velocity — plus the API jar.
+`java21-modules` profile (listed under Requirements below), producing **five plugin jars** —
+Spigot-1.8, Spigot, Paper, Bungee and Velocity — plus the API jar. The former `authme-spigot-legacy`
+and `authme-spigot-1.21` modules are now one `authme-spigot` module; its two-pass compile is covered
+below.
 
 ## Requirements
 
@@ -33,12 +30,9 @@ Spigot 1.16 through 1.21.x. It is compiled in two passes into the same jar:
 2. Java 21 bytecode for `Spigot121PlatformAdapter`, `SpigotDialogHelper`, `DialogApiAvailability`
    and `PlayerSignOpenListener`, which provide dialog and sign support.
 
-`META-INF/services/fr.xephi.authme.platform.PlatformAdapter` lists `Spigot121PlatformAdapter`
-first and `SpigotLegacyPlatformAdapter` second. `AuthMe.loadPlatformAdapter()` picks the first
-compatible adapter and skips adapters that fail to load (for example, `UnsupportedClassVersionError`
-on a Java 17 server), so one jar covers the whole supported range.
-`plugin.yml` declares `api-version: 1.16` — a plugin cannot declare a newer `api-version` than the
-server it runs on.
+`AuthMe.loadPlatformAdapter()` selects the first compatible service entry, so one jar covers the
+whole supported range; see [MODULES.md](MODULES.md) for the service order and the `api-version: 1.16`
+detail (a plugin cannot declare a newer `api-version` than the server).
 
 ## Build commands
 

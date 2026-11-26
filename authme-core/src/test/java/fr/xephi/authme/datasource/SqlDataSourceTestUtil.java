@@ -41,6 +41,17 @@ public final class SqlDataSourceTestUtil {
         return extensionsFactory;
     }
 
+    /** Closes a test resource without failing the test if it is already closed or closing fails. */
+    static void silentClose(AutoCloseable closeable) {
+        if (closeable != null) {
+            try {
+                closeable.close();
+            } catch (Exception e) {
+                // silent
+            }
+        }
+    }
+
     /**
      * Creates a SQLite implementation for testing purposes. Methods are overridden so the
      * provided connection is never overridden.

@@ -18,11 +18,9 @@ class OldMessageKeysMigraterTest {
 
     @Test
     void shouldHasOldKeysThatAreNewParentsFirstInMap() {
-        // given
         Set<String> parentPaths = collectParentPathsFromMessageKeys();
         Set<String> encounteredParents = new HashSet<>();
 
-        // when / then
         for (Map.Entry<MessageKey, String> entry : OldMessageKeysMigrater.KEYS_TO_OLD_PATH.entrySet()) {
             if (parentPaths.contains(entry.getValue()) && encounteredParents.contains(entry.getValue())) {
                 fail("Entry migrating old path '" + entry.getValue()

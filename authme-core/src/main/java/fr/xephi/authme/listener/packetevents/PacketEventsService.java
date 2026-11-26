@@ -18,6 +18,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import javax.inject.Inject;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @NoFieldScan
 public class PacketEventsService implements SettingsDependent {
@@ -28,9 +29,9 @@ public class PacketEventsService implements SettingsDependent {
     private boolean denyTabCompleteBeforeLogin;
     private boolean enablePremium;
     private boolean bungeecordEnabled;
-    private boolean inventoryProtectionRegistered;
-    private boolean tabCompleteBlockRegistered;
-    private boolean premiumVerificationRegistered;
+    private final AtomicBoolean inventoryProtectionRegistered = new AtomicBoolean();
+    private final AtomicBoolean tabCompleteBlockRegistered = new AtomicBoolean();
+    private final AtomicBoolean premiumVerificationRegistered = new AtomicBoolean();
 
     private final BukkitService bukkitService;
     private final PlayerCache playerCache;
@@ -77,9 +78,9 @@ public class PacketEventsService implements SettingsDependent {
         }
 
         if (protectInvBeforeLogin) {
-            if (!inventoryProtectionRegistered) {
+            if (!inventoryProtectionRegistered.get()) {
                 packetInterceptionAdapter.registerInventoryProtection(playerCache, dataSource);
-                inventoryProtectionRegistered = true;
+                inventoryProtectionRegistered.set(true);
                 // Send blank packets to online unauthenticated players (reload scenario)
                 for (Player player : bukkitService.getOnlinePlayers()) {
                     if (!playerCache.isAuthenticated(player.getName())
@@ -89,26 +90,26 @@ public class PacketEventsService implements SettingsDependent {
                 }
             }
         } else {
-            unregisterInventoryProtection();
+            unregister(inventoryProtectionRegistered, () -> packetInterceptionAdapter.unregisterInventoryProtection());
         }
 
         if (denyTabCompleteBeforeLogin) {
-            if (!tabCompleteBlockRegistered) {
+            if (!tabCompleteBlockRegistered.get()) {
                 packetInterceptionAdapter.registerTabCompleteBlock(playerCache);
-                tabCompleteBlockRegistered = true;
+                tabCompleteBlockRegistered.set(true);
             }
         } else {
-            unregisterTabCompleteBlock();
+            unregister(tabCompleteBlockRegistered, () -> packetInterceptionAdapter.unregisterTabCompleteBlock());
         }
 
         if (needsPremiumPacketVerification) {
-            if (!premiumVerificationRegistered) {
+            if (!premiumVerificationRegistered.get()) {
                 packetInterceptionAdapter.registerPremiumVerification(dataSource, premiumLoginVerifier,
                     pendingPremiumCache, bukkitService);
-                premiumVerificationRegistered = true;
+                premiumVerificationRegistered.set(true);
             }
         } else {
-            unregisterPremiumVerification();
+            unregister(premiumVerificationRegistered, () -> packetInterceptionAdapter.unregisterPremiumVerification());
         }
     }
 
@@ -116,29 +117,16 @@ public class PacketEventsService implements SettingsDependent {
      * Stops all PacketEvents-based features.
      */
     public void disable() {
-        unregisterInventoryProtection();
-        unregisterTabCompleteBlock();
-        unregisterPremiumVerification();
+        unregister(inventoryProtectionRegistered, () -> packetInterceptionAdapter.unregisterInventoryProtection());
+        unregister(tabCompleteBlockRegistered, () -> packetInterceptionAdapter.unregisterTabCompleteBlock());
+        unregister(premiumVerificationRegistered, () -> packetInterceptionAdapter.unregisterPremiumVerification());
     }
 
-    private void unregisterInventoryProtection() {
-        if (inventoryProtectionRegistered) {
-            packetInterceptionAdapter.unregisterInventoryProtection();
-            inventoryProtectionRegistered = false;
-        }
-    }
-
-    private void unregisterTabCompleteBlock() {
-        if (tabCompleteBlockRegistered) {
-            packetInterceptionAdapter.unregisterTabCompleteBlock();
-            tabCompleteBlockRegistered = false;
-        }
-    }
-
-    private void unregisterPremiumVerification() {
-        if (premiumVerificationRegistered) {
-            packetInterceptionAdapter.unregisterPremiumVerification();
-            premiumVerificationRegistered = false;
+    /** Unregisters a feature only if it is currently registered, preserving the previous flag state on failure. */
+    private static void unregister(AtomicBoolean registered, Runnable action) {
+        if (registered.get()) {
+            action.run();
+            registered.set(false);
         }
     }
 
@@ -148,7 +136,7 @@ public class PacketEventsService implements SettingsDependent {
      * @param player the player to send the blank inventory to
      */
     public void sendBlankInventoryPacket(Player player) {
-        if (inventoryProtectionRegistered) {
+        if (inventoryProtectionRegistered.get()) {
             packetInterceptionAdapter.sendBlankInventoryPacket(player);
         }
     }
@@ -163,8 +151,8 @@ public class PacketEventsService implements SettingsDependent {
         this.bungeecordEnabled = settings.getProperty(HooksSettings.BUNGEECORD);
 
         // If inventory protection was on and is now disabled, restore inventories for online players
-        if (oldProtectInventory && !protectInvBeforeLogin && inventoryProtectionRegistered) {
-            unregisterInventoryProtection();
+        if (oldProtectInventory && !protectInvBeforeLogin && inventoryProtectionRegistered.get()) {
+            unregister(inventoryProtectionRegistered, () -> packetInterceptionAdapter.unregisterInventoryProtection());
             for (Player onlinePlayer : bukkitService.getOnlinePlayers()) {
                 if (!playerCache.isAuthenticated(onlinePlayer.getName())) {
                     onlinePlayer.updateInventory();

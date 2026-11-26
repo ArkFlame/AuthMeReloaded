@@ -42,7 +42,6 @@ class WrappedTagReplacerTest {
             sampleClass(3, "pi is 3.14159"), sampleClass(5, "no tags here"), sampleClass(7, "i+i = 2")));
     }
 
-
     private static Matcher<SampleClass> sampleClass(int number, String description) {
         return new TypeSafeMatcher<SampleClass>() {
             @Override

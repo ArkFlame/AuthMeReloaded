@@ -35,11 +35,9 @@ class MessageFilePlaceholderTest {
     @ParameterizedTest(name = "{1}")
     @MethodSource("buildParams")
     void shouldHaveAllPlaceholders(File messagesFile, String messagesFilename) {
-        // given
         PropertyReader reader = new YamlFileReader(messagesFile);
         List<String> errors = new ArrayList<>();
 
-        // when
         for (MessageKey key : MessageKey.values()) {
             List<String> missingTags = findMissingTags(key, reader);
             if (!missingTags.isEmpty()) {
@@ -47,7 +45,6 @@ class MessageFilePlaceholderTest {
             }
         }
 
-        // then
         if (!errors.isEmpty()) {
             fail("Errors while validating '" + messagesFilename + "':\n- " + String.join("\n- ", errors));
         }

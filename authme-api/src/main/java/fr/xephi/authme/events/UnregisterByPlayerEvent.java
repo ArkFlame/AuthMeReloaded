@@ -11,8 +11,6 @@ public class UnregisterByPlayerEvent extends AbstractUnregisterEvent {
     private static final HandlerList handlers = new HandlerList();
 
     /**
-     * Constructor.
-     *
      * @param player the player (never null)
      * @param isAsync if the event is called asynchronously
      */

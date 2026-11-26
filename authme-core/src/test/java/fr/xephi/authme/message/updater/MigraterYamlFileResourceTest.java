@@ -30,21 +30,17 @@ class MigraterYamlFileResourceTest {
 
     @Test
     void shouldReadChineseFile() {
-        // given
         File file = TestHelper.getJarFile(CHINESE_MESSAGES_FILE);
         MigraterYamlFileResource resource = new MigraterYamlFileResource(file);
 
-        // when
         PropertyReader reader = resource.createReader();
 
-        // then
         assertCommonKeys(reader);
         assertThat(reader.getString("third"), equalTo("您已经可以在当前会话中执行任何敏感命令！"));
     }
 
     @Test
     void shouldWriteWithCorrectCharset() throws IOException {
-        // given
         File file = TestHelper.createFile(temporaryFolder, "messages");
         Files.copy(TestHelper.getJarFile(CHINESE_MESSAGES_FILE), file);
         MigraterYamlFileResource resource = new MigraterYamlFileResource(file);
@@ -53,10 +49,8 @@ class MigraterYamlFileResourceTest {
         String newMessage = "您当前并没有任何邮箱与该账号绑定";
         configurationData.setValue(new StringProperty("third", ""), newMessage);
 
-        // when
         resource.exportProperties(configurationData);
 
-        // then
         PropertyReader reader = resource.createReader();
         assertCommonKeys(reader);
         assertThat(reader.getString("third"), equalTo(newMessage));

@@ -19,6 +19,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -294,6 +295,15 @@ public abstract class AbstractSqlDataSource implements DataSource {
         throws SQLException {
         if (isColumnMissing(md, column)) {
             addColumn(st, column, definition);
+        }
+    }
+
+    /** Adds the configured UUID columns to the table when they are not there yet. */
+    protected void addUuidColumnsIfAbsent(DatabaseMetaData md, Statement st) throws SQLException {
+        for (String uuidColumn : Arrays.asList(col.PLAYER_UUID, col.PREMIUM_UUID)) {
+            if (!uuidColumn.isEmpty()) {
+                addColumnIfAbsent(md, st, uuidColumn, "VARCHAR(36)");
+            }
         }
     }
 

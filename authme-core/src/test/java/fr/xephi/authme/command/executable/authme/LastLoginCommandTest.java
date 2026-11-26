@@ -41,7 +41,6 @@ class LastLoginCommandTest {
     @Mock
     private CommonService service;
 
-
     @Test
     void shouldRejectNonExistentUser() {
         // given
@@ -74,13 +73,7 @@ class LastLoginCommandTest {
 
         // then
         verify(dataSource).getAuth(player);
-        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
-        verify(sender, times(3)).sendMessage(captor.capture());
-        String lastLoginString = new Date(lastLogin).toString();
-        assertThat(captor.getAllValues().get(0),
-            allOf(containsString(player), containsString(lastLoginString)));
-        assertThat(captor.getAllValues().get(1), containsString("412 days 9 hours"));
-        assertThat(captor.getAllValues().get(2), containsString("123.45.66.77"));
+        assertLastLoginOutput(sender, player, lastLogin);
     }
 
     @Test
@@ -102,13 +95,7 @@ class LastLoginCommandTest {
 
         // then
         verify(dataSource).getAuth(name);
-        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
-        verify(sender, times(3)).sendMessage(captor.capture());
-        String lastLoginString = new Date(lastLogin).toString();
-        assertThat(captor.getAllValues().get(0),
-            allOf(containsString(name), containsString(lastLoginString)));
-        assertThat(captor.getAllValues().get(1), containsString("412 days 9 hours"));
-        assertThat(captor.getAllValues().get(2), containsString("123.45.66.77"));
+        assertLastLoginOutput(sender, name, lastLogin);
     }
 
     @Test
@@ -131,5 +118,15 @@ class LastLoginCommandTest {
         verify(sender, times(2)).sendMessage(captor.capture());
         assertThat(captor.getAllValues().get(0), allOf(containsString(name), containsString("never")));
         assertThat(captor.getAllValues().get(1), containsString("123.45.67.89"));
+    }
+
+    private static void assertLastLoginOutput(CommandSender sender, String name, long lastLogin) {
+        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        verify(sender, times(3)).sendMessage(captor.capture());
+        String lastLoginString = new Date(lastLogin).toString();
+        assertThat(captor.getAllValues().get(0),
+            allOf(containsString(name), containsString(lastLoginString)));
+        assertThat(captor.getAllValues().get(1), containsString("412 days 9 hours"));
+        assertThat(captor.getAllValues().get(2), containsString("123.45.66.77"));
     }
 }

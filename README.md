@@ -27,26 +27,13 @@ configs, permissions and databases keep working.
 
 ## Remaster goal
 
-The long-term goal is to collapse the server-side jars into a **single Java 8 artifact** that runs on
-Spigot 1.8+, Paper and Folia through runtime capability detection instead of separate bytecode-level
-builds. `authme-core` stays at Java 8 bytecode, and the BungeeCord/Velocity proxies remain separate
-deliverables because they target different APIs. Paper and Folia are already consolidated:
-`authme-paper` produces a single `-Paper.jar` containing both platform adapters, with the Folia one
-selected at startup when `RegionizedServer` is present. Spigot 1.16–1.21.x is now consolidated too:
-`authme-spigot` produces a single `-Spigot.jar` that runs on Java 17+ and enables the dialog adapter
-on Java 21. Until the Java 8 single-jar consolidation lands, the per-platform jars listed above
-continue to ship. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the platform adapters and the
-runtime-selected `SchedulerProvider`, and [docs/MODULES.md](docs/MODULES.md) for module details.
-
-**Current status — the Spigot merge is complete.** The old `-Spigot-Legacy` and `-Spigot-1.21` jars
-have been replaced by one `-Spigot.jar` covering Spigot 1.16 through 1.21.x. It is built in two passes
-into a single jar: Java 17 bytecode for `SpigotLegacyPlatformAdapter` and Java 21 bytecode for
-`Spigot121PlatformAdapter`, `SpigotDialogHelper`, `DialogApiAvailability` and `PlayerSignOpenListener`.
-`META-INF/services` lists `Spigot121PlatformAdapter` first and `SpigotLegacyPlatformAdapter` second;
-`AuthMe.loadPlatformAdapter()` picks the first compatible adapter and skips ones that fail to load
-(`UnsupportedClassVersionError` on Java 17). The plugin declares `api-version: 1.16` so it loads on
-all supported servers (a plugin cannot declare a newer api-version than the server).
-[docs/MODULES.md](docs/MODULES.md) records the module layout.
+The long-term goal is a **single Java 8 server jar** using runtime capability detection instead of
+separate bytecode builds. `authme-core` already stays at Java 8, and the proxies remain separate
+because they target different APIs. Paper and Folia already share one `-Paper.jar` (Folia selected at
+startup), and Spigot 1.16–1.21.x shares one `-Spigot.jar` (Java 17+, dialog adapter on Java 21).
+Until the Java 8 single-jar consolidation lands, the jars listed above continue to ship.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/MODULES.md](docs/MODULES.md) for the
+platform adapters, the two-pass Spigot build, adapter selection and module layout.
 
 ### Modules
 

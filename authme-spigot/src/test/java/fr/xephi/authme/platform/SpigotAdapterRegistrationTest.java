@@ -18,21 +18,17 @@ class SpigotAdapterRegistrationTest {
 
     @Test
     void shouldRegisterJava21AdapterBeforeLegacyAdapter() {
-        // given
         List<String> names = new ArrayList<>();
 
-        // when
         for (PlatformAdapter adapter : ServiceLoader.load(PlatformAdapter.class)) {
             names.add(adapter.getPlatformName());
         }
 
-        // then
         assertThat(names, contains("spigot-1.21", "spigot-legacy"));
     }
 
     @Test
     void shouldAcceptSpigotApiOnClasspath() {
-        // given / when / then
         assertThat(new SpigotLegacyPlatformAdapter().getCompatibilityError(), nullValue());
     }
 }

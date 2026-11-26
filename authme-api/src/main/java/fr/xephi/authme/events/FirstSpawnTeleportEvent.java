@@ -13,10 +13,8 @@ public class FirstSpawnTeleportEvent extends AbstractTeleportEvent {
     private static final HandlerList handlers = new HandlerList();
 
     /**
-     * Constructor.
-     *
-     * @param player The player
-     * @param to The teleport destination
+     * @param player the player, never {@code null}
+     * @param to the teleport destination, or {@code null} to abort the teleport
      */
     public FirstSpawnTeleportEvent(Player player, Location to) {
         super(false, player, to);
@@ -31,5 +29,4 @@ public class FirstSpawnTeleportEvent extends AbstractTeleportEvent {
     public HandlerList getHandlers() {
         return handlers;
     }
-
 }

@@ -70,7 +70,6 @@ class DistributedFilesPersistenceHandlerTest {
     /** UUID for which no data is stored (belongs to an existing segment file: seg16-8). */
     private static final UUID UNKNOWN_UUID2 = fromString("84d1cc0b-8f12-d04a-e7ba-a067d05cdc39");
 
-
     private DistributedFilesPersistenceHandler persistenceHandler;
 
     @Mock
@@ -117,10 +116,7 @@ class DistributedFilesPersistenceHandlerTest {
         assertThat(playerDataFolder.list(), arrayContainingInAnyOrder("seg16-8-limbo.json", "seg16-f-limbo.json"));
 
         // Check that the expected limbo players can be read
-        assertThat(persistenceHandler.getLimboPlayer(mockPlayerWithUuid(MIGRATED_UUID)), MIGRATED_LIMBO_MATCHER);
-        assertThat(persistenceHandler.getLimboPlayer(mockPlayerWithUuid(UUID_FAB69)), FAB69_MATCHER);
-        assertThat(persistenceHandler.getLimboPlayer(mockPlayerWithUuid(UUID_STAFF)), STAFF_MATCHER);
-        assertThat(persistenceHandler.getLimboPlayer(mockPlayerWithUuid(UUID_8C679)), SC679_MATCHER);
+        assertExistingLimboPlayers();
 
         // Check that unknown players are null (whose segment file exists and does not exist)
         assertThat(persistenceHandler.getLimboPlayer(mockPlayerWithUuid(UNKNOWN_UUID)), nullValue());
@@ -169,10 +165,7 @@ class DistributedFilesPersistenceHandlerTest {
         assertThat(addedPlayer2, isLimbo(limbo2));
         assertThat(addedPlayer2, hasLocation(location2));
 
-        assertThat(persistenceHandler.getLimboPlayer(mockPlayerWithUuid(MIGRATED_UUID)), MIGRATED_LIMBO_MATCHER);
-        assertThat(persistenceHandler.getLimboPlayer(mockPlayerWithUuid(UUID_FAB69)), FAB69_MATCHER);
-        assertThat(persistenceHandler.getLimboPlayer(mockPlayerWithUuid(UUID_STAFF)), STAFF_MATCHER);
-        assertThat(persistenceHandler.getLimboPlayer(mockPlayerWithUuid(UUID_8C679)), SC679_MATCHER);
+        assertExistingLimboPlayers();
     }
 
     @Test
@@ -188,6 +181,13 @@ class DistributedFilesPersistenceHandlerTest {
 
         // then
         assertThat(result, nullValue());
+    }
+
+    private void assertExistingLimboPlayers() {
+        assertThat(persistenceHandler.getLimboPlayer(mockPlayerWithUuid(MIGRATED_UUID)), MIGRATED_LIMBO_MATCHER);
+        assertThat(persistenceHandler.getLimboPlayer(mockPlayerWithUuid(UUID_FAB69)), FAB69_MATCHER);
+        assertThat(persistenceHandler.getLimboPlayer(mockPlayerWithUuid(UUID_STAFF)), STAFF_MATCHER);
+        assertThat(persistenceHandler.getLimboPlayer(mockPlayerWithUuid(UUID_8C679)), SC679_MATCHER);
     }
 
     private static Player mockPlayerWithUuid(UUID uuid) {

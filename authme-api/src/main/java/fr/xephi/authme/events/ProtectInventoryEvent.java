@@ -16,9 +16,7 @@ public class ProtectInventoryEvent extends AbstractCancellableEvent {
     private final Player player;
 
     /**
-     * Constructor.
-     *
-     * @param player The player
+     * @param player the player, never {@code null}
      * @param isAsync True if the event is async, false otherwise
      */
     public ProtectInventoryEvent(Player player, boolean isAsync) {
@@ -66,5 +64,4 @@ public class ProtectInventoryEvent extends AbstractCancellableEvent {
     public HandlerList getHandlers() {
         return handlers;
     }
-
 }

@@ -178,15 +178,8 @@ class LimboPlayerTaskManagerTest {
         // given
         String name = "registered_during_delay";
         Player player = mock(Player.class);
-        given(player.getName()).willReturn(name);
-        given(player.isOnline()).willReturn(true);
         LimboPlayer limboPlayer = mock(LimboPlayer.class);
-        given(settings.getProperty(RegistrationSettings.MESSAGE_INTERVAL)).willReturn(5);
-        given(settings.getProperty(RegistrationSettings.REGISTER_MESSAGE_DELAY)).willReturn(1);
-        given(messages.retrieveSingle(player, MessageKey.REGISTER_MESSAGE)).willReturn("Please register!");
-        CancellableTask delayedTask = mock(CancellableTask.class);
-        given(bukkitService.runTaskLater(eq(player), any(Runnable.class), eq(1L * TICKS_PER_SECOND)))
-            .willReturn(delayedTask);
+        stubDelayedRegistrationMessage(player, limboPlayer, name, 5);
         CancellableTask lookupTask = mock(CancellableTask.class);
         doAnswer(invocation -> {
             ((Runnable) invocation.getArgument(0)).run();
@@ -211,15 +204,9 @@ class LimboPlayerTaskManagerTest {
         // given
         String name = "still_unregistered";
         Player player = mock(Player.class);
-        given(player.getName()).willReturn(name);
-        given(player.isOnline()).willReturn(true);
         LimboPlayer limboPlayer = mock(LimboPlayer.class);
         int interval = 5;
-        given(settings.getProperty(RegistrationSettings.MESSAGE_INTERVAL)).willReturn(interval);
-        given(settings.getProperty(RegistrationSettings.REGISTER_MESSAGE_DELAY)).willReturn(1);
-        given(messages.retrieveSingle(player, MessageKey.REGISTER_MESSAGE)).willReturn("Please register!");
-        given(bukkitService.runTaskLater(eq(player), any(Runnable.class), eq(1L * TICKS_PER_SECOND)))
-            .willReturn(mock(CancellableTask.class));
+        stubDelayedRegistrationMessage(player, limboPlayer, name, interval);
         CancellableTask lookupTask = mock(CancellableTask.class);
         doAnswer(invocation -> {
             ((Runnable) invocation.getArgument(0)).run();
@@ -249,14 +236,8 @@ class LimboPlayerTaskManagerTest {
         // given
         String name = "force_logged_in";
         Player player = mock(Player.class);
-        given(player.getName()).willReturn(name);
-        given(player.isOnline()).willReturn(true);
         LimboPlayer limboPlayer = mock(LimboPlayer.class);
-        given(settings.getProperty(RegistrationSettings.MESSAGE_INTERVAL)).willReturn(5);
-        given(settings.getProperty(RegistrationSettings.REGISTER_MESSAGE_DELAY)).willReturn(1);
-        given(messages.retrieveSingle(player, MessageKey.REGISTER_MESSAGE)).willReturn("Please register!");
-        given(bukkitService.runTaskLater(eq(player), any(Runnable.class), eq(1L * TICKS_PER_SECOND)))
-            .willReturn(mock(CancellableTask.class));
+        stubDelayedRegistrationMessage(player, limboPlayer, name, 5);
         given(playerCache.isAuthenticated(name)).willReturn(true);
         ArgumentCaptor<Runnable> delayedAction = ArgumentCaptor.forClass(Runnable.class);
 
@@ -401,6 +382,16 @@ class LimboPlayerTaskManagerTest {
         assertThat(limboPlayer.getTimeoutTask(), equalTo(bukkitTask));
         verify(bukkitService).runTaskLater(eq(player), any(TimeoutTask.class), eq(360L)); // 18 * TICKS_PER_SECOND
         verify(messages).retrieveSingle(player, MessageKey.LOGIN_TIMEOUT_ERROR);
+    }
+
+    private void stubDelayedRegistrationMessage(Player player, LimboPlayer limboPlayer, String name, int interval) {
+        given(player.getName()).willReturn(name);
+        given(player.isOnline()).willReturn(true);
+        given(settings.getProperty(RegistrationSettings.MESSAGE_INTERVAL)).willReturn(interval);
+        given(settings.getProperty(RegistrationSettings.REGISTER_MESSAGE_DELAY)).willReturn(1);
+        given(messages.retrieveSingle(player, MessageKey.REGISTER_MESSAGE)).willReturn("Please register!");
+        given(bukkitService.runTaskLater(eq(player), any(Runnable.class), eq(1L * TICKS_PER_SECOND)))
+            .willReturn(mock(CancellableTask.class));
     }
 
 }

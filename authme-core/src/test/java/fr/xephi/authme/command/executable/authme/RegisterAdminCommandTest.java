@@ -44,16 +44,12 @@ class RegisterAdminCommandTest {
 
     @Mock
     private PasswordSecurity passwordSecurity;
-
     @Mock
     private DataSource dataSource;
-
     @Mock
     private BukkitService bukkitService;
-
     @Mock
     private CommonService commandService;
-
     @Mock
     private ValidationService validationService;
 
@@ -104,11 +100,7 @@ class RegisterAdminCommandTest {
         // given
         String user = "test-test";
         String password = "afdjhfkt";
-        given(validationService.validatePassword(password, user)).willReturn(new ValidationResult());
-        given(dataSource.isAuthAvailable(user)).willReturn(false);
-        given(dataSource.saveAuth(any(PlayerAuth.class))).willReturn(false);
-        HashedPassword hashedPassword = new HashedPassword("235sdf4w5udsgf");
-        given(passwordSecurity.computeHash(password, user)).willReturn(hashedPassword);
+        HashedPassword hashedPassword = givenValidRegistration(user, password, "235sdf4w5udsgf", false);
         CommandSender sender = mock(CommandSender.class);
         setBukkitServiceToRunTaskOptionallyAsync(bukkitService);
 
@@ -128,11 +120,7 @@ class RegisterAdminCommandTest {
         // given
         String user = "someone";
         String password = "Al1O3P49S5%";
-        given(validationService.validatePassword(password, user)).willReturn(new ValidationResult());
-        given(dataSource.isAuthAvailable(user)).willReturn(false);
-        given(dataSource.saveAuth(any(PlayerAuth.class))).willReturn(true);
-        HashedPassword hashedPassword = new HashedPassword("$aea2345EW235dfsa@#R%987048");
-        given(passwordSecurity.computeHash(password, user)).willReturn(hashedPassword);
+        HashedPassword hashedPassword = givenValidRegistration(user, password, "$aea2345EW235dfsa@#R%987048", true);
         given(bukkitService.getPlayerExact(user)).willReturn(null);
         CommandSender sender = mock(CommandSender.class);
         setBukkitServiceToRunTaskOptionallyAsync(bukkitService);
@@ -153,11 +141,7 @@ class RegisterAdminCommandTest {
         // given
         String user = "someone";
         String password = "Al1O3P49S5%";
-        given(validationService.validatePassword(password, user)).willReturn(new ValidationResult());
-        given(dataSource.isAuthAvailable(user)).willReturn(false);
-        given(dataSource.saveAuth(any(PlayerAuth.class))).willReturn(true);
-        HashedPassword hashedPassword = new HashedPassword("$aea2345EW235dfsa@#R%987048");
-        given(passwordSecurity.computeHash(password, user)).willReturn(hashedPassword);
+        HashedPassword hashedPassword = givenValidRegistration(user, password, "$aea2345EW235dfsa@#R%987048", true);
         Player player = mock(Player.class);
         given(bukkitService.getPlayerExact(user)).willReturn(player);
         String kickForAdminRegister = "Admin registered you -- log in again";
@@ -176,6 +160,15 @@ class RegisterAdminCommandTest {
         verify(dataSource).saveAuth(captor.capture());
         assertAuthHasInfo(captor.getValue(), user, hashedPassword);
         verify(player).kickPlayer(kickForAdminRegister);
+    }
+
+    private HashedPassword givenValidRegistration(String user, String password, String hash, boolean saveSuccessful) {
+        given(validationService.validatePassword(password, user)).willReturn(new ValidationResult());
+        given(dataSource.isAuthAvailable(user)).willReturn(false);
+        given(dataSource.saveAuth(any(PlayerAuth.class))).willReturn(saveSuccessful);
+        HashedPassword hashedPassword = new HashedPassword(hash);
+        given(passwordSecurity.computeHash(password, user)).willReturn(hashedPassword);
+        return hashedPassword;
     }
 
     private void assertAuthHasInfo(PlayerAuth auth, String name, HashedPassword hashedPassword) {

@@ -131,8 +131,7 @@ class VelocityProxyBridgeTest {
         given(sourceConnection.getServer()).willReturn(authServer);
         given(player.getUsername()).willReturn("Alice");
         given(player.getCurrentServer()).willReturn(Optional.of(currentServer));
-        given(authServer.getServerInfo()).willReturn(authServerInfo);
-        given(authServerInfo.getName()).willReturn("lobby");
+        stubAuthServer();
         given(currentServer.getServer()).willReturn(authServer);
         given(currentServer.sendPluginMessage(eq(VelocityProxyBridge.AUTHME_CHANNEL), any(byte[].class)))
             .willReturn(true);
@@ -163,8 +162,7 @@ class VelocityProxyBridgeTest {
         stubIncomingPluginMessage();
         given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.message("unknown-type", "hub"));
         given(player.getUsername()).willReturn("Alice");
-        given(authServer.getServerInfo()).willReturn(authServerInfo);
-        given(authServerInfo.getName()).willReturn("lobby");
+        stubAuthServer();
 
         VelocityProxyBridge bridge = newBridge();
         bridge.onPluginMessage(pluginMessageEvent);
@@ -180,8 +178,7 @@ class VelocityProxyBridgeTest {
         given(sourceConnection.getServer()).willReturn(authServer);
         given(player.getUsername()).willReturn("Alice");
         given(player.getCurrentServer()).willReturn(Optional.of(currentServer));
-        given(authServer.getServerInfo()).willReturn(authServerInfo);
-        given(authServerInfo.getName()).willReturn("lobby");
+        stubAuthServer();
         given(currentServer.getServer()).willReturn(authServer);
         given(currentServer.sendPluginMessage(eq(VelocityProxyBridge.AUTHME_CHANNEL), any(byte[].class)))
             .willReturn(true);
@@ -204,8 +201,7 @@ class VelocityProxyBridgeTest {
         given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.message("login", "Alice"));
         given(sourceConnection.getServer()).willReturn(authServer);
         given(player.getUsername()).willReturn("Alice");
-        given(authServer.getServerInfo()).willReturn(authServerInfo);
-        given(authServerInfo.getName()).willReturn("lobby");
+        stubAuthServer();
 
         VelocityProxyBridge bridge = newBridge();
         bridge.onPluginMessage(pluginMessageEvent);
@@ -220,8 +216,7 @@ class VelocityProxyBridgeTest {
         stubIncomingPluginMessage();
         given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.message("logout", "Alice"));
         given(sourceConnection.getServer()).willReturn(nonAuthServer);
-        given(nonAuthServer.getServerInfo()).willReturn(nonAuthServerInfo);
-        given(nonAuthServerInfo.getName()).willReturn("survival");
+        stubNonAuthServer();
         given(proxyServer.getPlayer("alice")).willReturn(Optional.of(player));
         given(proxyServer.getServer("limbo")).willReturn(Optional.of(nonAuthServer));
         given(player.createConnectionRequest(nonAuthServer)).willReturn(connectionRequest);
@@ -255,8 +250,7 @@ class VelocityProxyBridgeTest {
         stubIncomingPluginMessage();
         given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.message("login", "Alice"));
         given(sourceConnection.getServer()).willReturn(authServer);
-        given(authServer.getServerInfo()).willReturn(authServerInfo);
-        given(authServerInfo.getName()).willReturn("lobby");
+        stubAuthServer();
         given(player.getUsername()).willReturn("Alice");
         given(player.getCurrentServer()).willReturn(Optional.of(currentServer));
         given(currentServer.getServer()).willReturn(authServer);
@@ -285,10 +279,8 @@ class VelocityProxyBridgeTest {
         stubIncomingPluginMessage();
         given(player.getUsername()).willReturn("Alice");
         given(player.getCurrentServer()).willReturn(Optional.of(currentServer));
-        given(authServer.getServerInfo()).willReturn(authServerInfo);
-        given(authServerInfo.getName()).willReturn("lobby");
-        given(nonAuthServer.getServerInfo()).willReturn(nonAuthServerInfo);
-        given(nonAuthServerInfo.getName()).willReturn("survival");
+        stubAuthServer();
+        stubNonAuthServer();
         given(currentServer.getServer()).willReturn(authServer);
         given(currentServer.sendPluginMessage(eq(VelocityProxyBridge.AUTHME_CHANNEL), any(byte[].class)))
             .willReturn(true);
@@ -319,11 +311,9 @@ class VelocityProxyBridgeTest {
         stubIncomingPluginMessage();
         given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.message("login", "Alice"));
         given(sourceConnection.getServer()).willReturn(nonAuthServer);
-        given(nonAuthServer.getServerInfo()).willReturn(nonAuthServerInfo);
-        given(nonAuthServerInfo.getName()).willReturn("survival");
+        stubNonAuthServer();
         given(player.getUsername()).willReturn("Alice");
-        given(authServer.getServerInfo()).willReturn(authServerInfo);
-        given(authServerInfo.getName()).willReturn("lobby");
+        stubAuthServer();
 
         VelocityProxyBridge bridge = newBridge();
         bridge.onPluginMessage(pluginMessageEvent);
@@ -336,8 +326,7 @@ class VelocityProxyBridgeTest {
     void shouldDenySwitchToNonAuthServerForUnauthenticatedPlayer() {
         given(player.getUsername()).willReturn("Alice");
         given(player.getCurrentServer()).willReturn(Optional.of(currentServer));
-        given(nonAuthServer.getServerInfo()).willReturn(nonAuthServerInfo);
-        given(nonAuthServerInfo.getName()).willReturn("survival");
+        stubNonAuthServer();
 
         VelocityProxyBridge bridge = newBridge();
         ServerPreConnectEvent event = new ServerPreConnectEvent(player, nonAuthServer, authServer);
@@ -351,11 +340,9 @@ class VelocityProxyBridgeTest {
     @Test
     void shouldDenySwitchRedirectedAwayFromAuthServerForUnauthenticatedPlayer() {
         given(player.getUsername()).willReturn("Alice");
-        given(authServer.getServerInfo()).willReturn(authServerInfo);
-        given(authServerInfo.getName()).willReturn("lobby");
+        stubAuthServer();
         given(player.getCurrentServer()).willReturn(Optional.of(currentServer));
-        given(nonAuthServer.getServerInfo()).willReturn(nonAuthServerInfo);
-        given(nonAuthServerInfo.getName()).willReturn("survival");
+        stubNonAuthServer();
 
         VelocityProxyBridge bridge = newBridge();
         ServerPreConnectEvent event = new ServerPreConnectEvent(player, authServer, authServer);
@@ -369,8 +356,7 @@ class VelocityProxyBridgeTest {
     @Test
     void shouldAllowSwitchRedirectedToAuthServerForUnauthenticatedPlayer() {
         given(player.getUsername()).willReturn("Alice");
-        given(authServer.getServerInfo()).willReturn(authServerInfo);
-        given(authServerInfo.getName()).willReturn("lobby");
+        stubAuthServer();
 
         VelocityProxyBridge bridge = newBridge();
         ServerPreConnectEvent event = new ServerPreConnectEvent(player, nonAuthServer);
@@ -385,8 +371,7 @@ class VelocityProxyBridgeTest {
     void shouldDisconnectPlayerOnInitialJoinToNonAuthServerWhenSwitchRequiresAuth() {
         given(player.getUsername()).willReturn("Alice");
         given(player.getCurrentServer()).willReturn(Optional.empty());
-        given(nonAuthServer.getServerInfo()).willReturn(nonAuthServerInfo);
-        given(nonAuthServerInfo.getName()).willReturn("survival");
+        stubNonAuthServer();
 
         VelocityProxyBridge bridge = newBridge();
         ServerPreConnectEvent event = new ServerPreConnectEvent(player, nonAuthServer);
@@ -400,8 +385,7 @@ class VelocityProxyBridgeTest {
     @Test
     void shouldNotForwardPerformLoginForUnauthenticatedPlayer() {
         given(player.getUsername()).willReturn("Alice");
-        given(nonAuthServer.getServerInfo()).willReturn(nonAuthServerInfo);
-        given(nonAuthServerInfo.getName()).willReturn("survival");
+        stubNonAuthServer();
 
         VelocityProxyBridge bridge = newBridge();
         bridge.onServerConnected(new ServerConnectedEvent(player, nonAuthServer, null));
@@ -416,8 +400,7 @@ class VelocityProxyBridgeTest {
             ProxyTestFixtures.message("premium.set", "Alice"),
             ProxyTestFixtures.message("login", "Alice"));
         given(sourceConnection.getServer()).willReturn(authServer);
-        given(authServer.getServerInfo()).willReturn(authServerInfo);
-        given(authServerInfo.getName()).willReturn("lobby");
+        stubAuthServer();
         given(proxyServer.getPlayer("alice")).willReturn(Optional.of(player));
         given(proxyServer.getEventManager()).willReturn(eventManager);
 
@@ -436,10 +419,8 @@ class VelocityProxyBridgeTest {
         stubIncomingPluginMessage();
         given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.message("login", "Alice"));
         given(sourceConnection.getServer()).willReturn(authServer);
-        given(authServer.getServerInfo()).willReturn(authServerInfo);
-        given(authServerInfo.getName()).willReturn("lobby");
-        given(nonAuthServer.getServerInfo()).willReturn(nonAuthServerInfo);
-        given(nonAuthServerInfo.getName()).willReturn("survival");
+        stubAuthServer();
+        stubNonAuthServer();
         given(player.getUsername()).willReturn("Alice");
         given(player.getCurrentServer()).willReturn(Optional.of(currentServer));
         given(currentServer.getServer()).willReturn(nonAuthServer);
@@ -468,8 +449,7 @@ class VelocityProxyBridgeTest {
             t -> {
                 given(t.player.getUsername()).willReturn("Alice");
                 given(t.currentServer.getServer()).willReturn(t.authServer);
-                given(t.authServer.getServerInfo()).willReturn(t.authServerInfo);
-                given(t.authServerInfo.getName()).willReturn("lobby");
+                t.stubAuthServer();
                 given(t.currentServer.sendPluginMessage(eq(VelocityProxyBridge.AUTHME_CHANNEL), any(byte[].class)))
                     .willReturn(true);
                 VelocityProxyBridge bridge = newBridgeWithAuthenticatedStore(t);
@@ -479,8 +459,7 @@ class VelocityProxyBridgeTest {
             t -> {
                 given(t.player.getUsername()).willReturn("Alice");
                 given(t.currentServer.getServer()).willReturn(t.nonAuthServer);
-                given(t.nonAuthServer.getServerInfo()).willReturn(t.nonAuthServerInfo);
-                given(t.nonAuthServerInfo.getName()).willReturn("survival");
+                t.stubNonAuthServer();
                 given(t.currentServer.sendPluginMessage(eq(VelocityProxyBridge.AUTHME_CHANNEL), any(byte[].class)))
                     .willReturn(true);
                 VelocityProxyBridge bridge = newBridgeWithAuthenticatedStore(t);
@@ -502,16 +481,14 @@ class VelocityProxyBridgeTest {
             t -> {
                 given(t.player.getUsername()).willReturn("Alice");
                 given(t.currentServer.getServer()).willReturn(t.authServer);
-                given(t.authServer.getServerInfo()).willReturn(t.authServerInfo);
-                given(t.authServerInfo.getName()).willReturn("lobby");
+                t.stubAuthServer();
                 t.newBridge().onPlayerEnteredConfiguration(new PlayerEnteredConfigurationEvent(t.player, t.currentServer));
             },
             // authenticated player entering a non-auth server normally
             t -> {
                 given(t.player.getUsername()).willReturn("Alice");
                 given(t.currentServer.getServer()).willReturn(t.nonAuthServer);
-                given(t.nonAuthServer.getServerInfo()).willReturn(t.nonAuthServerInfo);
-                given(t.nonAuthServerInfo.getName()).willReturn("survival");
+                t.stubNonAuthServer();
                 newBridgeWithAuthenticatedStore(t)
                     .onPlayerEnteredConfiguration(new PlayerEnteredConfigurationEvent(t.player, t.currentServer));
             },
@@ -537,8 +514,7 @@ class VelocityProxyBridgeTest {
         given(player.getUsername()).willReturn("alice");
         given(player.getCurrentServer()).willReturn(Optional.of(currentServer));
         given(currentServer.getServer()).willReturn(authServer);
-        given(authServer.getServerInfo()).willReturn(authServerInfo);
-        given(authServerInfo.getName()).willReturn("lobby");
+        stubAuthServer();
 
         VelocityProxyBridge bridge = newBridge();
         bridge.onCommandExecute(commandEvent);
@@ -564,8 +540,7 @@ class VelocityProxyBridgeTest {
                 given(t.player.getUsername()).willReturn("alice");
                 given(t.player.getCurrentServer()).willReturn(Optional.of(t.currentServer));
                 given(t.currentServer.getServer()).willReturn(t.authServer);
-                given(t.authServer.getServerInfo()).willReturn(t.authServerInfo);
-                given(t.authServerInfo.getName()).willReturn("lobby");
+                t.stubAuthServer();
                 return t.newBridge();
             },
             // already authenticated player
@@ -574,8 +549,7 @@ class VelocityProxyBridgeTest {
                 given(t.player.getUsername()).willReturn("alice");
                 given(t.player.getCurrentServer()).willReturn(Optional.of(t.currentServer));
                 given(t.currentServer.getServer()).willReturn(t.authServer);
-                given(t.authServer.getServerInfo()).willReturn(t.authServerInfo);
-                given(t.authServerInfo.getName()).willReturn("lobby");
+                t.stubAuthServer();
                 return newBridgeWithAuthenticatedStore(t);
             },
             // player connected to a non-auth server
@@ -583,8 +557,7 @@ class VelocityProxyBridgeTest {
                 given(t.commandEvent.getCommandSource()).willReturn(t.player);
                 given(t.player.getCurrentServer()).willReturn(Optional.of(t.currentServer));
                 given(t.currentServer.getServer()).willReturn(t.nonAuthServer);
-                given(t.nonAuthServer.getServerInfo()).willReturn(t.nonAuthServerInfo);
-                given(t.nonAuthServerInfo.getName()).willReturn("survival");
+                t.stubNonAuthServer();
                 return t.newBridge();
             },
             // player with no current server
@@ -617,8 +590,7 @@ class VelocityProxyBridgeTest {
         given(player.getUsername()).willReturn("alice");
         given(player.getCurrentServer()).willReturn(Optional.of(currentServer));
         given(currentServer.getServer()).willReturn(authServer);
-        given(authServer.getServerInfo()).willReturn(authServerInfo);
-        given(authServerInfo.getName()).willReturn("lobby");
+        stubAuthServer();
 
         VelocityProxyBridge bridge = newBridge();
         bridge.onPlayerChat(chatEvent);
@@ -643,8 +615,7 @@ class VelocityProxyBridgeTest {
                 given(t.player.getUsername()).willReturn("alice");
                 given(t.player.getCurrentServer()).willReturn(Optional.of(t.currentServer));
                 given(t.currentServer.getServer()).willReturn(t.authServer);
-                given(t.authServer.getServerInfo()).willReturn(t.authServerInfo);
-                given(t.authServerInfo.getName()).willReturn("lobby");
+                t.stubAuthServer();
                 return newBridgeWithAuthenticatedStore(t);
             },
             // player connected to a non-auth server
@@ -652,8 +623,7 @@ class VelocityProxyBridgeTest {
                 given(t.chatEvent.getPlayer()).willReturn(t.player);
                 given(t.player.getCurrentServer()).willReturn(Optional.of(t.currentServer));
                 given(t.currentServer.getServer()).willReturn(t.nonAuthServer);
-                given(t.nonAuthServer.getServerInfo()).willReturn(t.nonAuthServerInfo);
-                given(t.nonAuthServerInfo.getName()).willReturn("survival");
+                t.stubNonAuthServer();
                 return t.newBridge();
             },
             // player with no current server
@@ -678,8 +648,7 @@ class VelocityProxyBridgeTest {
         stubIncomingPluginMessage();
         given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.chunkPayload(0, true, "Alice"));
         given(sourceConnection.getServer()).willReturn(authServer);
-        given(authServer.getServerInfo()).willReturn(authServerInfo);
-        given(authServerInfo.getName()).willReturn("lobby");
+        stubAuthServer();
 
         VelocityProxyBridge bridge = newBridge();
         bridge.onPluginMessage(pluginMessageEvent);
@@ -697,8 +666,7 @@ class VelocityProxyBridgeTest {
             .willReturn(ProxyTestFixtures.chunkPayload(0, true, "Alice"), ProxyTestFixtures.chunkPayload(0, false, "Bob"),
                 ProxyTestFixtures.chunkPayload(2, true, "Carol"));
         given(sourceConnection.getServer()).willReturn(authServer);
-        given(authServer.getServerInfo()).willReturn(authServerInfo);
-        given(authServerInfo.getName()).willReturn("lobby");
+        stubAuthServer();
 
         VelocityProxyBridge bridge = newBridge();
         bridge.onPluginMessage(pluginMessageEvent);
@@ -719,8 +687,7 @@ class VelocityProxyBridgeTest {
         stubIncomingPluginMessage();
         given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.message("premium.pending.set", "Alice"));
         given(sourceConnection.getServer()).willReturn(authServer);
-        given(authServer.getServerInfo()).willReturn(authServerInfo);
-        given(authServerInfo.getName()).willReturn("lobby");
+        stubAuthServer();
 
         VelocityProxyBridge bridge = newBridge();
         bridge.onPluginMessage(pluginMessageEvent);
@@ -743,8 +710,7 @@ class VelocityProxyBridgeTest {
         stubIncomingPluginMessage();
         given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.listPayload("Alice"));
         given(sourceConnection.getServer()).willReturn(authServer);
-        given(authServer.getServerInfo()).willReturn(authServerInfo);
-        given(authServerInfo.getName()).willReturn("lobby");
+        stubAuthServer();
 
         VelocityProxyBridge bridge = new VelocityProxyBridge(proxyServer, logger, ProxyTestFixtures.configuration(true, false, COMMANDS), new VelocityAuthenticationStore(), tempDir);
         bridge.onPluginMessage(pluginMessageEvent);
@@ -766,6 +732,16 @@ class VelocityProxyBridgeTest {
         restarted.shutdown();
 
         assertEquals(PreLoginEvent.PreLoginComponentResult.forceOnlineMode().toString(), event.getResult().toString());
+    }
+
+    private void stubAuthServer() {
+        given(authServer.getServerInfo()).willReturn(authServerInfo);
+        given(authServerInfo.getName()).willReturn("lobby");
+    }
+
+    private void stubNonAuthServer() {
+        given(nonAuthServer.getServerInfo()).willReturn(nonAuthServerInfo);
+        given(nonAuthServerInfo.getName()).willReturn("survival");
     }
 
     private VelocityProxyBridge newBridge() {

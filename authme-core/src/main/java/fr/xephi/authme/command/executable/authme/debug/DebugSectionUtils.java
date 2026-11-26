@@ -11,6 +11,7 @@ import java.lang.reflect.Field;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
+import java.util.Arrays;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
@@ -105,6 +106,13 @@ final class DebugSectionUtils {
 
     static <T> T castToTypeOrNull(Object object, Class<T> clazz) {
         return clazz.isInstance(object) ? clazz.cast(object) : null;
+    }
+
+    /** Returns the enum constant of the given type whose name matches {@code name}, ignoring case, or null. */
+    static <E extends Enum<E>> E matchEnumByName(Class<E> clazz, String name) {
+        return Arrays.stream(clazz.getEnumConstants())
+            .filter(e -> e.name().equalsIgnoreCase(name))
+            .findFirst().orElse(null);
     }
 
     /**

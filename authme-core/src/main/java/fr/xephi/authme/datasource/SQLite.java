@@ -19,7 +19,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -149,11 +148,7 @@ public class SQLite extends AbstractSqlDataSource {
             addColumnIfAbsent(md, st, col.HAS_SESSION, "INT NOT NULL DEFAULT '0';");
             addColumnIfAbsent(md, st, col.TOTP_KEY, "VARCHAR(32);");
 
-            for (String uuidColumn : Arrays.asList(col.PLAYER_UUID, col.PREMIUM_UUID)) {
-                if (!uuidColumn.isEmpty()) {
-                    addColumnIfAbsent(md, st, uuidColumn, "VARCHAR(36)");
-                }
-            }
+            addUuidColumnsIfAbsent(md, st);
         }
         logger.info("SQLite Setup finished");
     }

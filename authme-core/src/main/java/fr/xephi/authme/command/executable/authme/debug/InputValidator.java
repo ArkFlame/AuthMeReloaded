@@ -11,9 +11,9 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 
 import javax.inject.Inject;
-import java.util.Arrays;
 import java.util.List;
 
+import static fr.xephi.authme.command.executable.authme.debug.DebugSectionUtils.matchEnumByName;
 import static fr.xephi.authme.command.executable.authme.debug.InputValidator.ValidationObject.MAIL;
 import static fr.xephi.authme.command.executable.authme.debug.InputValidator.ValidationObject.NAME;
 import static fr.xephi.authme.command.executable.authme.debug.InputValidator.ValidationObject.PASS;
@@ -49,21 +49,15 @@ class InputValidator implements DebugSection {
             displayUsageHint(sender);
             return;
         }
-        String type = arguments.get(0);
-        if (!ValidationObject.matchesAny(type)) {
-            displayUsageHint(sender);
-
-        } else if (PASS.matches(type)) {
+        ValidationObject type = matchEnumByName(ValidationObject.class, arguments.get(0));
+        if (type == PASS) {
             validatePassword(sender, arguments.get(1));
-
-        } else if (MAIL.matches(type)) {
+        } else if (type == MAIL) {
             validateEmail(sender, arguments.get(1));
-
-        } else if (NAME.matches(type)) {
+        } else if (type == NAME) {
             validateUsername(sender, arguments.get(1));
-
         } else {
-            throw new IllegalStateException("Unexpected validation object with arg[0] = '" + type + "'");
+            displayUsageHint(sender);
         }
     }
 
@@ -113,17 +107,6 @@ class InputValidator implements DebugSection {
     }
 
 
-    enum ValidationObject {
-
-        PASS, MAIL, NAME;
-
-        static boolean matchesAny(String arg) {
-            return Arrays.stream(values()).anyMatch(vo -> vo.matches(arg));
-        }
-
-        boolean matches(String arg) {
-            return name().equalsIgnoreCase(arg);
-        }
-    }
+    enum ValidationObject { PASS, MAIL, NAME }
 
 }

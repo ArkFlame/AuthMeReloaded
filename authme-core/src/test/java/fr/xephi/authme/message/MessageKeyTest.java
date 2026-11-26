@@ -18,11 +18,9 @@ class MessageKeyTest {
 
     @Test
     void shouldHaveUniqueMessageKeys() {
-        // given
         MessageKey[] messageKeys = MessageKey.values();
         Set<String> keys = new HashSet<>();
 
-        // when / then
         for (MessageKey messageKey : messageKeys) {
             String key = messageKey.getKey();
             if (!keys.add(key)) {
@@ -35,10 +33,8 @@ class MessageKeyTest {
 
     @Test
     void shouldHaveWellFormedPlaceholders() {
-        // given
         MessageKey[] messageKeys = MessageKey.values();
 
-        // when / then
         for (MessageKey messageKey : messageKeys) {
             String[] tags = messageKey.getTags();
             Arrays.stream(tags)

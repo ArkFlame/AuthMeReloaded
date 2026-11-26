@@ -13,15 +13,11 @@ public abstract class AbstractCancellableEvent extends CustomEvent implements Ca
 
     private boolean cancelled;
 
-    /**
-     * Constructor for a synchronous event.
-     */
+    /** Creates a synchronous cancellable event. */
     protected AbstractCancellableEvent() {
     }
 
     /**
-     * Constructor.
-     *
      * @param isAsync {@code true} to fire the event asynchronously, false otherwise
      * @see CustomEvent#CustomEvent(boolean)
      */

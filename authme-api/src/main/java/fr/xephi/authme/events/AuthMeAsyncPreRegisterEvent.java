@@ -15,9 +15,7 @@ public class AuthMeAsyncPreRegisterEvent extends CustomEvent {
     private boolean canRegister = true;
 
     /**
-     * Constructor.
-     *
-     * @param player The player
+     * @param player the player, never {@code null}
      * @param isAsync True if the event is async, false otherwise
      */
     public AuthMeAsyncPreRegisterEvent(Player player, boolean isAsync) {
@@ -61,5 +59,4 @@ public class AuthMeAsyncPreRegisterEvent extends CustomEvent {
     public HandlerList getHandlers() {
         return handlers;
     }
-
 }

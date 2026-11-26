@@ -36,26 +36,11 @@ class SimpleCancelListenerTest {
     private LegacyPlayerPickupItemListener pickupListener;
 
     @Test
-    void shouldCancelAirChangeOnlyForUnauthenticatedPlayer() {
+    void shouldCancelSimpleEventsOnlyForUnauthenticatedPlayer() {
         withServiceMock(listenerService)
-            .check(airChangeListener::onPlayerAirChange, EntityAirChangeEvent.class);
-    }
-
-    @Test
-    void shouldCancelArrowPickupOnlyForUnauthenticatedPlayer() {
-        withServiceMock(listenerService)
-            .check(arrowListener::onPlayerPickupArrow, PlayerPickupArrowEvent.class);
-    }
-
-    @Test
-    void shouldCancelItemSwapOnlyForUnauthenticatedPlayer() {
-        withServiceMock(listenerService)
-            .check(swapListener::onPlayerSwapHandItems, PlayerSwapHandItemsEvent.class);
-    }
-
-    @Test
-    void shouldCancelItemPickupOnlyForUnauthenticatedPlayer() {
-        withServiceMock(listenerService)
+            .check(airChangeListener::onPlayerAirChange, EntityAirChangeEvent.class)
+            .check(arrowListener::onPlayerPickupArrow, PlayerPickupArrowEvent.class)
+            .check(swapListener::onPlayerSwapHandItems, PlayerSwapHandItemsEvent.class)
             .check(pickupListener::onLegacyPlayerPickupItem, PlayerPickupItemEvent.class);
     }
 }

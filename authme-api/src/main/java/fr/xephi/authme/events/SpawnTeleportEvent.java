@@ -13,10 +13,8 @@ public class SpawnTeleportEvent extends AbstractTeleportEvent {
     private final boolean isAuthenticated;
 
     /**
-     * Constructor.
-     *
-     * @param player The player
-     * @param to The teleport destination
+     * @param player the player, never {@code null}
+     * @param to the teleport destination, or {@code null} to abort the teleport
      * @param isAuthenticated Whether or not the player is logged in
      */
     public SpawnTeleportEvent(Player player, Location to, boolean isAuthenticated) {
@@ -42,5 +40,4 @@ public class SpawnTeleportEvent extends AbstractTeleportEvent {
     public HandlerList getHandlers() {
         return handlers;
     }
-
 }

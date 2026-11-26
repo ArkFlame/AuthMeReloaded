@@ -46,7 +46,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
@@ -400,14 +399,10 @@ class OnJoinVerifierTest {
         given(permissionsManager.hasPermissionOffline(name, PlayerStatePermission.BYPASS_ANTIBOT)).willReturn(false);
         given(antiBotService.shouldKick()).willReturn(true);
 
-        try {
-            onJoinVerifier.checkAntibot(name, isAuthAvailable);
-            fail("Expected exception to be thrown");
-        } catch (FailedVerificationException e) {
-            verify(permissionsManager).hasPermissionOffline(name, PlayerStatePermission.BYPASS_ANTIBOT);
-            verify(antiBotService).shouldKick();
-        }
-
+        assertThrows(FailedVerificationException.class,
+            () -> onJoinVerifier.checkAntibot(name, isAuthAvailable));
+        verify(permissionsManager).hasPermissionOffline(name, PlayerStatePermission.BYPASS_ANTIBOT);
+        verify(antiBotService).shouldKick();
     }
 
     /**
@@ -489,13 +484,9 @@ class OnJoinVerifierTest {
         given(validationService.fulfillsNameRestrictions(name, address)).willReturn(false);
         given(settings.getProperty(RestrictionSettings.BAN_UNKNOWN_IP)).willReturn(true);
 
-        try {
-            onJoinVerifier.checkNameRestrictions(name, address);
-            fail("Expected FailedVerificationException to be thrown");
-        } catch (FailedVerificationException e) {
-            assertThat(e.getReason(), equalTo(MessageKey.NOT_OWNER_ERROR));
-        }
-
+        FailedVerificationException exception = assertThrows(FailedVerificationException.class,
+            () -> onJoinVerifier.checkNameRestrictions(name, address));
+        assertThat(exception.getReason(), equalTo(MessageKey.NOT_OWNER_ERROR));
         verify(bukkitService).runOnGlobalRegion(any(Runnable.class));
     }
 

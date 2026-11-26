@@ -59,10 +59,8 @@ class EmailServiceTest {
 
     @Test
     void shouldHaveAllInformation() {
-        // given
         given(sendMailSsl.hasAllInformation()).willReturn(true);
 
-        // when / then
         assertThat(emailService.hasAllInformation(), equalTo(true));
     }
 
@@ -71,7 +69,6 @@ class EmailServiceTest {
     void shouldSendPasswordMail(String name, String newPass, String messageTemplate,
                                 boolean sendResult, boolean expectedResult, String expectedMessage)
         throws EmailException {
-        // given
         given(settings.getPasswordEmailMessage()).willReturn(messageTemplate);
         given(settings.getProperty(EmailSettings.PASSWORD_AS_IMAGE)).willReturn(false);
         given(settings.getProperty(PluginSettings.SERVER_NAME)).willReturn("serverName");
@@ -80,10 +77,8 @@ class EmailServiceTest {
         given(sendMailSsl.initializeMail(anyString())).willReturn(email);
         given(sendMailSsl.sendEmail(anyString(), eq(email))).willReturn(sendResult);
 
-        // when
         boolean result = emailService.sendPasswordMail(name, "user@example.com", newPass);
 
-        // then
         assertThat(result, equalTo(expectedResult));
         verify(sendMailSsl).initializeMail("user@example.com");
         ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
@@ -105,18 +100,15 @@ class EmailServiceTest {
     @ParameterizedTest
     @MethodSource("creationErrorCases")
     void shouldHandleMailCreationError(boolean passwordMail, String address) throws EmailException {
-        // given
         given(sendMailSsl.initializeMail(anyString())).willThrow(EmailException.class);
         if (passwordMail) {
             given(sendMailSsl.hasAllInformation()).willReturn(true);
         }
 
-        // when
         boolean result = passwordMail
             ? emailService.sendPasswordMail("Player", address, "new_password")
             : emailService.sendRecoveryCode("Player", address, "ABC1234");
 
-        // then
         assertThat(result, equalTo(false));
         verify(sendMailSsl).initializeMail(address);
         verify(sendMailSsl, never()).sendEmail(anyString(), any(HtmlEmail.class));
@@ -134,7 +126,6 @@ class EmailServiceTest {
     void shouldSendRecoveryCode(String name, String address, String code, String serverName,
                                 String messageTemplate, boolean sendResult, boolean expectedResult,
                                 String expectedMessage) throws EmailException {
-        // given
         given(settings.getProperty(SecuritySettings.RECOVERY_CODE_HOURS_VALID)).willReturn(7);
         given(settings.getProperty(PluginSettings.SERVER_NAME)).willReturn(serverName);
         given(settings.getRecoveryCodeEmailMessage()).willReturn(messageTemplate);
@@ -142,10 +133,8 @@ class EmailServiceTest {
         given(sendMailSsl.initializeMail(anyString())).willReturn(email);
         given(sendMailSsl.sendEmail(anyString(), any(HtmlEmail.class))).willReturn(sendResult);
 
-        // when
         boolean result = emailService.sendRecoveryCode(name, address, code);
 
-        // then
         assertThat(result, equalTo(expectedResult));
         verify(sendMailSsl).initializeMail(address);
         ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);

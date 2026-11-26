@@ -16,11 +16,9 @@ public abstract class AbstractTeleportEvent extends AbstractCancellableEvent {
     private Location to;
 
     /**
-     * Constructor.
-     *
-     * @param isAsync Whether to fire the event asynchronously or not
-     * @param player The player
-     * @param to The teleport destination
+     * @param isAsync whether to fire the event asynchronously
+     * @param player the player, never {@code null}
+     * @param to the teleport destination, or {@code null} to abort the teleport
      */
     public AbstractTeleportEvent(boolean isAsync, Player player, Location to) {
         super(isAsync);

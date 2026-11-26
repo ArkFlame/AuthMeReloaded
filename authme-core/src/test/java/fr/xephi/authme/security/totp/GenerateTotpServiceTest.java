@@ -35,7 +35,7 @@ class GenerateTotpServiceTest {
     }
 
     @Test
-    void shouldGenerateTotpKey() {
+    void shouldGenerateAndRemoveTotpKey() {
         TotpGenerationResult givenGenerationResult = generationResult();
         Player player = mockPlayerWithName("Spencer");
         given(totpAuthenticator.generateTotpKey(player)).willReturn(givenGenerationResult);
@@ -44,14 +44,6 @@ class GenerateTotpServiceTest {
 
         assertThat(result, equalTo(givenGenerationResult));
         assertThat(generateTotpService.getGeneratedTotpKey(player), equalTo(givenGenerationResult));
-    }
-
-    @Test
-    void shouldRemoveGeneratedTotpKey() {
-        TotpGenerationResult givenGenerationResult = generationResult();
-        Player player = mockPlayerWithName("Hanna");
-        given(totpAuthenticator.generateTotpKey(player)).willReturn(givenGenerationResult);
-        generateTotpService.generateTotpKey(player);
 
         generateTotpService.removeGenerateTotpKey(player);
 

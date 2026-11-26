@@ -15,9 +15,7 @@ public class AuthMeAsyncPreLoginEvent extends CustomEvent {
     private boolean canLogin = true;
 
     /**
-     * Constructor.
-     *
-     * @param player The player
+     * @param player the player, never {@code null}
      * @param isAsync True if the event is async, false otherwise
      */
     public AuthMeAsyncPreLoginEvent(Player player, boolean isAsync) {
@@ -26,9 +24,9 @@ public class AuthMeAsyncPreLoginEvent extends CustomEvent {
     }
 
     /**
-     * Return the player concerned by this event.
+     * Return the player who issued the login request.
      *
-     * @return The player who executed a valid {@code /login} command, never {@code null}
+     * @return the player who executed the {@code /login} command, never {@code null}
      */
     public Player getPlayer() {
         return player;
@@ -61,5 +59,4 @@ public class AuthMeAsyncPreLoginEvent extends CustomEvent {
     public HandlerList getHandlers() {
         return handlers;
     }
-
 }

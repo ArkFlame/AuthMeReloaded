@@ -12,9 +12,7 @@ public class LoginEvent extends CustomEvent {
     private final Player player;
 
     /**
-     * Constructor.
-     *
-     * @param player The player
+     * @param player the player, never {@code null}
      */
     public LoginEvent(Player player) {
         this.player = player;
@@ -49,5 +47,4 @@ public class LoginEvent extends CustomEvent {
     public HandlerList getHandlers() {
         return handlers;
     }
-
 }

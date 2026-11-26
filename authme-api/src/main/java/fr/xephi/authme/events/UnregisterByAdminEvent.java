@@ -24,8 +24,6 @@ public class UnregisterByAdminEvent extends AbstractUnregisterEvent {
     private final CommandSender initiator;
 
     /**
-     * Constructor.
-     *
      * @param player the player (may be null - see class JavaDoc)
      * @param playerName the name of the player that was unregistered
      * @param isAsync whether or not the event is async

@@ -9,7 +9,6 @@ import fr.xephi.authme.mail.EmailService;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.service.CommonService;
-import fr.xephi.authme.service.PendingEmailVerificationCache;
 import fr.xephi.authme.service.ValidationService;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeAll;
@@ -61,9 +60,6 @@ class AsyncChangeEmailTest {
 
     @Mock
     private EmailService emailService;
-
-    @Mock
-    private PendingEmailVerificationCache pendingEmailVerificationCache;
 
     @BeforeAll
     static void setUp() {

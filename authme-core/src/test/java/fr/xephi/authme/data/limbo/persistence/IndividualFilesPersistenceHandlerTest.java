@@ -108,7 +108,6 @@ class IndividualFilesPersistenceHandlerTest {
         UUID uuid = UUID.nameUUIDFromBytes("New player".getBytes());
         given(player.getUniqueId()).willReturn(uuid);
 
-
         World world = mock(World.class);
         given(world.getName()).willReturn("player-world");
         Location location = new Location(world, 0.2, 102.25, -89.28, 3.02f, 90.13f);

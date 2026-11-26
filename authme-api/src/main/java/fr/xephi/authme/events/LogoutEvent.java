@@ -14,9 +14,7 @@ public class LogoutEvent extends CustomEvent {
     private final Player player;
 
     /**
-     * Constructor.
-     *
-     * @param player The player
+     * @param player the player, never {@code null}
      */
     public LogoutEvent(Player player) {
         this.player = player;
@@ -40,5 +38,4 @@ public class LogoutEvent extends CustomEvent {
     public HandlerList getHandlers() {
         return handlers;
     }
-
 }

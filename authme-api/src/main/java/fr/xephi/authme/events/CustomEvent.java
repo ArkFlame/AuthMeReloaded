@@ -12,21 +12,16 @@ import org.bukkit.event.Event;
  */
 public abstract class CustomEvent extends Event {
 
-    /**
-     * Constructor.
-     */
+    /** Creates a synchronous event. */
     public CustomEvent() {
         this(false);
     }
 
     /**
-     * Constructor, specifying whether the event is asynchronous or not.
-     *
      * @param isAsync {@code true} to fire the event asynchronously, false otherwise
      * @see Event#Event(boolean)
      */
     public CustomEvent(boolean isAsync) {
         super(isAsync);
     }
-
 }

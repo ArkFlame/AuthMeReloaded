@@ -40,8 +40,6 @@ public class PreJoinDialogEvent extends AbstractCancellableEvent {
     private final boolean registered;
 
     /**
-     * Constructor.
-     *
      * @param playerName the player name as supplied by the configuration-phase profile
      * @param playerId the player's unique id, may be {@code null} if the profile has none
      * @param address the client address, may be {@code null} if it is not available yet
@@ -60,8 +58,6 @@ public class PreJoinDialogEvent extends AbstractCancellableEvent {
     }
 
     /**
-     * Constructor for cases where the client address is not available.
-     *
      * @param playerName the player name as supplied by the configuration-phase profile
      * @param playerId the player's unique id, may be {@code null} if the profile has none
      * @param dialogType the dialog AuthMe is about to show

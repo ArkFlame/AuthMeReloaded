@@ -35,6 +35,9 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 @ExtendWith(MockitoExtension.class)
 class SessionServiceTest {
 
+    private static final String NAME = "Bobby";
+    private static final String IP = "127.3.12.15";
+
     private SessionService sessionService;
 
     @Mock
@@ -75,10 +78,9 @@ class SessionServiceTest {
     @Test
     void shouldCheckIfUserHasSession() {
         // given
-        String name = "Bobby";
         Player player = mock(Player.class);
-        given(player.getName()).willReturn(name);
-        given(dataSource.hasSession(name)).willReturn(false);
+        given(player.getName()).willReturn(NAME);
+        given(dataSource.hasSession(NAME)).willReturn(false);
 
         // when
         boolean result = sessionService.canResumeSession(player);
@@ -87,67 +89,43 @@ class SessionServiceTest {
         assertThat(result, equalTo(false));
         verify(commonService).getProperty(PluginSettings.SESSIONS_ENABLED);
         verifyNoMoreInteractions(commonService);
-        verify(dataSource, only()).hasSession(name);
+        verify(dataSource, only()).hasSession(NAME);
     }
 
     @Test
     void shouldCheckLastLoginDate() {
         // given
-        String name = "Bobby";
-        String ip = "127.3.12.15";
-        Player player = TestPlayerFactory.mockPlayerWithNameAndIp(name, ip);
+        Player player = givenSession(NAME, IP, playerAuth(NAME, System.currentTimeMillis() - 10 * 60 * 1000, IP));
         given(commonService.getProperty(PluginSettings.SESSIONS_TIMEOUT)).willReturn(8);
-        given(dataSource.hasSession(name)).willReturn(true);
-        PlayerAuth auth = PlayerAuth.builder()
-            .name(name)
-            .lastLogin(System.currentTimeMillis() - 10 * 60 * 1000)
-            .lastIp(ip).build();
-        given(dataSource.getAuth(name)).willReturn(auth);
 
         // when
         boolean result = sessionService.canResumeSession(player);
 
         // then
         assertThat(result, equalTo(false));
-        verify(dataSource).setUnlogged(name);
-        verify(dataSource).revokeSession(name);
+        verify(dataSource).setUnlogged(NAME);
+        verify(dataSource).revokeSession(NAME);
     }
 
     @Test
     void shouldRefuseSessionForAuthWithNullLastLoginTimestamp() {
         // given
-        String name = "Bobby";
-        String ip = "127.3.12.15";
-        Player player = TestPlayerFactory.mockPlayerWithNameAndIp(name, ip);
-        given(dataSource.hasSession(name)).willReturn(true);
-        PlayerAuth auth = PlayerAuth.builder()
-            .name(name)
-            .lastLogin(null)
-            .lastIp(ip).build();
-        given(dataSource.getAuth(name)).willReturn(auth);
+        Player player = givenSession(NAME, IP, playerAuth(NAME, null, IP));
 
         // when
         boolean result = sessionService.canResumeSession(player);
 
         // then
         assertThat(result, equalTo(false));
-        verify(dataSource).setUnlogged(name);
-        verify(dataSource).revokeSession(name);
+        verify(dataSource).setUnlogged(NAME);
+        verify(dataSource).revokeSession(NAME);
     }
 
     @Test
     void shouldCheckLastLoginIp() {
         // given
-        String name = "Bobby";
-        String ip = "127.3.12.15";
-        Player player = TestPlayerFactory.mockPlayerWithNameAndIp(name, ip);
-        given(dataSource.hasSession(name)).willReturn(true);
+        Player player = givenSession(NAME, IP, playerAuth(NAME, System.currentTimeMillis() - 7 * 60 * 1000, "8.8.8.8"));
         given(commonService.getProperty(PluginSettings.SESSIONS_TIMEOUT)).willReturn(8);
-        PlayerAuth auth = PlayerAuth.builder()
-            .name(name)
-            .lastLogin(System.currentTimeMillis() - 7 * 60 * 1000)
-            .lastIp("8.8.8.8").build();
-        given(dataSource.getAuth(name)).willReturn(auth);
 
         // when
         boolean result = sessionService.canResumeSession(player);
@@ -155,23 +133,15 @@ class SessionServiceTest {
         // then
         assertThat(result, equalTo(false));
         verify(commonService).send(player, MessageKey.SESSION_EXPIRED);
-        verify(dataSource).setUnlogged(name);
-        verify(dataSource).revokeSession(name);
+        verify(dataSource).setUnlogged(NAME);
+        verify(dataSource).revokeSession(NAME);
     }
 
     @Test
     void shouldEmitEventForValidSession() {
         // given
-        String name = "Bobby";
-        String ip = "127.3.12.15";
-        Player player = TestPlayerFactory.mockPlayerWithNameAndIp(name, ip);
+        Player player = givenSession(NAME, IP, playerAuth(NAME, System.currentTimeMillis() - 7 * 60 * 1000, IP));
         given(commonService.getProperty(PluginSettings.SESSIONS_TIMEOUT)).willReturn(8);
-        given(dataSource.hasSession(name)).willReturn(true);
-        PlayerAuth auth = PlayerAuth.builder()
-            .name(name)
-            .lastLogin(System.currentTimeMillis() - 7 * 60 * 1000)
-            .lastIp(ip).build();
-        given(dataSource.getAuth(name)).willReturn(auth);
         RestoreSessionEvent event = spy(new RestoreSessionEvent(player, false));
         given(bukkitService.createAndCallEvent(any(Function.class))).willReturn(event);
 
@@ -183,57 +153,47 @@ class SessionServiceTest {
         verify(commonService).getProperty(PluginSettings.SESSIONS_ENABLED);
         verify(commonService).getProperty(PluginSettings.SESSIONS_TIMEOUT);
         verifyNoMoreInteractions(commonService);
-        verify(dataSource).setUnlogged(name);
-        verify(dataSource).revokeSession(name);
+        verify(dataSource).setUnlogged(NAME);
+        verify(dataSource).revokeSession(NAME);
         verify(event).isCancelled();
     }
 
     @Test
     void shouldHandleNullPlayerAuth() {
         // given
-        String name = "Bobby";
-        Player player = TestPlayerFactory.mockPlayerWithNameAndIp(name, "127.3.12.15");
-        given(dataSource.hasSession(name)).willReturn(true);
-        given(dataSource.getAuth(name)).willReturn(null);
+        Player player = givenSession(NAME, IP, null);
 
         // when
         boolean result = sessionService.canResumeSession(player);
 
         // then
         assertThat(result, equalTo(false));
-        verify(dataSource).setUnlogged(name);
-        verify(dataSource).revokeSession(name);
+        verify(dataSource).setUnlogged(NAME);
+        verify(dataSource).revokeSession(NAME);
     }
 
     @Test
     void shouldHandlePlayerAuthWithNullLastIp() {
         // given
-        String name = "Charles";
-        Player player = TestPlayerFactory.mockPlayerWithNameAndIp(name, "144.117.118.145");
-        given(dataSource.hasSession(name)).willReturn(true);
+        Player player = givenSession("Charles", "144.117.118.145",
+            playerAuth("Charles", System.currentTimeMillis() - 2, null));
         given(commonService.getProperty(PluginSettings.SESSIONS_TIMEOUT)).willReturn(8);
-        PlayerAuth auth = PlayerAuth.builder()
-            .name(name)
-            .lastIp(null)
-            .lastLogin(System.currentTimeMillis() - 2).build();
-        given(dataSource.getAuth(name)).willReturn(auth);
 
         // when
         boolean result = sessionService.canResumeSession(player);
 
         // then
         assertThat(result, equalTo(false));
-        verify(dataSource).setUnlogged(name);
-        verify(dataSource).revokeSession(name);
+        verify(dataSource).setUnlogged("Charles");
+        verify(dataSource).revokeSession("Charles");
     }
 
     @Test
     void shouldNotResumeSessionForPlayerWithDisabledSessionPermission() {
         // given
-        String name = "Bobby";
         Player player = mock(Player.class);
-        given(player.getName()).willReturn(name);
-        given(dataSource.hasSession(name)).willReturn(true);
+        given(player.getName()).willReturn(NAME);
+        given(dataSource.hasSession(NAME)).willReturn(true);
         given(permissionsManager.hasPermission(player, PlayerStatePermission.DISABLE_SESSION)).willReturn(true);
 
         // when
@@ -241,9 +201,9 @@ class SessionServiceTest {
 
         // then
         assertThat(result, equalTo(false));
-        verify(dataSource).hasSession(name);
-        verify(dataSource).setUnlogged(name);
-        verify(dataSource).revokeSession(name);
+        verify(dataSource).hasSession(NAME);
+        verify(dataSource).setUnlogged(NAME);
+        verify(dataSource).revokeSession(NAME);
         verifyNoMoreInteractions(dataSource);
         verifyNoInteractions(bukkitService);
     }
@@ -251,16 +211,8 @@ class SessionServiceTest {
     @Test
     void shouldResumeSessionForPlayerWithoutDisabledSessionPermission() {
         // given
-        String name = "Bobby";
-        String ip = "127.3.12.15";
-        Player player = TestPlayerFactory.mockPlayerWithNameAndIp(name, ip);
+        Player player = givenSession(NAME, IP, playerAuth(NAME, System.currentTimeMillis() - 60 * 1000, IP));
         given(commonService.getProperty(PluginSettings.SESSIONS_TIMEOUT)).willReturn(8);
-        given(dataSource.hasSession(name)).willReturn(true);
-        PlayerAuth auth = PlayerAuth.builder()
-            .name(name)
-            .lastLogin(System.currentTimeMillis() - 60 * 1000)
-            .lastIp(ip).build();
-        given(dataSource.getAuth(name)).willReturn(auth);
         given(bukkitService.createAndCallEvent(any(Function.class))).willReturn(new RestoreSessionEvent(player, false));
 
         // when
@@ -288,21 +240,16 @@ class SessionServiceTest {
     @Test
     void shouldReportValidSessionForPlayerWithoutDisabledSessionPermission() {
         // given
-        String name = "Bobby";
-        String ip = "127.3.12.15";
-        given(dataSource.hasSession(name)).willReturn(true);
+        given(dataSource.hasSession(NAME)).willReturn(true);
         given(commonService.getProperty(PluginSettings.SESSIONS_TIMEOUT)).willReturn(8);
-        given(dataSource.getAuth(name)).willReturn(PlayerAuth.builder()
-            .name(name)
-            .lastLogin(System.currentTimeMillis() - 60 * 1000)
-            .lastIp(ip).build());
+        given(dataSource.getAuth(NAME)).willReturn(playerAuth(NAME, System.currentTimeMillis() - 60 * 1000, IP));
 
         // when
-        boolean result = sessionService.hasValidSession(name, ip);
+        boolean result = sessionService.hasValidSession(NAME, IP);
 
         // then
         assertThat(result, equalTo(true));
-        verify(permissionsManager).hasPermissionOffline(name, PlayerStatePermission.DISABLE_SESSION);
+        verify(permissionsManager).hasPermissionOffline(NAME, PlayerStatePermission.DISABLE_SESSION);
     }
 
     @Test
@@ -331,4 +278,14 @@ class SessionServiceTest {
         verify(dataSource, only()).grantSession("bobby");
     }
 
+    private static PlayerAuth playerAuth(String name, Long lastLogin, String lastIp) {
+        return PlayerAuth.builder().name(name).lastLogin(lastLogin).lastIp(lastIp).build();
+    }
+
+    private Player givenSession(String name, String ip, PlayerAuth auth) {
+        Player player = TestPlayerFactory.mockPlayerWithNameAndIp(name, ip);
+        given(dataSource.hasSession(name)).willReturn(true);
+        given(dataSource.getAuth(name)).willReturn(auth);
+        return player;
+    }
 }

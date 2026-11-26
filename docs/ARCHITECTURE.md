@@ -35,18 +35,10 @@ Server jars differ mostly in packaging and in which platform adapter they bundle
 lives in core and the public surface in api. `authme-spigot-1.8` keeps the Java 8 floor with shaded
 libraries; the modern Spigot, Paper and proxy modules are built on newer JDKs.
 
-**Spigot merge.** `authme-spigot-legacy` and `authme-spigot-1.21` no longer exist: they were merged
-into the single `authme-spigot` module, which produces one `<name>-<version>-Spigot.jar` for Spigot
-1.16 through 1.21.x (needs Java 17+; a Java 21 server gets the dialog adapter). The module compiles in
-two passes into one jar: `default-compile` emits Java 17 bytecode for `SpigotLegacyPlatformAdapter`,
-and `compile-java21` emits Java 21 bytecode for `Spigot121PlatformAdapter`, `SpigotDialogHelper`,
-`DialogApiAvailability` and `PlayerSignOpenListener`. `META-INF/services` lists
-`Spigot121PlatformAdapter` first, then `SpigotLegacyPlatformAdapter`; `AuthMe.loadPlatformAdapter()`
-picks the first compatible adapter and skips ones that fail to load (`UnsupportedClassVersionError`
-on Java 17), so a Java 17 server silently falls back to the legacy adapter. `plugin.yml` declares
-`api-version: 1.16` — a plugin cannot declare a newer api-version than the server, so this keeps the
-jar loadable on the oldest supported Spigot. The former Java 17 vs Java 21 blocker is solved by this
-two-pass compile.
+**Spigot merge.** The former `authme-spigot-legacy` and `authme-spigot-1.21` modules are now one
+`authme-spigot` jar for 1.16–1.21.x (Java 17+; Java 21 adds dialogs). Its Java 17/Java 21 two-pass
+compile and runtime adapter selection are detailed in [MODULES.md](MODULES.md) and [build.md](build.md);
+`plugin.yml` declares `api-version: 1.16` to stay loadable on the oldest supported Spigot.
 
 ## Platform abstraction today
 
@@ -74,9 +66,6 @@ stays Java 8 and Spigot 1.8 safe), every other server gets `BukkitSchedulerProvi
 `AbstractSpigotPlatformAdapter` delegates global/async work to that provider and maps entity work onto
 the global thread; `FoliaPlatformAdapter` uses it for global/async work and `FoliaTaskScheduler` for
 entity-owned tasks. The 1.8 jar reaches the same core provider through its Spigot adapter.
-
-The 1.8 jar keeps the Java 8 floor, and the merged Spigot jar selects its compatible adapter at
-startup; no config keys, messages, permissions or the plugin id changed in the merge.
 
 ## Folia safety rules
 

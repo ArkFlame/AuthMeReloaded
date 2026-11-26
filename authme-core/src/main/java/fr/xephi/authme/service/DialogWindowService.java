@@ -37,7 +37,34 @@ public class DialogWindowService {
     }
 
     public DialogWindowSpec createLoginDialog(Player player) {
-        return createLoginDialogSpec(textResolver(player), showRecovery(), showBody());
+        Function<MessageKey, String> text = textResolver(player);
+        boolean recovery = showRecovery();
+        boolean body = showBody();
+
+        List<DialogInputSpec> inputs = new ArrayList<>();
+        inputs.add(new DialogInputSpec("password",
+            text.apply(MessageKey.DIALOG_LOGIN_PASSWORD),
+            DEFAULT_MAX_INPUT_LENGTH));
+        if (recovery) {
+            inputs.add(new DialogInputSpec("email",
+                text.apply(MessageKey.DIALOG_LOGIN_RECOVERY_EMAIL),
+                DEFAULT_MAX_INPUT_LENGTH));
+        }
+
+        String secondaryLabel = recovery
+            ? text.apply(MessageKey.DIALOG_LOGIN_RECOVERY_BUTTON)
+            : text.apply(MessageKey.DIALOG_CANCEL_BUTTON);
+
+        return new DialogWindowSpec(
+            text.apply(MessageKey.DIALOG_LOGIN_TITLE),
+            inputs,
+            text.apply(MessageKey.DIALOG_LOGIN_BUTTON),
+            secondaryLabel,
+            recovery,
+            false,
+            recovery ? "email recover $(email)" : null,
+            body ? text.apply(MessageKey.DIALOG_LOGIN_BODY) : null,
+            stackButtonsVertically());
     }
 
     public DialogWindowSpec createPreJoinLoginDialog(String playerName) {
@@ -109,35 +136,6 @@ public class DialogWindowService {
         return createRegisterDialogSpec(type, secondArg, preJoinTextResolver(playerName),
             commonService.getProperty(RegistrationSettings.PRE_JOIN_DIALOG_SHOW_CANCEL_BUTTON),
             commonService.getProperty(RegistrationSettings.PRE_JOIN_DIALOG_ALLOW_CLOSE_WITH_ESCAPE));
-    }
-
-    private DialogWindowSpec createLoginDialogSpec(Function<MessageKey, String> textResolver,
-                                                   boolean showRecovery,
-                                                   boolean showBody) {
-        List<DialogInputSpec> inputs = new ArrayList<>();
-        inputs.add(new DialogInputSpec("password",
-            textResolver.apply(MessageKey.DIALOG_LOGIN_PASSWORD),
-            DEFAULT_MAX_INPUT_LENGTH));
-        if (showRecovery) {
-            inputs.add(new DialogInputSpec("email",
-                textResolver.apply(MessageKey.DIALOG_LOGIN_RECOVERY_EMAIL),
-                DEFAULT_MAX_INPUT_LENGTH));
-        }
-
-        String secondaryLabel = showRecovery
-            ? textResolver.apply(MessageKey.DIALOG_LOGIN_RECOVERY_BUTTON)
-            : textResolver.apply(MessageKey.DIALOG_CANCEL_BUTTON);
-
-        return new DialogWindowSpec(
-            textResolver.apply(MessageKey.DIALOG_LOGIN_TITLE),
-            inputs,
-            textResolver.apply(MessageKey.DIALOG_LOGIN_BUTTON),
-            secondaryLabel,
-            showRecovery,
-            false,
-            showRecovery ? "email recover $(email)" : null,
-            showBody ? textResolver.apply(MessageKey.DIALOG_LOGIN_BODY) : null,
-            stackButtonsVertically());
     }
 
     private DialogWindowSpec createRegisterDialogSpec(RegistrationType type,

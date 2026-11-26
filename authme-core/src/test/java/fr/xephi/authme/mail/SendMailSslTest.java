@@ -46,18 +46,15 @@ class SendMailSslTest {
 
     @Test
     void shouldHaveAllInformation() {
-        // given
         given(settings.getProperty(EmailSettings.MAIL_ACCOUNT)).willReturn("mail@example.org");
         given(settings.getProperty(EmailSettings.MAIL_PASSWORD)).willReturn("pass1234");
 
-        // when / then
         assertThat(sendMailSsl.hasAllInformation(), equalTo(true));
     }
 
     @ParameterizedTest
     @MethodSource("emailObjectCases")
     void shouldCreateEmailObject(String mailAddress, String expectedFrom, LogLevel logLevel) throws EmailException {
-        // given
         given(settings.getProperty(EmailSettings.SMTP_PORT)).willReturn(465);
         String smtpHost = "mail.example.com";
         given(settings.getProperty(EmailSettings.SMTP_HOST)).willReturn(smtpHost);
@@ -71,10 +68,8 @@ class SendMailSslTest {
         given(settings.getProperty(EmailSettings.SSL_CHECK_SERVER_IDENTITY)).willReturn(true);
         given(settings.getProperty(PluginSettings.LOG_LEVEL)).willReturn(logLevel);
 
-        // when
         HtmlEmail email = sendMailSsl.initializeMail("recipient@example.com");
 
-        // then
         assertThat(email, not(nullValue()));
         assertThat(email.getToAddresses(), hasSize(1));
         assertThat(email.getToAddresses().get(0).getAddress(), equalTo("recipient@example.com"));
@@ -93,7 +88,6 @@ class SendMailSslTest {
 
     @Test
     void shouldCreateEmailObjectWithOAuth2() throws EmailException {
-        // given
         given(settings.getProperty(EmailSettings.SMTP_PORT)).willReturn(587);
         given(settings.getProperty(EmailSettings.OAUTH2_TOKEN)).willReturn("oAuth2 token");
         String smtpHost = "mail.example.com";
@@ -107,10 +101,8 @@ class SendMailSslTest {
         given(settings.getProperty(EmailSettings.SSL_CHECK_SERVER_IDENTITY)).willReturn(true);
         given(settings.getProperty(PluginSettings.LOG_LEVEL)).willReturn(LogLevel.INFO);
 
-        // when
         HtmlEmail email = sendMailSsl.initializeMail("recipient@example.com");
 
-        // then
         assertThat(email, not(nullValue()));
         assertThat(email.getToAddresses(), hasSize(1));
         assertThat(email.getToAddresses().get(0).getAddress(), equalTo("recipient@example.com"));

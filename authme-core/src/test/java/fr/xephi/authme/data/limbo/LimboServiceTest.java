@@ -32,7 +32,6 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -110,8 +109,7 @@ class LimboServiceTest {
         given(spawnLoader.getPlayerLocationOrSpawn(player)).willReturn(playerLoc);
         given(permissionsManager.hasGroupSupport()).willReturn(true);
         given(permissionsManager.getGroups(player)).willReturn(Collections.singletonList(new UserGroup("permgrwp")));
-        given(settings.getProperty(LimboSettings.RESTORE_ALLOW_FLIGHT)).willReturn(AllowFlightRestoreType.ENABLE);
-        given(settings.getProperty(RestrictionSettings.ALLOW_UNAUTHED_MOVEMENT)).willReturn(false);
+        stubDefaultSettings(AllowFlightRestoreType.ENABLE);
         given(teleportationService.consumeOriginalJoinLocation(anyString(), any(Location.class)))
             .willAnswer(invocation -> invocation.getArgument(1));
 
@@ -144,8 +142,7 @@ class LimboServiceTest {
         Location playerLoc = mock(Location.class);
         given(spawnLoader.getPlayerLocationOrSpawn(player)).willReturn(playerLoc);
         given(permissionsManager.hasGroupSupport()).willReturn(false);
-        given(settings.getProperty(LimboSettings.RESTORE_ALLOW_FLIGHT)).willReturn(AllowFlightRestoreType.RESTORE);
-        given(settings.getProperty(RestrictionSettings.ALLOW_UNAUTHED_MOVEMENT)).willReturn(false);
+        stubDefaultSettings(AllowFlightRestoreType.RESTORE);
         given(teleportationService.consumeOriginalJoinLocation(anyString(), any(Location.class)))
             .willAnswer(invocation -> invocation.getArgument(1));
 
@@ -179,8 +176,7 @@ class LimboServiceTest {
         given(limboPersistence.getLimboPlayer(player)).willReturn(diskLimbo);
         given(spawnLoader.getPlayerLocationOrSpawn(player)).willReturn(mock(Location.class));
         given(permissionsManager.hasGroupSupport()).willReturn(false);
-        given(settings.getProperty(LimboSettings.RESTORE_ALLOW_FLIGHT)).willReturn(AllowFlightRestoreType.RESTORE);
-        given(settings.getProperty(RestrictionSettings.ALLOW_UNAUTHED_MOVEMENT)).willReturn(false);
+        stubDefaultSettings(AllowFlightRestoreType.RESTORE);
         given(teleportationService.consumeOriginalJoinLocation(anyString(), any(Location.class)))
             .willAnswer(invocation -> invocation.getArgument(1));
 
@@ -212,8 +208,7 @@ class LimboServiceTest {
         LimboPlayer existingLimbo = mock(LimboPlayer.class);
         Player player = newPlayer("Carlos");
         getLimboMap().put(player.getUniqueId(), existingLimbo);
-        given(settings.getProperty(LimboSettings.RESTORE_ALLOW_FLIGHT)).willReturn(AllowFlightRestoreType.ENABLE);
-        given(settings.getProperty(RestrictionSettings.ALLOW_UNAUTHED_MOVEMENT)).willReturn(false);
+        stubDefaultSettings(AllowFlightRestoreType.ENABLE);
 
         // when
         limboService.createLimboPlayer(player, false);
@@ -234,8 +229,7 @@ class LimboServiceTest {
             Collections.singletonList(new UserGroup("admins")), false, 0.2f, 0.1f));
         getLimboMap().put(admin.getUniqueId(), adminLimbo);
         Player impostor = newPlayer("admin", false, 0.2f, false, 0.1f);
-        given(settings.getProperty(LimboSettings.RESTORE_ALLOW_FLIGHT)).willReturn(AllowFlightRestoreType.ENABLE);
-        given(settings.getProperty(RestrictionSettings.ALLOW_UNAUTHED_MOVEMENT)).willReturn(false);
+        stubDefaultSettings(AllowFlightRestoreType.ENABLE);
         given(settings.getProperty(LimboSettings.RESTORE_WALK_SPEED)).willReturn(WalkFlySpeedRestoreType.RESTORE);
         given(settings.getProperty(LimboSettings.RESTORE_FLY_SPEED)).willReturn(WalkFlySpeedRestoreType.RESTORE);
 
@@ -262,8 +256,7 @@ class LimboServiceTest {
         given(teleportationService.consumeOriginalJoinLocation("bobby", fallbackLocation))
             .willReturn(rememberedJoinLocation);
         given(permissionsManager.hasGroupSupport()).willReturn(false);
-        given(settings.getProperty(LimboSettings.RESTORE_ALLOW_FLIGHT)).willReturn(AllowFlightRestoreType.ENABLE);
-        given(settings.getProperty(RestrictionSettings.ALLOW_UNAUTHED_MOVEMENT)).willReturn(false);
+        stubDefaultSettings(AllowFlightRestoreType.ENABLE);
 
         // when
         limboService.createLimboPlayer(player, true);
@@ -279,8 +272,7 @@ class LimboServiceTest {
         Player player = newPlayer("Bobby", true, 0.2f, false, 0.1f);
         given(player.isOp()).willReturn(true, false);
         given(spawnLoader.getPlayerLocationOrSpawn(player)).willReturn(mock(Location.class));
-        given(settings.getProperty(LimboSettings.RESTORE_ALLOW_FLIGHT)).willReturn(AllowFlightRestoreType.ENABLE);
-        given(settings.getProperty(RestrictionSettings.ALLOW_UNAUTHED_MOVEMENT)).willReturn(false);
+        stubDefaultSettings(AllowFlightRestoreType.ENABLE);
         given(teleportationService.consumeOriginalJoinLocation(anyString(), any(Location.class)))
             .willAnswer(invocation -> invocation.getArgument(1));
 
@@ -341,8 +333,8 @@ class LimboServiceTest {
     @Test
     void shouldRestoreData() {
         // given
-        LimboPlayer limbo = Mockito.spy(convertToLimboPlayer(
-            newPlayer("John", true, 0.4f, false, 0.0f), null, Collections.emptyList()));
+        LimboPlayer limbo = Mockito.spy(new LimboPlayer(null, true,
+            Collections.emptyList(), false, 0.4f, 0.0f));
         Player player = newPlayer("John", false, 0.2f, false, 0.7f);
         getLimboMap().put(player.getUniqueId(), limbo);
 
@@ -391,7 +383,6 @@ class LimboServiceTest {
         LimboPlayer limbo = mock(LimboPlayer.class);
         Player player = newPlayer("JEFF");
         getLimboMap().put(player.getUniqueId(), limbo);
-
 
         // when
         limboService.replaceTasksAfterRegistration(player);
@@ -599,9 +590,9 @@ class LimboServiceTest {
         return player;
     }
 
-    private static LimboPlayer convertToLimboPlayer(Player player, Location location, Collection<UserGroup> groups) {
-        return new LimboPlayer(location, player.isOp(), groups, player.getAllowFlight(),
-            player.getWalkSpeed(), player.getFlySpeed());
+    private void stubDefaultSettings(AllowFlightRestoreType allowFlightType) {
+        given(settings.getProperty(LimboSettings.RESTORE_ALLOW_FLIGHT)).willReturn(allowFlightType);
+        given(settings.getProperty(RestrictionSettings.ALLOW_UNAUTHED_MOVEMENT)).willReturn(false);
     }
 
     private Map<UUID, LimboPlayer> getLimboMap() {
