@@ -83,10 +83,8 @@ public class SQLite extends AbstractSqlDataSource {
     protected void initSqlStrings() {
         super.initSqlStrings();
         findAuthSql = "SELECT * FROM " + tableName + " WHERE LOWER(" + col.NAME + ")=LOWER(?);";
-        findRecordsToPurgeSql = "SELECT " + col.NAME + " FROM " + tableName + " WHERE MAX("
-            + " COALESCE(" + col.LAST_LOGIN + ", 0),"
-            + " COALESCE(" + col.REGISTRATION_DATE + ", 0)"
-            + ") < ?;";
+        findRecordsToPurgeSql = "SELECT " + col.NAME + " FROM " + tableName
+            + " WHERE MAX( COALESCE(" + col.LAST_LOGIN + ", 0), COALESCE(" + col.REGISTRATION_DATE + ", 0)) < ?;";
     }
 
     /**
@@ -134,8 +132,16 @@ public class SQLite extends AbstractSqlDataSource {
             addColumnIfAbsent(md, st, col.LAST_LOGIN, "TIMESTAMP;");
             addColumnIfAbsent(md, st, col.REGISTRATION_IP, "VARCHAR(40);");
 
+            // Create the registration date column and set existing entries to the current timestamp
+            // to avoid issues with purging, where entries with 0 / NULL might get purged on startup
             if (isColumnMissing(md, col.REGISTRATION_DATE)) {
-                addRegistrationDateColumn(st);
+                addColumn(st, col.REGISTRATION_DATE, "TIMESTAMP NOT NULL DEFAULT '0';");
+                // Use the timestamp from Java to avoid timezone issues in case JVM and database are out of sync
+                long currentTimestamp = System.currentTimeMillis();
+                int updatedRows = st.executeUpdate(String.format("UPDATE %s SET %s = %d;",
+                    tableName, col.REGISTRATION_DATE, currentTimestamp));
+                logger.info("Created column '" + col.REGISTRATION_DATE + "' and set the current timestamp, "
+                    + currentTimestamp + ", to all " + updatedRows + " rows");
             }
 
             if (isColumnMissing(md, col.LASTLOC_X)) {
@@ -301,24 +307,6 @@ public class SQLite extends AbstractSqlDataSource {
             logSqlException(e);
         }
         return false;
-    }
-
-    /**
-     * Creates the column for registration date and sets all entries to the current timestamp.
-     * We do so in order to avoid issues with purging, where entries with 0 / NULL might get
-     * purged immediately on startup otherwise.
-     *
-     * @param st Statement object to the database
-     */
-    private void addRegistrationDateColumn(Statement st) throws SQLException {
-        addColumn(st, col.REGISTRATION_DATE, "TIMESTAMP NOT NULL DEFAULT '0';");
-
-        // Use the timestamp from Java to avoid timezone issues in case JVM and database are out of sync
-        long currentTimestamp = System.currentTimeMillis();
-        int updatedRows = st.executeUpdate(String.format("UPDATE %s SET %s = %d;",
-            tableName, col.REGISTRATION_DATE, currentTimestamp));
-        logger.info("Created column '" + col.REGISTRATION_DATE + "' and set the current timestamp, "
-            + currentTimestamp + ", to all " + updatedRows + " rows");
     }
 
     @Override

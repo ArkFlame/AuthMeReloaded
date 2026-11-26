@@ -88,13 +88,8 @@ public class GeoIpService {
      */
     private synchronized boolean isDataAvailable() {
 
-        // If this feature is disabled, just stop
-        if (!settings.getProperty(ProtectionSettings.ENABLE_GEOIP)) {
-            return false;
-        }
-
-        if (downloading) {
-            // we are currently downloading the database
+        // If this feature is disabled or an update download is in progress, stop
+        if (!settings.getProperty(ProtectionSettings.ENABLE_GEOIP) || downloading) {
             return false;
         }
 
@@ -153,7 +148,10 @@ public class GeoIpService {
             // download database to temporarily location
             downloadFile = Files.createTempFile(ARCHIVE_FILE, null);
             tempFile = Files.createTempFile(DATABASE_TMP_FILE, null);
-            String expectedChecksum = downloadDatabaseArchive(downloadFile);
+            Instant lastModified = Files.exists(dataFile)
+                ? Files.getLastModifiedTime(dataFile).toInstant()
+                : null;
+            String expectedChecksum = downloadDatabaseArchive(lastModified, downloadFile);
             if (expectedChecksum == null) {
                 logger.info("There is no newer GEO IP database uploaded to MaxMind. Using the old one for now.");
                 startReading();
@@ -253,22 +251,6 @@ public class GeoIpService {
             connection.addRequestProperty("If-Modified-Since", timeFormat);
         }
         return connection;
-    }
-
-    /**
-     * Downloads the archive to the destination file if it's newer than the local version.
-     *
-     * @param destination save file
-     * @return null if no updates were found, the MD5 hash of the downloaded archive if successful
-     * @throws IOException if failed during downloading and writing to destination file
-     */
-    private String downloadDatabaseArchive(Path destination) throws IOException {
-        Instant lastModified = null;
-        if (Files.exists(dataFile)) {
-            lastModified = Files.getLastModifiedTime(dataFile).toInstant();
-        }
-
-        return downloadDatabaseArchive(lastModified, destination);
     }
 
     /**

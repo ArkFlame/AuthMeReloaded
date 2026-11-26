@@ -69,7 +69,7 @@ public final class BungeeProxyBridge implements Listener {
         this.premiumOnlineModeHandler = new BungeePremiumOnlineModeHandler(this::requiresPremiumVerification);
         this.premiumVerificationManager =
             PremiumVerificationManagers.create(proxyServer, logger,
-                this::requiresPremiumVerification, this::isPendingPremiumVerification,
+                this::requiresPremiumVerification, name -> pendingPremiumUsernames.contains(name),
                 this::clearPendingPremiumVerification,
                 () -> this.configuration.keepOfflineUuidCompatibility());
     }
@@ -81,11 +81,6 @@ public final class BungeeProxyBridge implements Listener {
     }
 
     void logConfigurationDetails() {
-        logAuthServerConfiguration();
-        logBridgeFeatureConfiguration();
-    }
-
-    private void logAuthServerConfiguration() {
         if (configuration.allServersAreAuthServers()) {
             logger.info("All registered backend servers are treated as auth servers");
         } else if (configuration.authServers().isEmpty()) {
@@ -95,9 +90,7 @@ public final class BungeeProxyBridge implements Listener {
             logger.info("Current auth servers:");
             configuration.authServers().forEach(serverName -> logger.info("> " + serverName));
         }
-    }
 
-    private void logBridgeFeatureConfiguration() {
         if (!configuration.autoLoginEnabled()) {
             logger.info("autoLogin is disabled");
         }
@@ -128,10 +121,6 @@ public final class BungeeProxyBridge implements Listener {
 
     private boolean requiresPremiumVerification(String normalizedName) {
         return premiumNames.contains(normalizedName) || pendingPremiumUsernames.contains(normalizedName);
-    }
-
-    private boolean isPendingPremiumVerification(String normalizedName) {
-        return pendingPremiumUsernames.contains(normalizedName);
     }
 
     private void clearPendingPremiumVerification(String normalizedName) {
@@ -180,11 +169,11 @@ public final class BungeeProxyBridge implements Listener {
         if (event.isCancelled() || !AUTHME_CHANNEL.equals(event.getTag())) {
             return;
         }
-        if (!(event.getSender() instanceof Server server)) {
-            event.setCancelled(true);
+        Object sender = event.getSender();
+        event.setCancelled(true);
+        if (!(sender instanceof Server server)) {
             return;
         }
-        event.setCancelled(true);
 
         ParsedPluginMessage parsedMessage = parsePluginMessage(event.getData());
         if (parsedMessage.type() == null || parsedMessage.playerName() == null) {
@@ -204,7 +193,7 @@ public final class BungeeProxyBridge implements Listener {
             case PERFORM_LOGIN_ACK -> {
                 logger.info("Auto-login ACK received for " + playerName
                     + " from server '" + server.getInfo().getName() + "'");
-                cancelPendingLogin(playerName);
+                pendingAutoLogins.remove(playerName);
             }
             case PREMIUM_SET -> {
                 premiumNames.add(playerName);
@@ -249,7 +238,7 @@ public final class BungeeProxyBridge implements Listener {
             // Implicit ACK: login from non-auth server confirms perform.login was processed
             logger.info("Auto-login confirmed for " + playerName
                 + " via login from server '" + server.getInfo().getName() + "'");
-            cancelPendingLogin(playerName);
+            pendingAutoLogins.remove(playerName);
         }
     }
 
@@ -323,16 +312,12 @@ public final class BungeeProxyBridge implements Listener {
     }
 
     private boolean shouldBlockUnauthenticated(ChatEvent event, ProxiedPlayer player, boolean command) {
-        if (!isUnauthenticatedOnAuthServer(player)) {
+        if (authenticationStore.isAuthenticated(player)
+            || player.getServer() == null
+            || !configuration.isAuthServer(player.getServer().getInfo())) {
             return false;
         }
         return !command || !configuration.isWhitelistedCommand(event.getMessage());
-    }
-
-    private boolean isUnauthenticatedOnAuthServer(ProxiedPlayer player) {
-        return !authenticationStore.isAuthenticated(player)
-            && player.getServer() != null
-            && configuration.isAuthServer(player.getServer().getInfo());
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -362,7 +347,7 @@ public final class BungeeProxyBridge implements Listener {
         if (pendingAutoLogins.containsKey(normalizedName)) {
             logger.fine("Cancelling pending auto-login for " + normalizedName + " (player disconnected)");
         }
-        cancelPendingLogin(normalizedName);
+        pendingAutoLogins.remove(normalizedName);
         authenticationStore.clear(event.getPlayer());
         premiumVerificationManager.clearVerifiedPremium(normalizedName);
     }
@@ -421,10 +406,6 @@ public final class BungeeProxyBridge implements Listener {
         scheduleRetry(normalizedName);
     }
 
-    private void cancelPendingLogin(String normalizedName) {
-        pendingAutoLogins.remove(normalizedName);
-    }
-
     private void scheduleRetry(String normalizedName) {
         retryScheduler.schedule(() -> processAutoLoginRetry(normalizedName), 1, TimeUnit.SECONDS);
     }
@@ -472,14 +453,14 @@ public final class BungeeProxyBridge implements Listener {
         try {
             ProxyMessageType type = ProxyMessageType.fromId(input.readUTF());
             if (type == null || type == ProxyMessageType.PERFORM_LOGIN || type == ProxyMessageType.PROXY_STARTED) {
-                return ParsedPluginMessage.ignored();
+                return new ParsedPluginMessage(null, null);
             }
             String argument = input.readUTF();
             boolean rawArgument = type == ProxyMessageType.PREMIUM_LIST || type == ProxyMessageType.PREMIUM_LIST_CHUNK;
             return new ParsedPluginMessage(type, rawArgument ? argument : BungeeAuthenticationStore.normalizeName(argument));
         } catch (IllegalStateException e) {
             logger.warning("Received malformed AuthMe plugin message on the authme:main channel");
-            return ParsedPluginMessage.ignored();
+            return new ParsedPluginMessage(null, null);
         }
     }
 
@@ -542,9 +523,5 @@ public final class BungeeProxyBridge implements Listener {
     }
 
     private record ParsedPluginMessage(ProxyMessageType type, String playerName) {
-
-        private static ParsedPluginMessage ignored() {
-            return new ParsedPluginMessage(null, null);
-        }
     }
 }

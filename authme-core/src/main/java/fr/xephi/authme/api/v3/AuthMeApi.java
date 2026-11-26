@@ -24,7 +24,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -46,9 +45,6 @@ public class AuthMeApi {
     private final PlayerCache playerCache;
     private final GeoIpService geoIpService;
 
-    /*
-     * Constructor for AuthMeApi.
-     */
     @Inject
     AuthMeApi(AuthMe plugin, DataSource dataSource, PlayerCache playerCache, PasswordSecurity passwordSecurity,
               Management management, ValidationService validationService, GeoIpService geoIpService) {
@@ -177,8 +173,8 @@ public class AuthMeApi {
      */
     @Deprecated
     public Date getLastLogin(String playerName) {
-        Long lastLogin = getLastLoginMillis(playerName);
-        return lastLogin == null ? null : new Date(lastLogin);
+        Instant lastLogin = getLastLoginTime(playerName);
+        return lastLogin == null ? null : Date.from(lastLogin);
     }
 
     /**
@@ -189,13 +185,9 @@ public class AuthMeApi {
      * @return The timestamp of the last login, or null if the player doesn't exist or has never logged in
      */
     public Instant getLastLoginTime(String playerName) {
-        Long lastLogin = getLastLoginMillis(playerName);
-        return lastLogin == null ? null : Instant.ofEpochMilli(lastLogin);
-    }
-
-    private Long getLastLoginMillis(String playerName) {
         PlayerAuth auth = getAuth(playerName);
-        return auth == null ? null : auth.getLastLogin();
+        Long lastLogin = auth == null ? null : auth.getLastLogin();
+        return lastLogin == null ? null : Instant.ofEpochMilli(lastLogin);
     }
 
     /**
@@ -349,7 +341,7 @@ public class AuthMeApi {
      * @return registered names
      */
     public List<String> getRegisteredNames() {
-        return getPlayerNames(PlayerAuth::getNickname);
+        return dataSource.getAllAuths().stream().map(PlayerAuth::getNickname).collect(Collectors.toList());
     }
 
     /**
@@ -358,11 +350,7 @@ public class AuthMeApi {
      * @return registered real-names
      */
     public List<String> getRegisteredRealNames() {
-        return getPlayerNames(PlayerAuth::getRealName);
-    }
-
-    private List<String> getPlayerNames(Function<PlayerAuth, String> nameExtractor) {
-        return dataSource.getAllAuths().stream().map(nameExtractor).collect(Collectors.toList());
+        return dataSource.getAllAuths().stream().map(PlayerAuth::getRealName).collect(Collectors.toList());
     }
 
     /**

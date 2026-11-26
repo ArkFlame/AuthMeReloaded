@@ -138,7 +138,8 @@ public class AuthMe extends JavaPlugin {
         loadPluginInfo(getDescription().getVersion());
 
         // Set the Logger instance and log file path
-        setupLogger();
+        ConsoleLogger.initialize(getLogger(), new File(getDataFolder(), LOG_FILENAME));
+        logger = ConsoleLoggerFactory.get(AuthMe.class);
 
         PlatformAdapter platformAdapter = loadPlatformAdapter();
         if (!isStartupAllowed(platformAdapter)) {
@@ -152,7 +153,9 @@ public class AuthMe extends JavaPlugin {
         injector.getSingleton(SettingsWarner.class).logWarningsForMisconfigurations();
 
         // Schedule clean up task
-        scheduleCleanupTask();
+        CleanupTask cleanupTask = injector.getSingleton(CleanupTask.class);
+        injector.getSingleton(BukkitService.class)
+            .runTaskTimerAsynchronously(cleanupTask, CLEANUP_INTERVAL, CLEANUP_INTERVAL);
 
         // Do a backup on start
         backupService.doBackup(BackupService.BackupCause.START);
@@ -165,14 +168,6 @@ public class AuthMe extends JavaPlugin {
 
         // Purge on start if enabled
         injector.getSingleton(PurgeService.class).runAutoPurge();
-    }
-
-    /**
-     * Sets up the logger and the log file path.
-     */
-    private void setupLogger() {
-        ConsoleLogger.initialize(getLogger(), new File(getDataFolder(), LOG_FILENAME));
-        logger = ConsoleLoggerFactory.get(AuthMe.class);
     }
 
     /**
@@ -225,15 +220,6 @@ public class AuthMe extends JavaPlugin {
     }
 
     /**
-     * Schedules the periodic cleanup task.
-     */
-    private void scheduleCleanupTask() {
-        CleanupTask cleanupTask = injector.getSingleton(CleanupTask.class);
-        injector.getSingleton(BukkitService.class)
-            .runTaskTimerAsynchronously(cleanupTask, CLEANUP_INTERVAL, CLEANUP_INTERVAL);
-    }
-
-    /**
      * Load the version and build number of the plugin from the description file.
      *
      * @param versionRaw the version as given by the plugin description file
@@ -267,7 +253,8 @@ public class AuthMe extends JavaPlugin {
         // Set all service fields on the AuthMe class
         instantiateServices(injector);
 
-        registerPlatformCommands(platformAdapter, injector);
+        CommandInitializer commandInitializer = injector.getSingleton(CommandInitializer.class);
+        platformAdapter.registerCommands(this, commandHandler, commandInitializer.getCommands());
 
         // Convert deprecated PLAINTEXT hash entries
         MigrationService.changePlainTextToSha256(settings, database, new Sha256());
@@ -376,11 +363,6 @@ public class AuthMe extends JavaPlugin {
 
         // Trigger construction of API classes; they will keep track of the singleton
         injector.getSingleton(AuthMeApi.class);
-    }
-
-    private void registerPlatformCommands(PlatformAdapter platformAdapter, Injector injector) {
-        CommandInitializer commandInitializer = injector.getSingleton(CommandInitializer.class);
-        platformAdapter.registerCommands(this, commandHandler, commandInitializer.getCommands());
     }
 
     /**

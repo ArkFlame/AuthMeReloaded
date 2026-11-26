@@ -101,7 +101,15 @@ public class SettingsMigrationService extends PlainMigrationService {
             changes = true;
         }
 
-        setOldOtherAccountsCommandFieldsIfSet(reader);
+        // Retrieve the old command config before any migration can resave the config.yml
+        Property<String> commandProperty = newProperty("settings.restrictions.otherAccountsCmd", "");
+        Property<Integer> commandThresholdProperty = newProperty("settings.restrictions.otherAccountsCmdThreshold", 0);
+        PropertyValue<String> commandPropValue = commandProperty.determineValue(reader);
+        int commandThreshold = commandThresholdProperty.determineValue(reader).getValue();
+        if (commandPropValue.isValidInResource() && commandThreshold >= 2) {
+            this.oldOtherAccountsCommand = commandPropValue.getValue();
+            this.oldOtherAccountsCommandThreshold = commandThreshold;
+        }
 
         // Note ljacqu 20160211: Concatenating migration methods with | instead of the usual ||
         // ensures that all migrations will be performed
@@ -119,7 +127,8 @@ public class SettingsMigrationService extends PlainMigrationService {
             | convertToRegistrationType(reader, configurationData)
             | mergeAndMovePermissionGroupSettings(reader, configurationData)
             | moveDeprecatedHashAlgorithmIntoLegacySection(reader, configurationData)
-            | moveSaltColumnConfigWithOtherColumnConfigs(reader, configurationData)
+            | moveProperty(newProperty("ExternalBoardOptions.mySQLColumnSalt",
+                DatabaseSettings.MYSQL_COL_SALT.getDefaultValue()), DatabaseSettings.MYSQL_COL_SALT, reader, configurationData)
             | migrateTimeoutToLoginAndRegisterTimeout(reader, configurationData)
             | migrateDialogSettings(reader, configurationData)
             || Arrays.stream(DEPRECATED_PROPERTIES).anyMatch(reader::contains);
@@ -136,23 +145,19 @@ public class SettingsMigrationService extends PlainMigrationService {
     private static boolean migrateTimeoutToLoginAndRegisterTimeout(PropertyReader reader,
                                                                    ConfigurationData configData) {
         final String oldPath = "settings.restrictions.timeout";
-        Property<Integer> oldTimeout = newProperty(oldPath, 30);
-        PropertyValue<Integer> oldValue = oldTimeout.determineValue(reader);
+        PropertyValue<Integer> oldValue = newProperty(oldPath, 30).determineValue(reader);
         if (!oldValue.isValidInResource()) {
             return false;
         }
-        return moveTimeoutSetting(reader, configData, oldPath, oldValue.getValue(), LOGIN_TIMEOUT)
-            | moveTimeoutSetting(reader, configData, oldPath, oldValue.getValue(), REGISTER_TIMEOUT);
-    }
-
-    private static boolean moveTimeoutSetting(PropertyReader reader, ConfigurationData configData,
-                                              String oldPath, int value, Property<Integer> newProperty) {
-        if (reader.contains(newProperty.getPath())) {
-            return false;
+        boolean changes = false;
+        for (Property<Integer> target : Arrays.asList(LOGIN_TIMEOUT, REGISTER_TIMEOUT)) {
+            if (!reader.contains(target.getPath())) {
+                logger.info("Migrating '" + oldPath + "' to '" + target.getPath() + "'");
+                configData.setValue(target, oldValue.getValue());
+                changes = true;
+            }
         }
-        logger.info("Migrating '" + oldPath + "' to '" + newProperty.getPath() + "'");
-        configData.setValue(newProperty, value);
-        return true;
+        return changes;
     }
 
     /**
@@ -374,51 +379,17 @@ public class SettingsMigrationService extends PlainMigrationService {
                                                                         ConfigurationData configData) {
         HashAlgorithm currentHash = SecuritySettings.PASSWORD_HASH.determineValue(reader).getValue();
         // Skip CUSTOM (has no class) and PLAINTEXT (is force-migrated later on in the startup process)
-        if (currentHash != HashAlgorithm.CUSTOM && currentHash != HashAlgorithm.PLAINTEXT) {
-            Class<?> encryptionClass = currentHash.getClazz();
-            if (encryptionClass.isAnnotationPresent(Deprecated.class)) {
-                configData.setValue(SecuritySettings.PASSWORD_HASH, HashAlgorithm.SHA256);
-                Set<HashAlgorithm> legacyHashes = SecuritySettings.LEGACY_HASHES.determineValue(reader).getValue();
-                legacyHashes.add(currentHash);
-                configData.setValue(SecuritySettings.LEGACY_HASHES, legacyHashes);
-                logger.warning("The hash algorithm '" + currentHash
-                    + "' is no longer supported for active use. New hashes will be in SHA256.");
-                return true;
-            }
+        if (currentHash == HashAlgorithm.CUSTOM || currentHash == HashAlgorithm.PLAINTEXT
+            || !currentHash.getClazz().isAnnotationPresent(Deprecated.class)) {
+            return false;
         }
-        return false;
-    }
-
-    /**
-     * Moves the property for the password salt column name to the same path as all other column name properties.
-     *
-     * @param reader The property reader
-     * @param configData Configuration data
-     * @return True if the configuration has changed, false otherwise
-     */
-    private static boolean moveSaltColumnConfigWithOtherColumnConfigs(PropertyReader reader,
-                                                                      ConfigurationData configData) {
-        Property<String> oldSalt = newProperty("ExternalBoardOptions.mySQLColumnSalt",
-            DatabaseSettings.MYSQL_COL_SALT.getDefaultValue());
-        return moveProperty(oldSalt, DatabaseSettings.MYSQL_COL_SALT, reader, configData);
-    }
-
-    /**
-     * Retrieves the old config to run a command when alt accounts are detected and sets them to this instance
-     * for further processing.
-     *
-     * @param reader The property reader
-     */
-    private void setOldOtherAccountsCommandFieldsIfSet(PropertyReader reader) {
-        Property<String> commandProperty = newProperty("settings.restrictions.otherAccountsCmd", "");
-        Property<Integer> commandThresholdProperty = newProperty("settings.restrictions.otherAccountsCmdThreshold", 0);
-
-        PropertyValue<String> commandPropValue = commandProperty.determineValue(reader);
-        int commandThreshold = commandThresholdProperty.determineValue(reader).getValue();
-        if (commandPropValue.isValidInResource() && commandThreshold >= 2) {
-            oldOtherAccountsCommand = commandPropValue.getValue();
-            oldOtherAccountsCommandThreshold = commandThreshold;
-        }
+        configData.setValue(SecuritySettings.PASSWORD_HASH, HashAlgorithm.SHA256);
+        Set<HashAlgorithm> legacyHashes = SecuritySettings.LEGACY_HASHES.determineValue(reader).getValue();
+        legacyHashes.add(currentHash);
+        configData.setValue(SecuritySettings.LEGACY_HASHES, legacyHashes);
+        logger.warning("The hash algorithm '" + currentHash
+            + "' is no longer supported for active use. New hashes will be in SHA256.");
+        return true;
     }
 
     /**

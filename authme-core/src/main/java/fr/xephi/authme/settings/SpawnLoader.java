@@ -225,8 +225,24 @@ public class SpawnLoader implements Reloadable {
                         spawnLoc = world.getSpawnLocation();
                     }
                     break;
+                case "server":
+                    spawnLoc = getServerSpawnLocation(world);
+                    break;
+                case "multiverse":
+                    spawnLoc = settings.getProperty(HooksSettings.MULTIVERSE)
+                        ? pluginHookService.getMultiverseSpawn(world) : null;
+                    break;
+                case "essentials":
+                    spawnLoc = essentialsSpawn;
+                    break;
+                case "cmi":
+                    spawnLoc = cmiSpawn;
+                    break;
+                case "authme":
+                    spawnLoc = getSpawn();
+                    break;
                 default:
-                    spawnLoc = getSpawnFromSource(source, world);
+                    break;
             }
             if (spawnLoc != null) {
                 logger.debug("Spawn location determined as `{0}` for world `{1}`", spawnLoc, world.getName());
@@ -236,28 +252,6 @@ public class SpawnLoader implements Reloadable {
         logger.debug("Fall back to default world spawn location. World: `{0}`", world.getName());
 
         return world.getSpawnLocation(); // return default location
-    }
-
-    /**
-     * Returns the spawn location for a single non-default source, or null when the source
-     * is unknown, disabled, or has no spawn configured yet.
-     */
-    private Location getSpawnFromSource(String source, World world) {
-        switch (source) {
-            case "server":
-                return getServerSpawnLocation(world);
-            case "multiverse":
-                return settings.getProperty(HooksSettings.MULTIVERSE)
-                    ? pluginHookService.getMultiverseSpawn(world) : null;
-            case "essentials":
-                return essentialsSpawn;
-            case "cmi":
-                return cmiSpawn;
-            case "authme":
-                return getSpawn();
-            default:
-                return null;
-        }
     }
 
     /**
@@ -436,10 +430,12 @@ public class SpawnLoader implements Reloadable {
      */
     private static Location buildLocation(FileConfiguration configuration, String pathPrefix, String worldKey,
                                           String xKey, String yKey, String zKey, String yawKey, String pitchKey) {
-        if (!containsAllFields(configuration, pathPrefix, worldKey, xKey, yKey, zKey, yawKey, pitchKey)) {
-            return null;
-        }
         String prefix = pathPrefix + ".";
+        for (String field : new String[]{worldKey, xKey, yKey, zKey, yawKey, pitchKey}) {
+            if (!configuration.contains(prefix + field)) {
+                return null;
+            }
+        }
         String worldName = configuration.getString(prefix + worldKey);
         World world = Bukkit.getWorld(worldName);
         if (StringUtils.isBlank(worldName) || world == null) {
@@ -448,24 +444,6 @@ public class SpawnLoader implements Reloadable {
         return new Location(world, configuration.getDouble(prefix + xKey),
             configuration.getDouble(prefix + yKey), configuration.getDouble(prefix + zKey),
             getFloat(configuration, prefix + yawKey), getFloat(configuration, prefix + pitchKey));
-    }
-
-    /**
-     * Return whether the file configuration contains all given fields under the given path.
-     *
-     * @param configuration The file configuration to use
-     * @param pathPrefix    The path to verify
-     * @param fields        The field names to look for
-     *
-     * @return True if all fields are present, false otherwise
-     */
-    private static boolean containsAllFields(FileConfiguration configuration, String pathPrefix, String... fields) {
-        for (String field : fields) {
-            if (!configuration.contains(pathPrefix + "." + field)) {
-                return false;
-            }
-        }
-        return true;
     }
 
     /**

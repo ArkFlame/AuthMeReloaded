@@ -14,7 +14,6 @@ import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.events.AuthMeAsyncPreLoginEvent;
 import fr.xephi.authme.events.FailedLoginEvent;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
-import fr.xephi.authme.output.LogLevel;
 import fr.xephi.authme.mail.EmailService;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.permission.AdminPermission;
@@ -45,11 +44,9 @@ import javax.inject.Inject;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * Asynchronous task for a player login.
- */
+/** Asynchronous task for a player login. */
 public class AsynchronousLogin implements AsynchronousProcess {
-    
+
     private final ConsoleLogger logger = ConsoleLoggerFactory.get(AsynchronousLogin.class);
 
     @Inject
@@ -100,12 +97,7 @@ public class AsynchronousLogin implements AsynchronousProcess {
     AsynchronousLogin() {
     }
 
-    /**
-     * Processes a player's login request.
-     *
-     * @param player the player to log in
-     * @param password the password to log in with
-     */
+    /** Processes a player's login request. */
     public void login(Player player, String password) {
         String name = player.getName();
         String lowerCaseName = name.toLowerCase(Locale.ROOT);
@@ -133,33 +125,17 @@ public class AsynchronousLogin implements AsynchronousProcess {
         }
     }
 
-    /**
-     * Logs a player in without requiring a password.
-     *
-     * @param player the player to log in
-     */
+    /** Logs a player in without requiring a password. */
     public void forceLogin(Player player) {
         forceLogin(player, false);
     }
 
-    /**
-     * Logs a player in without requiring a password, initiated by the proxy.
-     * Suppresses pre-condition messages and skips the BungeeCord server redirect
-     * (the proxy manages routing).
-     *
-     * @param player the player to log in
-     */
+    /** Logs a player in without a password, initiated by the proxy: quiet and no BungeeCord redirect. */
     public void forceLoginFromProxy(Player player) {
         forceLogin(player, true);
     }
 
-    /**
-     * Shared force-login implementation for locally and proxy initiated logins.
-     *
-     * @param player the player to log in
-     * @param proxyInitiated true when the proxy initiated the login; suppresses
-     *                       pre-condition messages and skips the BungeeCord redirect
-     */
+    /** Shared force-login implementation for locally and proxy initiated logins. */
     private void forceLogin(Player player, boolean proxyInitiated) {
         String name = player.getName();
         String lowerCaseName = name.toLowerCase(Locale.ROOT);
@@ -173,29 +149,16 @@ public class AsynchronousLogin implements AsynchronousProcess {
         }
     }
 
-    /**
-     * Checks the precondition for authentication (like user known) and returns
-     * the player's {@link PlayerAuth} object.
-     *
-     * @param player the player to check
-     * @param lowerCaseName the lower-case name, resolved once for this login call
-     * @param quiet don't send messages
-     * @return the PlayerAuth object, or {@code null} if the player doesn't exist or may not log in
-     *         (e.g. because he is already logged in)
-     */
+    /** Returns the player's auth object, or null if the player does not exist or may not log in. */
     private PlayerAuth getPlayerAuth(Player player, String lowerCaseName, boolean quiet) {
         if (playerCache.isAuthenticated(lowerCaseName)) {
-            if (!quiet) {
-                service.send(player, MessageKey.ALREADY_LOGGED_IN_ERROR);
-            }
+            sendUnlessQuiet(player, MessageKey.ALREADY_LOGGED_IN_ERROR, quiet);
             return null;
         }
 
         PlayerAuth auth = dataSource.getAuth(lowerCaseName);
         if (auth == null) {
-            if (!quiet) {
-                service.send(player, MessageKey.UNKNOWN_USER);
-            }
+            sendUnlessQuiet(player, MessageKey.UNKNOWN_USER, quiet);
             // Recreate the message task to immediately send the message again as response
             limboService.resetMessageTask(player, LimboMessageType.REGISTER);
             return null;
@@ -203,48 +166,31 @@ public class AsynchronousLogin implements AsynchronousProcess {
 
         if (!service.getProperty(DatabaseSettings.MYSQL_COL_GROUP).isEmpty()
             && auth.getGroupId() == service.getProperty(HooksSettings.NON_ACTIVATED_USERS_GROUP)) {
-            if (!quiet) {
-                service.send(player, MessageKey.ACCOUNT_NOT_ACTIVATED);
-            }
+            sendUnlessQuiet(player, MessageKey.ACCOUNT_NOT_ACTIVATED, quiet);
             return null;
         }
         return auth;
     }
 
-    /**
-     * Checks the per-IP limit and fires the pre-login event, using the IP address already resolved
-     * for this login call.
-     *
-     * @param player the player to check
-     * @param ip the IP address of the player, resolved once for this login call
-     * @param quiet don't send messages
-     * @return true if the player may log in, false otherwise
-     */
+    private void sendUnlessQuiet(Player player, MessageKey key, boolean quiet) {
+        if (!quiet) {
+            service.send(player, key);
+        }
+    }
+
+    /** Checks the per-IP limit and fires the pre-login event; true if the player may log in. */
     private boolean canLogin(Player player, String ip, boolean quiet) {
         if (hasReachedMaxLoggedInPlayersForIp(player, ip)) {
-            if (!quiet) {
-                service.send(player, MessageKey.ALREADY_LOGGED_IN_ERROR);
-            }
+            sendUnlessQuiet(player, MessageKey.ALREADY_LOGGED_IN_ERROR, quiet);
             return false;
         }
-        boolean isAsync = service.getProperty(PluginSettings.USE_ASYNC_TASKS);
-        AuthMeAsyncPreLoginEvent event = new AuthMeAsyncPreLoginEvent(player, isAsync);
+        AuthMeAsyncPreLoginEvent event = new AuthMeAsyncPreLoginEvent(player,
+            service.getProperty(PluginSettings.USE_ASYNC_TASKS));
         bukkitService.callEvent(event);
         return event.canLogin();
     }
 
-    /**
-     * Checks various conditions for regular player login (not used in force login).
-     *
-     * @param player the player requesting to log in
-     * @param name the player's name, resolved once for this login call
-     * @param lowerCaseName the lower-case name, resolved once for this login call
-     * @param ip the IP address of the player, resolved once for this login call
-     * @param auth the PlayerAuth object of the player
-     * @param password the password supplied by the player
-     * @return true if the password matches and all other conditions are met (e.g. no captcha required),
-     *         false otherwise
-     */
+    /** Checks captcha and password for a regular login; true if the password matches. */
     private boolean checkPlayerInfo(Player player, String name, String lowerCaseName, String ip, PlayerAuth auth,
                                     String password) {
         // If captcha is required send a message to the player and deny to log in
@@ -264,18 +210,9 @@ public class AsynchronousLogin implements AsynchronousProcess {
         return true;
     }
 
-    /**
-     * Handles a login with wrong password.
-     *
-     * @param player the player who attempted to log in
-     * @param name the player's name, resolved once for this login call
-     * @param auth the PlayerAuth object of the player
-     * @param ip the ip address of the player
-     */
+    /** Handles a login with wrong password. */
     private void handleWrongPassword(Player player, String name, PlayerAuth auth, String ip) {
-        if (logger.getLogLevel().includes(LogLevel.FINE)) {
-            logger.fine(name + " used the wrong password");
-        }
+        logger.fine(name + " used the wrong password");
 
         bukkitService.createAndCallEvent(isAsync -> new FailedLoginEvent(player, isAsync));
         if (tempbanManager.shouldTempban(ip)) {
@@ -312,12 +249,7 @@ public class AsynchronousLogin implements AsynchronousProcess {
         }, 1L);
     }
 
-    /**
-     * Sets the player to the logged in state.
-     *
-     * @param player the player to log in
-     * @param auth the associated PlayerAuth object
-     */
+    /** Sets the player to the logged in state. */
     public void performLogin(Player player, PlayerAuth auth) {
         // Callers outside the login flow have no IP resolved yet; doPerformLogin resolves it lazily
         doPerformLogin(player, player.getName(), null, auth, false);
@@ -328,7 +260,7 @@ public class AsynchronousLogin implements AsynchronousProcess {
             logger.warning("Player '" + name + "' wasn't online during login process, aborted...");
             return;
         }
-        boolean isFirstLogin = (auth.getLastLogin() == null);
+        boolean isFirstLogin = auth.getLastLogin() == null;
         // Update auth to reflect this new login
         if (ip == null) {
             ip = PlayerUtils.getPlayerIp(player);
@@ -350,14 +282,11 @@ public class AsynchronousLogin implements AsynchronousProcess {
         List<String> auths = dataSource.getAllAuthsByIp(ip);
         displayOtherAccounts(auths, name);
 
-        String email = auth.getEmail();
-        if (service.getProperty(EmailSettings.RECALL_PLAYERS) && Utils.isEmailEmpty(email)) {
+        if (service.getProperty(EmailSettings.RECALL_PLAYERS) && Utils.isEmailEmpty(auth.getEmail())) {
             service.send(player, MessageKey.ADD_EMAIL_MESSAGE);
         }
 
-        if (logger.getLogLevel().includes(LogLevel.FINE)) {
-            logger.fine(name + " logged in " + ip);
-        }
+        logger.fine(name + " logged in " + ip);
 
         // makes player loggedin
         playerCache.updatePlayer(auth);
@@ -384,12 +313,7 @@ public class AsynchronousLogin implements AsynchronousProcess {
         }
     }
 
-    /**
-     * Sends info about the other accounts owned by the given player to the configured users.
-     *
-     * @param auths the names of the accounts also owned by the player
-     * @param playerName the player's name, resolved once for this login call
-     */
+    /** Sends info about the other accounts owned by the given player to the configured users. */
     private void displayOtherAccounts(List<String> auths, String playerName) {
         int accountCount = auths.size();
         if (!service.getProperty(RestrictionSettings.DISPLAY_OTHER_ACCOUNTS) || accountCount <= 1) {
@@ -397,10 +321,8 @@ public class AsynchronousLogin implements AsynchronousProcess {
         }
 
         String message = formatAccountNames(auths);
-        if (logger.getLogLevel().includes(LogLevel.FINE)) {
-            logger.fine("The user " + playerName + " has " + accountCount + " accounts:");
-            logger.fine(message);
-        }
+        logger.fine("The user " + playerName + " has " + accountCount + " accounts:");
+        logger.fine(message);
         notifyOnlinePlayersAboutAccounts(playerName, accountCount, message);
     }
 
@@ -424,9 +346,8 @@ public class AsynchronousLogin implements AsynchronousProcess {
     }
 
     private void notifyOnlinePlayersAboutAccounts(String playerName, int accountCount, String message) {
-        String accountCountText = Integer.toString(accountCount);
-        String[] selfHeaderArgs = {accountCountText};
-        String[] otherHeaderArgs = {playerName, accountCountText};
+        String[] selfHeaderArgs = {Integer.toString(accountCount)};
+        String[] otherHeaderArgs = {playerName, Integer.toString(accountCount)};
         for (Player onlinePlayer : bukkitService.getOnlinePlayers()) {
             MessageKey headerKey;
             String[] headerArgs;
@@ -448,14 +369,7 @@ public class AsynchronousLogin implements AsynchronousProcess {
         }
     }
 
-    /**
-     * Checks whether the maximum threshold of logged in player per IP address has been reached
-     * for the given player and IP address.
-     *
-     * @param player the player to process
-     * @param ip the associated ip address
-     * @return true if the threshold has been reached, false otherwise
-     */
+    /** True when the maximum number of logged in players per IP address has been reached. */
     @VisibleForTesting
     boolean hasReachedMaxLoggedInPlayersForIp(Player player, String ip) {
         int maxLoggedInPerIp = service.getProperty(RestrictionSettings.MAX_LOGIN_PER_IP);

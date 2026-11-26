@@ -140,7 +140,7 @@ final class VelocityProxyBridge {
         retryScheduler.schedule(() -> {
             handshakeRetriesPending.remove(serverName);
             if (!notifiedAuthServers.contains(serverName)) {
-                sendProxyStartedHandshakeIfPending(server);
+                sendProxyStartedHandshakeIfPending(server, null);
             }
         }, 1, TimeUnit.SECONDS);
     }
@@ -220,12 +220,8 @@ final class VelocityProxyBridge {
         if (configuration.isAuthServer(serverConnection.getServer())) {
             logger.info("Player {} authenticated on auth server '{}'", playerName, serverName);
 
-            proxyServer.getPlayer(normalizedName).ifPresent(player -> {
-                boolean premium = requiresPremiumVerification(normalizedName);
-                AuthMeVelocityLoginEvent loginEvent = new AuthMeVelocityLoginEvent(player, premium);
-
-                proxyServer.getEventManager().fireAndForget(loginEvent);
-            });
+            proxyServer.getPlayer(normalizedName).ifPresent(player -> proxyServer.getEventManager().fireAndForget(
+                new AuthMeVelocityLoginEvent(player, requiresPremiumVerification(normalizedName))));
 
             authenticationStore.markAuthenticated(playerName);
             sendAutoLoginIfAlreadySwitched(playerName, serverConnection.getServer());
@@ -233,7 +229,7 @@ final class VelocityProxyBridge {
         } else if (pendingAutoLogins.containsKey(playerName)) {
             // Implicit ACK: login from non-auth server confirms perform.login was processed
             logger.info("Auto-login confirmed for {} via login from server '{}'", playerName, serverName);
-            cancelPendingLogin(playerName);
+            pendingAutoLogins.remove(playerName);
         } else {
             logger.debug("Ignoring login from non-auth server '{}' for {} (no pending auto-login)",
                 serverName, playerName);
@@ -243,16 +239,14 @@ final class VelocityProxyBridge {
     private void handleLogoutMessage(String playerName, String normalizedName, String serverName) {
         logger.info("Player {} logged out (notified by server '{}')", playerName, serverName);
         authenticationStore.markLoggedOut(playerName);
-        proxyServer.getPlayer(normalizedName).ifPresent(player -> {
-            AuthMeVelocityLogoutEvent loginEvent = new AuthMeVelocityLogoutEvent(player);
-            proxyServer.getEventManager().fireAndForget(loginEvent);
-        });
+        proxyServer.getPlayer(normalizedName).ifPresent(player ->
+            proxyServer.getEventManager().fireAndForget(new AuthMeVelocityLogoutEvent(player)));
         redirectLoggedOutPlayer(playerName);
     }
 
     private void handlePerformLoginAck(String playerName, String serverName) {
         logger.info("Auto-login ACK received for {} from server '{}'", playerName, serverName);
-        cancelPendingLogin(playerName);
+        pendingAutoLogins.remove(playerName);
         if (configuration.autoLoginEnabled()) {
             // The backend completed the auto-login; without this the proxy keeps denying
             // chat and commands even though the player is authenticated on the backend.
@@ -468,7 +462,7 @@ final class VelocityProxyBridge {
         if (pendingAutoLogins.containsKey(normalizedName)) {
             logger.debug("Cancelling pending auto-login for {} (player disconnected)", normalizedName);
         }
-        cancelPendingLogin(normalizedName);
+        pendingAutoLogins.remove(normalizedName);
         if (authenticationStore.isAuthenticated(normalizedName)) {
             logger.debug("Clearing auth state for {} (player disconnected)", normalizedName);
         }
@@ -512,10 +506,6 @@ final class VelocityProxyBridge {
         }
     }
 
-    private void sendProxyStartedHandshakeIfPending(RegisteredServer server) {
-        sendProxyStartedHandshakeIfPending(server, null);
-    }
-
     private void sendProxyStartedHandshakeIfPending(RegisteredServer server, ServerConnection triggeringConnection) {
         if (!configuration.isAuthServer(server)) {
             return;
@@ -549,10 +539,6 @@ final class VelocityProxyBridge {
         AtomicInteger attempts = new AtomicInteger(0);
         pendingAutoLogins.put(normalizedName, attempts);
         scheduleRetry(normalizedName, attempts);
-    }
-
-    private void cancelPendingLogin(String normalizedName) {
-        pendingAutoLogins.remove(normalizedName);
     }
 
     private void scheduleRetry(String normalizedName, AtomicInteger attempts) {
@@ -595,7 +581,7 @@ final class VelocityProxyBridge {
             ProxyMessageType type = ProxyMessageType.fromId(typeId);
             if (type == null || type == ProxyMessageType.PERFORM_LOGIN || type == ProxyMessageType.PROXY_STARTED) {
                 logger.debug("Ignoring unknown authme:main message type '{}'", typeId);
-                return ParsedMessage.ignored();
+                return new ParsedMessage(null, null);
             }
             // premium.list and premium.list.chunk carry non-player-name data; read as-is
             String argument = input.readUTF();
@@ -603,11 +589,11 @@ final class VelocityProxyBridge {
             return new ParsedMessage(type, rawArgument ? argument : VelocityAuthenticationStore.normalizeName(argument));
         } catch (IllegalStateException e) {
             logger.warn("Received malformed AuthMe plugin message on the authme:main channel");
-            return ParsedMessage.ignored();
+            return new ParsedMessage(null, null);
         }
     }
 
-    private byte[] createPerformLoginMessage(String normalizedName, UUID verifiedPremiumUuid) {
+    private boolean sendPerformLoginMessage(ServerConnection server, String normalizedName, UUID verifiedPremiumUuid) {
         long timestamp = System.currentTimeMillis();
         String hmac = ProxyMessageSecurity.computeHmac(
             configuration.sharedSecret(), normalizedName, timestamp, verifiedPremiumUuid);
@@ -617,11 +603,7 @@ final class VelocityProxyBridge {
         output.writeLong(timestamp);
         output.writeUTF(verifiedPremiumUuid == null ? "" : verifiedPremiumUuid.toString());
         output.writeUTF(hmac);
-        return output.toByteArray();
-    }
-
-    private boolean sendPerformLoginMessage(ServerConnection server, String normalizedName, UUID verifiedPremiumUuid) {
-        return server.sendPluginMessage(AUTHME_CHANNEL, createPerformLoginMessage(normalizedName, verifiedPremiumUuid));
+        return server.sendPluginMessage(AUTHME_CHANNEL, output.toByteArray());
     }
 
     private void redirectToLoginServer(String normalizedPlayerName) {
@@ -671,9 +653,5 @@ final class VelocityProxyBridge {
     }
 
     private record ParsedMessage(ProxyMessageType type, String playerName) {
-
-        private static ParsedMessage ignored() {
-            return new ParsedMessage(null, null);
-        }
     }
 }

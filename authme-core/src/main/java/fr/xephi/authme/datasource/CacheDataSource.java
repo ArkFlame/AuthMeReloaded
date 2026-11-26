@@ -19,7 +19,6 @@ import fr.xephi.authme.util.Utils;
 import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
@@ -28,6 +27,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class CacheDataSource implements DataSource, SqlConnectionSource {
 
@@ -89,7 +89,10 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
             boolean useVirtualThreads, Class<?> executorsClass) {
         if (useVirtualThreads) {
             try {
-                return createVirtualThreadExecutor(executorsClass);
+                Method method = executorsClass.getMethod("newVirtualThreadPerTaskExecutor");
+                method.setAccessible(true);
+                ExecutorService executor = (ExecutorService) method.invoke(null);
+                return MoreExecutors.listeningDecorator(executor);
             } catch (Exception e) {
                 // Java < 21 or a restricted JDK: fall through to the cached pool
             }
@@ -100,13 +103,6 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
                 .setNameFormat("AuthMe-CacheLoader")
                 .build())
         );
-    }
-
-    private static ListeningExecutorService createVirtualThreadExecutor(Class<?> executorsClass) throws Exception {
-        Method method = executorsClass.getMethod("newVirtualThreadPerTaskExecutor");
-        method.setAccessible(true);
-        ExecutorService executor = (ExecutorService) method.invoke(null);
-        return MoreExecutors.listeningDecorator(executor);
     }
 
     public LoadingCache<String, Optional<PlayerAuth>> getCachedAuths() {
@@ -145,11 +141,10 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
     @Override
     public HashedPassword getPassword(String user) {
         user = user.toLowerCase(Locale.ROOT);
-        Optional<PlayerAuth> pAuthOpt = cachedAuths.getIfPresent(user);
-        if (pAuthOpt != null && pAuthOpt.isPresent()) {
-            return pAuthOpt.get().getPassword();
-        }
-        return source.getPassword(user);
+        Optional<PlayerAuth> auth = cachedAuths.getIfPresent(user);
+        return auth != null && auth.isPresent()
+            ? auth.get().getPassword()
+            : source.getPassword(user);
     }
 
     @Override
@@ -247,8 +242,7 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
     @Override
     public Connection getConnection() throws SQLException {
         if (source instanceof SqlConnectionSource) {
-            SqlConnectionSource sqlSource = (SqlConnectionSource) source;
-            return sqlSource.getConnection();
+            return ((SqlConnectionSource) source).getConnection();
         }
         throw new SQLException("The configured data source does not support raw SQL connections");
     }
@@ -315,13 +309,10 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public List<String> getLoggedPlayersWithEmptyMail() {
-        List<String> result = new ArrayList<>();
-        for (PlayerAuth auth : playerCache.getCache().values()) {
-            if (Utils.isEmailEmpty(auth.getEmail())) {
-                result.add(auth.getRealName());
-            }
-        }
-        return result;
+        return playerCache.getCache().values().stream()
+            .filter(auth -> Utils.isEmailEmpty(auth.getEmail()))
+            .map(PlayerAuth::getRealName)
+            .collect(Collectors.toList());
     }
 
     @Override

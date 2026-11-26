@@ -147,16 +147,14 @@ public class BukkitService implements SettingsDependent {
         }
 
         CompletableFuture<T> future = new CompletableFuture<>();
-        runOnGlobalRegion(() -> completeFuture(future, supplier));
+        runOnGlobalRegion(() -> {
+            try {
+                future.complete(supplier.get());
+            } catch (RuntimeException | Error e) {
+                future.completeExceptionally(e);
+            }
+        });
         return awaitFuture(future);
-    }
-
-    private static <T> void completeFuture(CompletableFuture<T> future, Supplier<T> supplier) {
-        try {
-            future.complete(supplier.get());
-        } catch (RuntimeException | Error e) {
-            future.completeExceptionally(e);
-        }
     }
 
     private static <T> T awaitFuture(CompletableFuture<T> future) {
@@ -166,19 +164,15 @@ public class BukkitService implements SettingsDependent {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Interrupted while waiting for sync task", e);
         } catch (ExecutionException e) {
-            throw unwrapExecutionException(e);
+            Throwable cause = e.getCause();
+            if (cause instanceof Error) {
+                throw (Error) cause;
+            }
+            if (cause instanceof RuntimeException) {
+                throw (RuntimeException) cause;
+            }
+            throw new IllegalStateException("Unexpected exception while waiting for sync task", cause);
         }
-    }
-
-    private static RuntimeException unwrapExecutionException(ExecutionException e) {
-        Throwable cause = e.getCause();
-        if (cause instanceof RuntimeException) {
-            return (RuntimeException) cause;
-        }
-        if (cause instanceof Error) {
-            throw (Error) cause;
-        }
-        return new IllegalStateException("Unexpected exception while waiting for sync task", cause);
     }
 
     /**

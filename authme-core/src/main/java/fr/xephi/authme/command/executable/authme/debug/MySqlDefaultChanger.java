@@ -16,7 +16,6 @@ import org.bukkit.command.CommandSender;
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -90,24 +89,14 @@ class MySqlDefaultChanger implements DebugSection {
         } else {
             sender.sendMessage(ChatColor.BLUE + "[AuthMe] MySQL change '" + column + "'");
             try (Connection con = getConnection(mySql)) {
-                performChange(sender, operation, column, con);
+                if (operation == Operation.ADD) {
+                    changeColumnToNotNullWithDefault(sender, column, con);
+                } else if (operation == Operation.REMOVE) {
+                    removeNotNullAndDefault(sender, column, con);
+                }
             } catch (SQLException | IllegalStateException e) {
                 logger.logException("Failed to perform MySQL default altering operation:", e);
             }
-        }
-    }
-
-    private void performChange(CommandSender sender, Operation operation, Columns column,
-                               Connection con) throws SQLException {
-        switch (operation) {
-            case ADD:
-                changeColumnToNotNullWithDefault(sender, column, con);
-                break;
-            case REMOVE:
-                removeNotNullAndDefault(sender, column, con);
-                break;
-            default:
-                throw new IllegalStateException("Unknown operation '" + operation + "'");
         }
     }
 
@@ -136,7 +125,8 @@ class MySqlDefaultChanger implements DebugSection {
         sender.sendMessage("Changed column '" + columnName + "' to have NOT NULL constraint");
 
         // Log success message
-        logChange(sender, columnName, "be NOT NULL");
+        logger.info("Changed MySQL column '" + columnName + "' to be NOT NULL"
+            + ", as initiated by '" + sender.getName() + "'");
     }
 
     /**
@@ -163,7 +153,8 @@ class MySqlDefaultChanger implements DebugSection {
             + "') to be NULL, modifying " + updatedRows + " entries");
 
         // Log success message
-        logChange(sender, columnName, "allow NULL");
+        logger.info("Changed MySQL column '" + columnName + "' to allow NULL"
+            + ", as initiated by '" + sender.getName() + "'");
     }
 
     /**
@@ -190,14 +181,6 @@ class MySqlDefaultChanger implements DebugSection {
     }
 
     /**
-     * Logs a successful column change initiated by the given sender.
-     */
-    private void logChange(CommandSender sender, String columnName, String state) {
-        logger.info("Changed MySQL column '" + columnName + "' to " + state
-            + ", as initiated by '" + sender.getName() + "'");
-    }
-
-    /**
      * Outputs the current definitions of all {@link Columns} which can be migrated.
      *
      * @param sender command sender to output the data to
@@ -219,7 +202,6 @@ class MySqlDefaultChanger implements DebugSection {
             logger.logException("Failed while showing column details:", e);
             sender.sendMessage("Failed while showing column details. See log for info");
         }
-
     }
 
     /**
@@ -277,8 +259,7 @@ class MySqlDefaultChanger implements DebugSection {
     @VisibleForTesting
     Connection getConnection(MySQL mySql) {
         try {
-            Method method = MySQL.class.getMethod("getConnection");
-            return (Connection) method.invoke(mySql);
+            return (Connection) MySQL.class.getMethod("getConnection").invoke(mySql);
         } catch (IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
             throw new IllegalStateException("Could not get MySQL connection", e);
         }

@@ -61,7 +61,9 @@ import org.bukkit.inventory.InventoryView;
 
 import javax.inject.Inject;
 import java.net.InetAddress;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Set;
@@ -107,6 +109,10 @@ public class PlayerListener extends AbstractCancelListener implements Listener {
     private TeleportAdapter teleportAdapter;
     @Inject
     private PlayerCache playerCache;
+
+    private static final Set<String> BLOCKED_TELEPORT_CAUSES = new HashSet<>(Arrays.asList(
+        "ENDER_PEARL", "CHORUS_FRUIT", "CONSUMABLE_EFFECT", "NETHER_PORTAL",
+        "END_PORTAL", "END_GATEWAY", "SPECTATE"));
 
     // Lowest priority to apply fast protection checks
     @EventHandler(priority = EventPriority.LOWEST)
@@ -251,10 +257,9 @@ public class PlayerListener extends AbstractCancelListener implements Listener {
         // Note: quit message can be null, despite api documentation says not
         if (settings.getProperty(RegistrationSettings.REMOVE_LEAVE_MESSAGE)) {
             event.setQuitMessage(null);
-        } else if (settings.getProperty(RegistrationSettings.REMOVE_UNLOGGED_LEAVE_MESSAGE)) {
-            if (getListenerService().shouldCancelEvent(event)) {
-                event.setQuitMessage(null);
-            }
+        } else if (settings.getProperty(RegistrationSettings.REMOVE_UNLOGGED_LEAVE_MESSAGE)
+            && getListenerService().shouldCancelEvent(event)) {
+            event.setQuitMessage(null);
         }
 
         try {
@@ -487,18 +492,7 @@ public class PlayerListener extends AbstractCancelListener implements Listener {
     }
 
     private static boolean isBlockedTeleportCause(PlayerTeleportEvent.TeleportCause cause) {
-        switch (cause.name()) {
-            case "ENDER_PEARL":
-            case "CHORUS_FRUIT":
-            case "CONSUMABLE_EFFECT":
-            case "NETHER_PORTAL":
-            case "END_PORTAL":
-            case "END_GATEWAY":
-            case "SPECTATE":
-                return true;
-            default:
-                return false;
-        }
+        return BLOCKED_TELEPORT_CAUSES.contains(cause.name());
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
@@ -599,12 +593,7 @@ public class PlayerListener extends AbstractCancelListener implements Listener {
         if (settings.getProperty(RestrictionSettings.STRICT_UNRESTRICTED_INVENTORIES_CHECK)) {
             return whitelist.contains(invName);
         }
-        for (String wl : whitelist) {
-            if (invName.contains(wl)) {
-                return true;
-            }
-        }
-        return false;
+        return whitelist.stream().anyMatch(invName::contains);
     }
 
     // Shared by open/click/drag: the player is passed in so each event keeps using its own getter.

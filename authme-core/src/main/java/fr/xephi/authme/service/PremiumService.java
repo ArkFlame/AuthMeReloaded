@@ -15,7 +15,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import javax.inject.Inject;
-import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -179,12 +178,17 @@ public class PremiumService implements HasCleanup {
 
     private void finishEnablePremiumAdmin(CommandSender sender, String playerName, PlayerAuth auth, UUID mojangUuid) {
         Player onlinePlayer = bukkitService.getPlayerExact(playerName);
-        kickImpostorIfNeeded(sender, playerName, onlinePlayer, mojangUuid);
+        // If someone is online with that name but a different UUID, they are an impostor — kick them
+        if (onlinePlayer != null && !mojangUuid.equals(onlinePlayer.getUniqueId())) {
+            kickPlayerWithMessage(onlinePlayer, MessageKey.PREMIUM_ADMIN_KICK_REASON);
+            messages.send(sender, MessageKey.PREMIUM_ADMIN_IMPOSTOR_KICKED, playerName);
+        }
 
         // If the online player has a UUID v4 equal to the Mojang UUID the server/proxy already
         // verified their identity; save directly. Otherwise hold as pending and require the
         // player to reconnect so the crypto Mojang session check can confirm ownership.
-        if (isVerifiedOnlinePlayer(onlinePlayer, mojangUuid)) {
+        if (onlinePlayer != null && onlinePlayer.getUniqueId().version() == 4
+                && mojangUuid.equals(onlinePlayer.getUniqueId())) {
             if (savePremiumUuid(auth, mojangUuid, playerName, true)) {
                 messages.send(sender, MessageKey.PREMIUM_ADMIN_ENABLE_SUCCESS, playerName);
             } else {
@@ -197,20 +201,6 @@ public class PremiumService implements HasCleanup {
                 kickPlayerWithMessage(onlinePlayer, MessageKey.PREMIUM_PENDING_KICK);
             }
         }
-    }
-
-    private void kickImpostorIfNeeded(CommandSender sender, String playerName, Player onlinePlayer, UUID mojangUuid) {
-        // If someone is online with that name but a different UUID, they are an impostor — kick them
-        if (onlinePlayer != null && !mojangUuid.equals(onlinePlayer.getUniqueId())) {
-            kickPlayerWithMessage(onlinePlayer, MessageKey.PREMIUM_ADMIN_KICK_REASON);
-            messages.send(sender, MessageKey.PREMIUM_ADMIN_IMPOSTOR_KICKED, playerName);
-        }
-    }
-
-    private boolean isVerifiedOnlinePlayer(Player onlinePlayer, UUID mojangUuid) {
-        return onlinePlayer != null
-                && onlinePlayer.getUniqueId().version() == 4
-                && mojangUuid.equals(onlinePlayer.getUniqueId());
     }
 
     /**
@@ -263,7 +253,7 @@ public class PremiumService implements HasCleanup {
 
     @Override
     public void performCleanup() {
-        sendPremiumUnsetFor(pendingPremiumCache.evictExpired());
+        pendingPremiumCache.evictExpired().forEach(bungeeSender::sendPremiumUnset);
     }
 
     /**
@@ -278,10 +268,8 @@ public class PremiumService implements HasCleanup {
      */
     public void finalizePendingPremium(Player player, UUID confirmedUuid) {
         String playerName = player.getName();
-        PlayerAuth auth = playerCache.getAuth(playerName);
-        if (auth == null) {
-            auth = dataSource.getAuth(playerName.toLowerCase(java.util.Locale.ROOT));
-        }
+        PlayerAuth auth = Optional.ofNullable(playerCache.getAuth(playerName))
+                .orElseGet(() -> dataSource.getAuth(playerName.toLowerCase(java.util.Locale.ROOT)));
         if (auth == null) {
             logger.warning("Could not finalize pending premium for " + playerName + ": no auth record found");
             return;
@@ -302,11 +290,11 @@ public class PremiumService implements HasCleanup {
     }
 
     private boolean isPremiumFeatureEnabled(CommandSender sender) {
-        if (settings.getProperty(PremiumSettings.ENABLE_PREMIUM)) {
-            return true;
+        boolean enabled = settings.getProperty(PremiumSettings.ENABLE_PREMIUM);
+        if (!enabled) {
+            messages.send(sender, MessageKey.PREMIUM_FEATURE_DISABLED);
         }
-        messages.send(sender, MessageKey.PREMIUM_FEATURE_DISABLED);
-        return false;
+        return enabled;
     }
 
     private void storePremiumUuid(PlayerAuth auth, UUID uuid, CommandSender feedbackTarget, String playerName,
@@ -333,12 +321,8 @@ public class PremiumService implements HasCleanup {
     }
 
     private void setPendingPremium(String playerName, UUID mojangUuid) {
-        sendPremiumUnsetFor(pendingPremiumCache.addPending(playerName, mojangUuid));
+        pendingPremiumCache.addPending(playerName, mojangUuid).forEach(bungeeSender::sendPremiumUnset);
         bungeeSender.sendPremiumPendingSet(playerName);
-    }
-
-    private void sendPremiumUnsetFor(Collection<String> playerNames) {
-        playerNames.forEach(bungeeSender::sendPremiumUnset);
     }
 
     private void kickPlayerWithMessage(Player player, MessageKey key) {

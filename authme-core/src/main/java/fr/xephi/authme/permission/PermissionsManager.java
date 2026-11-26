@@ -17,7 +17,6 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.Server;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.permissions.ServerOperator;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 
@@ -46,10 +45,7 @@ public class PermissionsManager implements Reloadable {
     private final PluginManager pluginManager;
     private final Settings settings;
 
-    /**
-     * The permission handler that is currently in use.
-     * Null if no permission system is hooked.
-     */
+    /** The permission handler that is currently in use, null if no permissions system is hooked. */
     private PermissionHandler handler = null;
 
     @Inject
@@ -59,18 +55,12 @@ public class PermissionsManager implements Reloadable {
         this.settings = settings;
     }
 
-    /**
-     * Check if the permissions manager is currently hooked into any of the supported permissions systems.
-     *
-     * @return False if there isn't any permissions system used.
-     */
+    /** @return true if the manager is hooked into a supported permissions system. */
     public boolean isEnabled() {
         return handler != null;
     }
 
-    /**
-     * Setup and hook into the permissions systems.
-     */
+    /** Setup and hook into the permissions systems. */
     @PostConstruct
     @VisibleForTesting
     void setup() {
@@ -97,12 +87,7 @@ public class PermissionsManager implements Reloadable {
         logger.info("No supported permissions system found! Permissions are disabled!");
     }
 
-    /**
-     * Creates the handler for the given type and stores it if the hook succeeds.
-     *
-     * @return true if a handler was created and stored
-     * @throws PermissionHandlerException if the handler could not be initialized
-     */
+    /** Creates and stores the handler for the given type if its plugin is available and enabled. */
     private boolean hookInto(PermissionsSystemType type) throws PermissionHandlerException {
         Plugin plugin = pluginManager.getPlugin(type.getPluginName());
         if (plugin == null) {
@@ -129,9 +114,7 @@ public class PermissionsManager implements Reloadable {
         return true;
     }
 
-    /**
-     * Reload the permissions manager, and re-hook all permission plugins.
-     */
+    /** Unhook from all permissions systems, then re-hook. */
     @Override
     public void reload() {
         handler = null;
@@ -139,20 +122,12 @@ public class PermissionsManager implements Reloadable {
         setup();
     }
 
-    /**
-     * Method called when a plugin is being enabled.
-     *
-     * @param pluginName The name of the plugin being enabled.
-     */
+    /** Method called when a plugin is being enabled. */
     public void onPluginEnable(String pluginName) {
         updateHooks(pluginName, "enabled, dynamically updating permissions hooks!");
     }
 
-    /**
-     * Method called when a plugin is being disabled.
-     *
-     * @param pluginName The name of the plugin being disabled.
-     */
+    /** Method called when a plugin is being disabled. */
     public void onPluginDisable(String pluginName) {
         updateHooks(pluginName, "disabled, updating hooks!");
     }
@@ -165,11 +140,7 @@ public class PermissionsManager implements Reloadable {
         }
     }
 
-    /**
-     * Return the permissions system that is hooked into.
-     *
-     * @return The permissions system, or null.
-     */
+    /** @return the permissions system that is hooked into, or null. */
     public PermissionsSystemType getPermissionSystem() {
         return isEnabled() ? handler.getPermissionSystem() : null;
     }
@@ -180,11 +151,9 @@ public class PermissionsManager implements Reloadable {
      *
      * @param sender         The command sender.
      * @param permissionNode The permissions node to verify.
-     *
      * @return True if the sender has the permission, false otherwise.
      */
     public boolean hasPermission(CommandSender sender, PermissionNode permissionNode) {
-        // Check if the permission node is null
         if (permissionNode == null) {
             return true;
         }
@@ -198,85 +167,43 @@ public class PermissionsManager implements Reloadable {
         return player.hasPermission(permissionNode.getNode());
     }
 
-    /**
-     * Check if a player has permission for the given permission node. This is for offline player checks.
-     * If no permissions system is used, then the player will not have permission.
-     *
-     * @param player         The offline player
-     * @param permissionNode The permission node to verify
-     *
-     * @return true if the player has permission, false otherwise
-     */
+    /** Check a player's permission offline, falling back to the default permission when no system is hooked. */
     public boolean hasPermissionOffline(OfflinePlayer player, PermissionNode permissionNode) {
-        return checkOfflinePermission(permissionNode, player, player, null);
+        return checkOfflinePermission(permissionNode, player, null);
     }
 
-    /**
-     * Check whether the offline player with the given name has permission for the given permission node.
-     * This method is used as a last resort when nothing besides the name is known.
-     *
-     * @param name           The name of the player
-     * @param permissionNode The permission node to verify
-     *
-     * @return true if the player has permission, false otherwise
-     */
+    /** Check an offline player's permission by name, used as a last resort when nothing else is known. */
     public boolean hasPermissionOffline(String name, PermissionNode permissionNode) {
-        return checkOfflinePermission(permissionNode, null, null, name);
+        return checkOfflinePermission(permissionNode, null, name);
     }
 
-    private boolean checkOfflinePermission(PermissionNode permissionNode, ServerOperator sender,
-                                           OfflinePlayer offlinePlayer, String name) {
+    private boolean checkOfflinePermission(PermissionNode permissionNode, OfflinePlayer player, String name) {
         if (permissionNode == null) {
             return true;
         }
         if (!isEnabled()) {
-            return permissionNode.getDefaultPermission().evaluate(sender);
+            return permissionNode.getDefaultPermission().evaluate(player);
         }
-        // Resolve the name only once the handler is known to be available, as before with the lazy supplier.
-        return handler.hasPermissionOffline(offlinePlayer != null ? offlinePlayer.getName() : name, permissionNode);
+        // Resolve the name only after the handler is known to be available.
+        return handler.hasPermissionOffline(player != null ? player.getName() : name, permissionNode);
     }
 
-    /**
-     * Check whether the current permissions system has group support.
-     * If no permissions system is hooked, false will be returned.
-     *
-     * @return True if the current permissions system supports groups, false otherwise.
-     */
+    /** @return true if the current permissions system supports groups. */
     public boolean hasGroupSupport() {
         return isEnabled() && handler.hasGroupSupport();
     }
 
-    /**
-     * Get the permission groups of a player, if available.
-     *
-     * @param player The player.
-     *
-     * @return Permission groups, or an empty collection if this feature is not supported.
-     */
+    /** @return the player's permission groups, or an empty collection if this feature is not supported. */
     public Collection<UserGroup> getGroups(OfflinePlayer player) {
         return isEnabled() ? handler.getGroups(player) : Collections.emptyList();
     }
 
-    /**
-     * Get the primary group of a player, if available.
-     *
-     * @param player The player.
-     *
-     * @return The name of the primary permission group. Or null.
-     */
+    /** @return the name of the player's primary permission group, or null. */
     public UserGroup getPrimaryGroup(OfflinePlayer player) {
         return isEnabled() ? handler.getPrimaryGroup(player) : null;
     }
 
-    /**
-     * Add the permission group of a player, if supported.
-     *
-     * @param player    The player
-     * @param groupName The name of the group.
-     *
-     * @return True if succeed, false otherwise.
-     *         False is also returned if this feature isn't supported for the current permissions system.
-     */
+    /** Add the permission group of a player, if supported. */
     public boolean addGroup(OfflinePlayer player, UserGroup groupName) {
         if (!isEnabled() || StringUtils.isBlank(groupName.getGroupName())) {
             return false;
@@ -284,41 +211,17 @@ public class PermissionsManager implements Reloadable {
         return handler.addToGroup(player, groupName);
     }
 
-    /**
-     * Add the permission groups of a player, if supported.
-     *
-     * @param player     The player
-     * @param groupNames The name of the groups to add.
-     *
-     * @return True if at least one group was added, false otherwise.
-     *         False is also returned if this feature isn't supported for the current permissions system.
-     */
+    /** Add the permission groups of a player, if supported. */
     public boolean addGroups(OfflinePlayer player, Collection<UserGroup> groupNames) {
         return changeGroups(player, groupNames, (p, g) -> handler.addToGroup(p, g));
     }
 
-    /**
-     * Remove the permission group of a player, if supported.
-     *
-     * @param player    The player
-     * @param group The name of the group.
-     *
-     * @return True if succeed, false otherwise.
-     *         False is also returned if this feature isn't supported for the current permissions system.
-     */
+    /** Remove the permission group of a player, if supported. */
     public boolean removeGroup(OfflinePlayer player, UserGroup group) {
         return isEnabled() && handler.removeFromGroup(player, group);
     }
 
-    /**
-     * Remove the permission groups of a player, if supported.
-     *
-     * @param player     The player
-     * @param groupNames The name of the groups to remove.
-     *
-     * @return True if at least one group was removed, false otherwise.
-     *         False is also returned if this feature isn't supported for the current permissions system.
-     */
+    /** Remove the permission groups of a player, if supported. */
     public boolean removeGroups(OfflinePlayer player, Collection<UserGroup> groupNames) {
         return changeGroups(player, groupNames, (p, g) -> handler.removeFromGroup(p, g));
     }
@@ -338,16 +241,7 @@ public class PermissionsManager implements Reloadable {
         return result;
     }
 
-    /**
-     * Set the permission group of a player, if supported.
-     * This clears the current groups of the player.
-     *
-     * @param player    The player
-     * @param group The name of the group.
-     *
-     * @return True if succeed, false otherwise.
-     *         False is also returned if this feature isn't supported for the current permissions system.
-     */
+    /** Set the permission group of a player, clearing its current groups, if supported. */
     public boolean setGroup(OfflinePlayer player, UserGroup group) {
         return isEnabled() && handler.setGroup(player, group);
     }
@@ -356,22 +250,12 @@ public class PermissionsManager implements Reloadable {
      * Remove all groups of the specified player, if supported.
      * Systems like Essentials GroupManager don't allow all groups to be removed from a player, thus the user will stay
      * in its primary group. All the subgroups are removed just fine.
-     *
-     * @param player The player to remove all groups from.
-     *
-     * @return True if succeed, false otherwise.
-     *         False will also be returned if this feature isn't supported for the used permissions system.
      */
     public boolean removeAllGroups(OfflinePlayer player) {
         return isEnabled() && removeGroups(player, getGroups(player));
     }
 
-    /**
-     * Loads the permission data of the given player.
-     *
-     * @param offlinePlayer the offline player.
-     * @return true if the load was successful.
-     */
+    /** Load the permission data of the given offline player. */
     public boolean loadUserData(OfflinePlayer offlinePlayer) {
         try {
             loadUserData(offlinePlayer.getUniqueId());

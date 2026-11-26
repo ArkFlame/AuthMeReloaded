@@ -91,7 +91,10 @@ public class LimboService {
         }
 
         Location location = teleportationService.consumeOriginalJoinLocation(name, spawnLoader.getPlayerLocationOrSpawn(player));
-        LimboPlayer limboPlayer = buildLimboPlayer(player, uuid, isRegistered, location, existingLimbo, limboFromDisk);
+        LimboPlayer merged = helper.merge(existingLimbo, limboFromDisk);
+        boolean wasOperator = pendingOperators.remove(uuid);
+        merged = helper.merge(helper.createLimboPlayer(player, isRegistered, location, wasOperator), merged);
+        LimboPlayer limboPlayer = isRegistered ? merged : helper.withoutOperator(merged);
 
         LimboMessageType messageType = isRegistered ? LimboMessageType.LOG_IN : LimboMessageType.REGISTER;
         taskManager.registerMessageTask(player, limboPlayer, messageType);
@@ -101,17 +104,6 @@ public class LimboService {
             isRegistered ? AuthGroupType.REGISTERED_UNAUTHENTICATED : AuthGroupType.UNREGISTERED);
         entries.put(uuid, limboPlayer);
         persistence.saveLimboPlayer(player, limboPlayer);
-    }
-
-    /**
-     * Combines the freshly captured player state with any limbo data kept in memory and on disk.
-     */
-    private LimboPlayer buildLimboPlayer(Player player, UUID uuid, boolean isRegistered, Location location,
-                                         LimboPlayer existingLimbo, LimboPlayer limboFromDisk) {
-        LimboPlayer limboPlayer = helper.merge(existingLimbo, limboFromDisk);
-        boolean wasOperator = pendingOperators.remove(uuid);
-        limboPlayer = helper.merge(helper.createLimboPlayer(player, isRegistered, location, wasOperator), limboPlayer);
-        return isRegistered ? limboPlayer : helper.withoutOperator(limboPlayer);
     }
 
     /**
@@ -199,15 +191,11 @@ public class LimboService {
     public void restoreSpeedsForAutoLogin(Player player) {
         String lowerName = player.getName().toLowerCase(Locale.ROOT);
         LimboPlayer diskLimbo = persistence.getLimboPlayer(player);
+        restoreSpeedStates(player, diskLimbo);
         if (diskLimbo != null) {
             // Disk limbo captured speeds before revokeLimboStates ran — restore from it
-            restoreSpeedStates(player, diskLimbo);
             logger.debug("Restored speeds from disk LimboPlayer for `{0}` during auto-login", lowerName);
             doRestoreEntities(player, diskLimbo);
-        } else {
-            // No snapshot: only correct stale zero speed persisted by a previous crash
-            // (do not touch allowFlight — original value is unknown without a limbo snapshot)
-            restoreSpeedStates(player, null);
         }
         persistence.removeLimboPlayer(player);
     }
@@ -237,26 +225,17 @@ public class LimboService {
     /** Restores recorded speed states, or corrects zero speeds when no limbo snapshot is available. */
     private void restoreSpeedStates(Player player, LimboPlayer limbo) {
         if (limbo == null) {
-            restoreDefaultSpeedsIfZero(player);
+            // Without a snapshot the original allowFlight is unknown; only correct stale zero speeds.
+            if (player.getWalkSpeed() < 0.01f) {
+                player.setWalkSpeed(LimboPlayer.DEFAULT_WALK_SPEED);
+            }
+            if (player.getFlySpeed() < 0.01f) {
+                player.setFlySpeed(LimboPlayer.DEFAULT_FLY_SPEED);
+            }
         } else {
-            restoreSpeedAndFlight(player, limbo);
-        }
-    }
-
-    /** Restores the speed and flight states recorded in a limbo player. */
-    private void restoreSpeedAndFlight(Player player, LimboPlayer limbo) {
-        settings.getProperty(RESTORE_ALLOW_FLIGHT).restoreAllowFlight(player, limbo);
-        settings.getProperty(RESTORE_FLY_SPEED).restoreFlySpeed(player, limbo);
-        settings.getProperty(RESTORE_WALK_SPEED).restoreWalkSpeed(player, limbo);
-    }
-
-    /** Corrects zero walk/fly speeds that may have been persisted while a player was unauthenticated. */
-    private static void restoreDefaultSpeedsIfZero(Player player) {
-        if (player.getWalkSpeed() < 0.01f) {
-            player.setWalkSpeed(LimboPlayer.DEFAULT_WALK_SPEED);
-        }
-        if (player.getFlySpeed() < 0.01f) {
-            player.setFlySpeed(LimboPlayer.DEFAULT_FLY_SPEED);
+            settings.getProperty(RESTORE_ALLOW_FLIGHT).restoreAllowFlight(player, limbo);
+            settings.getProperty(RESTORE_FLY_SPEED).restoreFlySpeed(player, limbo);
+            settings.getProperty(RESTORE_WALK_SPEED).restoreWalkSpeed(player, limbo);
         }
     }
 

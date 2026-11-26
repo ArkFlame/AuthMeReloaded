@@ -164,11 +164,7 @@ public class TeleportationService implements Reloadable {
         }
 
         Location firstSpawn = spawnLoader.getFirstSpawn();
-        if (firstSpawn == null) {
-            return;
-        }
-
-        if (!player.hasPlayedBefore() || !dataSource.isAuthAvailable(player.getName())) {
+        if (firstSpawn != null && (!player.hasPlayedBefore() || !dataSource.isAuthAvailable(player.getName()))) {
             logger.debug("Attempting to teleport player `{0}` to first spawn", player.getName());
             performTeleportation(player, new FirstSpawnTeleportEvent(player, firstSpawn));
         }
@@ -335,10 +331,9 @@ public class TeleportationService implements Reloadable {
     }
 
     private boolean isUnregisteredWithOptionalAuth(String playerName) {
-        if (settings.getProperty(RegistrationSettings.FORCE) || playerName == null) {
-            return false;
-        }
-        return !isRegistered(playerName);
+        return !settings.getProperty(RegistrationSettings.FORCE)
+            && playerName != null
+            && !isRegistered(playerName);
     }
 
     private boolean mustForceSpawnAfterLogin(String worldName) {
@@ -354,11 +349,8 @@ public class TeleportationService implements Reloadable {
 
     private Location buildLocationFromAuth(Player player, PlayerAuth auth) {
         World world = bukkitService.getWorld(auth.getWorld());
-        if (world == null) {
-            world = player.getWorld();
-        }
-        return new Location(world, auth.getQuitLocX(), auth.getQuitLocY(), auth.getQuitLocZ(),
-            auth.getYaw(), auth.getPitch());
+        return new Location(world == null ? player.getWorld() : world, auth.getQuitLocX(), auth.getQuitLocY(),
+            auth.getQuitLocZ(), auth.getYaw(), auth.getPitch());
     }
 
     private static boolean hasDefaultStoredQuitLocation(PlayerAuth auth) {
@@ -406,13 +398,9 @@ public class TeleportationService implements Reloadable {
      * @return the location to teleport to
      */
     private Location getSpawnLocation(final Player player) {
-        if (!player.hasPlayedBefore() || !isRegistered(player.getName())) {
-            final Location firstSpawn = getFirstSpawnIfPrioritized();
-            if (firstSpawn != null) {
-                return firstSpawn;
-            }
-        }
-        return spawnLoader.getSpawnLocation(player);
+        Location firstSpawn = (!player.hasPlayedBefore() || !isRegistered(player.getName()))
+            ? getFirstSpawnIfPrioritized() : null;
+        return firstSpawn != null ? firstSpawn : spawnLoader.getSpawnLocation(player);
     }
 
     /**
@@ -423,22 +411,15 @@ public class TeleportationService implements Reloadable {
      * @return the location to teleport to
      */
     private Location getSpawnLocation(final String playerName, final World world) {
-        if (!isRegistered(playerName)) {
-            final Location firstSpawn = getFirstSpawnIfPrioritized();
-            if (firstSpawn != null) {
-                return firstSpawn;
-            }
-        }
-        return spawnLoader.getSpawnLocation(world);
+        Location firstSpawn = !isRegistered(playerName) ? getFirstSpawnIfPrioritized() : null;
+        return firstSpawn != null ? firstSpawn : spawnLoader.getSpawnLocation(world);
     }
 
     private Location getFirstSpawnIfPrioritized() {
         String spawnPriority = settings.getProperty(RestrictionSettings.SPAWN_PRIORITY);
-        if (spawnPriority == null || spawnPriority.trim().isEmpty()) {
-            return spawnLoader.getFirstSpawn();
-        }
-        String[] priorities = spawnPriority.split(",");
-        return "authme".equalsIgnoreCase(priorities[0].trim()) ? spawnLoader.getFirstSpawn() : null;
+        boolean useFirstSpawn = spawnPriority == null || spawnPriority.trim().isEmpty()
+            || "authme".equalsIgnoreCase(spawnPriority.split(",")[0].trim());
+        return useFirstSpawn ? spawnLoader.getFirstSpawn() : null;
     }
 
     private boolean isRegistered(String playerName) {
