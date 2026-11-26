@@ -59,6 +59,21 @@ class CacheDataSourceConsistencyTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
+    void shouldReloadAfterUpdateSessionOnlyForForeignInstance(boolean sameInstance) {
+        PlayerAuth stored = auth("playerone");
+        when(source.getAuth("playerone")).thenReturn(stored);
+        assertThat(dataSource.getAuth("PlayerOne"), sameInstance(stored));
+        PlayerAuth written = sameInstance ? stored : auth("playerone");
+        when(source.updateSession(written)).thenReturn(true);
+
+        assertThat(dataSource.updateSession(written), is(true));
+        dataSource.closeConnection(); // waits for any asynchronous reload
+
+        verify(source, times(sameInstance ? 1 : 2)).getAuth("playerone");
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
     void shouldInvalidateEntryOnRemoveAuthRegardlessOfOutcome(boolean success) {
         seedCache();
 

@@ -164,7 +164,14 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public boolean updateSession(PlayerAuth auth) {
-        return updateCacheOnSuccess(source.updateSession(auth), auth.getNickname(), cachedAuths::refresh);
+        return updateCacheOnSuccess(source.updateSession(auth), auth.getNickname(), key -> {
+            // The login flow mutates the cached instance itself before persisting it: the cache already
+            // holds exactly what was written, so reloading it would only cost an extra SELECT per login.
+            Optional<PlayerAuth> cached = cachedAuths.getIfPresent(key);
+            if (cached == null || !cached.isPresent() || cached.get() != auth) {
+                cachedAuths.refresh(key);
+            }
+        });
     }
 
     @Override
