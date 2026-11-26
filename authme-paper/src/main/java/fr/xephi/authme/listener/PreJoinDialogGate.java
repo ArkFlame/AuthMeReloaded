@@ -65,11 +65,10 @@ final class PreJoinDialogGate {
         if (auth == null) {
             return false;
         }
-        if (auth.isPremium()) {
-            return verifiedUuid.equals(auth.getPremiumUuid());
-        }
-        UUID pendingUuid = pendingPremiumCache.getPendingUuid(normalizedName);
-        return pendingUuid != null && verifiedUuid.equals(pendingUuid);
+        UUID expectedUuid = auth.isPremium()
+            ? auth.getPremiumUuid()
+            : pendingPremiumCache.getPendingUuid(normalizedName);
+        return verifiedUuid.equals(expectedUuid);
     }
 
     private static boolean isClientDialogCapable(UUID playerId) {
@@ -78,8 +77,7 @@ final class PreJoinDialogGate {
                 return true;
             }
             Class<?> viaApiClass = Class.forName("com.viaversion.viaversion.api.ViaAPI");
-            Class<?> viaClass = Class.forName("com.viaversion.viaversion.api.Via");
-            Object api = viaClass.getMethod("getAPI").invoke(null);
+            Object api = Class.forName("com.viaversion.viaversion.api.Via").getMethod("getAPI").invoke(null);
             int version = (int) viaApiClass.getMethod("getPlayerVersion", UUID.class).invoke(api, playerId);
             return version >= DIALOG_MIN_PROTOCOL;
         } catch (Exception ignored) {

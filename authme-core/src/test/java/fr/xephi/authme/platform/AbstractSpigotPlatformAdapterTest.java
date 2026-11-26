@@ -110,26 +110,6 @@ class AbstractSpigotPlatformAdapterTest {
         }
     }
 
-    @Test
-    void shouldNotIncludeAdvancedShulkerFixWhenPlayerCommandSendIsAvailable() {
-        // 1.13+: the 1.8-only shulker fix must not register
-        AbstractSpigotPlatformAdapter adapter = new CapabilityControlledAdapter(
-            capsFor("org.bukkit.event.player.PlayerCommandSendEvent"));
-
-        assertThat(adapter.getListeners(), not(hasItem(AdvancedShulkerFixListener.class)));
-    }
-
-    @Test
-    void shouldNotIncludeLegacyPickupWhenModernPickupAvailable() {
-        // Edge: only modern pickup available, no other optional APIs
-        AbstractSpigotPlatformAdapter adapter = new CapabilityControlledAdapter(
-            capsFor("org.bukkit.event.entity.EntityPickupItemEvent"));
-        List<Class<? extends Listener>> listeners = adapter.getListeners();
-
-        assertThat(listeners, hasItem(EntityPickupItemListener.class));
-        assertThat(listeners, not(hasItem(LegacyPlayerPickupItemListener.class)));
-    }
-
     private static Stream<Arguments> listenerMatrixParams() {
         // 1.8: no optional API classes available
         List<Class<? extends Listener>> listeners18 = baseListeners();
@@ -147,6 +127,15 @@ class AbstractSpigotPlatformAdapterTest {
         List<Class<? extends Listener>> listeners112 = new ArrayList<>(listeners111);
         listeners112.remove(LegacyPlayerPickupItemListener.class);
         listeners112.add(EntityPickupItemListener.class);
+
+        // Edge: modern pickup only (no other optional APIs) replaces the legacy pickup listener
+        List<Class<? extends Listener>> listenersPickupOnly = new ArrayList<>(listeners18);
+        listenersPickupOnly.remove(LegacyPlayerPickupItemListener.class);
+        listenersPickupOnly.add(EntityPickupItemListener.class);
+
+        // 1.13+: PlayerCommandSendEvent omits the 1.8-only shulker fix
+        List<Class<? extends Listener>> listenersCommandSend = new ArrayList<>(listeners18);
+        listenersCommandSend.remove(AdvancedShulkerFixListener.class);
 
         return Stream.of(
             Arguments.of(capsFor(), listeners18, Arrays.asList(
@@ -166,7 +155,11 @@ class AbstractSpigotPlatformAdapterTest {
                 "org.bukkit.event.player.PlayerSwapHandItemsEvent",
                 "org.bukkit.event.entity.EntityAirChangeEvent",
                 "org.bukkit.event.entity.EntityPickupItemEvent"), listeners112,
-                Collections.singletonList(LegacyPlayerPickupItemListener.class)));
+                Collections.singletonList(LegacyPlayerPickupItemListener.class)),
+            Arguments.of(capsFor("org.bukkit.event.entity.EntityPickupItemEvent"), listenersPickupOnly,
+                Collections.emptyList()),
+            Arguments.of(capsFor("org.bukkit.event.player.PlayerCommandSendEvent"), listenersCommandSend,
+                Collections.emptyList()));
     }
 
     private static List<Class<? extends Listener>> baseListeners() {

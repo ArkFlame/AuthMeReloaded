@@ -1,7 +1,6 @@
 package fr.xephi.authme.service;
 
 import com.earth2me.essentials.Essentials;
-import org.mockito.MockMakers;
 import com.earth2me.essentials.User;
 import com.onarandombox.MultiverseCore.MultiverseCore;
 import com.onarandombox.MultiverseCore.api.MVWorldManager;
@@ -15,12 +14,15 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.MockMakers;
 
 import java.io.File;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -31,9 +33,9 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.withSettings;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.withSettings;
 
 /**
  * Test for {@link PluginHookService}.
@@ -47,15 +49,22 @@ class PluginHookServiceTest {
     /** The plugin name of Multiverse-Core. */
     private static final String MULTIVERSE = "Multiverse-Core";
 
+    private PluginManager pluginManager;
+
     @BeforeAll
     static void setLogger() {
         TestHelper.setupLogger();
     }
 
+    @BeforeEach
+    void setUp() {
+        // PluginManager is an interface, so the default subclass mock maker suffices
+        pluginManager = mock(PluginManager.class);
+    }
+
     @Test
     void shouldHookIntoEssentials() {
         // given
-        PluginManager pluginManager = mock(PluginManager.class, withSettings().mockMaker(MockMakers.INLINE));
         PluginHookService pluginHookService = new PluginHookService(pluginManager);
         setPluginAvailable(pluginManager, ESSENTIALS, Essentials.class);
         assertThat(pluginHookService.isEssentialsAvailable(), equalTo(false));
@@ -72,7 +81,6 @@ class PluginHookServiceTest {
     void shouldHookIntoPluginAtInitialization(String pluginName, Class<? extends Plugin> pluginClass,
                                               Predicate<PluginHookService> availability) {
         // given
-        PluginManager pluginManager = mock(PluginManager.class, withSettings().mockMaker(MockMakers.INLINE));
         setPluginAvailable(pluginManager, pluginName, pluginClass);
 
         // when
@@ -101,7 +109,6 @@ class PluginHookServiceTest {
         ReflectionTestUtils.setField(JavaPlugin.class, ess, "dataFolder", essDataFolder);
         given(ess.getDataFolder()).willCallRealMethod(); // Needed because static/final methods can be mocked
 
-        PluginManager pluginManager = mock(PluginManager.class, withSettings().mockMaker(MockMakers.INLINE));
         setPluginAvailable(pluginManager, ESSENTIALS, ess);
         PluginHookService pluginHookService = new PluginHookService(pluginManager);
 
@@ -112,17 +119,23 @@ class PluginHookServiceTest {
         assertThat(dataFolder, equalTo(essDataFolder));
     }
 
-    @Test
-    void shouldReturnNullForUnhookedEssentials() {
+    @ParameterizedTest(name = "returns null when no plugin is hooked")
+    @MethodSource("nullResultsWithoutHook")
+    void shouldReturnNullWithoutHook(Function<PluginHookService, Object> methodCall) {
         // given
-        PluginManager pluginManager = mock(PluginManager.class, withSettings().mockMaker(MockMakers.INLINE));
         PluginHookService pluginHookService = new PluginHookService(pluginManager);
 
         // when
-        File result = pluginHookService.getEssentialsDataFolder();
+        Object result = methodCall.apply(pluginHookService);
 
         // then
         assertThat(result, nullValue());
+    }
+
+    private static Stream<Arguments> nullResultsWithoutHook() {
+        return Stream.of(
+            Arguments.of((Function<PluginHookService, Object>) PluginHookService::getEssentialsDataFolder),
+            Arguments.of((Function<PluginHookService, Object>) service -> service.getMultiverseSpawn(null)));
     }
 
     @Test
@@ -134,7 +147,6 @@ class PluginHookServiceTest {
         User user = mock(User.class, withSettings().mockMaker(MockMakers.INLINE));
         given(ess.getUser(player)).willReturn(user);
 
-        PluginManager pluginManager = mock(PluginManager.class, withSettings().mockMaker(MockMakers.INLINE));
         setPluginAvailable(pluginManager, ESSENTIALS, ess);
         PluginHookService pluginHookService = new PluginHookService(pluginManager);
 
@@ -149,7 +161,7 @@ class PluginHookServiceTest {
     @Test
     void shouldNotDoAnythingForUnhookedEssentials() {
         // given
-        PluginHookService pluginHookService = new PluginHookService(mock(PluginManager.class, withSettings().mockMaker(MockMakers.INLINE)));
+        PluginHookService pluginHookService = new PluginHookService(pluginManager);
 
         // when/then
         pluginHookService.setEssentialsSocialSpyStatus(mock(Player.class, withSettings().mockMaker(MockMakers.INLINE)), false);
@@ -158,7 +170,6 @@ class PluginHookServiceTest {
     @Test
     void shouldUnhookEssentialsAndMultiverse() {
         // given
-        PluginManager pluginManager = mock(PluginManager.class, withSettings().mockMaker(MockMakers.INLINE));
         setPluginAvailable(pluginManager, ESSENTIALS, Essentials.class);
         setPluginAvailable(pluginManager, MULTIVERSE, MultiverseCore.class);
         PluginHookService pluginHookService = new PluginHookService(pluginManager);
@@ -175,7 +186,6 @@ class PluginHookServiceTest {
     @Test
     void shouldHandlePluginRetrievalError() {
         // given
-        PluginManager pluginManager = mock(PluginManager.class, withSettings().mockMaker(MockMakers.INLINE));
         given(pluginManager.isPluginEnabled(anyString())).willReturn(true);
         doThrow(IllegalStateException.class).when(pluginManager).getPlugin(anyString());
 
@@ -186,20 +196,6 @@ class PluginHookServiceTest {
         assertThat(pluginHookService.isEssentialsAvailable(), equalTo(false));
         assertThat(pluginHookService.isCmiAvailable(), equalTo(false));
         assertThat(pluginHookService.isMultiverseAvailable(), equalTo(false));
-    }
-
-    @Test
-    void shouldReturnNullForUnavailableMultiverse() {
-        // given
-        PluginManager pluginManager = mock(PluginManager.class, withSettings().mockMaker(MockMakers.INLINE));
-        PluginHookService pluginHookService = new PluginHookService(pluginManager);
-        World world = mock(World.class, withSettings().mockMaker(MockMakers.INLINE));
-
-        // when
-        Location result = pluginHookService.getMultiverseSpawn(world);
-
-        // then
-        assertThat(result, nullValue());
     }
 
     @Test
@@ -216,7 +212,6 @@ class PluginHookServiceTest {
         MultiverseCore multiverse = mock(MultiverseCore.class, withSettings().mockMaker(MockMakers.INLINE));
         given(multiverse.getMVWorldManager()).willReturn(mvWorldManager);
 
-        PluginManager pluginManager = mock(PluginManager.class, withSettings().mockMaker(MockMakers.INLINE));
         setPluginAvailable(pluginManager, MULTIVERSE, multiverse);
         PluginHookService pluginHookService = new PluginHookService(pluginManager);
 
@@ -237,7 +232,6 @@ class PluginHookServiceTest {
         MVWorldManager mvWorldManager = mock(MVWorldManager.class, withSettings().mockMaker(MockMakers.INLINE));
         given(mvWorldManager.isMVWorld(world)).willReturn(false);
 
-        PluginManager pluginManager = mock(PluginManager.class, withSettings().mockMaker(MockMakers.INLINE));
         MultiverseCore multiverse = mock(MultiverseCore.class, withSettings().mockMaker(MockMakers.INLINE));
         setPluginAvailable(pluginManager, MULTIVERSE, multiverse);
         given(multiverse.getMVWorldManager()).willReturn(mvWorldManager);

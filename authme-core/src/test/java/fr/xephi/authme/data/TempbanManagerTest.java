@@ -22,6 +22,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static fr.xephi.authme.service.BukkitServiceTestHelper.setBukkitServiceToRunOnGlobalRegion;
 import static fr.xephi.authme.service.BukkitServiceTestHelper.setBukkitServiceToScheduleSyncEntityTaskFromOptionallyAsyncTask;
@@ -237,12 +238,10 @@ class TempbanManagerTest {
     void shouldPerformCleanup() {
         // given
         Map<String, TimedCounter<String>> counts = new HashMap<>();
-        TimedCounter<String> counter1 = mockCounter();
-        given(counter1.isEmpty()).willReturn(true);
-        counts.put("11.11.11.11", counter1);
-        TimedCounter<String> counter2 = mockCounter();
-        given(counter2.isEmpty()).willReturn(false);
-        counts.put("33.33.33.33", counter2);
+        counts.put("11.11.11.11", new TimedCounter<>(10, TimeUnit.MINUTES));
+        TimedCounter<String> nonEmptyCounter = new TimedCounter<>(10, TimeUnit.MINUTES);
+        nonEmptyCounter.increment("user");
+        counts.put("33.33.33.33", nonEmptyCounter);
 
         TempbanManager manager = new TempbanManager(bukkitService, messages, mockSettings(3, 10, ""));
         ReflectionTestUtils.setField(TempbanManager.class, manager, "ipLoginFailureCounts", counts);
@@ -251,8 +250,6 @@ class TempbanManagerTest {
         manager.performCleanup();
 
         // then
-        verify(counter1).removeExpiredEntries();
-        verify(counter2).removeExpiredEntries();
         assertThat(counts.keySet(), contains("33.33.33.33"));
     }
 
@@ -277,21 +274,18 @@ class TempbanManagerTest {
         return settings;
     }
 
-    private static void assertHasNoEntries(TempbanManager manager, String address) {
+    private static TimedCounter<String> getCounter(TempbanManager manager, String address) {
         Map<String, TimedCounter<String>> playerCounts = ReflectionTestUtils
             .getFieldValue(TempbanManager.class, manager, "ipLoginFailureCounts");
-        TimedCounter<String> counter = playerCounts.get(address);
+        return playerCounts.get(address);
+    }
+
+    private static void assertHasNoEntries(TempbanManager manager, String address) {
+        TimedCounter<String> counter = getCounter(manager, address);
         assertThat(counter == null || counter.isEmpty(), equalTo(true));
     }
 
     private static void assertHasCount(TempbanManager manager, String address, String name, int count) {
-        Map<String, TimedCounter<String>> playerCounts = ReflectionTestUtils
-            .getFieldValue(TempbanManager.class, manager, "ipLoginFailureCounts");
-        assertThat(playerCounts.get(address).get(name), equalTo(count));
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> TimedCounter<T> mockCounter() {
-        return mock(TimedCounter.class);
+        assertThat(getCounter(manager, address).get(name), equalTo(count));
     }
 }

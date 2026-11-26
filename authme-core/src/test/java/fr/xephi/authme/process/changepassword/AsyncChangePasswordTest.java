@@ -16,17 +16,19 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.verification.VerificationMode;
 
 import java.util.stream.Stream;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.only;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -57,11 +59,10 @@ class AsyncChangePasswordTest {
     void shouldRejectCommandForUnknownUser() {
         CommandSender sender = mock(CommandSender.class);
         String player = "player";
-        String password = "password";
         given(playerCache.isAuthenticated(player)).willReturn(false);
         given(dataSource.isAuthAvailable(player)).willReturn(false);
 
-        asyncChangePassword.changePasswordAsAdmin(sender, player, password);
+        asyncChangePassword.changePasswordAsAdmin(sender, player, "password");
 
         verify(commonService).send(sender, MessageKey.UNKNOWN_USER);
         verify(dataSource, only()).isAuthAvailable(player);
@@ -69,8 +70,7 @@ class AsyncChangePasswordTest {
 
     @Test
     void shouldDoNothingIfPlayerIsNoLongerLoggedIn() {
-        Player player = mock(Player.class);
-        given(player.getName()).willReturn("Bobby");
+        Player player = mockPlayer("Bobby");
         given(playerCache.getAuth("bobby")).willReturn(null);
 
         asyncChangePassword.changePassword(player, "old", "new");
@@ -78,42 +78,25 @@ class AsyncChangePasswordTest {
         verifyNoInteractions(passwordSecurity, dataSource, commonService);
     }
 
-    @Test
-    void shouldNotMutateCachedPasswordWhenDatabaseSaveFails() {
-        Player player = mock(Player.class);
-        given(player.getName()).willReturn("Bobby");
+    @ParameterizedTest(name = "save successful={0}")
+    @ValueSource(booleans = {true, false})
+    void shouldOnlyUpdateCacheAfterSuccessfulSave(boolean saveSuccessful) {
+        Player player = mockPlayer("Bobby");
         PlayerAuth auth = mock(PlayerAuth.class);
+        HashedPassword hashedPassword = new HashedPassword("new_hash");
         given(playerCache.getAuth("bobby")).willReturn(auth);
         given(passwordSecurity.comparePassword("old", null, "Bobby")).willReturn(true);
-        HashedPassword hashedPassword = mock(HashedPassword.class);
         given(passwordSecurity.computeHash("new", "bobby")).willReturn(hashedPassword);
-        given(dataSource.updatePassword("bobby", hashedPassword)).willReturn(false);
+        given(dataSource.updatePassword("bobby", hashedPassword)).willReturn(saveSuccessful);
 
         asyncChangePassword.changePassword(player, "old", "new");
 
+        VerificationMode cached = saveSuccessful ? times(1) : never();
         verify(dataSource).updatePassword("bobby", hashedPassword);
-        verify(auth, never()).setPassword(any(HashedPassword.class));
-        verify(playerCache, never()).updatePlayerIfPresent(any(PlayerAuth.class));
-        verify(commonService).send(player, MessageKey.ERROR);
-    }
-
-    @Test
-    void shouldUpdateCachedPasswordAfterSuccessfulSave() {
-        Player player = mock(Player.class);
-        given(player.getName()).willReturn("Bobby");
-        PlayerAuth auth = mock(PlayerAuth.class);
-        given(playerCache.getAuth("bobby")).willReturn(auth);
-        given(passwordSecurity.comparePassword("old", null, "Bobby")).willReturn(true);
-        HashedPassword hashedPassword = mock(HashedPassword.class);
-        given(passwordSecurity.computeHash("new", "bobby")).willReturn(hashedPassword);
-        given(dataSource.updatePassword("bobby", hashedPassword)).willReturn(true);
-
-        asyncChangePassword.changePassword(player, "old", "new");
-
-        verify(dataSource).updatePassword("bobby", hashedPassword);
-        verify(auth).setPassword(hashedPassword);
-        verify(playerCache).updatePlayerIfPresent(auth);
-        verify(commonService).send(player, MessageKey.PASSWORD_CHANGED_SUCCESS);
+        verify(auth, cached).setPassword(hashedPassword);
+        verify(playerCache, cached).updatePlayerIfPresent(auth);
+        verify(commonService).send(player,
+            saveSuccessful ? MessageKey.PASSWORD_CHANGED_SUCCESS : MessageKey.ERROR);
     }
 
     @Test
@@ -124,7 +107,7 @@ class AsyncChangePasswordTest {
         PlayerAuth auth = mock(PlayerAuth.class);
         given(playerCache.isAuthenticated(player)).willReturn(true);
         given(playerCache.getAuth(player)).willReturn(auth);
-        HashedPassword hashedPassword = mock(HashedPassword.class);
+        HashedPassword hashedPassword = new HashedPassword("new_hash");
         given(passwordSecurity.computeHash(password, player)).willReturn(hashedPassword);
         given(dataSource.updatePassword(player, hashedPassword)).willReturn(true);
 
@@ -140,20 +123,19 @@ class AsyncChangePasswordTest {
     void shouldUpdatePassword(boolean loggedIn, boolean saveSuccessful, MessageKey expectedMessage) {
         CommandSender sender = mock(CommandSender.class);
         String player = "my_user12";
-        String password = "passPass";
         given(playerCache.isAuthenticated(player)).willReturn(loggedIn);
         if (!loggedIn) {
             given(dataSource.isAuthAvailable(player)).willReturn(true);
         }
 
-        HashedPassword hashedPassword = mock(HashedPassword.class);
-        given(passwordSecurity.computeHash(password, player)).willReturn(hashedPassword);
+        HashedPassword hashedPassword = new HashedPassword("hash");
+        given(passwordSecurity.computeHash("passPass", player)).willReturn(hashedPassword);
         given(dataSource.updatePassword(player, hashedPassword)).willReturn(saveSuccessful);
 
-        asyncChangePassword.changePasswordAsAdmin(sender, player, password);
+        asyncChangePassword.changePasswordAsAdmin(sender, player, "passPass");
 
         verify(commonService).send(sender, expectedMessage);
-        verify(passwordSecurity).computeHash(password, player);
+        verify(passwordSecurity).computeHash("passPass", player);
         verify(dataSource).updatePassword(player, hashedPassword);
     }
 
@@ -164,4 +146,9 @@ class AsyncChangePasswordTest {
             Arguments.of(true, false, MessageKey.ERROR));
     }
 
+    private static Player mockPlayer(String name) {
+        Player player = mock(Player.class);
+        given(player.getName()).willReturn(name);
+        return player;
+    }
 }

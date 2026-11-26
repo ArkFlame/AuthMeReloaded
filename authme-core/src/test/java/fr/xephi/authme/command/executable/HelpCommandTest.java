@@ -7,9 +7,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import fr.xephi.authme.command.CommandDescription;
 import fr.xephi.authme.command.CommandMapper;
 import fr.xephi.authme.command.FoundCommandResult;
+import fr.xephi.authme.command.FoundResultStatus;
 import fr.xephi.authme.command.help.HelpProvider;
 import org.bukkit.command.CommandSender;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
@@ -17,6 +21,7 @@ import org.mockito.Mock;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static fr.xephi.authme.command.FoundResultStatus.INCORRECT_ARGUMENTS;
 import static fr.xephi.authme.command.FoundResultStatus.MISSING_BASE_COMMAND;
@@ -54,6 +59,10 @@ public class HelpCommandTest {
 
     @Mock
     private HelpProvider helpProvider;
+
+    @Mock
+    private CommandSender sender;
+
     @Captor
     private ArgumentCaptor<String> captor;
 
@@ -61,7 +70,6 @@ public class HelpCommandTest {
     public void shouldHandleMissingBaseCommand() {
         // given
         List<String> arguments = asList("some", "command");
-        CommandSender sender = mock(CommandSender.class);
         FoundCommandResult foundCommandResult = new FoundCommandResult(null, null, null, 0.0, MISSING_BASE_COMMAND);
         given(commandMapper.mapPartsToCommand(sender, arguments)).willReturn(foundCommandResult);
 
@@ -77,7 +85,6 @@ public class HelpCommandTest {
     public void shouldHandleWrongCommandWithSuggestion() {
         // given
         List<String> arguments = asList("authme", "ragister", "test");
-        CommandSender sender = mock(CommandSender.class);
         CommandDescription description = newCommandDescription("authme", "register");
         FoundCommandResult foundCommandResult = new FoundCommandResult(description, asList("authme", "ragister"),
             singletonList("test"), 0.1, UNKNOWN_LABEL);
@@ -95,7 +102,6 @@ public class HelpCommandTest {
     @Test
     public void shouldHandleWrongCommandWithoutSuggestion() {
         List<String> arguments = asList("authme", "ragister", "test");
-        CommandSender sender = mock(CommandSender.class);
         FoundCommandResult foundCommandResult = new FoundCommandResult(null, asList("authme", "ragister"),
             singletonList("test"), 0.4, UNKNOWN_LABEL);
         given(commandMapper.mapPartsToCommand(sender, arguments)).willReturn(foundCommandResult);
@@ -109,14 +115,12 @@ public class HelpCommandTest {
         verifyNoInteractions(helpProvider);
     }
 
-    @Test
-    public void shouldShowChildrenOfBaseCommand() {
-        List<String> arguments = singletonList("authme");
-        CommandSender sender = mock(CommandSender.class);
-        CommandDescription commandDescription = mock(CommandDescription.class);
-        given(commandDescription.getLabelCount()).willReturn(1);
-        FoundCommandResult foundCommandResult = new FoundCommandResult(commandDescription, singletonList("authme"),
-            Collections.emptyList(), 0.0, SUCCESS);
+    @ParameterizedTest
+    @MethodSource("helpCases")
+    public void shouldOutputHelp(List<String> arguments, CommandDescription description,
+                                 FoundResultStatus status, int expectedOptions) {
+        FoundCommandResult foundCommandResult = new FoundCommandResult(description, arguments,
+            Collections.emptyList(), 0.0, status);
         given(commandMapper.mapPartsToCommand(sender, arguments)).willReturn(foundCommandResult);
 
         // when
@@ -124,26 +128,18 @@ public class HelpCommandTest {
 
         // then
         verify(sender, never()).sendMessage(anyString());
-        verify(helpProvider).outputHelp(sender, foundCommandResult,
-            SHOW_DESCRIPTION | SHOW_COMMAND | SHOW_CHILDREN | SHOW_ALTERNATIVES);
+        verify(helpProvider).outputHelp(sender, foundCommandResult, expectedOptions);
     }
 
-    @Test
-    public void shouldShowDetailedHelpForChildCommand() {
-        List<String> arguments = asList("authme", "getpos");
-        CommandSender sender = mock(CommandSender.class);
-        CommandDescription commandDescription = mock(CommandDescription.class);
-        given(commandDescription.getLabelCount()).willReturn(2);
-        FoundCommandResult foundCommandResult = new FoundCommandResult(commandDescription, asList("authme", "getpos"),
-            Collections.emptyList(), 0.0, INCORRECT_ARGUMENTS);
-        given(commandMapper.mapPartsToCommand(sender, arguments)).willReturn(foundCommandResult);
-
-        // when
-        command.executeCommand(sender, arguments);
-
-        // then
-        verify(sender, never()).sendMessage(anyString());
-        verify(helpProvider).outputHelp(sender, foundCommandResult, HelpProvider.ALL_OPTIONS);
+    private static Stream<Arguments> helpCases() {
+        CommandDescription baseCommand = mock(CommandDescription.class);
+        given(baseCommand.getLabelCount()).willReturn(1);
+        CommandDescription childCommand = mock(CommandDescription.class);
+        given(childCommand.getLabelCount()).willReturn(2);
+        return Stream.of(
+            Arguments.of(singletonList("authme"), baseCommand, SUCCESS,
+                SHOW_DESCRIPTION | SHOW_COMMAND | SHOW_CHILDREN | SHOW_ALTERNATIVES),
+            Arguments.of(asList("authme", "getpos"), childCommand, INCORRECT_ARGUMENTS, HelpProvider.ALL_OPTIONS));
     }
 
     private static CommandDescription newCommandDescription(String... labels) {
@@ -159,5 +155,3 @@ public class HelpCommandTest {
     }
 
 }
-
-

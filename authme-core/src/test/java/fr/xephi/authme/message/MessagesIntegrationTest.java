@@ -117,37 +117,30 @@ class MessagesIntegrationTest {
         verify(sender, never()).sendMessage(anyString());
     }
 
-    @Test
-    void shouldSendMessageToPlayer() {
-        MessageKey key = MessageKey.LOGIN_SUCCESS;
+    @ParameterizedTest
+    @CsvSource({
+        "LOGIN_SUCCESS, §cHere we have§bdefined some colors §dand some other §lthings",
+        "REGISTER_MESSAGE, '§3Please Tester, register to the §cTesty§3.'"
+    })
+    void shouldSendMessageToPlayer(MessageKey key, String expectedMessage) {
         Player player = mockPlayer();
 
         messages.send(player, key);
 
-        verify(player).sendMessage("§cHere we have§bdefined some colors §dand some other §lthings");
+        verify(player).sendMessage(expectedMessage);
     }
 
     @Test
     void shouldSendMultiLineMessageToPlayer() {
         MessageKey key = MessageKey.UNKNOWN_USER;
-        Player player = mockPlayer();
+        CommandSender sender = mockSender();
 
-        messages.send(player, key);
+        messages.send(sender, key);
 
         String[] lines = new String[]{"We've got", "new lines", "and ' apostrophes"};
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
-        verify(player, times(3)).sendMessage(captor.capture());
+        verify(sender, times(3)).sendMessage(captor.capture());
         assertThat(captor.getAllValues(), contains(lines));
-    }
-
-    @Test
-    void shouldSendMessageToPlayerWithNameReplacement() {
-        MessageKey key = MessageKey.REGISTER_MESSAGE;
-        Player player = mockPlayer();
-
-        messages.send(player, key);
-
-        verify(player).sendMessage("§3Please Tester, register to the §cTesty§3.");
     }
 
     @Test

@@ -27,7 +27,6 @@ import static org.mockito.Mockito.withSettings;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 
 /**
  * Test for {@link DoubleLoginFixListener}.
@@ -44,12 +43,12 @@ class DoubleLoginFixListenerTest {
     @Test
     void shouldNotKickAnyoneWhenFeatureIsDisabled() {
         given(commonService.getProperty(SecuritySettings.ANTI_GHOST_PLAYERS)).willReturn(false);
-        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
 
-        withBukkitServer(mock(Server.class, withSettings().mockMaker(MockMakers.INLINE)), () -> listener.onDuplicateNameJoin(mock(PlayerJoinEvent.class, withSettings().mockMaker(MockMakers.INLINE))));
+        withBukkitServer(mock(Server.class, withSettings().mockMaker(MockMakers.INLINE)),
+            () -> listener.onDuplicateNameJoin(mock(PlayerJoinEvent.class, withSettings().mockMaker(MockMakers.INLINE))));
 
         verify(commonService).getProperty(SecuritySettings.ANTI_GHOST_PLAYERS);
-        verifyNoInteractions(player);
+        verify(commonService, never()).retrieveSingleMessage(any(), any(MessageKey.class));
     }
 
     @Test

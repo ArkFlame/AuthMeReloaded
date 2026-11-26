@@ -37,10 +37,6 @@ public abstract class AbstractTotpPlayerCommand extends PlayerCommand {
      */
     protected abstract void handlePlayer(Player player, PlayerAuth auth, List<String> arguments);
 
-    protected final PlayerCache getPlayerCache() {
-        return playerCache;
-    }
-
     /**
      * Applies the result of a TOTP key update in the database to the player's auth state.
      *
@@ -54,7 +50,7 @@ public abstract class AbstractTotpPlayerCommand extends PlayerCommand {
                                             String newTotpKey, MessageKey successMessage) {
         if (databaseUpdated) {
             auth.setTotpKey(newTotpKey);
-            getPlayerCache().updatePlayerIfPresent(auth);
+            playerCache.updatePlayerIfPresent(auth);
             messages.send(player, successMessage);
         } else {
             messages.send(player, MessageKey.ERROR);
