@@ -11,20 +11,13 @@ public class RestoreSessionEvent extends AbstractCancellableEvent {
     private static final HandlerList handlers = new HandlerList();
     private final Player player;
 
-    /**
-     * @param player the player whose session is about to be restored, never {@code null}
-     * @param isAsync {@code true} to fire the event asynchronously, false otherwise
-     */
+    /** Creates the event for the given player, never {@code null}. */
     public RestoreSessionEvent(Player player, boolean isAsync) {
         super(isAsync);
         this.player = player;
     }
 
-    /**
-     * Return the player whose session is about to be restored.
-     *
-     * @return the player for which the session will be enabled, never {@code null}
-     */
+    /** Returns the player whose session is about to be restored; never {@code null}. */
     public Player getPlayer() {
         return player;
     }

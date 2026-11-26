@@ -15,7 +15,7 @@ public final class YamlFileResourceProvider {
     }
 
     /**
-     * Creates a {@link YamlFileResource} instance for the given file. Wraps SnakeYAML's parse exception
+     * Creates a {@link YamlFileResource} for the given file, wrapping SnakeYAML's parse exception
      * thrown when a reader is created into an AuthMe exception.
      *
      * @param file the file to load
@@ -26,8 +26,7 @@ public final class YamlFileResourceProvider {
     }
 
     /**
-     * Extension of {@link YamlFileResource} which wraps SnakeYAML's parse exception into a custom
-     * exception when a reader is created.
+     * Extension of {@link YamlFileResource} wrapping SnakeYAML's parse exception into a custom exception.
      */
     private static final class AuthMeYamlFileResource extends YamlFileResource {
 

@@ -45,8 +45,8 @@ public class PasswordSecurity implements Reloadable {
     @PostConstruct
     @Override
     public void reload() {
-        HashAlgorithm algorithm = settings.getProperty(SecuritySettings.PASSWORD_HASH);
-        this.encryptionMethod = initializeEncryptionMethodWithEvent(algorithm);
+        this.encryptionMethod =
+            initializeEncryptionMethodWithEvent(settings.getProperty(SecuritySettings.PASSWORD_HASH));
         this.legacyAlgorithms = settings.getProperty(SecuritySettings.LEGACY_HASHES);
         this.legacyEncryptionMethods = createLegacyEncryptionMethods(this.legacyAlgorithms);
     }
@@ -108,9 +108,6 @@ public class PasswordSecurity implements Reloadable {
      * @return An immutable list of encryption methods in configuration order (null for unsupported algorithms)
      */
     private List<EncryptionMethod> createLegacyEncryptionMethods(Collection<HashAlgorithm> algorithms) {
-        if (algorithms.isEmpty()) {
-            return Collections.emptyList();
-        }
         List<EncryptionMethod> methods = new ArrayList<>(algorithms.size());
         for (HashAlgorithm algorithm : algorithms) {
             methods.add(initializeEncryptionMethod(algorithm));

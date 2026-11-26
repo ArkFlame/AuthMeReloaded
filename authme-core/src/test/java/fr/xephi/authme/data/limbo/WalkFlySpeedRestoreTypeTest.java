@@ -26,7 +26,6 @@ class WalkFlySpeedRestoreTypeTest {
     void shouldRestoreToExpectedValue(WalkFlySpeedRestoreType type, float givenLimboWalkSpeed,
                                       float givenLimboFlySpeed, float givenPlayerWalkSpeed, float givenPlayerFlySpeed,
                                       float expectedWalkSpeed, float expectedFlySpeed) {
-        // given
         LimboPlayer limbo = new LimboPlayer(null, false, Collections.emptyList(), false,
             givenLimboWalkSpeed, givenLimboFlySpeed);
         Player player = mock(Player.class);
@@ -35,11 +34,9 @@ class WalkFlySpeedRestoreTypeTest {
             given(player.getFlySpeed()).willReturn(givenPlayerFlySpeed);
         }
 
-        // when
         type.restoreWalkSpeed(player, limbo);
         type.restoreFlySpeed(player, limbo);
 
-        // then
         verify(player).setWalkSpeed(expectedWalkSpeed);
         verify(player).setFlySpeed(expectedFlySpeed);
     }

@@ -130,7 +130,6 @@ public class LoginSecurityConverter implements Converter {
      */
     private static PlayerAuth buildAuthFromLoginSecurity(String name, ResultSet resultSet) throws SQLException {
         Timestamp lastLogin = resultSet.getTimestamp("last_login");
-        Long lastLoginMillis = lastLogin == null ? null : lastLogin.getTime();
         Date registrationDate = resultSet.getDate("registration_date");
         long regDate = registrationDate == null ? System.currentTimeMillis() : registrationDate.getTime();
         UUID uuid = UuidUtils.parseUuidSafely(resultSet.getString("unique_user_id"));
@@ -139,7 +138,7 @@ public class LoginSecurityConverter implements Converter {
             .realName(name)
             .password(resultSet.getString("password"), null)
             .lastIp(resultSet.getString("ip_address"))
-            .lastLogin(lastLoginMillis)
+            .lastLogin(lastLogin == null ? null : lastLogin.getTime())
             .registrationDate(regDate)
             .locX(resultSet.getDouble("x"))
             .locY(resultSet.getDouble("y"))
@@ -173,7 +172,7 @@ public class LoginSecurityConverter implements Converter {
             sender.sendMessage("The LoginSecurity database or username is not configured in AuthMe's config.yml");
             return null;
         } else {
-            connection = createMySqlConnection();
+            connection = openConnection("jdbc:mysql://" + mySqlHost + "/" + mySqlDatabase, mySqlUser, mySqlPassword);
         }
 
         if (connection == null) {
@@ -198,10 +197,6 @@ public class LoginSecurityConverter implements Converter {
             throw new IllegalStateException(e);
         }
         return openConnection("jdbc:sqlite:" + path, "trump", "donald");
-    }
-
-    private Connection createMySqlConnection() {
-        return openConnection("jdbc:mysql://" + mySqlHost + "/" + mySqlDatabase, mySqlUser, mySqlPassword);
     }
 
     private Connection openConnection(String url, String user, String password) {

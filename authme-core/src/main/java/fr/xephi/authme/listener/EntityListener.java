@@ -21,12 +21,11 @@ public class EntityListener extends AbstractCancelListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onDamage(EntityDamageEvent event) {
-        boolean shouldCancel = getListenerService().shouldCancelEvent(event);
-        if (shouldCancel) {
+        if (getListenerService().shouldCancelEvent(event)) {
             event.getEntity().setFireTicks(0);
             event.setDamage(0);
+            event.setCancelled(true);
         }
-        cancelEvent(shouldCancel, event);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
@@ -36,11 +35,10 @@ public class EntityListener extends AbstractCancelListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onEntityTarget(EntityTargetEvent event) {
-        boolean shouldCancel = getListenerService().shouldCancelEvent(event.getTarget());
-        if (shouldCancel) {
+        if (getListenerService().shouldCancelEvent(event.getTarget())) {
             event.setTarget(null);
+            event.setCancelled(true);
         }
-        cancelEvent(shouldCancel, event);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
@@ -50,11 +48,10 @@ public class EntityListener extends AbstractCancelListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void entityRegainHealthEvent(EntityRegainHealthEvent event) {
-        boolean shouldCancel = getListenerService().shouldCancelEvent(event);
-        if (shouldCancel) {
+        if (getListenerService().shouldCancelEvent(event)) {
             event.setAmount(0);
+            event.setCancelled(true);
         }
-        cancelEvent(shouldCancel, event);
     }
 
     // Both priorities are needed: the LOWEST handler blocks early, the HIGHEST one

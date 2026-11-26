@@ -23,18 +23,12 @@ public abstract class AbstractTotpPlayerCommand extends PlayerCommand {
         PlayerAuth auth = playerCache.getAuth(player.getName());
         if (auth == null) {
             messages.send(player, MessageKey.NOT_LOGGED_IN);
-        } else {
-            handlePlayer(player, auth, arguments);
+            return;
         }
+        handlePlayer(player, auth, arguments);
     }
 
-    /**
-     * Acts on the given player's two-factor authentication state.
-     *
-     * @param player the player who executed the command
-     * @param auth the authentication state of that player
-     * @param arguments the arguments supplied with the command
-     */
+    /** Acts on the given player's two-factor authentication state. */
     protected abstract void handlePlayer(Player player, PlayerAuth auth, List<String> arguments);
 
     /**

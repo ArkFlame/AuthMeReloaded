@@ -52,7 +52,14 @@ public class DataSourceProvider implements Provider<DataSource> {
                     settings.getProperty(DatabaseSettings.USE_VIRTUAL_THREADS));
             }
             if (DataSourceType.SQLITE.equals(dataSourceType)) {
-                checkDataSourceSize(dataSource);
+                DataSource sqliteDataSource = dataSource;
+                bukkitService.runTaskAsynchronously(() -> {
+                    int accounts = sqliteDataSource.getAccountsRegistered();
+                    if (accounts >= SQLITE_MAX_SIZE) {
+                        logger.warning("YOU'RE USING THE SQLITE DATABASE WITH "
+                            + accounts + "+ ACCOUNTS; FOR BETTER PERFORMANCE, PLEASE UPGRADE TO MYSQL!!");
+                    }
+                });
             }
             return dataSource;
         } catch (Exception e) {
@@ -74,15 +81,5 @@ public class DataSourceProvider implements Provider<DataSource> {
             default:
                 throw new UnsupportedOperationException("Unknown data source type '" + dataSourceType + "'");
         }
-    }
-
-    private void checkDataSourceSize(DataSource dataSource) {
-        bukkitService.runTaskAsynchronously(() -> {
-            int accounts = dataSource.getAccountsRegistered();
-            if (accounts >= SQLITE_MAX_SIZE) {
-                logger.warning("YOU'RE USING THE SQLITE DATABASE WITH "
-                    + accounts + "+ ACCOUNTS; FOR BETTER PERFORMANCE, PLEASE UPGRADE TO MYSQL!!");
-            }
-        });
     }
 }

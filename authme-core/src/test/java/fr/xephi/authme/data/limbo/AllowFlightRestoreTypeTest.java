@@ -1,9 +1,9 @@
 package fr.xephi.authme.data.limbo;
 
 import org.bukkit.entity.Player;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.stream.Stream;
@@ -53,23 +53,20 @@ class AllowFlightRestoreTypeTest {
             Arguments.of(NOTHING, false, false, false));
     }
 
-    @Test
-    void shouldRemoveFlightExceptForNothingType() {
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(AllowFlightRestoreType.class)
+    void shouldRemoveFlightExceptForNothingType(AllowFlightRestoreType type) {
         // given
-        AllowFlightRestoreType noInteractionType = AllowFlightRestoreType.NOTHING;
+        Player player = mock(Player.class);
 
-        for (AllowFlightRestoreType type : AllowFlightRestoreType.values()) {
-            Player player = mock(Player.class);
+        // when
+        type.processPlayer(player);
 
-            // when
-            type.processPlayer(player);
-
-            // then
-            if (type == noInteractionType) {
-                verifyNoInteractions(player);
-            } else {
-                verify(player).setAllowFlight(false);
-            }
+        // then
+        if (type == NOTHING) {
+            verifyNoInteractions(player);
+        } else {
+            verify(player).setAllowFlight(false);
         }
     }
 

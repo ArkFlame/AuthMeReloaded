@@ -28,12 +28,8 @@ public interface EventRegistrationAdapter {
      */
     static List<Class<? extends Listener>> getCommonListeners() {
         return Collections.unmodifiableList(Arrays.asList(
-            PlayerListener.class,
-            BlockListener.class,
-            EntityListener.class,
-            ServerListener.class,
-            DoubleLoginFixListener.class,
-            LoginLocationFixListener.class));
+            PlayerListener.class, BlockListener.class, EntityListener.class,
+            ServerListener.class, DoubleLoginFixListener.class, LoginLocationFixListener.class));
     }
 
     @SafeVarargs

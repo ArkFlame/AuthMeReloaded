@@ -33,9 +33,6 @@ public class AsyncConfirmEmail implements AsynchronousProcess {
     @Inject
     private PendingEmailVerificationCache pendingEmailVerificationCache;
 
-    AsyncConfirmEmail() {
-    }
-
     /**
      * Validates the supplied code against the pending email confirmation for the player.
      * On success, saves the new address to the database and player cache.
@@ -52,8 +49,7 @@ public class AsyncConfirmEmail implements AsynchronousProcess {
             return;
         }
 
-        PendingEmailVerificationCache.PendingEntry entry =
-            pendingEmailVerificationCache.getEntry(playerName);
+        PendingEmailVerificationCache.PendingEntry entry = pendingEmailVerificationCache.getEntry(playerName);
         if (entry == null || !entry.code().equals(code)) {
             service.send(player, entry == null ? MessageKey.EMAIL_CONFIRM_CODE_EXPIRED
                                                : MessageKey.EMAIL_CONFIRM_WRONG_CODE);

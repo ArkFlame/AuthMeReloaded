@@ -8,6 +8,9 @@ import org.bukkit.command.CommandSender;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -17,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
 
 import static fr.xephi.authme.platform.BrigadierTestSupport.command;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -78,32 +82,21 @@ public class PaperBrigadierCommandRegistrarTest {
         assertThat(executedCommands, contains(List.of("authme")));
     }
 
-    @Test
-    public void shouldDelegateUnknownSubcommandThroughFallback() throws Exception {
-        dispatcher.execute("authme typo", sourceStack);
+    @ParameterizedTest
+    @MethodSource("delegationCases")
+    public void shouldDelegateParsedArgumentsToExistingHandler(String input, List<String> expected) throws Exception {
+        dispatcher.execute(input, sourceStack);
 
-        assertThat(executedCommands, contains(List.of("authme", "typo")));
+        assertThat(executedCommands, contains(expected));
     }
 
-    @Test
-    public void shouldDelegateMissingArgumentsToExistingHandler() throws Exception {
-        dispatcher.execute("login", sourceStack);
-
-        assertThat(executedCommands, contains(List.of("login")));
-    }
-
-    @Test
-    public void shouldDelegateExtraArgumentsToExistingHandler() throws Exception {
-        dispatcher.execute("login password extra", sourceStack);
-
-        assertThat(executedCommands, contains(List.of("login", "password", "extra")));
-    }
-
-    @Test
-    public void shouldHandleAtSignInNonLastArgument() throws Exception {
-        dispatcher.execute("authme register test@gmail.com myPassword", sourceStack);
-
-        assertThat(executedCommands, contains(List.of("authme", "register", "test@gmail.com", "myPassword")));
+    private static Stream<Arguments> delegationCases() {
+        return Stream.of(
+            Arguments.of("authme typo", List.of("authme", "typo")),
+            Arguments.of("login", List.of("login")),
+            Arguments.of("login password extra", List.of("login", "password", "extra")),
+            Arguments.of("authme register test@gmail.com myPassword",
+                List.of("authme", "register", "test@gmail.com", "myPassword")));
     }
 
     @Test

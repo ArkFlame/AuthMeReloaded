@@ -14,9 +14,6 @@ public class PasswordRegisterParams extends AbstractPasswordRegisterParams {
         this.email = email;
     }
 
-    /**
-     * Creates a params object.
-     */
     public static PasswordRegisterParams of(Player player, String password, String email) {
         return new PasswordRegisterParams(player, password, email);
     }

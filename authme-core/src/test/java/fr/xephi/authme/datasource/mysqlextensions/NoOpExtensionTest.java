@@ -28,21 +28,17 @@ class NoOpExtensionTest {
     void createExtension() {
         Settings settings = mock(Settings.class);
         TestHelper.returnDefaultsForAllProperties(settings);
-        Columns columns = new Columns(settings);
-        extension = new NoOpExtension(settings, columns);
+        extension = new NoOpExtension(settings, new Columns(settings));
     }
 
     @Test
     void shouldNotHaveAnyInteractionsWithConnection() throws SQLException {
         Connection connection = mock(Connection.class);
         PlayerAuth auth = mock(PlayerAuth.class);
-        int id = 3;
-        String name = "Bobby";
-        HashedPassword password = new HashedPassword("test", "toast");
 
-        extension.extendAuth(auth, id, connection);
-        extension.changePassword(name, password, connection);
-        extension.removeAuth(name, connection);
+        extension.extendAuth(auth, 3, connection);
+        extension.changePassword("Bobby", new HashedPassword("test", "toast"), connection);
+        extension.removeAuth("Bobby", connection);
         extension.saveAuth(auth, connection);
 
         verifyNoInteractions(connection, auth);
