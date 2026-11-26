@@ -43,16 +43,11 @@ public class VerificationCodeManager implements SettingsDependent, HasCleanup {
         this.bukkitService = bukkitService;
         pendingCodeGenerations = ConcurrentHashMap.newKeySet();
         verifiedPlayers = ConcurrentHashMap.newKeySet();
-        long countTimeout = settings.getProperty(SecuritySettings.VERIFICATION_CODE_EXPIRATION_MINUTES);
-        verificationCodes = new ExpiringMap<>(countTimeout, TimeUnit.MINUTES);
+        verificationCodes = new ExpiringMap<>(
+            settings.getProperty(SecuritySettings.VERIFICATION_CODE_EXPIRATION_MINUTES), TimeUnit.MINUTES);
         reload(settings);
     }
 
-    /**
-     * Returns if it is possible to send emails
-     *
-     * @return true if the service is enabled, false otherwise
-     */
     public boolean canSendMail() {
         return canSendMail;
     }
@@ -161,20 +156,10 @@ public class VerificationCodeManager implements SettingsDependent, HasCleanup {
         return true;
     }
 
-    /**
-     * Add the user to the set of verified users
-     *
-     * @param name the name of the player to generate a code for
-     */
     public void verify(String name) {
         verifiedPlayers.add(normalize(name));
     }
 
-    /**
-     * Remove the user from the set of verified users
-     *
-     * @param name the name of the player to generate a code for
-     */
     public void unverify(String name) {
         verifiedPlayers.remove(normalize(name));
     }

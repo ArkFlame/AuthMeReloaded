@@ -105,7 +105,7 @@ final class PreJoinRegisterProcessor {
                                         RegisterSecondaryArgument secondArg, DialogResponseView view) {
         String email = view.getText("email");
         String confirm = view.getText("confirm");
-        if (isBlank(email) || !validationService.validateEmail(email)) {
+        if (email == null || email.isBlank() || !validationService.validateEmail(email)) {
             showError(connection, playerName, MessageKey.INVALID_EMAIL);
             return;
         }
@@ -121,7 +121,7 @@ final class PreJoinRegisterProcessor {
                                            String playerName, RegisterSecondaryArgument secondArg,
                                            DialogResponseView view) {
         String password = view.getText("password");
-        if (isBlank(password)) {
+        if (password == null || password.isBlank()) {
             showError(connection, playerName, MessageKey.INVALID_PASSWORD_LENGTH);
             return;
         }
@@ -138,8 +138,8 @@ final class PreJoinRegisterProcessor {
         if (secondArg == RegisterSecondaryArgument.EMAIL_MANDATORY
             || secondArg == RegisterSecondaryArgument.EMAIL_OPTIONAL) {
             email = view.getText("email");
-            boolean blankEmail = isBlank(email);
-            if (blankEmail ? secondArg == RegisterSecondaryArgument.EMAIL_MANDATORY
+            if ((email == null || email.isBlank())
+                ? secondArg == RegisterSecondaryArgument.EMAIL_MANDATORY
                 : !validationService.validateEmail(email)) {
                 showError(connection, playerName, MessageKey.INVALID_EMAIL);
                 return;
@@ -156,9 +156,5 @@ final class PreJoinRegisterProcessor {
         RegisterSecondaryArgument secondArg = commonService.getProperty(RegistrationSettings.REGISTER_SECOND_ARGUMENT);
         DialogWindowSpec spec = dialogWindowService.createPreJoinRegisterDialog(playerName, registrationType, secondArg);
         connection.getAudience().showDialog(PaperDialogHelper.createPreJoinRegisterDialog(spec.withBody(errorMessage)));
-    }
-
-    private static boolean isBlank(String value) {
-        return value == null || value.isBlank();
     }
 }

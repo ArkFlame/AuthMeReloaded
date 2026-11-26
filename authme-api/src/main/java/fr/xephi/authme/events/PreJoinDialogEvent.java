@@ -58,13 +58,7 @@ public class PreJoinDialogEvent extends AbstractCancellableEvent {
         this.registered = registered;
     }
 
-    /**
-     * @param playerName the player name as supplied by the configuration-phase profile
-     * @param playerId the player's unique id, may be {@code null} if the profile has none
-     * @param dialogType the dialog AuthMe is about to show
-     * @param registered whether the player has a registered account
-     * @param isAsync {@code true} because the configuration phase runs off the main thread
-     */
+    /** Creates an event without a client address; see the full constructor for the parameter contract. */
     public PreJoinDialogEvent(String playerName, UUID playerId, DialogType dialogType,
                               boolean registered, boolean isAsync) {
         this(playerName, playerId, null, dialogType, registered, isAsync);

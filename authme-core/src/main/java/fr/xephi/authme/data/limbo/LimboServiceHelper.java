@@ -113,7 +113,10 @@ class LimboServiceHelper {
         boolean canFly = newLimbo.isCanFly() || oldLimbo.isCanFly();
         float flySpeed = newLimbo.getFlySpeed();
         float walkSpeed = newLimbo.getWalkSpeed();
-        Collection<UserGroup> groups = getLimboGroups(oldLimbo.getGroups(), newLimbo.getGroups());
+        Collection<UserGroup> oldGroups = oldLimbo.getGroups();
+        Collection<UserGroup> newGroups = newLimbo.getGroups();
+        logger.debug("Limbo merge: new and old groups are `{0}` and `{1}`", newGroups, oldGroups);
+        Collection<UserGroup> groups = isCollectionEmpty(oldGroups) ? newGroups : oldGroups;
         Location location = firstNotNull(oldLimbo.getLocation(), newLimbo.getLocation());
 
         LimboPlayer merged = new LimboPlayer(location, isOperator, groups, canFly, walkSpeed, flySpeed);
@@ -162,11 +165,5 @@ class LimboServiceHelper {
 
     private static <T> T firstNotNull(T first, T second) {
         return first == null ? second : first;
-    }
-
-    private Collection<UserGroup> getLimboGroups(Collection<UserGroup> oldLimboGroups,
-                                                 Collection<UserGroup> newLimboGroups) {
-        logger.debug("Limbo merge: new and old groups are `{0}` and `{1}`", newLimboGroups, oldLimboGroups);
-        return isCollectionEmpty(oldLimboGroups) ? newLimboGroups : oldLimboGroups;
     }
 }

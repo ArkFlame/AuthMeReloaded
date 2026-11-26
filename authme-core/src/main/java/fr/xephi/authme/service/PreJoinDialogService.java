@@ -54,12 +54,10 @@ public class PreJoinDialogService {
      */
     public PendingDialogState consumeSession(String normalizedName) {
         Long sessionId = sessionByName.remove(normalizedName);
-        if (sessionId == null) {
-            return PendingDialogState.NONE;
-        }
-
-        DialogSession session = sessions.remove(sessionId);
-        return session == null ? PendingDialogState.NONE : session.toPendingState();
+        DialogSession session = sessionId == null ? null : sessions.remove(sessionId);
+        return session == null ? PendingDialogState.NONE : new PendingDialogState(session.loginPassword,
+            session.recoveryEmail, session.registration, session.skipPostJoinDialog, session.forceLogin,
+            session.kickMessage);
     }
 
     public void storePendingLoginPassword(long sessionId, String password) {
@@ -145,11 +143,6 @@ public class PreJoinDialogService {
 
         DialogSession(String name) {
             this.name = name;
-        }
-
-        PendingDialogState toPendingState() {
-            return new PendingDialogState(loginPassword, recoveryEmail, registration,
-                skipPostJoinDialog, forceLogin, kickMessage);
         }
     }
 

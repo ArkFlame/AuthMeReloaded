@@ -90,26 +90,10 @@ public class PasswordSecurity implements Reloadable {
         if (methodMatches(encryptionMethod, password, hashedPassword, playerLowerCase)) {
             return true;
         }
-        // No legacy hashes configured is the common case: skip building an iterator on the login path.
-        return !legacyEncryptionMethods.isEmpty()
-            && compareWithLegacyHashes(password, hashedPassword, playerLowerCase);
-    }
-
-    /**
-     * Compare the given hash with the configured legacy encryption methods to support
-     * the migration to a new encryption method. Upon a successful match, the password
-     * will be hashed with the new encryption method and persisted.
-     *
-     * @param password       The clear-text password to check
-     * @param hashedPassword The encrypted password to test the clear-text password against
-     * @param playerName     The name of the player
-     *
-     * @return True if there was a password match with a configured legacy encryption method, false otherwise
-     */
-    private boolean compareWithLegacyHashes(String password, HashedPassword hashedPassword, String playerName) {
+        // On a legacy match, re-hash with the new algorithm and persist it; a legacy match always authenticates.
         for (EncryptionMethod method : legacyEncryptionMethods) {
-            if (methodMatches(method, password, hashedPassword, playerName)) {
-                hashAndSavePasswordWithNewAlgorithm(password, playerName);
+            if (methodMatches(method, password, hashedPassword, playerLowerCase)) {
+                hashAndSavePasswordWithNewAlgorithm(password, playerLowerCase);
                 return true;
             }
         }

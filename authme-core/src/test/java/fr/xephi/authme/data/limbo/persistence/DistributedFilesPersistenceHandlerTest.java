@@ -30,6 +30,7 @@ import static fr.xephi.authme.data.limbo.LimboPlayerMatchers.hasLocation;
 import static fr.xephi.authme.data.limbo.LimboPlayerMatchers.isLimbo;
 import static java.util.UUID.fromString;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
@@ -150,12 +151,8 @@ class DistributedFilesPersistenceHandlerTest {
         persistenceHandler.saveLimboPlayer(uuidToAdd1, limbo1);
         persistenceHandler.saveLimboPlayer(uuidToAdd2, limbo2);
 
-        LimboPlayer addedPlayer1 = persistenceHandler.getLimboPlayer(uuidToAdd1);
-        assertThat(addedPlayer1, isLimbo(limbo1));
-        assertThat(addedPlayer1, hasLocation(location1));
-        LimboPlayer addedPlayer2 = persistenceHandler.getLimboPlayer(uuidToAdd2);
-        assertThat(addedPlayer2, isLimbo(limbo2));
-        assertThat(addedPlayer2, hasLocation(location2));
+        assertThat(persistenceHandler.getLimboPlayer(uuidToAdd1), allOf(isLimbo(limbo1), hasLocation(location1)));
+        assertThat(persistenceHandler.getLimboPlayer(uuidToAdd2), allOf(isLimbo(limbo2), hasLocation(location2)));
 
         assertExistingLimboPlayers();
     }

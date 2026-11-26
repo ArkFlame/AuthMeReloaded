@@ -171,7 +171,8 @@ public class AuthMeApi {
      */
     @Deprecated
     public Date getLastLogin(String playerName) {
-        return Optional.ofNullable(getLastLoginTime(playerName)).map(Date::from).orElse(null);
+        Instant lastLogin = getLastLoginTime(playerName);
+        return lastLogin == null ? null : Date.from(lastLogin);
     }
 
     /**
@@ -187,12 +188,7 @@ public class AuthMeApi {
         return lastLogin == null ? null : Instant.ofEpochMilli(lastLogin);
     }
 
-    /**
-     * Looks up a player in the cache first, falling back to the data source.
-     *
-     * @param playerName the player name to look up
-     * @return the player auth, or null if no data exists for the player
-     */
+    /** Looks up a player in the cache first, falling back to the data source. */
     private PlayerAuth getAuth(String playerName) {
         PlayerAuth auth = playerCache.getAuth(playerName);
         return auth != null ? auth : dataSource.getAuth(playerName);

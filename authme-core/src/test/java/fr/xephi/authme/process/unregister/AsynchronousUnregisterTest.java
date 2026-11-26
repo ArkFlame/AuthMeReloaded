@@ -72,6 +72,10 @@ class AsynchronousUnregisterTest {
     private CommandManager commandManager;
     @Mock
     private BungeeSender bungeeSender;
+    @Mock
+    private Player player;
+    @Mock
+    private CommandSender initiator;
 
     @BeforeAll
     static void initLogger() {
@@ -80,7 +84,6 @@ class AsynchronousUnregisterTest {
 
     @Test
     void shouldRejectWrongPassword() {
-        Player player = mock(Player.class);
         String name = "Bobby";
         HashedPassword password = givenRegisteredPlayer(player, name);
         given(passwordSecurity.comparePassword("pass", password, name)).willReturn(false);
@@ -95,7 +98,6 @@ class AsynchronousUnregisterTest {
 
     @Test
     void shouldDoNothingIfPlayerIsNoLongerLoggedIn() {
-        Player player = mock(Player.class);
         given(player.getName()).willReturn("Bobby");
         given(playerCache.getAuth("Bobby")).willReturn(null);
 
@@ -107,7 +109,6 @@ class AsynchronousUnregisterTest {
     @ParameterizedTest(name = "blind effect={0}")
     @ValueSource(booleans = {true, false})
     void shouldPerformUnregister(boolean applyBlindEffect) {
-        Player player = mock(Player.class);
         String name = "Frank21";
         HashedPassword password = givenRegisteredPlayer(player, name);
         given(player.isOnline()).willReturn(true);
@@ -133,7 +134,6 @@ class AsynchronousUnregisterTest {
 
     @Test
     void shouldOnlyTeleportOnThePlayerThread() {
-        Player player = mock(Player.class);
         String name = "Frank21";
         HashedPassword password = givenRegisteredPlayer(player, name);
         given(player.isOnline()).willReturn(true);
@@ -159,7 +159,6 @@ class AsynchronousUnregisterTest {
 
     @Test
     void shouldNotApplyUnregisteredEffectsForNotForcedRegistration() {
-        Player player = mock(Player.class);
         String name = "__FranK";
         given(player.getName()).willReturn(name);
         given(player.isOnline()).willReturn(true);
@@ -181,7 +180,6 @@ class AsynchronousUnregisterTest {
 
     @Test
     void shouldHandleDatabaseError() {
-        Player player = mock(Player.class);
         String name = "Frank21";
         HashedPassword password = givenRegisteredPlayer(player, name);
         given(passwordSecurity.comparePassword("pass", password, name)).willReturn(true);
@@ -197,7 +195,6 @@ class AsynchronousUnregisterTest {
 
     @Test
     void shouldNotTeleportOfflinePlayer() {
-        Player player = mock(Player.class);
         String name = "Frank21";
         HashedPassword password = givenRegisteredPlayer(player, name);
         given(player.isOnline()).willReturn(false);
@@ -216,13 +213,11 @@ class AsynchronousUnregisterTest {
     // Initiator known and Player object available
     @Test
     void shouldPerformAdminUnregister() {
-        Player player = mock(Player.class);
         String name = "Frank21";
         given(player.isOnline()).willReturn(true);
         given(dataSource.removeAuth(name)).willReturn(true);
         given(service.getProperty(RegistrationSettings.FORCE)).willReturn(true);
         given(service.getProperty(RegistrationSettings.APPLY_BLIND_EFFECT)).willReturn(false);
-        CommandSender initiator = mock(CommandSender.class);
         setBukkitServiceToScheduleSyncEntityTaskFromOptionallyAsyncTask(bukkitService);
 
         asynchronousUnregister.adminUnregister(initiator, name, player);
@@ -248,7 +243,6 @@ class AsynchronousUnregisterTest {
     @Test
     void shouldHandleDatabaseErrorForAdminUnregister() {
         String name = "TtOoLl";
-        CommandSender initiator = mock(CommandSender.class);
         given(dataSource.removeAuth(name)).willReturn(false);
 
         asynchronousUnregister.adminUnregister(initiator, name, null);

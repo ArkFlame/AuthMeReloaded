@@ -8,6 +8,7 @@ import fr.xephi.authme.service.PendingConnectionRegistry;
 import fr.xephi.authme.settings.Settings;
 import fr.xephi.authme.settings.properties.RestrictionSettings;
 import io.papermc.paper.connection.PlayerConfigurationConnection;
+import io.papermc.paper.connection.PlayerConnection;
 import io.papermc.paper.connection.PlayerLoginConnection;
 import io.papermc.paper.event.connection.PlayerConnectionValidateLoginEvent;
 import io.papermc.paper.event.player.PlayerServerFullCheckEvent;
@@ -17,6 +18,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -26,6 +30,7 @@ import org.mockito.quality.Strictness;
 import java.net.InetAddress;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -67,9 +72,7 @@ public class PaperLoginValidationListenerTest {
         givenConfiguredTimeouts();
         PlayerLoginConnection connection = newLoginConnection("Bobby");
         given(pendingConnectionRegistry.tryClaim(eq("Bobby"), eq(connection), anyLong())).willReturn(true);
-        PlayerConnectionValidateLoginEvent event = new PlayerConnectionValidateLoginEvent(connection, null);
-
-        listener.onPlayerConnectionValidateLogin(event);
+        PlayerConnectionValidateLoginEvent event = validate(connection);
 
         assertThat(event.isAllowed(), is(true));
         verify(pendingConnectionRegistry).tryClaim(eq("Bobby"), eq(connection), anyLong());
@@ -81,9 +84,8 @@ public class PaperLoginValidationListenerTest {
         given(settings.getProperty(RestrictionSettings.REGISTER_TIMEOUT)).willReturn(30);
         PlayerLoginConnection connection = newLoginConnection("Bobby");
         given(pendingConnectionRegistry.tryClaim(eq("Bobby"), eq(connection), anyLong())).willReturn(true);
-        PlayerConnectionValidateLoginEvent event = new PlayerConnectionValidateLoginEvent(connection, null);
 
-        listener.onPlayerConnectionValidateLogin(event);
+        validate(connection);
 
         verify(pendingConnectionRegistry).tryClaim("Bobby", connection, TimeUnit.DAYS.toMillis(1));
     }
@@ -94,9 +96,8 @@ public class PaperLoginValidationListenerTest {
         givenAlreadyOnlineMessage();
         willThrow(new FailedVerificationException(MessageKey.USERNAME_ALREADY_ONLINE_ERROR))
             .given(onJoinVerifier).checkSingleSession("Bobby");
-        PlayerConnectionValidateLoginEvent event = new PlayerConnectionValidateLoginEvent(connection, null);
 
-        listener.onPlayerConnectionValidateLogin(event);
+        PlayerConnectionValidateLoginEvent event = validate(connection);
 
         assertThat(event.isAllowed(), is(false));
         assertThat(serialize(event.getKickMessage()), is("&cAlready online"));
@@ -109,9 +110,8 @@ public class PaperLoginValidationListenerTest {
         PlayerLoginConnection connection = newLoginConnection("Bobby");
         given(pendingConnectionRegistry.tryClaim(eq("Bobby"), eq(connection), anyLong())).willReturn(false);
         givenAlreadyOnlineMessage();
-        PlayerConnectionValidateLoginEvent event = new PlayerConnectionValidateLoginEvent(connection, null);
 
-        listener.onPlayerConnectionValidateLogin(event);
+        PlayerConnectionValidateLoginEvent event = validate(connection);
 
         assertThat(event.isAllowed(), is(false));
         assertThat(serialize(event.getKickMessage()), is("&cAlready online"));
@@ -121,9 +121,8 @@ public class PaperLoginValidationListenerTest {
     public void shouldIgnoreReconfigurationOfPlayerWithoutClaim() {
         PlayerConfigurationConnection connection = newConfigurationConnection("Bobby");
         given(pendingConnectionRegistry.holdsClaim("Bobby", connection)).willReturn(false);
-        PlayerConnectionValidateLoginEvent event = new PlayerConnectionValidateLoginEvent(connection, null);
 
-        listener.onPlayerConnectionValidateLogin(event);
+        PlayerConnectionValidateLoginEvent event = validate(connection);
 
         verifyNoInteractions(onJoinVerifier, messages);
         assertThat(event.isAllowed(), is(true));
@@ -134,9 +133,8 @@ public class PaperLoginValidationListenerTest {
         PlayerConfigurationConnection connection = newConfigurationConnection("Bobby");
         given(pendingConnectionRegistry.isClaimedByOtherConnection("Bobby", connection)).willReturn(true);
         givenAlreadyOnlineMessage();
-        PlayerConnectionValidateLoginEvent event = new PlayerConnectionValidateLoginEvent(connection, null);
 
-        listener.onPlayerConnectionValidateLogin(event);
+        PlayerConnectionValidateLoginEvent event = validate(connection);
 
         assertThat(event.isAllowed(), is(false));
         assertThat(serialize(event.getKickMessage()), is("&cAlready online"));
@@ -148,9 +146,8 @@ public class PaperLoginValidationListenerTest {
         givenConfiguredTimeouts();
         PlayerConfigurationConnection connection = newConfigurationConnection("Bobby");
         given(pendingConnectionRegistry.holdsClaim("Bobby", connection)).willReturn(true);
-        PlayerConnectionValidateLoginEvent event = new PlayerConnectionValidateLoginEvent(connection, null);
 
-        listener.onPlayerConnectionValidateLogin(event);
+        PlayerConnectionValidateLoginEvent event = validate(connection);
 
         assertThat(event.isAllowed(), is(true));
         verify(onJoinVerifier).checkSingleSession("Bobby");
@@ -164,9 +161,8 @@ public class PaperLoginValidationListenerTest {
         givenAlreadyOnlineMessage();
         willThrow(new FailedVerificationException(MessageKey.USERNAME_ALREADY_ONLINE_ERROR))
             .given(onJoinVerifier).checkSingleSession("Bobby");
-        PlayerConnectionValidateLoginEvent event = new PlayerConnectionValidateLoginEvent(connection, null);
 
-        listener.onPlayerConnectionValidateLogin(event);
+        PlayerConnectionValidateLoginEvent event = validate(connection);
 
         assertThat(event.isAllowed(), is(false));
         assertThat(serialize(event.getKickMessage()), is("&cAlready online"));
@@ -192,35 +188,38 @@ public class PaperLoginValidationListenerTest {
         verify(pendingConnectionRegistry).releaseIfStale("Bobby");
     }
 
-    @Test
-    public void shouldAllowServerFullEventWhenVerifierMakesRoom() {
+    @ParameterizedTest
+    @MethodSource("serverFullCases")
+    public void shouldHandleServerFullEvent(String playerName, String kickMessage, boolean allowed) {
         PlayerProfile profile = mock(PlayerProfile.class);
-        given(profile.getName()).willReturn("VipPlayer");
-        given(onJoinVerifier.getServerFullKickMessageIfDenied("VipPlayer")).willReturn(null);
+        given(profile.getName()).willReturn(playerName);
+        given(onJoinVerifier.getServerFullKickMessageIfDenied(playerName)).willReturn(kickMessage);
         PlayerServerFullCheckEvent event = new PlayerServerFullCheckEvent(profile, Component.text("full"), true);
 
         listener.onPlayerServerFullCheck(event);
 
-        assertThat(event.isAllowed(), is(true));
+        assertThat(event.isAllowed(), is(allowed));
+        if (!allowed) {
+            assertThat(serialize(event.kickMessage()), is(kickMessage));
+        }
+        verify(onJoinVerifier).getServerFullKickMessageIfDenied(playerName);
     }
 
-    @Test
-    public void shouldDenyServerFullEventWithVerifierMessage() {
-        PlayerProfile profile = mock(PlayerProfile.class);
-        given(profile.getName()).willReturn("RegularPlayer");
-        given(onJoinVerifier.getServerFullKickMessageIfDenied("RegularPlayer")).willReturn("&cServer full");
-        PlayerServerFullCheckEvent event = new PlayerServerFullCheckEvent(profile, Component.text("full"), true);
-
-        listener.onPlayerServerFullCheck(event);
-
-        assertThat(event.isAllowed(), is(false));
-        assertThat(serialize(event.kickMessage()), is("&cServer full"));
-        verify(onJoinVerifier).getServerFullKickMessageIfDenied("RegularPlayer");
+    private static Stream<Arguments> serverFullCases() {
+        return Stream.of(
+            Arguments.of("VipPlayer", null, true),
+            Arguments.of("RegularPlayer", "&cServer full", false));
     }
 
     private void givenAlreadyOnlineMessage() {
         given(messages.retrieveSingle("Bobby", MessageKey.USERNAME_ALREADY_ONLINE_ERROR))
             .willReturn("&cAlready online");
+    }
+
+    private PlayerConnectionValidateLoginEvent validate(PlayerConnection connection) {
+        PlayerConnectionValidateLoginEvent event = new PlayerConnectionValidateLoginEvent(connection, null);
+        listener.onPlayerConnectionValidateLogin(event);
+        return event;
     }
 
     private static PlayerLoginConnection newLoginConnection(String name) {

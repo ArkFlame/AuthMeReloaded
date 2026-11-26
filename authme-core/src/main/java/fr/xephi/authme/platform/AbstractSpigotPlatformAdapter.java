@@ -57,11 +57,6 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
     /** The scheduler matching the running server; keeps Spigot and Folia scheduling consistent. */
     private final SchedulerProvider scheduler = SchedulerProviders.current();
 
-    /** Returns the scheduler provider resolved for the running server. */
-    protected SchedulerProvider getScheduler() {
-        return scheduler;
-    }
-
     @Override
     public Optional<String> getPlayerLocale(Player player) {
         try {
@@ -70,8 +65,8 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
                 Object spigot = PLAYER_SPIGOT_METHOD.invoke(player);
                 result = spigot == null ? null : SPIGOT_GET_LOCALE_METHOD.invoke(spigot);
             }
-            return result instanceof String && !((String) result).trim().isEmpty()
-                ? Optional.of((String) result) : Optional.empty();
+            String locale = result instanceof String ? (String) result : null;
+            return locale != null && !locale.trim().isEmpty() ? Optional.of(locale) : Optional.empty();
         } catch (Exception ignored) {
             return Optional.empty();
         }

@@ -45,6 +45,9 @@ import static org.mockito.Mockito.verifyNoInteractions;
 @ExtendWith(MockitoExtension.class)
 class TotpAuthenticatorTest {
 
+    private static final String SECRET = "the_secret";
+    private static final int CODE = 21398;
+
     private TotpAuthenticator totpAuthenticator;
 
     @Mock
@@ -86,26 +89,22 @@ class TotpAuthenticatorTest {
 
     @Test
     void shouldCheckCodeAndDeclareItValidOnlyOnce() {
-        String secret = "the_secret";
-        int code = 21398;
-        given(googleAuthenticator.authorize(secret, code)).willReturn(true);
+        given(googleAuthenticator.authorize(SECRET, CODE)).willReturn(true);
 
-        boolean result1 = totpAuthenticator.checkCode("pl", secret, Integer.toString(code));
-        boolean result2 = totpAuthenticator.checkCode("pl", secret, Integer.toString(code));
+        boolean result1 = totpAuthenticator.checkCode("pl", SECRET, Integer.toString(CODE));
+        boolean result2 = totpAuthenticator.checkCode("pl", SECRET, Integer.toString(CODE));
 
         assertThat(result1, equalTo(true));
         assertThat(result2, equalTo(false));
-        verify(googleAuthenticator).authorize(secret, code);
+        verify(googleAuthenticator).authorize(SECRET, CODE);
     }
 
     @Test
     void shouldNotBurnSetupCodeInReplayCache() {
-        String secret = "the_secret";
-        int code = 21398;
-        given(googleAuthenticator.authorize(secret, code)).willReturn(true);
+        given(googleAuthenticator.authorize(SECRET, CODE)).willReturn(true);
 
-        boolean setupResult = totpAuthenticator.isValidCode(secret, Integer.toString(code));
-        boolean loginResult = totpAuthenticator.checkCode("pl", secret, Integer.toString(code));
+        boolean setupResult = totpAuthenticator.isValidCode(SECRET, Integer.toString(CODE));
+        boolean loginResult = totpAuthenticator.checkCode("pl", SECRET, Integer.toString(CODE));
 
         assertThat(setupResult, equalTo(true));
         assertThat(loginResult, equalTo(true));
@@ -137,13 +136,11 @@ class TotpAuthenticatorTest {
 
     @Test
     void shouldAcceptCodeOnlyOnceUnderConcurrentChecks() throws Exception {
-        String secret = "the_secret";
-        int code = 21398;
         int threadCount = 8;
         CyclicBarrier ready = new CyclicBarrier(threadCount + 1);
         CountDownLatch releaseAuthorize = new CountDownLatch(1);
 
-        given(googleAuthenticator.authorize(secret, code)).willAnswer(invocation -> {
+        given(googleAuthenticator.authorize(SECRET, CODE)).willAnswer(invocation -> {
             releaseAuthorize.await(5, TimeUnit.SECONDS);
             return true;
         });
@@ -154,7 +151,7 @@ class TotpAuthenticatorTest {
             for (int i = 0; i < threadCount; i++) {
                 results.add(executor.submit(() -> {
                     ready.await();
-                    return totpAuthenticator.checkCode("pl", secret, Integer.toString(code));
+                    return totpAuthenticator.checkCode("pl", SECRET, Integer.toString(CODE));
                 }));
             }
             ready.await();

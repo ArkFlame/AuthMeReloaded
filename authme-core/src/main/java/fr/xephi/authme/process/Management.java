@@ -65,17 +65,16 @@ public class Management {
     Management() {
     }
 
-
     public void performLogin(Player player, String password) {
-        runTask(() -> asynchronousLogin.login(player, password));
+        bukkitService.runTaskOptionallyAsync(() -> asynchronousLogin.login(player, password));
     }
 
     public void forceLogin(Player player) {
-        runTask(() -> asynchronousLogin.forceLogin(player));
+        bukkitService.runTaskOptionallyAsync(() -> asynchronousLogin.forceLogin(player));
     }
 
     public void forceLoginFromProxy(Player player) {
-        runTask(() -> asynchronousLogin.forceLoginFromProxy(player));
+        bukkitService.runTaskOptionallyAsync(() -> asynchronousLogin.forceLoginFromProxy(player));
     }
 
     public void forceLoginFromProxy(String playerName) {
@@ -93,7 +92,7 @@ public class Management {
         // Capture location on the main thread before handing off to the async task. The lookup must never
         // abort the submission: if it fails the logout is still queued, only the saved quit location is lost.
         Location quitLocation = captureQuitLocation(player);
-        runTask(() -> asynchronousLogout.logout(player, quitLocation));
+        bukkitService.runTaskOptionallyAsync(() -> asynchronousLogout.logout(player, quitLocation));
     }
 
     private Location captureQuitLocation(Player player) {
@@ -106,46 +105,44 @@ public class Management {
     }
 
     public <P extends RegistrationParameters> void performRegister(RegistrationMethod<P> variant, P parameters) {
-        runTask(() -> asyncRegister.register(variant, parameters));
+        bukkitService.runTaskOptionallyAsync(() -> asyncRegister.register(variant, parameters));
     }
 
     public void performUnregister(Player player, String password) {
-        runTask(() -> asynchronousUnregister.unregister(player, password));
+        bukkitService.runTaskOptionallyAsync(() -> asynchronousUnregister.unregister(player, password));
     }
 
     public void performUnregisterByAdmin(CommandSender initiator, String name, Player player) {
-        runTask(() -> asynchronousUnregister.adminUnregister(initiator, name, player));
+        bukkitService.runTaskOptionallyAsync(() -> asynchronousUnregister.adminUnregister(initiator, name, player));
     }
 
     public void performJoin(Player player) {
-        runTask(() -> asynchronousJoin.processJoin(player));
+        bukkitService.runTaskOptionallyAsync(() -> asynchronousJoin.processJoin(player));
     }
 
     public void performQuit(Player player) {
-        runTask(() -> asynchronousQuit.processQuit(player));
+        bukkitService.runTaskOptionallyAsync(() -> asynchronousQuit.processQuit(player));
     }
 
     public void performAddEmail(Player player, String newEmail) {
-        runTask(() -> asyncAddEmail.addEmail(player, newEmail));
+        bukkitService.runTaskOptionallyAsync(() -> asyncAddEmail.addEmail(player, newEmail));
     }
 
     public void performChangeEmail(Player player, String oldEmail, String newEmail) {
-        runTask(() -> asyncChangeEmail.changeEmail(player, oldEmail, newEmail));
+        bukkitService.runTaskOptionallyAsync(() -> asyncChangeEmail.changeEmail(player, oldEmail, newEmail));
     }
 
     public void performConfirmEmail(Player player, String code) {
-        runTask(() -> asyncConfirmEmail.confirmEmail(player, code));
+        bukkitService.runTaskOptionallyAsync(() -> asyncConfirmEmail.confirmEmail(player, code));
     }
 
     public void performPasswordChange(Player player, String oldPassword, String newPassword) {
-        runTask(() -> asyncChangePassword.changePassword(player, oldPassword, newPassword));
+        bukkitService.runTaskOptionallyAsync(
+            () -> asyncChangePassword.changePassword(player, oldPassword, newPassword));
     }
 
     public void performPasswordChangeAsAdmin(CommandSender sender, String playerName, String newPassword) {
-        runTask(() -> asyncChangePassword.changePasswordAsAdmin(sender, playerName, newPassword));
-    }
-
-    private void runTask(Runnable runnable) {
-        bukkitService.runTaskOptionallyAsync(runnable);
+        bukkitService.runTaskOptionallyAsync(
+            () -> asyncChangePassword.changePasswordAsAdmin(sender, playerName, newPassword));
     }
 }

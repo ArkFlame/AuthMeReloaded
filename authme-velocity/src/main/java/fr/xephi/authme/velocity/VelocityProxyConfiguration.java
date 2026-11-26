@@ -9,6 +9,7 @@ import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 final class VelocityProxyConfiguration {
 
@@ -125,14 +126,10 @@ final class VelocityProxyConfiguration {
 
     /** Normalizes a collection of values, dropping empty results while preserving input order. */
     private static Set<String> normalizeAndCollect(Collection<String> values, Function<String, String> normalizer) {
-        LinkedHashSet<String> normalizedValues = new LinkedHashSet<>();
-        for (String value : values) {
-            String normalizedValue = normalizer.apply(value);
-            if (!normalizedValue.isEmpty()) {
-                normalizedValues.add(normalizedValue);
-            }
-        }
-        return Set.copyOf(normalizedValues);
+        return Set.copyOf(values.stream()
+            .map(normalizer)
+            .filter(value -> !value.isEmpty())
+            .collect(Collectors.toCollection(LinkedHashSet::new)));
     }
 
     private static String normalizeServerName(String serverName) {
@@ -141,14 +138,11 @@ final class VelocityProxyConfiguration {
 
     static String normalizeCommandAlias(String command) {
         String trimmedCommand = command.trim();
-        if (trimmedCommand.isEmpty()) {
-            return "";
-        }
         int firstWhitespace = trimmedCommand.indexOf(' ');
         String commandAlias = firstWhitespace >= 0 ? trimmedCommand.substring(0, firstWhitespace) : trimmedCommand;
-        if (!commandAlias.startsWith("/")) {
-            commandAlias = "/" + commandAlias;
+        if (commandAlias.isEmpty()) {
+            return "";
         }
-        return commandAlias.toLowerCase(Locale.ROOT);
+        return (commandAlias.startsWith("/") ? commandAlias : "/" + commandAlias).toLowerCase(Locale.ROOT);
     }
 }

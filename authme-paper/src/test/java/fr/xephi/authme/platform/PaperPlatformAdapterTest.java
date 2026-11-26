@@ -32,8 +32,8 @@ import java.util.concurrent.CompletableFuture;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.withSettings;
@@ -92,52 +92,28 @@ public class PaperPlatformAdapterTest {
     @Test
     public void getListenersRetainsAllModernEventProtections() {
         List<Class<? extends Listener>> listeners = adapter.getListeners();
-        assertThat(listeners, org.hamcrest.Matchers.hasItem(PlayerSwapHandItemsListener.class));
-        assertThat(listeners, org.hamcrest.Matchers.hasItem(EntityAirChangeListener.class));
-        assertThat(listeners, org.hamcrest.Matchers.hasItem(EntityPickupItemListener.class));
+        assertThat(listeners, hasItems(
+            PlayerSwapHandItemsListener.class,
+            EntityAirChangeListener.class,
+            EntityPickupItemListener.class));
     }
 
     @Test
-    public void showLoginDialogDelegatesToPaperDialogHelper() {
-        // given
+    public void dialogMethodsDelegateToPaperDialogHelper() {
+        // given - PaperDialogHelper uses Paper API calls that require a running server. Use mockStatic
+        // to verify delegation without invoking the full Paper server stack.
         Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
-
-        // when / then - PaperDialogHelper uses Paper API calls that require a running server.
-        // Use mockStatic to verify delegation without invoking the full Paper server stack.
         try (MockedStatic<PaperDialogHelper> helperMock = mockStatic(PaperDialogHelper.class, withSettings().mockMaker(MockMakers.INLINE))) {
+            // when
             adapter.showLoginDialog(player, dialog);
-
-            helperMock.verify(() -> PaperDialogHelper.showLoginDialog(player, dialog));
-        }
-    }
-
-    @Test
-    public void showTotpDialogDelegatesToPaperDialogHelper() {
-        // given
-        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
-
-        // when / then
-        try (MockedStatic<PaperDialogHelper> helperMock = mockStatic(PaperDialogHelper.class, withSettings().mockMaker(MockMakers.INLINE))) {
             adapter.showTotpDialog(player, dialog);
-
-            helperMock.verify(() -> PaperDialogHelper.showTotpDialog(player, dialog));
-        }
-    }
-
-    @Test
-    public void showRegisterDialogDelegatesToPaperDialogHelper() {
-        // given
-        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
-
-        // when / then
-        try (MockedStatic<PaperDialogHelper> helperMock = mockStatic(PaperDialogHelper.class, withSettings().mockMaker(MockMakers.INLINE))) {
             adapter.showRegisterDialog(player, RegistrationType.EMAIL, RegisterSecondaryArgument.CONFIRMATION, dialog);
 
+            // then
+            helperMock.verify(() -> PaperDialogHelper.showLoginDialog(player, dialog));
+            helperMock.verify(() -> PaperDialogHelper.showTotpDialog(player, dialog));
             helperMock.verify(() -> PaperDialogHelper.showRegisterDialog(
-                eq(player),
-                eq(RegistrationType.EMAIL),
-                eq(RegisterSecondaryArgument.CONFIRMATION),
-                eq(dialog)));
+                player, RegistrationType.EMAIL, RegisterSecondaryArgument.CONFIRMATION, dialog));
         }
     }
 

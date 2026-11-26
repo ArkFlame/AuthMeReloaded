@@ -86,11 +86,8 @@ final class ConverterUtils {
                 } catch (IllegalArgumentException ignored) {
                     phc = null;
                 }
-                if (phc != null && !phc.startsWith("$argon2")) {
-                    phc = null;
-                }
             }
-            if (phc == null) {
+            if (phc == null || !phc.startsWith("$argon2")) {
                 logger.warning("Could not decode Argon2-ID hash for player '" + name + "', skipping");
                 return null;
             }

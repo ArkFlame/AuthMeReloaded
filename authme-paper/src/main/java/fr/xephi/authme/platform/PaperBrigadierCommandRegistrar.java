@@ -85,11 +85,10 @@ final class PaperBrigadierCommandRegistrar {
         List<CommandArgumentDescription> arguments = command.getArguments();
         if (isEmailAddCommand(command)) {
             builder.then(createArgument(FALLBACK_ARGUMENT_NAME, StringArgumentType.greedyString()));
+        } else if (arguments.isEmpty()) {
+            builder.then(createArgument(EXTRA_ARGUMENTS_NAME, StringArgumentType.greedyString()));
         } else {
             addArgumentChain(builder, arguments, isForceLoginTarget(command));
-        }
-        if (arguments.isEmpty()) {
-            builder.then(createArgument(EXTRA_ARGUMENTS_NAME, StringArgumentType.greedyString()));
         }
         return builder;
     }
@@ -109,9 +108,6 @@ final class PaperBrigadierCommandRegistrar {
 
     private void addArgumentChain(ArgumentBuilder<CommandSourceStack, ?> parent,
                                   List<CommandArgumentDescription> arguments, boolean suggestOnlinePlayers) {
-        if (arguments.isEmpty()) {
-            return;
-        }
         // Build from innermost argument outward: then(ArgumentBuilder) calls build() immediately
         // in standard Brigadier, so intermediate nodes must have their children set before building.
         int lastIndex = arguments.size() - 1;
@@ -144,10 +140,8 @@ final class PaperBrigadierCommandRegistrar {
                 players = List.of();
             }
         }
-        if (players != null) {
-            for (Player player : players) {
-                builder.suggest(player.getName());
-            }
+        for (Player player : players) {
+            builder.suggest(player.getName());
         }
         return builder.buildFuture();
     }

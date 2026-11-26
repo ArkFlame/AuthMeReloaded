@@ -179,35 +179,29 @@ public class RegisterCommandTest {
         verifyNoInteractions(management);
     }
 
-    @Test
-    public void shouldRejectInvalidEmail() {
+    static Stream<Arguments> invalidEmailCases() {
+        return Stream.of(
+            Arguments.of("player@example.org", RegisterSecondaryArgument.NONE, false,
+                Arrays.asList("player@example.org", "player@example.org"), MessageKey.INVALID_EMAIL),
+            Arguments.of("bobber@bobby.org", RegisterSecondaryArgument.CONFIRMATION, true,
+                Arrays.asList("bobber@bobby.org", "invalid"), MessageKey.USAGE_REGISTER));
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidEmailCases")
+    public void shouldRejectInvalidEmail(String playerMail, RegisterSecondaryArgument secondArg,
+                                         boolean validEmail, List<String> arguments, MessageKey expectedMessage) {
         // given
-        String playerMail = "player@example.org";
-        givenEmailRegistration(playerMail, RegisterSecondaryArgument.NONE, false);
+        givenEmailRegistration(playerMail, secondArg, validEmail);
         Player player = mock(Player.class);
 
         // when
-        command.executeCommand(player, Arrays.asList(playerMail, playerMail));
+        command.executeCommand(player, arguments);
 
         // then
         verify(validationService).validateEmail(playerMail);
-        verify(commonService).send(player, MessageKey.INVALID_EMAIL);
-        verifyNoInteractions(management);
-    }
-
-    @Test
-    public void shouldRejectInvalidEmailConfirmation() {
-        // given
-        String playerMail = "bobber@bobby.org";
-        givenEmailRegistration(playerMail, RegisterSecondaryArgument.CONFIRMATION, true);
-        Player player = mock(Player.class);
-
-        // when
-        command.executeCommand(player, Arrays.asList(playerMail, "invalid"));
-
-        // then
-        verify(commonService).send(player, MessageKey.USAGE_REGISTER);
         verify(emailService).hasAllInformation();
+        verify(commonService).send(player, expectedMessage);
         verifyNoInteractions(management);
     }
 
