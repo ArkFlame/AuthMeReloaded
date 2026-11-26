@@ -250,8 +250,7 @@ public class AsynchronousLogin implements AsynchronousProcess {
                                     String password) {
         // If captcha is required send a message to the player and deny to log in
         if (loginCaptchaManager.isCaptchaRequired(lowerCaseName)) {
-            service.send(player, MessageKey.USAGE_CAPTCHA,
-                loginCaptchaManager.getCaptchaCodeOrGenerateNew(lowerCaseName));
+            sendCaptchaMessage(player, lowerCaseName);
             return false;
         }
 
@@ -289,12 +288,15 @@ public class AsynchronousLogin implements AsynchronousProcess {
             // If the authentication fails check if Captcha is required and send a message to the player
             if (loginCaptchaManager.isCaptchaRequired(name)) {
                 limboService.muteMessageTask(player);
-                service.send(player, MessageKey.USAGE_CAPTCHA,
-                    loginCaptchaManager.getCaptchaCodeOrGenerateNew(name));
+                sendCaptchaMessage(player, name);
             } else if (emailService.hasAllInformation() && !Utils.isEmailEmpty(auth.getEmail())) {
                 service.send(player, MessageKey.FORGOT_PASSWORD_MESSAGE);
             }
         }
+    }
+
+    private void sendCaptchaMessage(Player player, String name) {
+        service.send(player, MessageKey.USAGE_CAPTCHA, loginCaptchaManager.getCaptchaCodeOrGenerateNew(name));
     }
 
     private void showTotpDialogIfEnabled(Player player, String lowerCaseName) {
@@ -325,63 +327,79 @@ public class AsynchronousLogin implements AsynchronousProcess {
     }
 
     private void doPerformLogin(Player player, String name, String ip, PlayerAuth auth, boolean proxyInitiated) {
-        if (player.isOnline()) {
-            boolean isFirstLogin = (auth.getLastLogin() == null);
-
-            // Update auth to reflect this new login
-            if (ip == null) {
-                ip = PlayerUtils.getPlayerIp(player);
-            }
-            auth.setRealName(name);
-            auth.setLastLogin(System.currentTimeMillis());
-            auth.setLastIp(ip);
-            dataSource.updateSession(auth);
-
-            // TODO: send an update when a messaging service will be implemented (SESSION)
-
-            // Successful login, so reset the captcha & temp ban count
-            loginCaptchaManager.resetLoginFailureCount(name);
-            tempbanManager.resetCount(ip, name);
-
-            service.send(player, MessageKey.LOGIN_SUCCESS);
-
-            // Other auths
-            List<String> auths = dataSource.getAllAuthsByIp(ip);
-            displayOtherAccounts(auths, player, name);
-
-            String email = auth.getEmail();
-            if (service.getProperty(EmailSettings.RECALL_PLAYERS) && Utils.isEmailEmpty(email)) {
-                service.send(player, MessageKey.ADD_EMAIL_MESSAGE);
-            }
-
-            logger.fine(name + " logged in " + ip);
-
-            // makes player loggedin
-            playerCache.updatePlayer(auth);
-            dataSource.setLogged(name);
-            sessionService.grantSession(player);
-
-            if (!player.isOnline()) {
-                playerCache.removePlayer(name);
-                dataSource.setUnlogged(name);
-                sessionService.revokeSession(name);
-                logger.warning("Player '" + name + "' quit during the login process, login reverted");
-                return;
-            }
-
-            ProcessSharedActions.sendLoginMessageToProxy(bukkitService, bungeeSender, player);
-
-            // As the scheduling executes the Task most likely after the current
-            // task, we schedule it in the end
-            // so that we can be sure, and have not to care if it might be
-            // processed in other order.
-            if (proxyInitiated) {
-                syncProcessManager.processSyncPlayerLoginFromProxy(player, isFirstLogin, auths);
-            } else {
-                syncProcessManager.processSyncPlayerLogin(player, isFirstLogin, auths);
-            }
-        } else {
+        if (!player.isOnline()) {
             logger.warning("Player '" + name + "' wasn't online during login process, aborted...");
+            return;
+        }
+        boolean isFirstLogin = (auth.getLastLogin() == null);
+        ip = updateAuthForLogin(player, name, ip, auth);
+
+        // Other auths
+        List<String> auths = dataSource.getAllAuthsByIp(ip);
+        displayOtherAccounts(auths, name);
+
+        String email = auth.getEmail();
+        if (service.getProperty(EmailSettings.RECALL_PLAYERS) && Utils.isEmailEmpty(email)) {
+            service.send(player, MessageKey.ADD_EMAIL_MESSAGE);
+        }
+
+        logger.fine(name + " logged in " + ip);
+
+        // makes player loggedin
+        playerCache.updatePlayer(auth);
+        dataSource.setLogged(name);
+        sessionService.grantSession(player);
+
+        if (!player.isOnline()) {
+            revertLogin(name);
+            return;
+        }
+
+        ProcessSharedActions.sendLoginMessageToProxy(bukkitService, bungeeSender, player);
+        dispatchSyncLogin(player, isFirstLogin, auths, proxyInitiated);
+    }
+
+    /**
+     * Persists the new login state and notifies the player of success.
+     *
+     * @return the IP address used for the login, resolved if the caller did not supply one
+     */
+    private String updateAuthForLogin(Player player, String name, String ip, PlayerAuth auth) {
+        // Update auth to reflect this new login
+        if (ip == null) {
+            ip = PlayerUtils.getPlayerIp(player);
+        }
+        auth.setRealName(name);
+        auth.setLastLogin(System.currentTimeMillis());
+        auth.setLastIp(ip);
+        dataSource.updateSession(auth);
+
+        // TODO: send an update when a messaging service will be implemented (SESSION)
+
+        // Successful login, so reset the captcha & temp ban count
+        loginCaptchaManager.resetLoginFailureCount(name);
+        tempbanManager.resetCount(ip, name);
+
+        service.send(player, MessageKey.LOGIN_SUCCESS);
+        return ip;
+    }
+
+    private void revertLogin(String name) {
+        playerCache.removePlayer(name);
+        dataSource.setUnlogged(name);
+        sessionService.revokeSession(name);
+        logger.warning("Player '" + name + "' quit during the login process, login reverted");
+    }
+
+    private void dispatchSyncLogin(Player player, boolean isFirstLogin, List<String> auths, boolean proxyInitiated) {
+        // As the scheduling executes the Task most likely after the current
+        // task, we schedule it in the end
+        // so that we can be sure, and have not to care if it might be
+        // processed in other order.
+        if (proxyInitiated) {
+            syncProcessManager.processSyncPlayerLoginFromProxy(player, isFirstLogin, auths);
+        } else {
+            syncProcessManager.processSyncPlayerLogin(player, isFirstLogin, auths);
         }
     }
 
@@ -389,16 +407,24 @@ public class AsynchronousLogin implements AsynchronousProcess {
      * Sends info about the other accounts owned by the given player to the configured users.
      *
      * @param auths the names of the accounts also owned by the player
-     * @param player the player
      * @param playerName the player's name, resolved once for this login call
      */
-    private void displayOtherAccounts(List<String> auths, Player player, String playerName) {
+    private void displayOtherAccounts(List<String> auths, String playerName) {
         int accountCount = auths.size();
         if (!service.getProperty(RestrictionSettings.DISPLAY_OTHER_ACCOUNTS) || accountCount <= 1) {
             return;
         }
 
-        List<String> formattedNames = new ArrayList<>(accountCount);
+        String message = formatAccountNames(auths);
+        if (logger.getLogLevel().includes(LogLevel.FINE)) {
+            logger.fine("The user " + playerName + " has " + accountCount + " accounts:");
+            logger.fine(message);
+        }
+        notifyOnlinePlayersAboutAccounts(playerName, accountCount, message);
+    }
+
+    private String formatAccountNames(List<String> auths) {
+        List<String> formattedNames = new ArrayList<>(auths.size());
         for (String currentName : auths) {
             Player currentPlayer = bukkitService.getPlayerExact(currentName);
             if (currentPlayer != null && currentPlayer.isOnline()) {
@@ -407,14 +433,10 @@ public class AsynchronousLogin implements AsynchronousProcess {
                 formattedNames.add(currentName);
             }
         }
+        return ChatColor.GRAY + String.join(", ", formattedNames) + ".";
+    }
 
-        String message = ChatColor.GRAY + String.join(", ", formattedNames) + ".";
-
-        if (logger.getLogLevel().includes(LogLevel.FINE)) {
-            logger.fine("The user " + playerName + " has " + accountCount + " accounts:");
-            logger.fine(message);
-        }
-
+    private void notifyOnlinePlayersAboutAccounts(String playerName, int accountCount, String message) {
         String accountCountText = Integer.toString(accountCount);
         String[] selfHeaderArgs = {accountCountText};
         String[] otherHeaderArgs = {playerName, accountCountText};

@@ -186,43 +186,63 @@ public class TeleportationService implements Reloadable {
             return;
         }
 
-        // #856: If LimboPlayer comes from a persisted file, the Location might be null
-        Location joinLocation = limbo != null && limbo.getLocation() != null
-            ? limbo.getLocation()
-            : peekOriginalJoinLocation(player.getName());
-        String worldName = (joinLocation != null && joinLocation.getWorld() != null)
-            ? joinLocation.getWorld().getName()
-            : null;
+        Location joinLocation = resolveJoinLocation(player, limbo);
+        String worldName = getWorldName(joinLocation);
 
         // The world in LimboPlayer is from where the player comes, before any teleportation by AuthMe
         if (mustForceSpawnAfterLogin(worldName)) {
             logger.debug("Teleporting `{0}` to spawn because of 'force-spawn after login'", player.getName());
             teleportToSpawn(player, true);
         } else if (settings.getProperty(TELEPORT_UNAUTHED_TO_SPAWN)) {
-            if (settings.getProperty(RestrictionSettings.SAVE_QUIT_LOCATION)) {
-                Location location = buildLocationFromAuth(player, auth);
-                if (shouldUseJoinLocationAsFallback(auth, joinLocation)) {
-                    logger.debug("Teleporting `{0}` after login, based on the remembered join location",
-                        player.getName());
-                    location = joinLocation;
-                } else if (hasDefaultStoredQuitLocation(auth)) {
-                    logger.debug("Skipping teleport of `{0}` after login: no real quit location saved (resetpos sentinel)",
-                        player.getName());
-                    return;
-                } else {
-                    logger.debug("Teleporting `{0}` after login, based on the player auth", player.getName());
-                }
-                if (hasSamePositionAndWorld(location, player.getLocation())) {
-                    logger.debug("Skipping teleport of `{0}` after login because the player is already there",
-                        player.getName());
-                    return;
-                }
-                teleportBackFromSpawn(player, location);
-            } else if (joinLocation != null) {
-                logger.debug("Teleporting `{0}` after login, based on the remembered join location", player.getName());
-                teleportBackFromSpawn(player, joinLocation);
-            }
+            teleportAfterLoginToSpawn(player, auth, joinLocation);
         }
+    }
+
+    /**
+     * Resolves the location the player joined at, preferring the limbo location and falling back to the
+     * remembered original join location.
+     */
+    private Location resolveJoinLocation(Player player, LimboPlayer limbo) {
+        // #856: If LimboPlayer comes from a persisted file, the Location might be null
+        return limbo != null && limbo.getLocation() != null
+            ? limbo.getLocation()
+            : peekOriginalJoinLocation(player.getName());
+    }
+
+    private static String getWorldName(Location location) {
+        return (location != null && location.getWorld() != null)
+            ? location.getWorld().getName()
+            : null;
+    }
+
+    private void teleportAfterLoginToSpawn(Player player, PlayerAuth auth, Location joinLocation) {
+        if (settings.getProperty(RestrictionSettings.SAVE_QUIT_LOCATION)) {
+            teleportUsingStoredQuitLocation(player, auth, joinLocation);
+        } else if (joinLocation != null) {
+            logger.debug("Teleporting `{0}` after login, based on the remembered join location", player.getName());
+            teleportBackFromSpawn(player, joinLocation);
+        }
+    }
+
+    private void teleportUsingStoredQuitLocation(Player player, PlayerAuth auth, Location joinLocation) {
+        Location location = buildLocationFromAuth(player, auth);
+        if (shouldUseJoinLocationAsFallback(auth, joinLocation)) {
+            logger.debug("Teleporting `{0}` after login, based on the remembered join location",
+                player.getName());
+            location = joinLocation;
+        } else if (hasDefaultStoredQuitLocation(auth)) {
+            logger.debug("Skipping teleport of `{0}` after login: no real quit location saved (resetpos sentinel)",
+                player.getName());
+            return;
+        } else {
+            logger.debug("Teleporting `{0}` after login, based on the player auth", player.getName());
+        }
+        if (hasSamePositionAndWorld(location, player.getLocation())) {
+            logger.debug("Skipping teleport of `{0}` after login because the player is already there",
+                player.getName());
+            return;
+        }
+        teleportBackFromSpawn(player, location);
     }
 
     /**

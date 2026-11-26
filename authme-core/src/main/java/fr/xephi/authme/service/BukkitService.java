@@ -151,29 +151,38 @@ public class BukkitService implements SettingsDependent {
         }
 
         CompletableFuture<T> future = new CompletableFuture<>();
-        runOnGlobalRegion(() -> {
-            try {
-                future.complete(supplier.get());
-            } catch (RuntimeException | Error e) {
-                future.completeExceptionally(e);
-            }
-        });
+        runOnGlobalRegion(() -> completeFuture(future, supplier));
+        return awaitFuture(future);
+    }
 
+    private static <T> void completeFuture(CompletableFuture<T> future, Supplier<T> supplier) {
+        try {
+            future.complete(supplier.get());
+        } catch (RuntimeException | Error e) {
+            future.completeExceptionally(e);
+        }
+    }
+
+    private static <T> T awaitFuture(CompletableFuture<T> future) {
         try {
             return future.get();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Interrupted while waiting for sync task", e);
         } catch (ExecutionException e) {
-            Throwable cause = e.getCause();
-            if (cause instanceof RuntimeException) {
-                throw (RuntimeException) cause;
-            }
-            if (cause instanceof Error) {
-                throw (Error) cause;
-            }
-            throw new IllegalStateException("Unexpected exception while waiting for sync task", cause);
+            throw unwrapExecutionException(e);
         }
+    }
+
+    private static RuntimeException unwrapExecutionException(ExecutionException e) {
+        Throwable cause = e.getCause();
+        if (cause instanceof RuntimeException) {
+            return (RuntimeException) cause;
+        }
+        if (cause instanceof Error) {
+            throw (Error) cause;
+        }
+        return new IllegalStateException("Unexpected exception while waiting for sync task", cause);
     }
 
     /**
@@ -433,10 +442,14 @@ public class BukkitService implements SettingsDependent {
      */
     public boolean dispatchConsoleCommand(String commandLine) {
         if (schedulingAdapter.isGlobalThread()) {
-            return Bukkit.dispatchCommand(Bukkit.getConsoleSender(), commandLine);
+            return dispatchConsoleCommandNow(commandLine);
         }
-        runOnGlobalRegion(() -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), commandLine));
+        runOnGlobalRegion(() -> dispatchConsoleCommandNow(commandLine));
         return true;
+    }
+
+    private boolean dispatchConsoleCommandNow(String commandLine) {
+        return Bukkit.dispatchCommand(Bukkit.getConsoleSender(), commandLine);
     }
 
     @Override

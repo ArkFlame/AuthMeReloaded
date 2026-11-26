@@ -94,6 +94,28 @@ public class CommandInitializer {
         CommandDescription authMeBase = buildAuthMeBaseCommand();
         CommandDescription emailBase = buildEmailBaseCommand();
 
+        List<CommandDescription> accountBaseCommands = buildAccountBaseCommands();
+        CommandDescription totpBase = buildTotpBaseCommand();
+        List<CommandDescription> miscBaseCommands = buildMiscBaseCommands();
+
+        List<CommandDescription> baseCommands = ImmutableList.<CommandDescription>builder()
+            .add(authMeBase)
+            .add(emailBase)
+            .addAll(accountBaseCommands)
+            .add(totpBase)
+            .addAll(miscBaseCommands)
+            .build();
+
+        setHelpOnAllBases(baseCommands);
+        commands = baseCommands;
+    }
+
+    /**
+     * Builds the base commands for logging in, logging out, registering and changing passwords.
+     *
+     * @return the account-related base commands
+     */
+    private List<CommandDescription> buildAccountBaseCommands() {
         // Register the base login command
         CommandDescription loginBase = CommandDescription.builder()
             .parent(null)
@@ -150,9 +172,15 @@ public class CommandInitializer {
             .executableCommand(ChangePasswordCommand.class)
             .register();
 
-        // Create totp base command
-        CommandDescription totpBase = buildTotpBaseCommand();
+        return ImmutableList.of(loginBase, logoutBase, registerBase, unregisterBase, changePasswordBase);
+    }
 
+    /**
+     * Builds the captcha, verification, premium and freemium base commands.
+     *
+     * @return the remaining player-facing base commands
+     */
+    private List<CommandDescription> buildMiscBaseCommands() {
         // Register the base captcha command
         CommandDescription captchaBase = CommandDescription.builder()
             .parent(null)
@@ -195,12 +223,7 @@ public class CommandInitializer {
             .executableCommand(FreemiumCommand.class)
             .register();
 
-        List<CommandDescription> baseCommands = ImmutableList.of(authMeBase, emailBase, loginBase, logoutBase,
-            registerBase, unregisterBase, changePasswordBase, totpBase, captchaBase, verificationBase,
-            premiumBase, freemiumBase);
-
-        setHelpOnAllBases(baseCommands);
-        commands = baseCommands;
+        return ImmutableList.of(captchaBase, verificationBase, premiumBase, freemiumBase);
     }
 
     /**
@@ -217,9 +240,22 @@ public class CommandInitializer {
             .executableCommand(AuthMeCommand.class)
             .register();
 
+        registerAccountCommands(authmeBase);
+        registerPlayerInfoCommands(authmeBase);
+        registerSpawnCommands(authmeBase);
+        registerDataCommands(authmeBase);
+        registerUtilityCommands(authmeBase);
+        registerPremiumCommands(authmeBase);
+        registerDebugCommand(authmeBase);
+
+        return authmeBase;
+    }
+
+    /** Registers the /authme subcommands for adding, removing and updating accounts. */
+    private void registerAccountCommands(CommandDescription parent) {
         // Register the register command
         CommandDescription.builder()
-            .parent(authmeBase)
+            .parent(parent)
             .labels("register", "reg", "r")
             .description("Register a player")
             .detailedDescription("Register the specified player with the specified password.")
@@ -231,7 +267,7 @@ public class CommandInitializer {
 
         // Register the unregister command
         CommandDescription.builder()
-            .parent(authmeBase)
+            .parent(parent)
             .labels("unregister", "unreg", "unr")
             .description("Unregister a player")
             .detailedDescription("Unregister the specified player.")
@@ -242,7 +278,7 @@ public class CommandInitializer {
 
         // Register the forcelogin command
         CommandDescription.builder()
-            .parent(authmeBase)
+            .parent(parent)
             .labels("forcelogin", "login")
             .description("Enforce login player")
             .detailedDescription("Enforce the specified player to login.")
@@ -253,7 +289,7 @@ public class CommandInitializer {
 
         // Register the changepassword command
         CommandDescription.builder()
-            .parent(authmeBase)
+            .parent(parent)
             .labels("password", "changepassword", "changepass", "cp")
             .description("Change a player's password")
             .detailedDescription("Change the password of a player.")
@@ -262,10 +298,13 @@ public class CommandInitializer {
             .permission(AdminPermission.CHANGE_PASSWORD)
             .executableCommand(ChangePasswordAdminCommand.class)
             .register();
+    }
 
+    /** Registers the /authme subcommands that display information about players. */
+    private void registerPlayerInfoCommands(CommandDescription parent) {
         // Register the last login command
         CommandDescription.builder()
-            .parent(authmeBase)
+            .parent(parent)
             .labels("lastlogin", "ll")
             .description("Player's last login")
             .detailedDescription("View the date of the specified players last login.")
@@ -276,7 +315,7 @@ public class CommandInitializer {
 
         // Register the accounts command
         CommandDescription.builder()
-            .parent(authmeBase)
+            .parent(parent)
             .labels("accounts", "account")
             .description("Display player accounts")
             .detailedDescription("Display all accounts of a player by his player name or IP.")
@@ -287,7 +326,7 @@ public class CommandInitializer {
 
         // Register the getemail command
         CommandDescription.builder()
-            .parent(authmeBase)
+            .parent(parent)
             .labels("email", "mail", "getemail", "getmail")
             .description("Display player's email")
             .detailedDescription("Display the email address of the specified player if set.")
@@ -298,7 +337,7 @@ public class CommandInitializer {
 
         // Register the setemail command
         CommandDescription.builder()
-            .parent(authmeBase)
+            .parent(parent)
             .labels("setemail", "setmail", "chgemail", "chgmail")
             .description("Change player's email")
             .detailedDescription("Change the email address of the specified player.")
@@ -310,7 +349,7 @@ public class CommandInitializer {
 
         // Register the getip command
         CommandDescription.builder()
-            .parent(authmeBase)
+            .parent(parent)
             .labels("getip", "ip")
             .description("Get player's IP")
             .detailedDescription("Get the IP address of the specified online player.")
@@ -321,7 +360,7 @@ public class CommandInitializer {
 
         // Register the uuid command
         CommandDescription.builder()
-            .parent(authmeBase)
+            .parent(parent)
             .labels("uuid")
             .description("Show player's UUIDs")
             .detailedDescription("Show the offline, Mojang and Floodgate UUID of the specified player.")
@@ -332,7 +371,7 @@ public class CommandInitializer {
 
         // Register totp command
         CommandDescription.builder()
-            .parent(authmeBase)
+            .parent(parent)
             .labels("totp", "2fa")
             .description("See if a player has enabled TOTP")
             .detailedDescription("Returns whether the specified player has enabled two-factor authentication.")
@@ -343,7 +382,7 @@ public class CommandInitializer {
 
         // Register disable totp command
         CommandDescription.builder()
-            .parent(authmeBase)
+            .parent(parent)
             .labels("disabletotp", "disable2fa", "deletetotp", "delete2fa")
             .description("Delete TOTP token of a player")
             .detailedDescription("Disable two-factor authentication for a player.")
@@ -351,10 +390,13 @@ public class CommandInitializer {
             .permission(AdminPermission.DISABLE_TOTP)
             .executableCommand(TotpDisableAdminCommand.class)
             .register();
+    }
 
+    /** Registers the /authme subcommands for teleporting to and changing spawns. */
+    private void registerSpawnCommands(CommandDescription parent) {
         // Register the spawn command
         CommandDescription.builder()
-            .parent(authmeBase)
+            .parent(parent)
             .labels("spawn", "home")
             .description("Teleport to spawn")
             .detailedDescription("Teleport to the spawn.")
@@ -364,7 +406,7 @@ public class CommandInitializer {
 
         // Register the setspawn command
         CommandDescription.builder()
-            .parent(authmeBase)
+            .parent(parent)
             .labels("setspawn", "chgspawn")
             .description("Change the spawn")
             .detailedDescription("Change the player's spawn to your current position.")
@@ -374,7 +416,7 @@ public class CommandInitializer {
 
         // Register the firstspawn command
         CommandDescription.builder()
-            .parent(authmeBase)
+            .parent(parent)
             .labels("firstspawn", "firsthome")
             .description("Teleport to first spawn")
             .detailedDescription("Teleport to the first spawn.")
@@ -384,17 +426,20 @@ public class CommandInitializer {
 
         // Register the setfirstspawn command
         CommandDescription.builder()
-            .parent(authmeBase)
+            .parent(parent)
             .labels("setfirstspawn", "chgfirstspawn")
             .description("Change the first spawn")
             .detailedDescription("Change the first player's spawn to your current position.")
             .permission(AdminPermission.SET_FIRST_SPAWN)
             .executableCommand(SetFirstSpawnCommand.class)
             .register();
+    }
 
+    /** Registers the /authme subcommands for purging and backing up data. */
+    private void registerDataCommands(CommandDescription parent) {
         // Register the purge command
         CommandDescription.builder()
-            .parent(authmeBase)
+            .parent(parent)
             .labels("purge", "delete")
             .description("Purge old data")
             .detailedDescription("Purge old AuthMeRemastered data longer than the specified number of days ago.")
@@ -405,7 +450,7 @@ public class CommandInitializer {
 
         // Purge player command
         CommandDescription.builder()
-            .parent(authmeBase)
+            .parent(parent)
             .labels("purgeplayer")
             .description("Purges the data of one player")
             .detailedDescription("Purges data of the given player.")
@@ -417,7 +462,7 @@ public class CommandInitializer {
 
         // Backup command
         CommandDescription.builder()
-            .parent(authmeBase)
+            .parent(parent)
             .labels("backup")
             .description("Perform a backup")
             .detailedDescription("Creates a backup of the registered users.")
@@ -427,7 +472,7 @@ public class CommandInitializer {
 
         // Register the purgelastposition command
         CommandDescription.builder()
-            .parent(authmeBase)
+            .parent(parent)
             .labels("resetpos", "purgelastposition", "purgelastpos", "resetposition",
                 "resetlastposition", "resetlastpos")
             .description("Purge player's last position")
@@ -439,17 +484,20 @@ public class CommandInitializer {
 
         // Register the purgebannedplayers command
         CommandDescription.builder()
-            .parent(authmeBase)
+            .parent(parent)
             .labels("purgebannedplayers", "purgebannedplayer", "deletebannedplayers", "deletebannedplayer")
             .description("Purge banned players data")
             .detailedDescription("Purge all AuthMeRemastered data for banned players.")
             .permission(AdminPermission.PURGE_BANNED_PLAYERS)
             .executableCommand(PurgeBannedPlayersCommand.class)
             .register();
+    }
 
+    /** Registers the remaining general-purpose /authme subcommands. */
+    private void registerUtilityCommands(CommandDescription parent) {
         // Register the switchantibot command
         CommandDescription.builder()
-            .parent(authmeBase)
+            .parent(parent)
             .labels("switchantibot", "toggleantibot", "antibot")
             .description("Switch AntiBot mode")
             .detailedDescription("Switch or toggle the AntiBot mode to the specified state.")
@@ -460,7 +508,7 @@ public class CommandInitializer {
 
         // Register the reload command
         CommandDescription.builder()
-            .parent(authmeBase)
+            .parent(parent)
             .labels("reload", "rld")
             .description("Reload plugin")
             .detailedDescription("Reload the AuthMeRemastered plugin.")
@@ -470,7 +518,7 @@ public class CommandInitializer {
 
         // Register the version command
         CommandDescription.builder()
-            .parent(authmeBase)
+            .parent(parent)
             .labels("version", "ver", "v", "about", "info")
             .description("Version info")
             .detailedDescription("Show detailed information about the installed AuthMeRemastered version, the "
@@ -479,7 +527,7 @@ public class CommandInitializer {
             .register();
 
         CommandDescription.builder()
-            .parent(authmeBase)
+            .parent(parent)
             .labels("converter", "convert", "conv")
             .description("Converter command")
             .detailedDescription("Converter command for AuthMeReloaded.")
@@ -489,7 +537,7 @@ public class CommandInitializer {
             .register();
 
         CommandDescription.builder()
-            .parent(authmeBase)
+            .parent(parent)
             .labels("messages", "msg")
             .description("Add missing help messages")
             .detailedDescription("Adds missing texts to the current help messages file.")
@@ -498,16 +546,19 @@ public class CommandInitializer {
             .register();
 
         CommandDescription.builder()
-            .parent(authmeBase)
+            .parent(parent)
             .labels("recent")
             .description("See players who have recently logged in")
             .detailedDescription("Shows the last players that have logged in.")
             .permission(AdminPermission.SEE_RECENT_PLAYERS)
             .executableCommand(RecentPlayersCommand.class)
             .register();
+    }
 
+    /** Registers the /authme subcommands for setting premium mode on a player. */
+    private void registerPremiumCommands(CommandDescription parent) {
         CommandDescription.builder()
-            .parent(authmeBase)
+            .parent(parent)
             .labels("premium", "setpremium")
             .description("Enable premium for a player")
             .detailedDescription("Enables premium mode for the specified player.")
@@ -517,7 +568,7 @@ public class CommandInitializer {
             .register();
 
         CommandDescription.builder()
-            .parent(authmeBase)
+            .parent(parent)
             .labels("freemium", "setfreemium")
             .description("Disable premium for a player")
             .detailedDescription("Disables premium mode for the specified player.")
@@ -525,9 +576,12 @@ public class CommandInitializer {
             .permission(AdminPermission.SET_FREEMIUM)
             .executableCommand(SetFreemiumAdminCommand.class)
             .register();
+    }
 
+    /** Registers the /authme debug subcommand. */
+    private void registerDebugCommand(CommandDescription parent) {
         CommandDescription.builder()
-            .parent(authmeBase)
+            .parent(parent)
             .labels("debug", "dbg")
             .description("Debug features")
             .detailedDescription("Allows various operations for debugging.")
@@ -537,8 +591,6 @@ public class CommandInitializer {
             .permission(DebugSectionPermissions.DEBUG_COMMAND)
             .executableCommand(DebugCommand.class)
             .register();
-
-        return authmeBase;
     }
 
     /**

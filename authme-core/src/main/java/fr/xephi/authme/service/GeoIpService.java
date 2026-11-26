@@ -67,9 +67,7 @@ public class GeoIpService {
 
     @Inject
     public GeoIpService(@DataFolder File dataFolder, BukkitService bukkitService, Settings settings) {
-        this.bukkitService = bukkitService;
-        this.dataFile = dataFolder.toPath().resolve(DATABASE_FILE);
-        this.settings = settings;
+        this(dataFolder, bukkitService, settings, null);
 
         // Fires download of recent data or the initialization of the look-up service
         isDataAvailable();
@@ -80,7 +78,6 @@ public class GeoIpService {
         this.bukkitService = bukkitService;
         this.settings = settings;
         this.dataFile = dataFolder.toPath().resolve(DATABASE_FILE);
-
         this.databaseReader = reader;
     }
 
@@ -108,14 +105,9 @@ public class GeoIpService {
 
         if (Files.exists(dataFile)) {
             try {
-                FileTime lastModifiedTime = Files.getLastModifiedTime(dataFile);
-                if (Duration.between(lastModifiedTime.toInstant(), Instant.now()).toDays() <= UPDATE_INTERVAL_DAYS) {
-                    startReading();
-
+                if (loadDatabaseIfUpToDate()) {
                     // don't fire the update task - we are up-to-date
                     return true;
-                } else {
-                    logger.debug("GEO IP database is older than " + UPDATE_INTERVAL_DAYS + " Days");
                 }
             } catch (IOException ioEx) {
                 logger.logException("Failed to load GeoLiteAPI database", ioEx);
@@ -129,6 +121,22 @@ public class GeoIpService {
         // File is outdated or doesn't exist - let's try to download the data file!
         // use bukkit's cached threads
         bukkitService.runTaskAsynchronously(this::updateDatabase);
+        return false;
+    }
+
+    /**
+     * Loads the existing database if it is recent enough.
+     *
+     * @return true if the reader was initialized from the existing file, false if the file is outdated
+     * @throws IOException if the file's timestamp cannot be read or the reader cannot be built
+     */
+    private boolean loadDatabaseIfUpToDate() throws IOException {
+        FileTime lastModifiedTime = Files.getLastModifiedTime(dataFile);
+        if (Duration.between(lastModifiedTime.toInstant(), Instant.now()).toDays() <= UPDATE_INTERVAL_DAYS) {
+            startReading();
+            return true;
+        }
+        logger.debug("GEO IP database is older than " + UPDATE_INTERVAL_DAYS + " Days");
         return false;
     }
 
@@ -168,12 +176,14 @@ public class GeoIpService {
             logger.logException("Could not download GeoLiteAPI database", ioEx);
         } finally {
             // clean up
-            if (downloadFile != null) {
-                FileUtils.delete(downloadFile.toFile());
-            }
-            if (tempFile != null) {
-                FileUtils.delete(tempFile.toFile());
-            }
+            deleteIfPresent(downloadFile);
+            deleteIfPresent(tempFile);
+        }
+    }
+
+    private static void deleteIfPresent(Path file) {
+        if (file != null) {
+            FileUtils.delete(file.toFile());
         }
     }
 
@@ -197,6 +207,33 @@ public class GeoIpService {
      * @throws IOException if failed during downloading and writing to destination file
      */
     private String downloadDatabaseArchive(Instant lastModified, Path destination) throws IOException {
+        HttpURLConnection connection = openConnection(lastModified);
+        if (connection == null) {
+            return null;
+        }
+
+        if (connection.getResponseCode() == HttpURLConnection.HTTP_NOT_MODIFIED) {
+            //we already have the newest version
+            connection.getInputStream().close();
+            return null;
+        }
+
+        String hash = connection.getHeaderField("X-Database-MD5");
+        String rawModifiedDate = connection.getHeaderField("Last-Modified");
+        Instant modifiedDate = Instant.from(DateTimeFormatter.RFC_1123_DATE_TIME.parse(rawModifiedDate));
+        Files.copy(connection.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
+        Files.setLastModifiedTime(destination, FileTime.from(modifiedDate));
+        return hash;
+    }
+
+    /**
+     * Opens the download connection with authentication and, when known, the last modification date.
+     *
+     * @param lastModified modification timestamp of the already present file, or null if unknown
+     * @return the configured connection, or null if no MaxMind credentials are available
+     * @throws IOException if opening the connection fails
+     */
+    private HttpURLConnection openConnection(Instant lastModified) throws IOException {
         String clientId = settings.getProperty(ProtectionSettings.MAXMIND_API_CLIENT_ID);
         String licenseKey = settings.getProperty(ProtectionSettings.MAXMIND_API_LICENSE_KEY);
         if (clientId.isEmpty() || licenseKey.isEmpty()) {
@@ -215,19 +252,7 @@ public class GeoIpService {
             String timeFormat = DateTimeFormatter.RFC_1123_DATE_TIME.format(zonedTime);
             connection.addRequestProperty("If-Modified-Since", timeFormat);
         }
-
-        if (connection.getResponseCode() == HttpURLConnection.HTTP_NOT_MODIFIED) {
-            //we already have the newest version
-            connection.getInputStream().close();
-            return null;
-        }
-
-        String hash = connection.getHeaderField("X-Database-MD5");
-        String rawModifiedDate = connection.getHeaderField("Last-Modified");
-        Instant modifiedDate = Instant.from(DateTimeFormatter.RFC_1123_DATE_TIME.parse(rawModifiedDate));
-        Files.copy(connection.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
-        Files.setLastModifiedTime(destination, FileTime.from(modifiedDate));
-        return hash;
+        return connection;
     }
 
     /**

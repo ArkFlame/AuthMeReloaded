@@ -195,68 +195,89 @@ final class VelocityProxyBridge {
         if (parsedMessage.type() == null || parsedMessage.playerName() == null) {
             return;
         }
+        dispatchPluginMessage(parsedMessage, serverConnection);
+    }
 
-        String normalizedName = VelocityAuthenticationStore.normalizeName(parsedMessage.playerName());
+    private void dispatchPluginMessage(ParsedMessage message, ServerConnection serverConnection) {
+        String playerName = message.playerName();
+        String normalizedName = VelocityAuthenticationStore.normalizeName(playerName);
         String serverName = serverConnection.getServer().getServerInfo().getName();
+        ProxyMessageType type = message.type();
 
-        if (parsedMessage.type() == ProxyMessageType.LOGIN) {
-            if (configuration.isAuthServer(serverConnection.getServer())) {
-                logger.info("Player {} authenticated on auth server '{}'", parsedMessage.playerName(), serverName);
+        if (type == ProxyMessageType.LOGIN) {
+            handleLoginMessage(playerName, normalizedName, serverName, serverConnection);
+        } else if (type == ProxyMessageType.LOGOUT) {
+            handleLogoutMessage(playerName, normalizedName, serverName);
+        } else if (type == ProxyMessageType.PERFORM_LOGIN_ACK) {
+            handlePerformLoginAck(playerName, serverName);
+        } else {
+            handlePremiumMessage(type, playerName);
+        }
+    }
 
-                proxyServer.getPlayer(normalizedName).ifPresent(player -> {
-                    boolean premium = requiresPremiumVerification(normalizedName);
-                    AuthMeVelocityLoginEvent loginEvent = new AuthMeVelocityLoginEvent(player, premium);
+    private void handleLoginMessage(String playerName, String normalizedName, String serverName,
+                                    ServerConnection serverConnection) {
+        if (configuration.isAuthServer(serverConnection.getServer())) {
+            logger.info("Player {} authenticated on auth server '{}'", playerName, serverName);
 
-                    proxyServer.getEventManager().fireAndForget(loginEvent);
-                });
-
-                authenticationStore.markAuthenticated(parsedMessage.playerName());
-                sendAutoLoginIfAlreadySwitched(parsedMessage.playerName(), serverConnection.getServer());
-                redirectToLoginServer(parsedMessage.playerName());
-            } else if (pendingAutoLogins.containsKey(parsedMessage.playerName())) {
-                // Implicit ACK: login from non-auth server confirms perform.login was processed
-                logger.info("Auto-login confirmed for {} via login from server '{}'",
-                    parsedMessage.playerName(), serverName);
-                cancelPendingLogin(parsedMessage.playerName());
-            } else {
-                logger.debug("Ignoring login from non-auth server '{}' for {} (no pending auto-login)",
-                    serverName, parsedMessage.playerName());
-            }
-        } else if (parsedMessage.type() == ProxyMessageType.LOGOUT) {
-            logger.info("Player {} logged out (notified by server '{}')", parsedMessage.playerName(), serverName);
-            authenticationStore.markLoggedOut(parsedMessage.playerName());
             proxyServer.getPlayer(normalizedName).ifPresent(player -> {
-                AuthMeVelocityLogoutEvent loginEvent = new AuthMeVelocityLogoutEvent(player);
+                boolean premium = requiresPremiumVerification(normalizedName);
+                AuthMeVelocityLoginEvent loginEvent = new AuthMeVelocityLoginEvent(player, premium);
+
                 proxyServer.getEventManager().fireAndForget(loginEvent);
             });
 
-            redirectLoggedOutPlayer(parsedMessage.playerName());
-        } else if (parsedMessage.type() == ProxyMessageType.PERFORM_LOGIN_ACK) {
-            logger.info("Auto-login ACK received for {} from server '{}'",
-                parsedMessage.playerName(), serverName);
-            cancelPendingLogin(parsedMessage.playerName());
-            if (configuration.autoLoginEnabled()) {
-                // The backend completed the auto-login; without this the proxy keeps denying
-                // chat and commands even though the player is authenticated on the backend.
-                authenticationStore.markAuthenticated(parsedMessage.playerName());
-            }
-        } else if (parsedMessage.type() == ProxyMessageType.PREMIUM_SET) {
-            premiumNames.add(parsedMessage.playerName());
-            pendingPremiumUsernames.remove(parsedMessage.playerName());
-            logger.debug("Premium enabled for '{}' (proxy cache updated)", parsedMessage.playerName());
-        } else if (parsedMessage.type() == ProxyMessageType.PREMIUM_UNSET) {
-            premiumNames.remove(parsedMessage.playerName());
-            pendingPremiumUsernames.remove(parsedMessage.playerName());
-            premiumVerificationManager.clearVerifiedPremium(parsedMessage.playerName());
-            logger.debug("Premium disabled for '{}' (proxy cache updated)", parsedMessage.playerName());
-        } else if (parsedMessage.type() == ProxyMessageType.PREMIUM_PENDING_SET) {
-            pendingPremiumUsernames.add(parsedMessage.playerName());
-            premiumVerificationManager.clearVerifiedPremium(parsedMessage.playerName());
-            logger.debug("Pending premium verification started for '{}'", parsedMessage.playerName());
-        } else if (parsedMessage.type() == ProxyMessageType.PREMIUM_LIST) {
-            premiumNames.replaceFromCsv(parsedMessage.playerName());
-        } else if (parsedMessage.type() == ProxyMessageType.PREMIUM_LIST_CHUNK) {
-            premiumNames.handleChunk(parsedMessage.playerName());
+            authenticationStore.markAuthenticated(playerName);
+            sendAutoLoginIfAlreadySwitched(playerName, serverConnection.getServer());
+            redirectToLoginServer(playerName);
+        } else if (pendingAutoLogins.containsKey(playerName)) {
+            // Implicit ACK: login from non-auth server confirms perform.login was processed
+            logger.info("Auto-login confirmed for {} via login from server '{}'", playerName, serverName);
+            cancelPendingLogin(playerName);
+        } else {
+            logger.debug("Ignoring login from non-auth server '{}' for {} (no pending auto-login)",
+                serverName, playerName);
+        }
+    }
+
+    private void handleLogoutMessage(String playerName, String normalizedName, String serverName) {
+        logger.info("Player {} logged out (notified by server '{}')", playerName, serverName);
+        authenticationStore.markLoggedOut(playerName);
+        proxyServer.getPlayer(normalizedName).ifPresent(player -> {
+            AuthMeVelocityLogoutEvent loginEvent = new AuthMeVelocityLogoutEvent(player);
+            proxyServer.getEventManager().fireAndForget(loginEvent);
+        });
+        redirectLoggedOutPlayer(playerName);
+    }
+
+    private void handlePerformLoginAck(String playerName, String serverName) {
+        logger.info("Auto-login ACK received for {} from server '{}'", playerName, serverName);
+        cancelPendingLogin(playerName);
+        if (configuration.autoLoginEnabled()) {
+            // The backend completed the auto-login; without this the proxy keeps denying
+            // chat and commands even though the player is authenticated on the backend.
+            authenticationStore.markAuthenticated(playerName);
+        }
+    }
+
+    private void handlePremiumMessage(ProxyMessageType type, String playerName) {
+        if (type == ProxyMessageType.PREMIUM_SET) {
+            premiumNames.add(playerName);
+            pendingPremiumUsernames.remove(playerName);
+            logger.debug("Premium enabled for '{}' (proxy cache updated)", playerName);
+        } else if (type == ProxyMessageType.PREMIUM_UNSET) {
+            premiumNames.remove(playerName);
+            pendingPremiumUsernames.remove(playerName);
+            premiumVerificationManager.clearVerifiedPremium(playerName);
+            logger.debug("Premium disabled for '{}' (proxy cache updated)", playerName);
+        } else if (type == ProxyMessageType.PREMIUM_PENDING_SET) {
+            pendingPremiumUsernames.add(playerName);
+            premiumVerificationManager.clearVerifiedPremium(playerName);
+            logger.debug("Pending premium verification started for '{}'", playerName);
+        } else if (type == ProxyMessageType.PREMIUM_LIST) {
+            premiumNames.replaceFromCsv(playerName);
+        } else if (type == ProxyMessageType.PREMIUM_LIST_CHUNK) {
+            premiumNames.handleChunk(playerName);
         }
     }
 
@@ -305,8 +326,7 @@ final class VelocityProxyBridge {
             return;
         }
         String serverName = server.getServer().getServerInfo().getName();
-        boolean sent = server.sendPluginMessage(
-            AUTHME_CHANNEL, createPerformLoginMessage(normalizedName, verifiedPremiumUuid));
+        boolean sent = sendPerformLoginMessage(server, normalizedName, verifiedPremiumUuid);
         if (sent) {
             logger.info("Sent config-phase auto-login to {}server '{}' for player {} (verifiedPremiumUuid={})",
                 authServerOnly ? "auth " : "", serverName, normalizedName, verifiedPremiumUuid);
@@ -318,20 +338,24 @@ final class VelocityProxyBridge {
     }
 
     void onServerConnected(ServerConnectedEvent event) {
-        String playerName = event.getPlayer().getUsername();
+        Player player = event.getPlayer();
+        String playerName = player.getUsername();
         String newServer = event.getServer().getServerInfo().getName();
         String prevServer = event.getPreviousServer()
             .map(s -> s.getServerInfo().getName()).orElse("(none)");
         logger.debug("ServerConnected: {} moved from '{}' to '{}'", playerName, prevServer, newServer);
 
-        sendProxyStartedHandshakeIfPending(event.getServer(), event.getPlayer().getCurrentServer().orElse(null));
+        sendProxyStartedHandshakeIfPending(event.getServer(), player.getCurrentServer().orElse(null));
 
         if (!configuration.autoLoginEnabled()) {
             logger.debug("autoLogin is disabled, skipping auto-login for {}", playerName);
             return;
         }
+        sendAutoLoginOnConnect(player, event.getServer(), playerName, newServer);
+    }
 
-        boolean connectingToAuthServer = configuration.isAuthServer(event.getServer());
+    private void sendAutoLoginOnConnect(Player player, RegisteredServer server, String playerName, String newServer) {
+        boolean connectingToAuthServer = configuration.isAuthServer(server);
 
         String normalizedName = VelocityAuthenticationStore.normalizeName(playerName);
         UUID verifiedPremiumUuid = premiumVerificationManager.getVerifiedPremiumUuid(normalizedName);
@@ -348,7 +372,7 @@ final class VelocityProxyBridge {
                 normalizedName, newServer, verifiedPremiumUuid);
         }
 
-        Optional<ServerConnection> currentServer = event.getPlayer().getCurrentServer();
+        Optional<ServerConnection> currentServer = player.getCurrentServer();
         if (currentServer.isEmpty()) {
             // Velocity hasn't registered the new connection yet; let the retry mechanism handle it
             logger.debug("Player {} has no active server connection in ServerConnectedEvent; scheduling auto-login retry", normalizedName);
@@ -357,8 +381,7 @@ final class VelocityProxyBridge {
         }
 
         String serverName = currentServer.get().getServer().getServerInfo().getName();
-        boolean sent = currentServer.get().sendPluginMessage(
-            AUTHME_CHANNEL, createPerformLoginMessage(normalizedName, verifiedPremiumUuid));
+        boolean sent = sendPerformLoginMessage(currentServer.get(), normalizedName, verifiedPremiumUuid);
         if (sent) {
             logger.info("Sending auto-login request to server '{}' for player {} (verifiedPremiumUuid={})",
                 serverName, normalizedName, verifiedPremiumUuid);
@@ -481,8 +504,7 @@ final class VelocityProxyBridge {
         logger.info("Player {} already on server '{}' when login message arrived — sending auto-login immediately",
             normalizedName, currentServerName);
         UUID verifiedPremiumUuid = premiumVerificationManager.getVerifiedPremiumUuid(normalizedName);
-        boolean sent = currentConn.get().sendPluginMessage(
-            AUTHME_CHANNEL, createPerformLoginMessage(normalizedName, verifiedPremiumUuid));
+        boolean sent = sendPerformLoginMessage(currentConn.get(), normalizedName, verifiedPremiumUuid);
         if (sent) {
             initiatePendingLogin(normalizedName);
         } else {
@@ -561,8 +583,7 @@ final class VelocityProxyBridge {
                 normalizedName, serverName, current + 1, MAX_RETRIES);
 
             UUID verifiedPremiumUuid = premiumVerificationManager.getVerifiedPremiumUuid(normalizedName);
-            serverOpt.get().sendPluginMessage(AUTHME_CHANNEL,
-                createPerformLoginMessage(normalizedName, verifiedPremiumUuid));
+            sendPerformLoginMessage(serverOpt.get(), normalizedName, verifiedPremiumUuid);
             scheduleRetry(normalizedName, attempts);
         }, 1, TimeUnit.SECONDS);
     }
@@ -597,6 +618,10 @@ final class VelocityProxyBridge {
         output.writeUTF(verifiedPremiumUuid == null ? "" : verifiedPremiumUuid.toString());
         output.writeUTF(hmac);
         return output.toByteArray();
+    }
+
+    private boolean sendPerformLoginMessage(ServerConnection server, String normalizedName, UUID verifiedPremiumUuid) {
+        return server.sendPluginMessage(AUTHME_CHANNEL, createPerformLoginMessage(normalizedName, verifiedPremiumUuid));
     }
 
     private void redirectToLoginServer(String normalizedPlayerName) {

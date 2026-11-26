@@ -81,6 +81,11 @@ public final class BungeeProxyBridge implements Listener {
     }
 
     void logConfigurationDetails() {
+        logAuthServerConfiguration();
+        logBridgeFeatureConfiguration();
+    }
+
+    private void logAuthServerConfiguration() {
         if (configuration.allServersAreAuthServers()) {
             logger.info("All registered backend servers are treated as auth servers");
         } else if (configuration.authServers().isEmpty()) {
@@ -90,7 +95,9 @@ public final class BungeeProxyBridge implements Listener {
             logger.info("Current auth servers:");
             configuration.authServers().forEach(serverName -> logger.info("> " + serverName));
         }
+    }
 
+    private void logBridgeFeatureConfiguration() {
         if (!configuration.autoLoginEnabled()) {
             logger.info("autoLogin is disabled");
         }
@@ -183,43 +190,17 @@ public final class BungeeProxyBridge implements Listener {
         if (parsedMessage.type() == null || parsedMessage.playerName() == null) {
             return;
         }
+        handlePluginMessage(parsedMessage, server);
+    }
 
+    private void handlePluginMessage(ParsedPluginMessage message, Server server) {
         // Name-bearing messages are already normalized by parsePluginMessage; the premium list
         // messages carry a raw comma-separated payload that each handler normalizes itself.
-        String playerName = parsedMessage.playerName();
+        String playerName = message.playerName();
 
-        switch (parsedMessage.type()) {
-            case LOGIN -> {
-                if (configuration.isAuthServer(server.getInfo())) {
-                    logger.info("Player " + playerName + " authenticated on auth server '"
-                        + server.getInfo().getName() + "'");
-
-                    ProxiedPlayer player = proxyServer.getPlayer(playerName);
-                    if (player != null) {
-                        boolean premium = requiresPremiumVerification(playerName);
-                        proxyServer.getPluginManager().callEvent(new AuthMeBungeeLoginEvent(player, premium));
-                    }
-
-                    authenticationStore.markAuthenticated(playerName);
-
-                    sendAutoLoginIfAlreadySwitched(playerName, server.getInfo());
-                    redirectToLoginServer(playerName);
-                } else if (pendingAutoLogins.containsKey(playerName)) {
-                    // Implicit ACK: login from non-auth server confirms perform.login was processed
-                    logger.info("Auto-login confirmed for " + playerName
-                        + " via login from server '" + server.getInfo().getName() + "'");
-                    cancelPendingLogin(playerName);
-                }
-            }
-            case LOGOUT -> {
-                authenticationStore.markLoggedOut(playerName);
-                ProxiedPlayer player = proxyServer.getPlayer(playerName);
-                if (player != null) {
-                    proxyServer.getPluginManager().callEvent(new AuthMeBungeeLogoutEvent(player));
-                }
-
-                redirectLoggedOutPlayer(playerName);
-            }
+        switch (message.type()) {
+            case LOGIN -> handleLoginMessage(server, playerName);
+            case LOGOUT -> handleLogoutMessage(playerName);
             case PERFORM_LOGIN_ACK -> {
                 logger.info("Auto-login ACK received for " + playerName
                     + " from server '" + server.getInfo().getName() + "'");
@@ -247,6 +228,39 @@ public final class BungeeProxyBridge implements Listener {
                 // Outbound-only message types are never handled on the inbound channel.
             }
         }
+    }
+
+    private void handleLoginMessage(Server server, String playerName) {
+        if (configuration.isAuthServer(server.getInfo())) {
+            logger.info("Player " + playerName + " authenticated on auth server '"
+                + server.getInfo().getName() + "'");
+
+            ProxiedPlayer player = proxyServer.getPlayer(playerName);
+            if (player != null) {
+                boolean premium = requiresPremiumVerification(playerName);
+                proxyServer.getPluginManager().callEvent(new AuthMeBungeeLoginEvent(player, premium));
+            }
+
+            authenticationStore.markAuthenticated(playerName);
+
+            sendAutoLoginIfAlreadySwitched(playerName, server.getInfo());
+            redirectToLoginServer(playerName);
+        } else if (pendingAutoLogins.containsKey(playerName)) {
+            // Implicit ACK: login from non-auth server confirms perform.login was processed
+            logger.info("Auto-login confirmed for " + playerName
+                + " via login from server '" + server.getInfo().getName() + "'");
+            cancelPendingLogin(playerName);
+        }
+    }
+
+    private void handleLogoutMessage(String playerName) {
+        authenticationStore.markLoggedOut(playerName);
+        ProxiedPlayer player = proxyServer.getPlayer(playerName);
+        if (player != null) {
+            proxyServer.getPluginManager().callEvent(new AuthMeBungeeLogoutEvent(player));
+        }
+
+        redirectLoggedOutPlayer(playerName);
     }
 
     @EventHandler
@@ -278,8 +292,7 @@ public final class BungeeProxyBridge implements Listener {
         }
         String serverName = currentServer.getInfo().getName();
         logger.info("Sending auto-login request to server '" + serverName + "' for player " + normalizedName);
-        currentServer.getInfo().sendData(
-            AUTHME_CHANNEL, createPerformLoginMessage(normalizedName, verifiedPremiumUuid), false);
+        sendPerformLogin(normalizedName, currentServer.getInfo(), verifiedPremiumUuid);
         initiatePendingLogin(normalizedName);
     }
 
@@ -381,8 +394,7 @@ public final class BungeeProxyBridge implements Listener {
         logger.info("Player " + normalizedName + " already on server '" + currentServerName
             + "' when login message arrived — sending auto-login immediately");
         UUID verifiedPremiumUuid = premiumVerificationManager.getVerifiedPremiumUuid(normalizedName);
-        currentConn.getInfo().sendData(
-            AUTHME_CHANNEL, createPerformLoginMessage(normalizedName, verifiedPremiumUuid), false);
+        sendPerformLogin(normalizedName, currentConn.getInfo(), verifiedPremiumUuid);
         initiatePendingLogin(normalizedName);
     }
 
@@ -414,39 +426,44 @@ public final class BungeeProxyBridge implements Listener {
     }
 
     private void scheduleRetry(String normalizedName) {
-        retryScheduler.schedule(() -> {
-            AtomicInteger attempts = pendingAutoLogins.get(normalizedName);
-            if (attempts == null) {
-                return;
-            }
-            int current = attempts.getAndIncrement();
-            if (current >= MAX_RETRIES) {
-                pendingAutoLogins.remove(normalizedName);
-                logger.warning("No auto-login ACK received for " + normalizedName
-                    + " after " + MAX_RETRIES + " retries; giving up");
-                return;
-            }
-            ProxiedPlayer player = proxyServer.getPlayer(normalizedName);
-            if (player == null) {
-                pendingAutoLogins.remove(normalizedName);
-                logger.fine("Auto-login retry cancelled for " + normalizedName + " (player no longer online)");
-                return;
-            }
-            Server server = player.getServer();
-            if (server == null) {
-                pendingAutoLogins.remove(normalizedName);
-                logger.fine("Auto-login retry cancelled for " + normalizedName + " (player has no active server)");
-                return;
-            }
+        retryScheduler.schedule(() -> processAutoLoginRetry(normalizedName), 1, TimeUnit.SECONDS);
+    }
 
-            String serverName = server.getInfo().getName();
-            logger.fine("Retrying auto-login for " + normalizedName + " on server '" + serverName
-                + "' (attempt " + (current + 1) + "/" + MAX_RETRIES + ")");
-            UUID verifiedPremiumUuid = premiumVerificationManager.getVerifiedPremiumUuid(normalizedName);
-            server.getInfo().sendData(
-                AUTHME_CHANNEL, createPerformLoginMessage(normalizedName, verifiedPremiumUuid), false);
-            scheduleRetry(normalizedName);
-        }, 1, TimeUnit.SECONDS);
+    private void processAutoLoginRetry(String normalizedName) {
+        AtomicInteger attempts = pendingAutoLogins.get(normalizedName);
+        if (attempts == null) {
+            return;
+        }
+        int current = attempts.getAndIncrement();
+        if (current >= MAX_RETRIES) {
+            pendingAutoLogins.remove(normalizedName);
+            logger.warning("No auto-login ACK received for " + normalizedName
+                + " after " + MAX_RETRIES + " retries; giving up");
+            return;
+        }
+        ProxiedPlayer player = proxyServer.getPlayer(normalizedName);
+        if (player == null) {
+            pendingAutoLogins.remove(normalizedName);
+            logger.fine("Auto-login retry cancelled for " + normalizedName + " (player no longer online)");
+            return;
+        }
+        Server server = player.getServer();
+        if (server == null) {
+            pendingAutoLogins.remove(normalizedName);
+            logger.fine("Auto-login retry cancelled for " + normalizedName + " (player has no active server)");
+            return;
+        }
+
+        String serverName = server.getInfo().getName();
+        logger.fine("Retrying auto-login for " + normalizedName + " on server '" + serverName
+            + "' (attempt " + (current + 1) + "/" + MAX_RETRIES + ")");
+        UUID verifiedPremiumUuid = premiumVerificationManager.getVerifiedPremiumUuid(normalizedName);
+        sendPerformLogin(normalizedName, server.getInfo(), verifiedPremiumUuid);
+        scheduleRetry(normalizedName);
+    }
+
+    private void sendPerformLogin(String normalizedName, ServerInfo serverInfo, UUID verifiedPremiumUuid) {
+        serverInfo.sendData(AUTHME_CHANNEL, createPerformLoginMessage(normalizedName, verifiedPremiumUuid), false);
     }
 
     private ParsedPluginMessage parsePluginMessage(byte[] data) {

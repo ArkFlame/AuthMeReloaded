@@ -257,6 +257,12 @@ public class PlayerAuth {
          */
         public PlayerAuth build() {
             PlayerAuth auth = new PlayerAuth();
+            applyAccountFields(auth);
+            applyLocationFields(auth);
+            return auth;
+        }
+
+        private void applyAccountFields(PlayerAuth auth) {
             auth.nickname = checkNotNull(name).toLowerCase(Locale.ROOT);
             auth.realName = realName == null ? "Player" : realName;
             // Use a null check rather than Optional.orElse: orElse would allocate a default
@@ -269,16 +275,17 @@ public class PlayerAuth {
             auth.lastLogin = lastLogin;
             auth.registrationIp = registrationIp;
             auth.registrationDate = registrationDate == null ? System.currentTimeMillis() : registrationDate;
+            auth.uuid = uuid;
+            auth.premiumUuid = premiumUuid;
+        }
 
+        private void applyLocationFields(PlayerAuth auth) {
             auth.x = x;
             auth.y = y;
             auth.z = z;
             auth.world = world == null ? "world" : world;
             auth.yaw = yaw;
             auth.pitch = pitch;
-            auth.uuid = uuid;
-            auth.premiumUuid = premiumUuid;
-            return auth;
         }
 
         public Builder name(String name) {
@@ -317,13 +324,12 @@ public class PlayerAuth {
          * @return this builder instance
          */
         public Builder location(Location location) {
-            this.x = location.getX();
-            this.y = location.getY();
-            this.z = location.getZ();
-            this.world = location.getWorld().getName();
-            this.yaw = location.getYaw();
-            this.pitch = location.getPitch();
-            return this;
+            return locX(location.getX())
+                .locY(location.getY())
+                .locZ(location.getZ())
+                .locWorld(location.getWorld().getName())
+                .locYaw(location.getYaw())
+                .locPitch(location.getPitch());
         }
 
         public Builder locX(double x) {

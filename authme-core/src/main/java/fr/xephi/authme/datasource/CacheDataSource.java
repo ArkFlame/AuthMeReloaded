@@ -89,10 +89,7 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
             boolean useVirtualThreads, Class<?> executorsClass) {
         if (useVirtualThreads) {
             try {
-                Method method = executorsClass.getMethod("newVirtualThreadPerTaskExecutor");
-                method.setAccessible(true);
-                ExecutorService executor = (ExecutorService) method.invoke(null);
-                return MoreExecutors.listeningDecorator(executor);
+                return createVirtualThreadExecutor(executorsClass);
             } catch (Exception e) {
                 // Java < 21 or a restricted JDK: fall through to the cached pool
             }
@@ -105,8 +102,29 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
         );
     }
 
+    private static ListeningExecutorService createVirtualThreadExecutor(Class<?> executorsClass) throws Exception {
+        Method method = executorsClass.getMethod("newVirtualThreadPerTaskExecutor");
+        method.setAccessible(true);
+        ExecutorService executor = (ExecutorService) method.invoke(null);
+        return MoreExecutors.listeningDecorator(executor);
+    }
+
     public LoadingCache<String, Optional<PlayerAuth>> getCachedAuths() {
         return cachedAuths;
+    }
+
+    /**
+     * Applies a cache change only when the underlying data source update succeeded.
+     *
+     * @param succeeded whether the source update succeeded
+     * @param cacheChange the cache change to perform on success
+     * @return the value of {@code succeeded}
+     */
+    private boolean updateCacheOnSuccess(boolean succeeded, Runnable cacheChange) {
+        if (succeeded) {
+            cacheChange.run();
+        }
+        return succeeded;
     }
 
     @Override
@@ -142,48 +160,28 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public boolean saveAuth(PlayerAuth auth) {
-        boolean result = source.saveAuth(auth);
-        if (result) {
-            cachedAuths.refresh(auth.getNickname());
-        }
-        return result;
+        return updateCacheOnSuccess(source.saveAuth(auth), () -> cachedAuths.refresh(auth.getNickname()));
     }
 
     @Override
     public boolean updatePassword(PlayerAuth auth) {
-        boolean result = source.updatePassword(auth);
-        if (result) {
-            cachedAuths.refresh(auth.getNickname());
-        }
-        return result;
+        return updateCacheOnSuccess(source.updatePassword(auth), () -> cachedAuths.refresh(auth.getNickname()));
     }
 
     @Override
     public boolean updatePassword(String user, HashedPassword password) {
-        user = user.toLowerCase(Locale.ROOT);
-        boolean result = source.updatePassword(user, password);
-        if (result) {
-            cachedAuths.refresh(user);
-        }
-        return result;
+        String key = user.toLowerCase(Locale.ROOT);
+        return updateCacheOnSuccess(source.updatePassword(key, password), () -> cachedAuths.refresh(key));
     }
 
     @Override
     public boolean updateSession(PlayerAuth auth) {
-        boolean result = source.updateSession(auth);
-        if (result) {
-            cachedAuths.refresh(auth.getNickname());
-        }
-        return result;
+        return updateCacheOnSuccess(source.updateSession(auth), () -> cachedAuths.refresh(auth.getNickname()));
     }
 
     @Override
     public boolean updateQuitLoc(final PlayerAuth auth) {
-        boolean result = source.updateQuitLoc(auth);
-        if (result) {
-            cachedAuths.refresh(auth.getNickname());
-        }
-        return result;
+        return updateCacheOnSuccess(source.updateQuitLoc(auth), () -> cachedAuths.refresh(auth.getNickname()));
     }
 
     @Override
@@ -193,12 +191,8 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public boolean removeAuth(String name) {
-        name = name.toLowerCase(Locale.ROOT);
-        boolean result = source.removeAuth(name);
-        if (result) {
-            cachedAuths.invalidate(name);
-        }
-        return result;
+        String key = name.toLowerCase(Locale.ROOT);
+        return updateCacheOnSuccess(source.removeAuth(key), () -> cachedAuths.invalidate(key));
     }
 
     @Override
@@ -215,20 +209,13 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public boolean updateEmail(final PlayerAuth auth) {
-        boolean result = source.updateEmail(auth);
-        if (result) {
-            cachedAuths.refresh(auth.getNickname());
-        }
-        return result;
+        return updateCacheOnSuccess(source.updateEmail(auth), () -> cachedAuths.refresh(auth.getNickname()));
     }
 
     @Override
     public boolean updatePremiumUuid(PlayerAuth auth) {
-        boolean result = source.updatePremiumUuid(auth);
-        if (result) {
-            cachedAuths.put(auth.getNickname(), Optional.of(auth));
-        }
-        return result;
+        return updateCacheOnSuccess(source.updatePremiumUuid(auth),
+            () -> cachedAuths.put(auth.getNickname(), Optional.of(auth)));
     }
 
     @Override
@@ -309,11 +296,7 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public boolean updateRealName(String user, String realName) {
-        boolean result = source.updateRealName(user, realName);
-        if (result) {
-            cachedAuths.refresh(user);
-        }
-        return result;
+        return updateCacheOnSuccess(source.updateRealName(user, realName), () -> cachedAuths.refresh(user));
     }
 
     @Override
@@ -343,11 +326,7 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public boolean setTotpKey(String user, String totpKey) {
-        boolean result = source.setTotpKey(user, totpKey);
-        if (result) {
-            cachedAuths.refresh(user);
-        }
-        return result;
+        return updateCacheOnSuccess(source.setTotpKey(user, totpKey), () -> cachedAuths.refresh(user));
     }
 
     @Override

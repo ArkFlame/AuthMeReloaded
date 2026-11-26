@@ -90,19 +90,24 @@ class MySqlDefaultChanger implements DebugSection {
         } else {
             sender.sendMessage(ChatColor.BLUE + "[AuthMe] MySQL change '" + column + "'");
             try (Connection con = getConnection(mySql)) {
-                switch (operation) {
-                    case ADD:
-                        changeColumnToNotNullWithDefault(sender, column, con);
-                        break;
-                    case REMOVE:
-                        removeNotNullAndDefault(sender, column, con);
-                        break;
-                    default:
-                        throw new IllegalStateException("Unknown operation '" + operation + "'");
-                }
+                performChange(sender, operation, column, con);
             } catch (SQLException | IllegalStateException e) {
                 logger.logException("Failed to perform MySQL default altering operation:", e);
             }
+        }
+    }
+
+    private void performChange(CommandSender sender, Operation operation, Columns column,
+                               Connection con) throws SQLException {
+        switch (operation) {
+            case ADD:
+                changeColumnToNotNullWithDefault(sender, column, con);
+                break;
+            case REMOVE:
+                removeNotNullAndDefault(sender, column, con);
+                break;
+            default:
+                throw new IllegalStateException("Unknown operation '" + operation + "'");
         }
     }
 
@@ -122,23 +127,16 @@ class MySqlDefaultChanger implements DebugSection {
 
         // Replace NULLs with future default value
         String sql = format("UPDATE %s SET %s = ? WHERE %s IS NULL;", tableName, columnName, columnName);
-        int updatedRows;
-        try (PreparedStatement pst = con.prepareStatement(sql)) {
-            pst.setObject(1, column.getDefaultValue());
-            updatedRows = pst.executeUpdate();
-        }
+        int updatedRows = executeUpdateWithDefault(con, sql, column.getDefaultValue());
         sender.sendMessage("Replaced NULLs with default value ('" + column.getDefaultValue()
             + "'), modifying " + updatedRows + " entries");
 
         // Change column definition to NOT NULL version
-        try (Statement st = con.createStatement()) {
-            st.execute(format("ALTER TABLE %s MODIFY %s %s", tableName, columnName, column.getNotNullDefinition()));
-            sender.sendMessage("Changed column '" + columnName + "' to have NOT NULL constraint");
-        }
+        alterColumn(con, tableName, columnName, column.getNotNullDefinition());
+        sender.sendMessage("Changed column '" + columnName + "' to have NOT NULL constraint");
 
         // Log success message
-        logger.info("Changed MySQL column '" + columnName + "' to be NOT NULL, as initiated by '"
-            + sender.getName() + "'");
+        logChange(sender, columnName, "be NOT NULL");
     }
 
     /**
@@ -155,24 +153,48 @@ class MySqlDefaultChanger implements DebugSection {
         final String columnName = settings.getProperty(column.getColumnNameProperty());
 
         // Change column definition to nullable version
-        try (Statement st = con.createStatement()) {
-            st.execute(format("ALTER TABLE %s MODIFY %s %s", tableName, columnName, column.getNullableDefinition()));
-            sender.sendMessage("Changed column '" + columnName + "' to allow nulls");
-        }
+        alterColumn(con, tableName, columnName, column.getNullableDefinition());
+        sender.sendMessage("Changed column '" + columnName + "' to allow nulls");
 
         // Replace old default value with NULL
         String sql = format("UPDATE %s SET %s = NULL WHERE %s = ?;", tableName, columnName, columnName);
-        int updatedRows;
-        try (PreparedStatement pst = con.prepareStatement(sql)) {
-            pst.setObject(1, column.getDefaultValue());
-            updatedRows = pst.executeUpdate();
-        }
+        int updatedRows = executeUpdateWithDefault(con, sql, column.getDefaultValue());
         sender.sendMessage("Replaced default value ('" + column.getDefaultValue()
             + "') to be NULL, modifying " + updatedRows + " entries");
 
         // Log success message
-        logger.info("Changed MySQL column '" + columnName + "' to allow NULL, as initiated by '"
-            + sender.getName() + "'");
+        logChange(sender, columnName, "allow NULL");
+    }
+
+    /**
+     * Executes the given UPDATE statement, binding the column's default value as its sole parameter.
+     *
+     * @return the number of rows affected by the update
+     */
+    private int executeUpdateWithDefault(Connection con, String sql, Object defaultValue)
+            throws SQLException {
+        try (PreparedStatement pst = con.prepareStatement(sql)) {
+            pst.setObject(1, defaultValue);
+            return pst.executeUpdate();
+        }
+    }
+
+    /**
+     * Changes the column to use the given SQL definition.
+     */
+    private void alterColumn(Connection con, String tableName, String columnName, String definition)
+            throws SQLException {
+        try (Statement st = con.createStatement()) {
+            st.execute(format("ALTER TABLE %s MODIFY %s %s", tableName, columnName, definition));
+        }
+    }
+
+    /**
+     * Logs a successful column change initiated by the given sender.
+     */
+    private void logChange(CommandSender sender, String columnName, String state) {
+        logger.info("Changed MySQL column '" + columnName + "' to " + state
+            + ", as initiated by '" + sender.getName() + "'");
     }
 
     /**

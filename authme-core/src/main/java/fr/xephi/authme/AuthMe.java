@@ -138,16 +138,56 @@ public class AuthMe extends JavaPlugin {
         loadPluginInfo(getDescription().getVersion());
 
         // Set the Logger instance and log file path
-        ConsoleLogger.initialize(getLogger(), new File(getDataFolder(), LOG_FILENAME));
-        logger = ConsoleLoggerFactory.get(AuthMe.class);
+        setupLogger();
 
         PlatformAdapter platformAdapter = loadPlatformAdapter();
+        if (!isStartupAllowed(platformAdapter)) {
+            return;
+        }
+        if (!initializeWithErrorHandling(platformAdapter)) {
+            return;
+        }
+
+        // Show settings warnings
+        injector.getSingleton(SettingsWarner.class).logWarningsForMisconfigurations();
+
+        // Schedule clean up task
+        scheduleCleanupTask();
+
+        // Do a backup on start
+        backupService.doBackup(BackupService.BackupCause.START);
+
+        // Set up Metrics
+        OnStartupTasks.sendMetrics(this, settings);
+
+        // Successful message
+        logger.info(getPluginName() + " by " + getPluginAuthor() + " " + getPluginVersion() + " build n." + getPluginBuildNumber() + " successfully enabled!");
+
+        // Purge on start if enabled
+        injector.getSingleton(PurgeService.class).runAutoPurge();
+    }
+
+    /**
+     * Sets up the logger and the log file path.
+     */
+    private void setupLogger() {
+        ConsoleLogger.initialize(getLogger(), new File(getDataFolder(), LOG_FILENAME));
+        logger = ConsoleLoggerFactory.get(AuthMe.class);
+    }
+
+    /**
+     * Checks whether the running environment allows the plugin to start, stopping it otherwise.
+     *
+     * @param platformAdapter the platform adapter in use
+     * @return true if startup may continue, false if the plugin was stopped
+     */
+    private boolean isStartupAllowed(PlatformAdapter platformAdapter) {
         String compatibilityError = platformAdapter.getCompatibilityError();
         if (compatibilityError != null) {
             logger.warning("You are running an unsupported server version (" + getServerNameVersionSafe() + "). "
                 + compatibilityError);
             stopOrUnload();
-            return;
+            return false;
         }
 
         // Prevent running AuthMeBridge due to major exploit issues
@@ -155,10 +195,18 @@ public class AuthMe extends JavaPlugin {
             logger.warning("Detected AuthMeBridge, support for it has been dropped as it was "
                 + "causing exploit issues, please use AuthMeBungee instead! Aborting!");
             stopOrUnload();
-            return;
+            return false;
         }
+        return true;
+    }
 
-        // Initialize the plugin
+    /**
+     * Initializes the plugin, aborting with a diagnostic if initialization fails.
+     *
+     * @param platformAdapter the platform adapter in use
+     * @return true if initialization succeeded, false if the plugin was stopped
+     */
+    private boolean initializeWithErrorHandling(PlatformAdapter platformAdapter) {
         try {
             initialize(platformAdapter);
         } catch (Throwable th) {
@@ -171,29 +219,18 @@ public class AuthMe extends JavaPlugin {
                     + "Please run its contents through http://yamllint.com", yamlParseException);
             }
             stopOrUnload();
-            return;
+            return false;
         }
+        return true;
+    }
 
-        // Show settings warnings
-        injector.getSingleton(SettingsWarner.class).logWarningsForMisconfigurations();
-
-        // Schedule clean up task
+    /**
+     * Schedules the periodic cleanup task.
+     */
+    private void scheduleCleanupTask() {
         CleanupTask cleanupTask = injector.getSingleton(CleanupTask.class);
         injector.getSingleton(BukkitService.class)
             .runTaskTimerAsynchronously(cleanupTask, CLEANUP_INTERVAL, CLEANUP_INTERVAL);
-
-        // Do a backup on start
-        backupService.doBackup(BackupService.BackupCause.START);
-
-        // Set up Metrics
-        OnStartupTasks.sendMetrics(this, settings);
-
-        // Successful message
-        logger.info(getPluginName() + " by " + getPluginAuthor() + " " + getPluginVersion() + " build n." + getPluginBuildNumber() + " successfully enabled!");
-
-        // Purge on start if enabled
-        PurgeService purgeService = injector.getSingleton(PurgeService.class);
-        purgeService.runAutoPurge();
     }
 
     /**
@@ -220,26 +257,7 @@ public class AuthMe extends JavaPlugin {
         getDataFolder().mkdir();
 
         // Create injector, provide elements from the Bukkit environment and register providers
-        injector = new InjectorBuilder()
-            .addDefaultHandlers("fr.xephi.authme")
-            .create();
-        injector.register(AuthMe.class, this);
-        injector.register(Server.class, getServer());
-        injector.register(PluginManager.class, getServer().getPluginManager());
-        injector.register(BukkitScheduler.class, getServer().getScheduler());
-        injector.provide(DataFolder.class, getDataFolder());
-        injector.registerProvider(Settings.class, SettingsProvider.class);
-        injector.registerProvider(DataSource.class, DataSourceProvider.class);
-
-        injector.register(PlatformAdapter.class, platformAdapter);
-        injector.register(BukkitCompatibilityAdapter.class, platformAdapter);
-        injector.register(TeleportAdapter.class, platformAdapter);
-        injector.register(ChatAdapter.class, platformAdapter);
-        injector.register(EventRegistrationAdapter.class, platformAdapter);
-        injector.register(SchedulingAdapter.class, platformAdapter);
-        injector.register(DialogAdapter.class, platformAdapter);
-        injector.register(CommandRegistrationAdapter.class, platformAdapter);
-        injector.register(PacketInterceptionAdapter.class, platformAdapter);
+        injector = createInjector(platformAdapter);
 
         // Get settings and set up logger
         settings = injector.getSingleton(Settings.class);
@@ -265,6 +283,45 @@ public class AuthMe extends JavaPlugin {
         // Start Email recall task if needed
         OnStartupTasks onStartupTasks = injector.newInstance(OnStartupTasks.class);
         onStartupTasks.scheduleRecallEmailTask();
+    }
+
+    /**
+     * Creates the injector and registers the Bukkit environment, the providers and the platform adapters.
+     *
+     * @param platformAdapter the platform adapter in use
+     * @return the configured injector
+     */
+    private Injector createInjector(PlatformAdapter platformAdapter) {
+        Injector injector = new InjectorBuilder()
+            .addDefaultHandlers("fr.xephi.authme")
+            .create();
+        injector.register(AuthMe.class, this);
+        injector.register(Server.class, getServer());
+        injector.register(PluginManager.class, getServer().getPluginManager());
+        injector.register(BukkitScheduler.class, getServer().getScheduler());
+        injector.provide(DataFolder.class, getDataFolder());
+        injector.registerProvider(Settings.class, SettingsProvider.class);
+        injector.registerProvider(DataSource.class, DataSourceProvider.class);
+        registerPlatformAdapters(injector, platformAdapter);
+        return injector;
+    }
+
+    /**
+     * Registers the platform adapter under all the adapter interfaces it implements.
+     *
+     * @param injector the injector
+     * @param platformAdapter the platform adapter in use
+     */
+    private void registerPlatformAdapters(Injector injector, PlatformAdapter platformAdapter) {
+        injector.register(PlatformAdapter.class, platformAdapter);
+        injector.register(BukkitCompatibilityAdapter.class, platformAdapter);
+        injector.register(TeleportAdapter.class, platformAdapter);
+        injector.register(ChatAdapter.class, platformAdapter);
+        injector.register(EventRegistrationAdapter.class, platformAdapter);
+        injector.register(SchedulingAdapter.class, platformAdapter);
+        injector.register(DialogAdapter.class, platformAdapter);
+        injector.register(CommandRegistrationAdapter.class, platformAdapter);
+        injector.register(PacketInterceptionAdapter.class, platformAdapter);
     }
 
     /**

@@ -66,10 +66,6 @@ public class HelpProvider implements Reloadable {
         this.compatibilityAdapter = compatibilityAdapter;
     }
 
-    HelpProvider(PermissionsManager permissionsManager, HelpMessagesService helpMessagesService, Settings settings) {
-        this(permissionsManager, helpMessagesService, settings, null);
-    }
-
     /**
      * Builds the help messages based on the provided arguments.
      *
@@ -91,14 +87,25 @@ public class HelpProvider implements Reloadable {
             return lines;
         }
         String language = PlayerLocaleResolver.resolveLanguage(settings, sender, compatibilityAdapter);
+        addHeader(lines, language);
+
+        CommandDescription command = helpMessagesService.buildLocalizedDescription(matchedCommand, language);
+        List<String> correctLabels = ImmutableList.copyOf(filterCorrectLabels(command, result.getLabels()));
+        addSections(lines, command, correctLabels, sender, options, language);
+        return lines;
+    }
+
+    /** Adds the localized help header to the output, if there is one. */
+    private void addHeader(List<String> lines, String language) {
         String header = helpMessagesService.getMessage(HelpMessage.HEADER, language);
         if (!header.isEmpty()) {
             lines.add(ChatColor.GOLD + header);
         }
+    }
 
-        CommandDescription command = helpMessagesService.buildLocalizedDescription(matchedCommand, language);
-        List<String> correctLabels = ImmutableList.copyOf(filterCorrectLabels(command, result.getLabels()));
-
+    /** Appends the enabled help sections to the output in the order in which they are shown. */
+    private void addSections(List<String> lines, CommandDescription command, List<String> correctLabels,
+                             CommandSender sender, int options, String language) {
         if (hasFlag(SHOW_COMMAND, options)) {
             lines.add(ChatColor.GOLD + helpMessagesService.getMessage(HelpSection.COMMAND, language) + ": "
                 + CommandUtils.buildSyntax(command, correctLabels));
@@ -108,7 +115,7 @@ public class HelpProvider implements Reloadable {
                 + ChatColor.WHITE + command.getDescription());
         }
         if (hasFlag(SHOW_LONG_DESCRIPTION, options)) {
-            lines.add(ChatColor.GOLD + helpMessagesService.getMessage(DETAILED_DESCRIPTION, language) + ":");
+            addSectionHeader(lines, DETAILED_DESCRIPTION, language);
             lines.add(ChatColor.WHITE + " " + command.getDetailedDescription());
         }
         if (hasFlag(SHOW_ARGUMENTS, options)) {
@@ -123,8 +130,6 @@ public class HelpProvider implements Reloadable {
         if (hasFlag(SHOW_CHILDREN, options)) {
             addChildrenInfo(command, correctLabels, lines, language);
         }
-
-        return lines;
     }
 
     /**
@@ -173,6 +178,10 @@ public class HelpProvider implements Reloadable {
         return helpMessagesService.getMessage(section).isEmpty() ? 0 : flag;
     }
 
+    private void addSectionHeader(List<String> lines, HelpSection section, String language) {
+        lines.add(ChatColor.GOLD + helpMessagesService.getMessage(section, language) + ":");
+    }
+
     /**
      * Adds help info about the given command's arguments into the provided list.
      *
@@ -184,7 +193,7 @@ public class HelpProvider implements Reloadable {
             return;
         }
 
-        lines.add(ChatColor.GOLD + helpMessagesService.getMessage(HelpSection.ARGUMENTS, language) + ":");
+        addSectionHeader(lines, HelpSection.ARGUMENTS, language);
         String optionalText = " (" + helpMessagesService.getMessage(HelpMessage.OPTIONAL, language) + ")";
         for (CommandArgumentDescription argument : command.getArguments()) {
             StringBuilder argumentLine = new StringBuilder()
@@ -211,7 +220,7 @@ public class HelpProvider implements Reloadable {
             return;
         }
 
-        lines.add(ChatColor.GOLD + helpMessagesService.getMessage(HelpSection.ALTERNATIVES, language) + ":");
+        addSectionHeader(lines, HelpSection.ALTERNATIVES, language);
 
         // Label with which the command was called -> don't show it as an alternative
         final String usedLabel;
@@ -247,7 +256,7 @@ public class HelpProvider implements Reloadable {
         if (permission == null) {
             return;
         }
-        lines.add(ChatColor.GOLD + helpMessagesService.getMessage(HelpSection.PERMISSIONS, language) + ":");
+        addSectionHeader(lines, HelpSection.PERMISSIONS, language);
 
         boolean hasPermission = permissionsManager.hasPermission(sender, permission);
         String permissionText = getLocalPermissionText(hasPermission, language);
@@ -289,7 +298,7 @@ public class HelpProvider implements Reloadable {
             return;
         }
 
-        lines.add(ChatColor.GOLD + helpMessagesService.getMessage(HelpSection.CHILDREN, language) + ":");
+        addSectionHeader(lines, HelpSection.CHILDREN, language);
         String parentCommandPath = String.join(" ", correctLabels);
         for (CommandDescription child : command.getChildren()) {
             lines.add(" /" + parentCommandPath + " " + child.getLabels().get(0)

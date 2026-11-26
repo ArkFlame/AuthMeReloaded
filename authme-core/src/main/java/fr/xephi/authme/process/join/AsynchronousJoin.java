@@ -191,15 +191,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
             return;
         }
 
-        if (service.getProperty(RestrictionSettings.FORCE_SURVIVAL_MODE)
-            && player.getGameMode() != GameMode.SURVIVAL
-            && !service.hasPermission(player, PlayerStatePermission.BYPASS_FORCE_SURVIVAL)) {
-            bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, () -> player.setGameMode(GameMode.SURVIVAL));
-        }
-
-        if (service.getProperty(HooksSettings.DISABLE_SOCIAL_SPY)) {
-            pluginHookService.setEssentialsSocialSpyStatus(player, false);
-        }
+        applyJoinSettings(player);
 
         if (!validatePlayerCountForIp(player, ip)) {
             return;
@@ -208,7 +200,6 @@ public class AsynchronousJoin implements AsynchronousProcess {
         // Single account lookup for the entire join. The same PlayerAuth is reused for the premium
         // check and for a listener-requested forced login, so no second query is needed later on.
         PlayerAuth auth = database.getAuth(name);
-        boolean isAuthAvailable = auth != null;
 
         // Earliest possible hook for integrations: before session lookups, premium bypass, limbo and prompts.
         // The event is dispatched on the player's thread and its decision is applied before we continue.
@@ -216,62 +207,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
             return;
         }
 
-        if (isAuthAvailable) {
-            protectInventory(player);
-
-            // Bedrock players verified by Floodgate (Xbox account) — same idea as premium below
-            if (floodgateService.canAutoLogin(player.getUniqueId())) {
-                logger.info("The Bedrock player " + player.getName() + " has been automatically logged in (Floodgate).");
-                forceLoginAsync(player, false);
-                return;
-            }
-
-            // Premium players are always verified by Mojang — skip the session mechanism entirely,
-            // which would send a misleading SESSION_RECONNECTION message and run session commands.
-            if (canBypassWithPremium(player, auth)) {
-                // Behind a proxy the login is quiet and must not trigger a backend-side redirect.
-                forceLoginAsync(player, bungeeSender.isEnabled());
-                return;
-            } else {
-                ProxySessionManager.ProxyLoginRequest proxyLoginRequest = proxySessionManager.consumeLoginRequest(name);
-                if (proxyLoginRequest != null) {
-                    if (proxyLoginRequestValidator.validate(player, proxyLoginRequest.verifiedPremiumUuid())) {
-                        if (playerCache.isAuthenticated(name)) {
-                            return;
-                        }
-                        // Use forceLoginFromProxy (quiet=true, no BungeeCord redirect) so that if
-                        // BungeeReceiver.performLogin() concurrently already completed the login, this
-                        // call is a no-op rather than sending an "already logged in" error.
-                        resumeSession(player, true);
-                        logger.info("The user " + player.getName() + " has been automatically logged in, "
-                            + "as present in autologin queue.");
-                        return;
-                    }
-                    // Validation failed (e.g. premium UUID mismatch after /freemium).
-                    // Fall through to session check / limbo flow below to avoid leaving the
-                    // player stuck: not authenticated, no dialog, no movement allowed.
-                }
-            }
-            if (sessionService.canResumeSession(player)) {
-                resumeSession(player, false);
-                return;
-            }
-        } else if (premiumService.tryAutoRegister(player)) {
-            return;
-        } else if (pendingRegistration == null && floodgateService.canAutoRegister(player.getUniqueId())) {
-            logger.info("The Bedrock player " + player.getName() + " has been automatically registered (Floodgate).");
-            asyncRegister.register(RegistrationMethod.API_REGISTRATION,
-                ApiPasswordRegisterParams.of(player, generateFloodgatePassword(), true));
-            return;
-        } else if (!service.getProperty(RegistrationSettings.FORCE) && pendingRegistration == null) {
-            bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, () -> {
-                limboService.restorePendingOperator(player);
-                welcomeMessageConfiguration.sendWelcomeMessage(player);
-            });
-
-            // Skip if registration is optional
-
-            ProcessSharedActions.sendLoginMessageToProxy(bukkitService, bungeeSender, player);
+        if (handleAuthState(player, auth, name, pendingRegistration)) {
             return;
         }
 
@@ -290,7 +226,103 @@ public class AsynchronousJoin implements AsynchronousProcess {
             return;
         }
 
-        processJoinSync(player, name, isAuthAvailable, pendingLoginPassword, pendingRecoveryEmail, pendingRegistration, shouldSkipPostJoinDialog, pendingForceLogin);
+        processJoinSync(player, name, auth != null, pendingLoginPassword, pendingRecoveryEmail,
+            pendingRegistration, shouldSkipPostJoinDialog, pendingForceLogin);
+    }
+
+    /** Applies the per-join game mode and social spy settings required before any other work. */
+    private void applyJoinSettings(Player player) {
+        if (service.getProperty(RestrictionSettings.FORCE_SURVIVAL_MODE)
+            && player.getGameMode() != GameMode.SURVIVAL
+            && !service.hasPermission(player, PlayerStatePermission.BYPASS_FORCE_SURVIVAL)) {
+            bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, () -> player.setGameMode(GameMode.SURVIVAL));
+        }
+
+        if (service.getProperty(HooksSettings.DISABLE_SOCIAL_SPY)) {
+            pluginHookService.setEssentialsSocialSpyStatus(player, false);
+        }
+    }
+
+    /**
+     * Applies the join decision based on the player's registration state.
+     *
+     * @return true if the join was fully handled and the caller must not continue
+     */
+    private boolean handleAuthState(Player player, PlayerAuth auth, String name,
+                                    PreJoinDialogService.PendingRegistration pendingRegistration) {
+        if (auth != null) {
+            return handleRegisteredPlayer(player, auth, name);
+        }
+        if (premiumService.tryAutoRegister(player)) {
+            return true;
+        }
+        if (pendingRegistration == null && floodgateService.canAutoRegister(player.getUniqueId())) {
+            logger.info("The Bedrock player " + player.getName() + " has been automatically registered (Floodgate).");
+            asyncRegister.register(RegistrationMethod.API_REGISTRATION,
+                ApiPasswordRegisterParams.of(player, generateFloodgatePassword(), true));
+            return true;
+        }
+        if (!service.getProperty(RegistrationSettings.FORCE) && pendingRegistration == null) {
+            bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, () -> {
+                limboService.restorePendingOperator(player);
+                welcomeMessageConfiguration.sendWelcomeMessage(player);
+            });
+
+            // Skip if registration is optional
+
+            ProcessSharedActions.sendLoginMessageToProxy(bukkitService, bungeeSender, player);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Runs the branch for a registered player: inventory protection, Bedrock/premium auto-login,
+     * proxy/session resumption and the limbo fallback.
+     *
+     * @return true if the join was fully handled and the caller must not continue
+     */
+    private boolean handleRegisteredPlayer(Player player, PlayerAuth auth, String name) {
+        protectInventory(player);
+
+        // Bedrock players verified by Floodgate (Xbox account) — same idea as premium below
+        if (floodgateService.canAutoLogin(player.getUniqueId())) {
+            logger.info("The Bedrock player " + player.getName() + " has been automatically logged in (Floodgate).");
+            forceLoginAsync(player, false);
+            return true;
+        }
+
+        // Premium players are always verified by Mojang — skip the session mechanism entirely,
+        // which would send a misleading SESSION_RECONNECTION message and run session commands.
+        if (canBypassWithPremium(player, auth)) {
+            // Behind a proxy the login is quiet and must not trigger a backend-side redirect.
+            forceLoginAsync(player, bungeeSender.isEnabled());
+            return true;
+        }
+
+        ProxySessionManager.ProxyLoginRequest proxyLoginRequest = proxySessionManager.consumeLoginRequest(name);
+        if (proxyLoginRequest != null) {
+            if (proxyLoginRequestValidator.validate(player, proxyLoginRequest.verifiedPremiumUuid())) {
+                if (playerCache.isAuthenticated(name)) {
+                    return true;
+                }
+                // Use forceLoginFromProxy (quiet=true, no BungeeCord redirect) so that if
+                // BungeeReceiver.performLogin() concurrently already completed the login, this
+                // call is a no-op rather than sending an "already logged in" error.
+                resumeSession(player, true);
+                logger.info("The user " + player.getName() + " has been automatically logged in, "
+                    + "as present in autologin queue.");
+                return true;
+            }
+            // Validation failed (e.g. premium UUID mismatch after /freemium).
+            // Fall through to session check / limbo flow below to avoid leaving the
+            // player stuck: not authenticated, no dialog, no movement allowed.
+        }
+        if (sessionService.canResumeSession(player)) {
+            resumeSession(player, false);
+            return true;
+        }
+        return false;
     }
 
     /** Protects the inventory of a registered player before authentication. */
@@ -661,49 +693,64 @@ public class AsynchronousJoin implements AsynchronousProcess {
     private boolean tryFinalizePendingPremium(Player player, String name) {
         UUID playerId = player.getUniqueId();
         if (playerId.version() == 4) {
-            // Proxy path: atomic gate prevents double-finalization with concurrent validate().
-            UUID pendingUuid = pendingPremiumCache.removePending(name);
-            if (pendingUuid == null) {
-                return false;
-            }
-            if (playerId.equals(pendingUuid)) {
-                premiumService.finalizePendingPremium(player, pendingUuid);
-                return true;
-            }
-            failPendingPremium(player, name);
-            return false;
+            return finalizePremiumFromConnectingUuid(player, name, playerId);
         } else if (bungeeSender.isEnabled()) {
-            // Behind a proxy we intentionally keep the backend UUID on the offline v3 value, so
-            // player.getUniqueId() is not proof of identity. If the signed perform.login is already
-            // queued and carries the proxy-verified Mojang UUID, finalize the pending enrollment
-            // in-join (mirrors the v4 path); otherwise defer to the perform.login message.
-            ProxySessionManager.ProxyLoginRequest queued = proxySessionManager.getLoginRequest(name);
-            UUID verified = queued == null ? null : queued.verifiedPremiumUuid();
-            if (verified == null) {
-                logger.debug("canBypassWithPremium[v3/proxy]: " + name
-                    + " has a pending premium enrollment but no queued verified UUID yet; deferring to perform.login");
-                return false;
-            }
-            // removePending is the atomic one-shot gate shared with ProxyLoginRequestValidator:
-            // if a concurrent perform.login already consumed it, stay silent and let that path win.
-            UUID pendingUuid = pendingPremiumCache.removePending(name);
-            if (pendingUuid == null) {
-                logger.debug("canBypassWithPremium[v3/proxy]: pending entry for " + name
-                    + " already consumed (concurrent perform.login); deferring");
-                return false;
-            }
-            if (verified.equals(pendingUuid)) {
-                logger.info("canBypassWithPremium[v3/proxy]: finalizing pending premium for " + name
-                    + " from queued perform.login (verified=" + verified + ")");
-                premiumService.finalizePendingPremium(player, verified);
-                return true;
-            }
-            logger.warning("canBypassWithPremium[v3/proxy]: verified UUID " + verified
-                + " does not match pending UUID " + pendingUuid + " for " + name + "; failing enrollment");
-            failPendingPremium(player, name);
-            return false;
+            return finalizePremiumFromProxy(player, name);
         }
         // No proxy: require cryptographic session verification via PacketEvents.
+        return finalizePremiumFromSession(player, name);
+    }
+
+    /** Finalizes a pending enrollment using the connecting UUID as proof (v4 / proxy path). */
+    private boolean finalizePremiumFromConnectingUuid(Player player, String name, UUID playerId) {
+        // Proxy path: atomic gate prevents double-finalization with concurrent validate().
+        UUID pendingUuid = pendingPremiumCache.removePending(name);
+        if (pendingUuid == null) {
+            return false;
+        }
+        if (playerId.equals(pendingUuid)) {
+            premiumService.finalizePendingPremium(player, pendingUuid);
+            return true;
+        }
+        failPendingPremium(player, name);
+        return false;
+    }
+
+    /** Finalizes a pending enrollment from a queued signed perform.login behind a proxy. */
+    private boolean finalizePremiumFromProxy(Player player, String name) {
+        // Behind a proxy we intentionally keep the backend UUID on the offline v3 value, so
+        // player.getUniqueId() is not proof of identity. If the signed perform.login is already
+        // queued and carries the proxy-verified Mojang UUID, finalize the pending enrollment
+        // in-join (mirrors the v4 path); otherwise defer to the perform.login message.
+        ProxySessionManager.ProxyLoginRequest queued = proxySessionManager.getLoginRequest(name);
+        UUID verified = queued == null ? null : queued.verifiedPremiumUuid();
+        if (verified == null) {
+            logger.debug("canBypassWithPremium[v3/proxy]: " + name
+                + " has a pending premium enrollment but no queued verified UUID yet; deferring to perform.login");
+            return false;
+        }
+        // removePending is the atomic one-shot gate shared with ProxyLoginRequestValidator:
+        // if a concurrent perform.login already consumed it, stay silent and let that path win.
+        UUID pendingUuid = pendingPremiumCache.removePending(name);
+        if (pendingUuid == null) {
+            logger.debug("canBypassWithPremium[v3/proxy]: pending entry for " + name
+                + " already consumed (concurrent perform.login); deferring");
+            return false;
+        }
+        if (verified.equals(pendingUuid)) {
+            logger.info("canBypassWithPremium[v3/proxy]: finalizing pending premium for " + name
+                + " from queued perform.login (verified=" + verified + ")");
+            premiumService.finalizePendingPremium(player, verified);
+            return true;
+        }
+        logger.warning("canBypassWithPremium[v3/proxy]: verified UUID " + verified
+            + " does not match pending UUID " + pendingUuid + " for " + name + "; failing enrollment");
+        failPendingPremium(player, name);
+        return false;
+    }
+
+    /** Finalizes a pending enrollment with a session UUID verified via PacketEvents. */
+    private boolean finalizePremiumFromSession(Player player, String name) {
         UUID pendingUuid = pendingPremiumCache.getPendingUuid(name);
         if (pendingUuid == null) {
             return false;

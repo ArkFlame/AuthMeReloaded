@@ -92,12 +92,7 @@ public class LimboService {
         }
 
         Location location = teleportationService.consumeOriginalJoinLocation(name, spawnLoader.getPlayerLocationOrSpawn(player));
-        LimboPlayer limboPlayer = helper.merge(existingLimbo, limboFromDisk);
-        boolean wasOperator = pendingOperators.remove(player.getUniqueId());
-        limboPlayer = helper.merge(helper.createLimboPlayer(player, isRegistered, location, wasOperator), limboPlayer);
-        if (!isRegistered) {
-            limboPlayer = helper.withoutOperator(limboPlayer);
-        }
+        LimboPlayer limboPlayer = buildLimboPlayer(player, isRegistered, location, existingLimbo, limboFromDisk);
 
         LimboMessageType messageType = isRegistered ? LimboMessageType.LOG_IN : LimboMessageType.REGISTER;
         taskManager.registerMessageTask(player, limboPlayer, messageType);
@@ -107,6 +102,17 @@ public class LimboService {
             isRegistered ? AuthGroupType.REGISTERED_UNAUTHENTICATED : AuthGroupType.UNREGISTERED);
         entries.put(player.getUniqueId(), limboPlayer);
         persistence.saveLimboPlayer(player, limboPlayer);
+    }
+
+    /**
+     * Combines the freshly captured player state with any limbo data kept in memory and on disk.
+     */
+    private LimboPlayer buildLimboPlayer(Player player, boolean isRegistered, Location location,
+                                         LimboPlayer existingLimbo, LimboPlayer limboFromDisk) {
+        LimboPlayer limboPlayer = helper.merge(existingLimbo, limboFromDisk);
+        boolean wasOperator = pendingOperators.remove(player.getUniqueId());
+        limboPlayer = helper.merge(helper.createLimboPlayer(player, isRegistered, location, wasOperator), limboPlayer);
+        return isRegistered ? limboPlayer : helper.withoutOperator(limboPlayer);
     }
 
     /**
@@ -168,10 +174,10 @@ public class LimboService {
 
         if (limbo == null) {
             logger.debug("No LimboPlayer found for `{0}` - cannot restore", lowerName);
-            restoreDefaultSpeedsIfZero(player);
+            restoreSpeedStates(player, null);
         } else {
             player.setOp(limbo.isOperator());
-            restoreSpeedAndFlight(player, limbo);
+            restoreSpeedStates(player, limbo);
             limbo.clearTasks();
             logger.debug("Restored LimboPlayer stats for `{0}`", lowerName);
         }
@@ -196,13 +202,13 @@ public class LimboService {
         LimboPlayer diskLimbo = persistence.getLimboPlayer(player);
         if (diskLimbo != null) {
             // Disk limbo captured speeds before revokeLimboStates ran — restore from it
-            restoreSpeedAndFlight(player, diskLimbo);
+            restoreSpeedStates(player, diskLimbo);
             logger.debug("Restored speeds from disk LimboPlayer for `{0}` during auto-login", lowerName);
             doRestoreEntities(player, diskLimbo);
         } else {
             // No snapshot: only correct stale zero speed persisted by a previous crash
             // (do not touch allowFlight — original value is unknown without a limbo snapshot)
-            restoreDefaultSpeedsIfZero(player);
+            restoreSpeedStates(player, null);
         }
         persistence.removeLimboPlayer(player);
     }
@@ -226,6 +232,15 @@ public class LimboService {
         } else if (player.getWalkSpeed() < 0.01f || player.getFlySpeed() < 0.01f) {
             player.setWalkSpeed(LimboPlayer.DEFAULT_WALK_SPEED);
             player.setFlySpeed(LimboPlayer.DEFAULT_FLY_SPEED);
+        }
+    }
+
+    /** Restores recorded speed states, or corrects zero speeds when no limbo snapshot is available. */
+    private void restoreSpeedStates(Player player, LimboPlayer limbo) {
+        if (limbo == null) {
+            restoreDefaultSpeedsIfZero(player);
+        } else {
+            restoreSpeedAndFlight(player, limbo);
         }
     }
 
@@ -400,7 +415,6 @@ public class LimboService {
 
         int pearlTotal = pendingPearls.size();
         int pearlRestored = 0;
-        int pearlRecreated = 0;
         boolean recreateMissingPearls = settings.getProperty(RECREATE_ENDER_PEARLS);
         boolean vehicleDone = vehicleUuid == null;
 
@@ -426,20 +440,41 @@ public class LimboService {
             }
         }
 
-        if (recreateMissingPearls) {
-            for (EnderPearlRestoreData pearl : pendingPearls.values()) {
-                if (recreateEnderPearl(player, pearl, name)) {
-                    pearlRecreated++;
-                }
-            }
-        } else if (!pendingPearls.isEmpty()) {
-            logger.debug("Skipped recreation of {0} missing ender pearl(s) for `{1}` because it is disabled in config",
-                pendingPearls.size(), name);
-        }
+        int pearlRecreated = recreateMissingPearls(player, pendingPearls, name, recreateMissingPearls);
 
         limbo.setEnderPearls(Collections.emptyList());
         limbo.setVehicle(null, null);
 
+        logEntityRestoreResult(name, pearlRestored, pearlTotal, pearlRecreated,
+            vehicleUuid, vehicleType, vehicleDone);
+    }
+
+    /**
+     * Recreates any pearls that could not be found in the world, unless recreation is disabled in the config.
+     *
+     * @return the number of pearls successfully recreated
+     */
+    private int recreateMissingPearls(Player player, Map<UUID, EnderPearlRestoreData> pendingPearls,
+                                      String name, boolean enabled) {
+        if (!enabled) {
+            if (!pendingPearls.isEmpty()) {
+                logger.debug("Skipped recreation of {0} missing ender pearl(s) for `{1}` because it is disabled in config",
+                    pendingPearls.size(), name);
+            }
+            return 0;
+        }
+        int recreated = 0;
+        for (EnderPearlRestoreData pearl : pendingPearls.values()) {
+            if (recreateEnderPearl(player, pearl, name)) {
+                recreated++;
+            }
+        }
+        return recreated;
+    }
+
+    /** Logs the outcome of restoring a player's pearls and vehicle. */
+    private void logEntityRestoreResult(String name, int pearlRestored, int pearlTotal, int pearlRecreated,
+                                        UUID vehicleUuid, EntityType vehicleType, boolean vehicleDone) {
         if (pearlTotal > 0) {
             logger.debug("Restored {0}/{1} ender pearl(s) and recreated {2} for `{3}`",
                 pearlRestored, pearlTotal, pearlRecreated, name);

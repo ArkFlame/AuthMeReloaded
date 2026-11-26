@@ -22,6 +22,7 @@ import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
 import java.util.Locale;
+import java.util.function.Function;
 
 /**
  * Manager for spawn points. It loads spawn definitions from AuthMe and third-party plugins
@@ -125,15 +126,8 @@ public class SpawnLoader implements Reloadable {
         if (essentialsFolder == null) {
             return;
         }
-
-        File essentialsSpawnFile = new File(essentialsFolder, "spawn.yml");
-        if (essentialsSpawnFile.exists()) {
-            essentialsSpawn = getLocationFromConfiguration(
-                YamlConfiguration.loadConfiguration(essentialsSpawnFile), "spawns.default");
-        } else {
-            essentialsSpawn = null;
-            logger.info("Essentials spawn file not found: '" + essentialsSpawnFile.getAbsolutePath() + "'");
-        }
+        essentialsSpawn = loadSpawnFromFile(essentialsFolder, "spawn.yml",
+            config -> getLocationFromConfiguration(config, "spawns.default"), "Essentials spawn file");
     }
 
     /**
@@ -151,14 +145,29 @@ public class SpawnLoader implements Reloadable {
         if (cmiFolder == null) {
             return;
         }
+        cmiSpawn = loadSpawnFromFile(cmiFolder, "config.yml",
+            SpawnLoader::getLocationFromCmiConfiguration, "CMI config file");
+    }
 
-        File cmiConfig = new File(cmiFolder, "config.yml");
-        if (cmiConfig.exists()) {
-            cmiSpawn = getLocationFromCmiConfiguration(YamlConfiguration.loadConfiguration(cmiConfig));
-        } else {
-            cmiSpawn = null;
-            logger.info("CMI config file not found: '" + cmiConfig.getAbsolutePath() + "'");
+    /**
+     * Reads a spawn location from a file in a third-party plugin's data folder.
+     * Returns null (and logs) when the file is absent; a null data folder is handled by the caller
+     * so that an existing spawn location is left untouched in that case.
+     *
+     * @param dataFolder  the plugin's data folder
+     * @param fileName    the name of the configuration file to read
+     * @param parser      extracts the location from the configuration
+     * @param description human-readable description used in the "not found" log message
+     * @return the parsed spawn location, or null if the file is missing
+     */
+    private Location loadSpawnFromFile(File dataFolder, String fileName,
+                                       Function<FileConfiguration, Location> parser, String description) {
+        File configFile = new File(dataFolder, fileName);
+        if (configFile.exists()) {
+            return parser.apply(YamlConfiguration.loadConfiguration(configFile));
         }
+        logger.info(description + " not found: '" + configFile.getAbsolutePath() + "'");
+        return null;
     }
 
     /**
@@ -200,18 +209,14 @@ public class SpawnLoader implements Reloadable {
 
         Location spawnLoc = null;
         for (String priority : spawnPriority) {
-            switch (priority.toLowerCase(Locale.ROOT).trim()) {
-                case "server":
-                    spawnLoc = getServerSpawnLocation(world);
-                    break;
+            String source = priority.toLowerCase(Locale.ROOT).trim();
+            switch (source) {
                 case "default":
                     if (world.getSpawnLocation() != null) {
                         if (!isValidSpawnPoint(world.getSpawnLocation())) {
-                            for (World spawnWorld : Bukkit.getWorlds()) {
-                                if (isValidSpawnPoint(spawnWorld.getSpawnLocation())) {
-                                    world = spawnWorld;
-                                    break;
-                                }
+                            World alternativeWorld = findValidSpawnWorld();
+                            if (alternativeWorld != null) {
+                                world = alternativeWorld;
                             }
                             logger.warning("Seems like AuthMe is unable to find a proper spawn location. "
                                 + "Set a location with the command '/authme setspawn'");
@@ -219,22 +224,8 @@ public class SpawnLoader implements Reloadable {
                         spawnLoc = world.getSpawnLocation();
                     }
                     break;
-                case "multiverse":
-                    if (settings.getProperty(HooksSettings.MULTIVERSE)) {
-                        spawnLoc = pluginHookService.getMultiverseSpawn(world);
-                    }
-                    break;
-                case "essentials":
-                    spawnLoc = essentialsSpawn;
-                    break;
-                case "cmi":
-                    spawnLoc = cmiSpawn;
-                    break;
-                case "authme":
-                    spawnLoc = getSpawn();
-                    break;
                 default:
-                    // ignore
+                    spawnLoc = getSpawnFromSource(source, world);
             }
             if (spawnLoc != null) {
                 logger.debug("Spawn location determined as `{0}` for world `{1}`", spawnLoc, world.getName());
@@ -244,6 +235,40 @@ public class SpawnLoader implements Reloadable {
         logger.debug("Fall back to default world spawn location. World: `{0}`", world.getName());
 
         return world.getSpawnLocation(); // return default location
+    }
+
+    /**
+     * Returns the spawn location for a single non-default source, or null when the source
+     * is unknown, disabled, or has no spawn configured yet.
+     */
+    private Location getSpawnFromSource(String source, World world) {
+        switch (source) {
+            case "server":
+                return getServerSpawnLocation(world);
+            case "multiverse":
+                return settings.getProperty(HooksSettings.MULTIVERSE)
+                    ? pluginHookService.getMultiverseSpawn(world) : null;
+            case "essentials":
+                return essentialsSpawn;
+            case "cmi":
+                return cmiSpawn;
+            case "authme":
+                return getSpawn();
+            default:
+                return null;
+        }
+    }
+
+    /**
+     * Returns the first world with a valid spawn point, or null if none has one.
+     */
+    private World findValidSpawnWorld() {
+        for (World spawnWorld : Bukkit.getWorlds()) {
+            if (isValidSpawnPoint(spawnWorld.getSpawnLocation())) {
+                return spawnWorld;
+            }
+        }
+        return null;
     }
 
     /**
