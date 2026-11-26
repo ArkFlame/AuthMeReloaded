@@ -63,25 +63,10 @@ public class ChangeEmailCommandTest extends AbstractEmailCommandTest {
         verifyNoInteractions(management);
     }
 
-    @Test
-    public void shouldForwardData() {
-        // given
-        Player sender = initPlayerWithName("AmATest");
-        given(codeManager.isVerificationRequired(sender)).willReturn(false);
-        given(validationService.validateEmail("old_mail@example.org")).willReturn(true);
-        given(validationService.validateEmail("new.mail@example.org")).willReturn(true);
-
-        // when
-        command.executeCommand(sender, Arrays.asList("old_mail@example.org", "new.mail@example.org"));
-
-        // then
-        verify(management).performChangeEmail(sender, "old_mail@example.org", "new.mail@example.org");
-    }
-
     @ParameterizedTest(name = "{4}")
-    @MethodSource("invalidEmailCases")
-    public void shouldRejectInvalidEmail(String oldEmail, String newEmail, boolean oldEmailValid,
-                                         boolean newEmailValid, MessageKey expectedMessage) {
+    @MethodSource("emailCases")
+    public void shouldProcessEmail(String oldEmail, String newEmail, boolean oldEmailValid,
+                                   boolean newEmailValid, MessageKey expectedMessage) {
         // given
         Player sender = initPlayerWithName("AmATest");
         given(codeManager.isVerificationRequired(sender)).willReturn(false);
@@ -94,12 +79,17 @@ public class ChangeEmailCommandTest extends AbstractEmailCommandTest {
         command.executeCommand(sender, Arrays.asList(oldEmail, newEmail));
 
         // then
-        verifyNoInteractions(management);
-        verify(commonService).send(sender, expectedMessage);
+        if (expectedMessage == null) {
+            verify(management).performChangeEmail(sender, oldEmail, newEmail);
+        } else {
+            verifyNoInteractions(management);
+            verify(commonService).send(sender, expectedMessage);
+        }
     }
 
-    private static Stream<Arguments> invalidEmailCases() {
+    private static Stream<Arguments> emailCases() {
         return Stream.of(
+            Arguments.of("old_mail@example.org", "new.mail@example.org", true, true, null),
             Arguments.of("notanemail", "new@example.org", false, false, MessageKey.INVALID_OLD_EMAIL),
             Arguments.of("old@example.org", "notanemail", true, false, MessageKey.INVALID_NEW_EMAIL));
     }

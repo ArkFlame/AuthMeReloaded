@@ -21,12 +21,9 @@ public class ChangePasswordAdminCommand extends AbstractPlayerAuthCommand {
 
     @Override
     public void executeCommand(CommandSender sender, List<String> arguments) {
-        final String playerName = arguments.get(0);
-        final String playerPass = arguments.get(1);
-
         if (CommandValidation.isValid(getCommonService(), sender,
-            validationService.validatePassword(playerPass, playerName))) {
-            management.performPasswordChangeAsAdmin(sender, playerName, playerPass);
+            validationService.validatePassword(arguments.get(1), arguments.get(0)))) {
+            management.performPasswordChangeAsAdmin(sender, arguments.get(0), arguments.get(1));
         }
     }
 }

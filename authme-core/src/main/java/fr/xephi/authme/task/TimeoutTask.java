@@ -12,13 +12,6 @@ public class TimeoutTask implements Runnable {
     private final String message;
     private final PlayerCache playerCache;
 
-    /**
-     * Constructor for TimeoutTask.
-     *
-     * @param player the player to check
-     * @param message the kick message
-     * @param playerCache player cache instance
-     */
     public TimeoutTask(Player player, String message, PlayerCache playerCache) {
         this.message = message;
         this.player = player;

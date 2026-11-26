@@ -13,7 +13,6 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import javax.inject.Inject;
 import java.io.File;
 import java.util.Locale;
-import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -43,11 +42,10 @@ public class AuthPlusConverter implements Converter {
         }
 
         YamlConfiguration config = YamlConfiguration.loadConfiguration(authPlusFile);
-        Set<String> keys = config.getKeys(false);
 
         long successCount = 0;
         long skippedCount = 0;
-        for (String uuidStr : keys) {
+        for (String uuidStr : config.getKeys(false)) {
             String hash = config.getString(uuidStr + ".hash");
             if (hash == null || hash.isEmpty()) {
                 logger.warning("No hash found for UUID '" + uuidStr + "', skipping");

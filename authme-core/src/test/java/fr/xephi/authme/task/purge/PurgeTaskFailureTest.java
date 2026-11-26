@@ -8,8 +8,6 @@ import org.bukkit.OfflinePlayer;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.util.Set;
-
 import static com.google.common.collect.Sets.newHashSet;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
@@ -44,8 +42,7 @@ class PurgeTaskFailureTest {
         doThrow(new RuntimeException("database unavailable"))
             .when(purgeService).executePurge(anyCollection(), anyCollection());
 
-        Set<String> names = newHashSet("alpha");
-        PurgeTask task = new PurgeTask(purgeService, permissionsManager, null, names,
+        PurgeTask task = new PurgeTask(purgeService, permissionsManager, null, newHashSet("alpha"),
             new OfflinePlayer[]{player});
         task.setTaskHandle(taskHandle);
 

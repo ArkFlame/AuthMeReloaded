@@ -7,7 +7,6 @@ import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.security.PasswordSecurity;
-import fr.xephi.authme.security.crypts.HashedPassword;
 import fr.xephi.authme.service.CommonService;
 import fr.xephi.authme.service.PasswordRecoveryService;
 import fr.xephi.authme.service.ValidationService;
@@ -52,8 +51,7 @@ public class EmailSetPasswordCommand extends PlayerCommand {
             return;
         }
 
-        HashedPassword hashedPassword = passwordSecurity.computeHash(password, name);
-        if (!dataSource.updatePassword(name, hashedPassword)) {
+        if (!dataSource.updatePassword(name, passwordSecurity.computeHash(password, name))) {
             commonService.send(player, MessageKey.ERROR);
             return;
         }

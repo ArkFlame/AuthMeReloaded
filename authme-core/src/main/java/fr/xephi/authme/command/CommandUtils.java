@@ -5,7 +5,6 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -57,10 +56,8 @@ public final class CommandUtils {
      */
     public static List<CommandDescription> constructParentList(CommandDescription command) {
         List<CommandDescription> commands = new ArrayList<>();
-        CommandDescription currentCommand = command;
-        while (currentCommand != null) {
-            commands.add(currentCommand);
-            currentCommand = currentCommand.getParent();
+        for (CommandDescription current = command; current != null; current = current.getParent()) {
+            commands.add(current);
         }
         return Lists.reverse(commands);
     }
@@ -121,12 +118,10 @@ public final class CommandUtils {
      * @return command parts without empty entries
      */
     public static List<String> splitInput(String input) {
-        String trimmedInput = input == null ? "" : input.trim();
-        if (trimmedInput.startsWith("/")) {
-            trimmedInput = trimmedInput.substring(1).trim();
+        String trimmed = input == null ? "" : input.trim();
+        if (trimmed.startsWith("/")) {
+            trimmed = trimmed.substring(1).trim();
         }
-        return trimmedInput.isEmpty()
-            ? new ArrayList<>()
-            : new ArrayList<>(Arrays.asList(trimmedInput.split("\\s+")));
+        return trimmed.isEmpty() ? new ArrayList<>() : Lists.newArrayList(trimmed.split("\\s+"));
     }
 }

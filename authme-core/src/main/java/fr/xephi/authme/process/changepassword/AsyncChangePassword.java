@@ -54,12 +54,8 @@ public class AsyncChangePassword implements AsynchronousProcess {
                 return;
             }
 
-            // Only mutate the cached auth once the change is durable; getAuth() returns the live cache object.
-            auth.setPassword(hashedPassword);
-
-            // TODO: send an update when a messaging service will be implemented (PASSWORD_CHANGED)
-
-            playerCache.updatePlayerIfPresent(auth);
+            // Only mutate the cached auth once the change is durable.
+            updateCachedPassword(auth, hashedPassword);
             commonService.send(player, MessageKey.PASSWORD_CHANGED_SUCCESS);
             logger.info(playerName + " changed his password");
         } else {
@@ -87,15 +83,8 @@ public class AsyncChangePassword implements AsynchronousProcess {
 
         HashedPassword hashedPassword = passwordSecurity.computeHash(newPassword, lowerCaseName);
         if (dataSource.updatePassword(lowerCaseName, hashedPassword)) {
-            // Keep the live cache in sync for online players; getAuth() returns the cached auth object.
-            PlayerAuth auth = playerCache.getAuth(lowerCaseName);
-            if (auth != null) {
-                auth.setPassword(hashedPassword);
-                playerCache.updatePlayerIfPresent(auth);
-            }
-
-            // TODO: send an update when a messaging service will be implemented (PASSWORD_CHANGED)
-
+            // Keep the live cache in sync for online players.
+            updateCachedPassword(playerCache.getAuth(lowerCaseName), hashedPassword);
             if (sender != null) {
                 commonService.send(sender, MessageKey.PASSWORD_CHANGED_SUCCESS);
                 logger.info(sender.getName() + " changed password of " + lowerCaseName);
@@ -107,6 +96,13 @@ public class AsyncChangePassword implements AsynchronousProcess {
                 commonService.send(sender, MessageKey.ERROR);
             }
             logger.warning("An error occurred while changing password for user " + lowerCaseName + "!");
+        }
+    }
+
+    private void updateCachedPassword(PlayerAuth auth, HashedPassword hashedPassword) {
+        if (auth != null) {
+            auth.setPassword(hashedPassword);
+            playerCache.updatePlayerIfPresent(auth);
         }
     }
 }

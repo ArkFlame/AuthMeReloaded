@@ -35,10 +35,9 @@ public class TimedCounter<K> extends ExpiringMap<K, Integer> {
      */
     public void increment(K key) {
         long currentTime = System.currentTimeMillis();
-        long newExpiration = currentTime + getExpirationMillis();
         getEntries().compute(key, (k, existing) -> {
             int current = (existing == null || isExpired(existing.getExpiration(), currentTime)) ? 0 : existing.getValue();
-            return new ExpiringEntry<>(current + 1, newExpiration);
+            return new ExpiringEntry<>(current + 1, currentTime + getExpirationMillis());
         });
     }
 

@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.Mockito.mock;
 
@@ -16,20 +15,20 @@ class EmailChangedEventTest {
 
     @Test
     void exposesPlayerAndEmailValues() {
-        EmailChangedEvent event = new EmailChangedEvent(player, "old@example.com", "new@example.com", true);
-
-        assertThat(event.getPlayer(), sameInstance(player));
-        assertThat(event.getOldEmail(), equalTo("old@example.com"));
-        assertThat(event.getNewEmail(), equalTo("new@example.com"));
-        assertThat(event.isAsynchronous(), equalTo(true));
+        assertEvent("old@example.com", "new@example.com", true);
     }
 
     @Test
     void allowsNullOldEmailWhenAddingAddress() {
-        EmailChangedEvent event = new EmailChangedEvent(player, null, "new@example.com", false);
+        assertEvent(null, "new@example.com", false);
+    }
 
-        assertThat(event.getOldEmail(), nullValue());
-        assertThat(event.getNewEmail(), equalTo("new@example.com"));
-        assertThat(event.isAsynchronous(), equalTo(false));
+    private void assertEvent(String oldEmail, String newEmail, boolean asynchronous) {
+        EmailChangedEvent event = new EmailChangedEvent(player, oldEmail, newEmail, asynchronous);
+
+        assertThat(event.getPlayer(), sameInstance(player));
+        assertThat(event.getOldEmail(), equalTo(oldEmail));
+        assertThat(event.getNewEmail(), equalTo(newEmail));
+        assertThat(event.isAsynchronous(), equalTo(asynchronous));
     }
 }

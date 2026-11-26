@@ -61,7 +61,9 @@ public class EmailService {
         File file = null;
         if (settings.getProperty(EmailSettings.PASSWORD_AS_IMAGE)) {
             try {
-                file = generatePasswordImage(name, newPass);
+                File generated = new File(dataFolder, name + "_new_pass.jpg");
+                ImageIO.write(new ImageGenerator(newPass).generateImage(), "jpg", generated);
+                file = generated;
                 mailText = embedImageIntoEmailContent(file, email, mailText);
             } catch (IOException | EmailException e) {
                 logger.logException(
@@ -137,8 +139,8 @@ public class EmailService {
     /** Replaces the code tags in the template and sends the given mail. */
     private boolean sendCodeMail(HtmlEmail mail, String name, String code, String codeTag,
                                  String validityTag, int validFor, String template) {
-        String text = replaceTags(template, name, codeTag, code, validityTag, String.valueOf(validFor));
-        return sendMailSsl.sendEmail(text, mail);
+        return sendMailSsl.sendEmail(
+            replaceTags(template, name, codeTag, code, validityTag, String.valueOf(validFor)), mail);
     }
 
     /**
@@ -151,13 +153,6 @@ public class EmailService {
             logger.logException(errorMessage, e);
             return null;
         }
-    }
-
-    private File generatePasswordImage(String name, String newPass) throws IOException {
-        ImageGenerator gen = new ImageGenerator(newPass);
-        File file = new File(dataFolder, name + "_new_pass.jpg");
-        ImageIO.write(gen.generateImage(), "jpg", file);
-        return file;
     }
 
     private static String embedImageIntoEmailContent(File image, HtmlEmail email, String content)
