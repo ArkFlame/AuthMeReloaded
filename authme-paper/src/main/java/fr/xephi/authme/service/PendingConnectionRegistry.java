@@ -17,22 +17,22 @@ public class PendingConnectionRegistry {
         String connectionKey = connectionKey(connection);
         long expiresAt = System.currentTimeMillis() + ttlMillis;
         Claim claim = claims.compute(normalize(name), (ignored, existing) -> {
-            if (existing == null || existing.isStale() || existing.isHeldBy(connectionKey)) {
+            if (existing == null || existing.isStale() || existing.connectionKey.equals(connectionKey)) {
                 return new Claim(connectionKey, connection, expiresAt);
             }
             return existing;
         });
-        return claim.isHeldBy(connectionKey);
+        return claim.connectionKey.equals(connectionKey);
     }
 
     public boolean holdsClaim(String name, PlayerConnection connection) {
         Claim claim = activeClaim(name);
-        return claim != null && claim.isHeldBy(connectionKey(connection));
+        return claim != null && claim.connectionKey.equals(connectionKey(connection));
     }
 
     public boolean isClaimedByOtherConnection(String name, PlayerConnection connection) {
         Claim claim = activeClaim(name);
-        return claim != null && !claim.isHeldBy(connectionKey(connection));
+        return claim != null && !claim.connectionKey.equals(connectionKey(connection));
     }
 
     private Claim activeClaim(String name) {
@@ -70,11 +70,6 @@ public class PendingConnectionRegistry {
             this.expiresAt = expiresAt;
         }
 
-        boolean isHeldBy(String otherConnectionKey) {
-            return connectionKey.equals(otherConnectionKey);
-        }
-
-        // The TTL guarantees a claim can never lock a name out for good
         boolean isStale() {
             return !connection.isConnected() || System.currentTimeMillis() > expiresAt;
         }

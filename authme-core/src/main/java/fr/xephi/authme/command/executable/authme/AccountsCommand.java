@@ -21,7 +21,6 @@ public class AccountsCommand extends AbstractPlayerAuthCommand {
 
     @Override
     public void executeCommand(final CommandSender sender, List<String> arguments) {
-        // TODO #1366: last IP vs. registration IP?
         if (arguments.isEmpty() && !(sender instanceof Player)) {
             // Console has no own account; fixes HaHaWTH/AuthMeReReloaded#244
             sender.sendMessage("Usage: /authme accounts <player|ip>");

@@ -89,7 +89,7 @@ public class MySQL extends AbstractHikariSqlDataSource {
         String sslMode = !useSsl ? "DISABLED" : (!serverCertificateVerification ? "PREFERRED" : "VERIFY_CA");
         ds.addDataSourceProperty("sslMode", sslMode);
         // Ported from HaHaWTH/AuthMeReReloaded
-        applyMariaDbSslMode(ds, ds.getDriverClassName(), mariaDbSslMode);
+        applyMariaDbSslMode(ds, getDriverClassName(), mariaDbSslMode);
 
         if (allowPublicKeyRetrieval) {
             ds.addDataSourceProperty("allowPublicKeyRetrieval", "true");
@@ -117,11 +117,10 @@ public class MySQL extends AbstractHikariSqlDataSource {
      */
     @VisibleForTesting
     static void applyMariaDbSslMode(HikariConfig config, String driverClassName, String value) {
-        if (value == null || value.isEmpty() || driverClassName == null
-            || !driverClassName.toLowerCase(Locale.ROOT).contains("mariadb")) {
-            return;
+        if (value != null && !value.isEmpty() && driverClassName != null
+            && driverClassName.toLowerCase(Locale.ROOT).contains("mariadb")) {
+            config.addDataSourceProperty("sslMode", value);
         }
-        config.addDataSourceProperty("sslMode", value);
     }
 
     @Override
@@ -141,11 +140,10 @@ public class MySQL extends AbstractHikariSqlDataSource {
     private void checkTablesAndColumns() throws SQLException {
         try (Connection con = getConnection(); Statement st = con.createStatement()) {
             // Create table with ID column if it doesn't exist
-            String sql = "CREATE TABLE IF NOT EXISTS " + tableName + " ("
+            st.executeUpdate("CREATE TABLE IF NOT EXISTS " + tableName + " ("
                 + col.ID + " MEDIUMINT(8) UNSIGNED AUTO_INCREMENT,"
                 + "PRIMARY KEY (" + col.ID + ")"
-                + ") CHARACTER SET = utf8;";
-            st.executeUpdate(sql);
+                + ") CHARACTER SET = utf8;");
 
             DatabaseMetaData md = con.getMetaData();
             addColumnIfAbsent(md, st, col.NAME, "VARCHAR(255) NOT NULL UNIQUE AFTER " + col.ID + ";");

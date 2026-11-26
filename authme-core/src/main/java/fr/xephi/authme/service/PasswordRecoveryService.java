@@ -55,10 +55,9 @@ public class PasswordRecoveryService implements Reloadable, HasCleanup {
 
     @PostConstruct
     private void initEmailCooldownSet() {
-        emailCooldown = new ExpiringSet<>(
-            commonService.getProperty(SecuritySettings.EMAIL_RECOVERY_COOLDOWN_SECONDS), TimeUnit.SECONDS);
-        successfulRecovers = new ExpiringMap<>(
-            commonService.getProperty(SecuritySettings.PASSWORD_CHANGE_TIMEOUT), TimeUnit.MINUTES);
+        emailCooldown = new ExpiringSet<>(0, TimeUnit.SECONDS);
+        successfulRecovers = new ExpiringMap<>(0, TimeUnit.MINUTES);
+        reload();
     }
 
     /**

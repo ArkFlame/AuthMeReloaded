@@ -53,7 +53,7 @@ class EventsConsistencyTest {
                 handlerListMethod = clazz.getMethod("getHandlerList");
             } catch (NoSuchMethodException ignored) {
             }
-            if (canBeInstantiated(clazz)) {
+            if (!clazz.isInterface() && !clazz.isEnum() && !Modifier.isAbstract(clazz.getModifiers())) {
                 assertThat("Class " + clazz.getSimpleName() + " has static method getHandlerList()",
                     handlerListMethod != null && Modifier.isStatic(handlerListMethod.getModifiers()), equalTo(true));
             } else {
@@ -61,9 +61,5 @@ class EventsConsistencyTest {
                     handlerListMethod, nullValue());
             }
         }
-    }
-
-    private static boolean canBeInstantiated(Class<?> clazz) {
-        return !clazz.isInterface() && !clazz.isEnum() && !Modifier.isAbstract(clazz.getModifiers());
     }
 }

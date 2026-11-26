@@ -13,7 +13,6 @@ import org.bukkit.Location;
 import org.bukkit.util.Vector;
 
 import java.lang.reflect.Type;
-import java.util.Collection;
 
 /**
  * Converts a LimboPlayer to a JsonElement.
@@ -66,23 +65,22 @@ class LimboPlayerSerializer implements JsonSerializer<LimboPlayer> {
         obj.addProperty(WALK_SPEED, limboPlayer.getWalkSpeed());
         obj.addProperty(FLY_SPEED, limboPlayer.getFlySpeed());
 
-        Collection<EnderPearlRestoreData> pearls = limboPlayer.getEnderPearls();
-        if (!pearls.isEmpty()) {
-            JsonArray pearlArray = new JsonArray();
-            for (EnderPearlRestoreData pearl : pearls) {
-                JsonObject pearlObject = new JsonObject();
-                pearlObject.addProperty(PEARL_UUID, pearl.getUuid().toString());
-                addLocation(pearlObject, pearl.getLocation());
-                Vector velocity = pearl.getVelocity();
-                if (velocity != null) {
-                    JsonObject velocityObject = new JsonObject();
-                    velocityObject.addProperty(VEL_X, velocity.getX());
-                    velocityObject.addProperty(VEL_Y, velocity.getY());
-                    velocityObject.addProperty(VEL_Z, velocity.getZ());
-                    pearlObject.add(VELOCITY, velocityObject);
-                }
-                pearlArray.add(pearlObject);
+        JsonArray pearlArray = new JsonArray();
+        for (EnderPearlRestoreData pearl : limboPlayer.getEnderPearls()) {
+            JsonObject pearlObject = new JsonObject();
+            pearlObject.addProperty(PEARL_UUID, pearl.getUuid().toString());
+            addLocation(pearlObject, pearl.getLocation());
+            Vector velocity = pearl.getVelocity();
+            if (velocity != null) {
+                JsonObject velocityObject = new JsonObject();
+                velocityObject.addProperty(VEL_X, velocity.getX());
+                velocityObject.addProperty(VEL_Y, velocity.getY());
+                velocityObject.addProperty(VEL_Z, velocity.getZ());
+                pearlObject.add(VELOCITY, velocityObject);
             }
+            pearlArray.add(pearlObject);
+        }
+        if (pearlArray.size() > 0) {
             obj.add(ENDER_PEARLS, pearlArray);
         }
 

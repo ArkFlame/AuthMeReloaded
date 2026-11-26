@@ -10,7 +10,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 
 import javax.inject.Inject;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
@@ -30,9 +29,8 @@ public class DoubleLoginFixListener implements Listener {
             return;
         }
 
-        Collection<? extends Player> onlinePlayers = Bukkit.getServer().getOnlinePlayers();
         Set<String> seenNames = new HashSet<>();
-        for (Player player : onlinePlayers) {
+        for (Player player : Bukkit.getServer().getOnlinePlayers()) {
             if (!seenNames.add(player.getName().toLowerCase(Locale.ROOT))) {
                 player.kickPlayer(commonService.retrieveSingleMessage(player, MessageKey.DOUBLE_LOGIN_FIX));
                 break;

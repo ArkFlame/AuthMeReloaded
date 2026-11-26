@@ -45,11 +45,9 @@ class GetIpCommandTest {
         given(dataSource.getAuth(offlineName)).willReturn(null);
 
         // when
-        CommandSender offlineSender = execute(offlineName);
+        CommandSender offlineSender = executeAndVerifyLookup(offlineName);
 
         // then
-        verify(bukkitService).getPlayerExact(offlineName);
-        verify(dataSource).getAuth(offlineName);
         verify(offlineSender, only()).sendMessage(argThat(containsString("not registered")));
 
         // given: online player with a resolvable address but no auth entry
@@ -60,11 +58,9 @@ class GetIpCommandTest {
         given(dataSource.getAuth(playerName)).willReturn(null);
 
         // when
-        CommandSender sender = execute(playerName);
+        CommandSender sender = executeAndVerifyLookup(playerName);
 
         // then
-        verify(bukkitService).getPlayerExact(playerName);
-        verify(dataSource).getAuth(playerName);
         verify(sender).sendMessage(argThat(both(containsString(playerName)).and(containsString(ip))));
         verify(sender).sendMessage(argThat(containsString("not registered")));
     }
@@ -80,11 +76,9 @@ class GetIpCommandTest {
         given(dataSource.getAuth(playerName)).willReturn(auth);
 
         // when
-        CommandSender sender = execute(playerName);
+        CommandSender sender = executeAndVerifyLookup(playerName);
 
         // then
-        verify(bukkitService).getPlayerExact(playerName);
-        verify(dataSource).getAuth(playerName);
         verify(sender).sendMessage(argThat(both(containsString(playerName)).and(containsString(ip))));
         verify(sender).sendMessage(argThat(both(containsString("44.33.22.11")).and(containsString("77.11.44.88"))));
     }
@@ -100,15 +94,17 @@ class GetIpCommandTest {
         given(dataSource.getAuth(playerName)).willReturn(null);
 
         // when
-        CommandSender sender = execute(playerName);
+        CommandSender sender = executeAndVerifyLookup(playerName);
 
         // then
         verify(sender).sendMessage(argThat(containsString("not registered")));
     }
 
-    private CommandSender execute(String playerName) {
+    private CommandSender executeAndVerifyLookup(String playerName) {
         CommandSender sender = mock(CommandSender.class);
         command.executeCommand(sender, Collections.singletonList(playerName));
+        verify(bukkitService).getPlayerExact(playerName);
+        verify(dataSource).getAuth(playerName);
         return sender;
     }
 

@@ -51,12 +51,10 @@ final class MySqlMigrater {
             logger.info("Migrating lastlogin column from int to bigint");
             st.execute(String.format("ALTER TABLE %s MODIFY %s BIGINT;", tableName, col.LAST_LOGIN));
 
-            // Migrate timestamps in seconds format to milliseconds format if they are plausible
-            int rangeStart = 1262304000; // timestamp for 2010-01-01
-            int rangeEnd = 1514678400;   // timestamp for 2017-12-31
+            // Migrate plausible timestamps (2010-01-01 to 2017-12-31) from seconds to milliseconds
             int changedRows = st.executeUpdate(String.format(
-                "UPDATE %s SET %s = %s * 1000 WHERE %s > %d AND %s < %d;",
-                tableName, col.LAST_LOGIN, col.LAST_LOGIN, col.LAST_LOGIN, rangeStart, col.LAST_LOGIN, rangeEnd));
+                "UPDATE %s SET %s = %s * 1000 WHERE %s > %d AND %s < %d;", tableName, col.LAST_LOGIN,
+                col.LAST_LOGIN, col.LAST_LOGIN, 1262304000, col.LAST_LOGIN, 1514678400));
 
             logger.warning("You may have entries with invalid timestamps. Please check your data "
                 + "before purging. " + changedRows + " rows were migrated from seconds to milliseconds.");

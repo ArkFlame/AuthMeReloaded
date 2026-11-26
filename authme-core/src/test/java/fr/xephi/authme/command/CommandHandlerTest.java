@@ -20,7 +20,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -184,7 +183,7 @@ class CommandHandlerTest {
     void shouldNotCallExecutableForUnknownLabel(double difference, boolean hasSuggestion) {
         // given
         if (hasSuggestion) {
-            given(command.getLabels()).willReturn(Collections.singletonList("test_cmd"));
+            given(command.getLabels()).willReturn(asList("test_cmd"));
         }
         givenMapping(asList("unreg"), asList("testPlayer"), difference, UNKNOWN_LABEL);
 

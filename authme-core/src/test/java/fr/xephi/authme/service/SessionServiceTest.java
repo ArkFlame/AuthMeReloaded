@@ -13,10 +13,14 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -94,47 +98,27 @@ class SessionServiceTest {
 
     @Test
     void shouldCheckLastLoginDate() {
-        // given
         Player player = givenSession(NAME, IP, playerAuth(NAME, System.currentTimeMillis() - 10 * 60 * 1000, IP));
         given(commonService.getProperty(PluginSettings.SESSIONS_TIMEOUT)).willReturn(8);
 
-        // when
-        boolean result = sessionService.canResumeSession(player);
-
-        // then
-        assertThat(result, equalTo(false));
-        verify(dataSource).setUnlogged(NAME);
-        verify(dataSource).revokeSession(NAME);
+        assertSessionRefused(player, NAME);
     }
 
-    @Test
-    void shouldRefuseSessionForAuthWithNullLastLoginTimestamp() {
-        // given
-        Player player = givenSession(NAME, IP, playerAuth(NAME, null, IP));
+    @ParameterizedTest
+    @MethodSource("invalidAuths")
+    void shouldRefuseSessionWithoutValidAuth(PlayerAuth auth) {
+        Player player = givenSession(NAME, IP, auth);
 
-        // when
-        boolean result = sessionService.canResumeSession(player);
-
-        // then
-        assertThat(result, equalTo(false));
-        verify(dataSource).setUnlogged(NAME);
-        verify(dataSource).revokeSession(NAME);
+        assertSessionRefused(player, NAME);
     }
 
     @Test
     void shouldCheckLastLoginIp() {
-        // given
         Player player = givenSession(NAME, IP, playerAuth(NAME, System.currentTimeMillis() - 7 * 60 * 1000, "8.8.8.8"));
         given(commonService.getProperty(PluginSettings.SESSIONS_TIMEOUT)).willReturn(8);
 
-        // when
-        boolean result = sessionService.canResumeSession(player);
-
-        // then
-        assertThat(result, equalTo(false));
+        assertSessionRefused(player, NAME);
         verify(commonService).send(player, MessageKey.SESSION_EXPIRED);
-        verify(dataSource).setUnlogged(NAME);
-        verify(dataSource).revokeSession(NAME);
     }
 
     @Test
@@ -159,33 +143,12 @@ class SessionServiceTest {
     }
 
     @Test
-    void shouldHandleNullPlayerAuth() {
-        // given
-        Player player = givenSession(NAME, IP, null);
-
-        // when
-        boolean result = sessionService.canResumeSession(player);
-
-        // then
-        assertThat(result, equalTo(false));
-        verify(dataSource).setUnlogged(NAME);
-        verify(dataSource).revokeSession(NAME);
-    }
-
-    @Test
     void shouldHandlePlayerAuthWithNullLastIp() {
-        // given
         Player player = givenSession("Charles", "144.117.118.145",
             playerAuth("Charles", System.currentTimeMillis() - 2, null));
         given(commonService.getProperty(PluginSettings.SESSIONS_TIMEOUT)).willReturn(8);
 
-        // when
-        boolean result = sessionService.canResumeSession(player);
-
-        // then
-        assertThat(result, equalTo(false));
-        verify(dataSource).setUnlogged("Charles");
-        verify(dataSource).revokeSession("Charles");
+        assertSessionRefused(player, "Charles");
     }
 
     @Test
@@ -197,13 +160,10 @@ class SessionServiceTest {
         given(permissionsManager.hasPermission(player, PlayerStatePermission.DISABLE_SESSION)).willReturn(true);
 
         // when
-        boolean result = sessionService.canResumeSession(player);
+        assertSessionRefused(player, NAME);
 
         // then
-        assertThat(result, equalTo(false));
         verify(dataSource).hasSession(NAME);
-        verify(dataSource).setUnlogged(NAME);
-        verify(dataSource).revokeSession(NAME);
         verifyNoMoreInteractions(dataSource);
         verifyNoInteractions(bukkitService);
     }
@@ -278,47 +238,12 @@ class SessionServiceTest {
         verify(dataSource, only()).grantSession("bobby");
     }
 
-    @Test
-    void shouldRefuseSessionForNegativeLastLoginTimestamp() {
-        // given
-        Player player = givenSession(NAME, IP, playerAuth(NAME, -1L, IP));
+    @ParameterizedTest
+    @MethodSource("invalidTimestamps")
+    void shouldRefuseSessionForInvalidLastLoginTimestamp(long lastLogin) {
+        Player player = givenSession(NAME, IP, playerAuth(NAME, lastLogin, IP));
 
-        // when
-        boolean result = sessionService.canResumeSession(player);
-
-        // then
-        assertThat(result, equalTo(false));
-        verify(dataSource).setUnlogged(NAME);
-        verify(dataSource).revokeSession(NAME);
-    }
-
-    @Test
-    void shouldRefuseSessionForOverflowingLastLoginTimestamp() {
-        // given
-        Player player = givenSession(NAME, IP, playerAuth(NAME, Long.MIN_VALUE, IP));
-
-        // when
-        boolean result = sessionService.canResumeSession(player);
-
-        // then
-        assertThat(result, equalTo(false));
-        verify(dataSource).setUnlogged(NAME);
-        verify(dataSource).revokeSession(NAME);
-    }
-
-    @Test
-    void shouldRefuseSessionForLastLoginInTheFuture() {
-        // given: a clock that went backwards must not resurrect a session
-        Player player = givenSession(NAME, IP,
-            playerAuth(NAME, System.currentTimeMillis() + 60 * 1000, IP));
-
-        // when
-        boolean result = sessionService.canResumeSession(player);
-
-        // then
-        assertThat(result, equalTo(false));
-        verify(dataSource).setUnlogged(NAME);
-        verify(dataSource).revokeSession(NAME);
+        assertSessionRefused(player, NAME);
     }
 
     @Test
@@ -335,6 +260,25 @@ class SessionServiceTest {
 
         // then
         assertThat(result, equalTo(true));
+    }
+
+    private void assertSessionRefused(Player player, String expectedName) {
+        assertThat(sessionService.canResumeSession(player), equalTo(false));
+        verify(dataSource).setUnlogged(expectedName);
+        verify(dataSource).revokeSession(expectedName);
+    }
+
+    private static Stream<Arguments> invalidAuths() {
+        return Stream.of(
+            Arguments.of(playerAuth(NAME, null, IP)),
+            Arguments.of((PlayerAuth) null));
+    }
+
+    private static Stream<Arguments> invalidTimestamps() {
+        return Stream.of(
+            Arguments.of(-1L),
+            Arguments.of(Long.MIN_VALUE),
+            Arguments.of(System.currentTimeMillis() + 60 * 1000));
     }
 
     private static PlayerAuth playerAuth(String name, Long lastLogin, String lastIp) {

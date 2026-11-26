@@ -7,6 +7,8 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -46,48 +48,39 @@ class PurgePlayerCommandTest {
         // given
         String name = "Bobby";
         given(dataSource.isAuthAvailable(name)).willReturn(true);
-        CommandSender sender = mock(CommandSender.class);
-        setBukkitServiceToRunTaskAsynchronously(bukkitService);
 
         // when
-        command.executeCommand(sender, singletonList(name));
+        CommandSender sender = executeCommand(name);
 
         // then
         verify(sender).sendMessage(argThat(containsString("This player is still registered")));
         verifyNoInteractions(purgeExecutor);
     }
 
-    @Test
-    void shouldExecutePurge() {
+    @ParameterizedTest
+    @CsvSource({"Frank, false", "GhiJKlmn7, true"})
+    void shouldExecutePurge(String name, boolean force) {
         // given
-        String name = "Frank";
-        given(dataSource.isAuthAvailable(name)).willReturn(false);
         OfflinePlayer player = mock(OfflinePlayer.class);
         given(bukkitService.getOfflinePlayer(name)).willReturn(player);
-        CommandSender sender = mock(CommandSender.class);
-        setBukkitServiceToRunTaskAsynchronously(bukkitService);
+        if (!force) {
+            given(dataSource.isAuthAvailable(name)).willReturn(false);
+        }
 
         // when
-        command.executeCommand(sender, singletonList(name));
+        executeCommand(force ? new String[]{name, "force"} : new String[]{name});
 
         // then
-        verify(dataSource).isAuthAvailable(name);
+        if (!force) {
+            verify(dataSource).isAuthAvailable(name);
+        }
         verify(purgeExecutor).executePurge(singletonList(player), singletonList(name.toLowerCase(Locale.ROOT)));
     }
 
-    @Test
-    void shouldExecutePurgeOfRegisteredPlayer() {
-        // given
-        String name = "GhiJKlmn7";
-        OfflinePlayer player = mock(OfflinePlayer.class);
-        given(bukkitService.getOfflinePlayer(name)).willReturn(player);
+    private CommandSender executeCommand(String... args) {
         CommandSender sender = mock(CommandSender.class);
         setBukkitServiceToRunTaskAsynchronously(bukkitService);
-
-        // when
-        command.executeCommand(sender, asList(name, "force"));
-
-        // then
-        verify(purgeExecutor).executePurge(singletonList(player), singletonList(name.toLowerCase(Locale.ROOT)));
+        command.executeCommand(sender, asList(args));
+        return sender;
     }
 }
