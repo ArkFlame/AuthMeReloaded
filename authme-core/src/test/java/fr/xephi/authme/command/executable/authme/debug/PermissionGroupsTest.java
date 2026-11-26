@@ -39,7 +39,6 @@ class PermissionGroupsTest {
     @Test
     void shouldShowPrimaryGroupSeparately() {
         // given
-        String playerName = "bobby";
         Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
         given(permissionsManager.getGroups(player)).willReturn(
             Arrays.asList(new UserGroup("admin"), new UserGroup("default")));
@@ -48,10 +47,10 @@ class PermissionGroupsTest {
         CommandSender sender = mock(CommandSender.class, withSettings().mockMaker(MockMakers.INLINE));
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class, withSettings().mockMaker(MockMakers.INLINE))) {
-            bukkit.when(() -> Bukkit.getPlayer(playerName)).thenReturn(player);
+            bukkit.when(() -> Bukkit.getPlayer("bobby")).thenReturn(player);
 
             // when
-            permissionGroups.execute(sender, Collections.singletonList(playerName));
+            permissionGroups.execute(sender, Collections.singletonList("bobby"));
         }
 
         // then

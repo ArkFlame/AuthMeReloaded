@@ -26,9 +26,6 @@ public class FloodgateService {
     @Inject
     private Settings settings;
 
-    FloodgateService() {
-    }
-
     /**
      * Returns whether the player can be logged in automatically: the auto-login option is enabled
      * and Floodgate reports the UUID as a Bedrock player.

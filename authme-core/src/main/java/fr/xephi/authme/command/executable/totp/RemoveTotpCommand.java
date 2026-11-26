@@ -29,17 +29,13 @@ public class RemoveTotpCommand extends AbstractTotpPlayerCommand {
         if (auth.getTotpKey() == null) {
             messages.send(player, MessageKey.TWO_FACTOR_NOT_ENABLED_ERROR);
         } else if (totpAuthenticator.checkCode(auth, arguments.get(0))) {
-            removeTotpKeyFromDatabase(player, auth);
+            boolean removed = dataSource.removeTotpKey(auth.getNickname());
+            applyTotpKeyUpdate(player, auth, removed, null, MessageKey.TWO_FACTOR_REMOVED_SUCCESS);
+            if (removed) {
+                logger.info("Player '" + player.getName() + "' removed their TOTP key");
+            }
         } else {
             messages.send(player, MessageKey.TWO_FACTOR_INVALID_CODE);
-        }
-    }
-
-    private void removeTotpKeyFromDatabase(Player player, PlayerAuth auth) {
-        boolean removed = dataSource.removeTotpKey(auth.getNickname());
-        applyTotpKeyUpdate(player, auth, removed, null, MessageKey.TWO_FACTOR_REMOVED_SUCCESS);
-        if (removed) {
-            logger.info("Player '" + player.getName() + "' removed their TOTP key");
         }
     }
 }

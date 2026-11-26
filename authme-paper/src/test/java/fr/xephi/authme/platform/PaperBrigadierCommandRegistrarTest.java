@@ -38,6 +38,7 @@ public class PaperBrigadierCommandRegistrarTest {
     private CommandDispatcher<CommandSourceStack> dispatcher;
     private AtomicReference<CommandSender> executingSender;
     private List<List<String>> executedCommands;
+    private List<PaperBrigadierCommandRegistration> registrations;
 
     @Mock
     private CommandSourceStack sourceStack;
@@ -56,16 +57,13 @@ public class PaperBrigadierCommandRegistrarTest {
         dispatcher = new CommandDispatcher<>();
         lenient().when(sourceStack.getSender()).thenReturn(sender);
 
-        for (PaperBrigadierCommandRegistration registration
-            : registrar.buildRegistrations(createCommands())) {
-            dispatcher.getRoot().addChild(registration.getNode());
-        }
+        registrations = registrar.buildRegistrations(createCommands());
+        registrations.forEach(registration -> dispatcher.getRoot().addChild(registration.getNode()));
     }
 
     @Test
     public void shouldExposeBaseCommandAliases() {
-        PaperBrigadierCommandRegistration registration = registrar.buildRegistrations(createCommands())
-            .stream()
+        PaperBrigadierCommandRegistration registration = registrations.stream()
             .filter(command -> "login".equals(command.getNode().getLiteral()))
             .findFirst()
             .orElse(null);

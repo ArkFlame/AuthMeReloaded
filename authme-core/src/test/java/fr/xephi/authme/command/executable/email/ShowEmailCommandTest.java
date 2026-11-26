@@ -41,36 +41,19 @@ public class ShowEmailCommandTest {
     @Mock
     private PlayerCache playerCache;
 
-    @ParameterizedTest(name = "USE_EMAIL_MASKING={0}")
+    @ParameterizedTest(name = "USE_EMAIL_MASKING={0}, email={1} -> {2}")
     @CsvSource({
-        "false, my.email@example.com",
-        "true, my.***@***mple.com"
+        "false, my.email@example.com, my.email@example.com",
+        "true, my.email@example.com, my.***@***mple.com",
+        "true, user@, us***@***",
+        "true, @example.com, ***@***mple.com"
     })
-    public void shouldShowCurrentEmailMessage(boolean useEmailMasking, String expectedEmail) {
-        // given
-        Player sender = mock(Player.class);
-        given(sender.getName()).willReturn(USERNAME);
-        given(playerCache.getAuth(USERNAME)).willReturn(newAuthWithEmail(CURRENT_EMAIL));
-        given(commonService.getProperty(SecuritySettings.USE_EMAIL_MASKING)).willReturn(useEmailMasking);
-
-        // when
-        command.executeCommand(sender, Collections.emptyList());
-
-        // then
-        verify(commonService).send(sender, MessageKey.EMAIL_SHOW, expectedEmail);
-    }
-
-    @ParameterizedTest(name = "malformed email {0} is masked to {1}")
-    @CsvSource({
-        "user@, us***@***",
-        "@example.com, ***@***mple.com"
-    })
-    public void shouldMaskMalformedEmailWithoutThrowing(String email, String expectedEmail) {
+    public void shouldShowEmailMessage(boolean useEmailMasking, String email, String expectedEmail) {
         // given
         Player sender = mock(Player.class);
         given(sender.getName()).willReturn(USERNAME);
         given(playerCache.getAuth(USERNAME)).willReturn(newAuthWithEmail(email));
-        given(commonService.getProperty(SecuritySettings.USE_EMAIL_MASKING)).willReturn(true);
+        given(commonService.getProperty(SecuritySettings.USE_EMAIL_MASKING)).willReturn(useEmailMasking);
 
         // when
         command.executeCommand(sender, Collections.emptyList());
@@ -84,7 +67,7 @@ public class ShowEmailCommandTest {
         // given
         Player sender = mock(Player.class);
         given(sender.getName()).willReturn(USERNAME);
-        given(playerCache.getAuth(USERNAME)).willReturn(newAuthWithNoEmail());
+        given(playerCache.getAuth(USERNAME)).willReturn(PlayerAuth.builder().name(USERNAME).build());
 
         // when
         command.executeCommand(sender, Collections.emptyList());
@@ -99,12 +82,4 @@ public class ShowEmailCommandTest {
             .email(email)
             .build();
     }
-
-    private static PlayerAuth newAuthWithNoEmail() {
-        return PlayerAuth.builder()
-            .name(USERNAME)
-            .build();
-    }
 }
-
-

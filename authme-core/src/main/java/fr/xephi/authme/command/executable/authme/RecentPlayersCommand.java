@@ -8,7 +8,6 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 
 import javax.inject.Inject;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -34,7 +33,7 @@ public class RecentPlayersCommand implements ExecutableCommand {
         for (PlayerAuth auth : recentPlayers) {
             Long lastLogin = auth.getLastLogin();
             String lastLoginText = lastLogin == null ? "never"
-                : DATE_FORMAT.format(LocalDateTime.ofInstant(ofEpochMilli(lastLogin), getZoneId()));
+                : DATE_FORMAT.withZone(getZoneId()).format(ofEpochMilli(lastLogin));
             sender.sendMessage("- " + auth.getRealName() + " (" + lastLoginText + " with IP "
                 + auth.getLastIp() + ")");
         }

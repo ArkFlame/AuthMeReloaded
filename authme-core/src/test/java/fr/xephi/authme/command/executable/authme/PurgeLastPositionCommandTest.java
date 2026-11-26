@@ -41,6 +41,9 @@ class PurgeLastPositionCommandTest {
     @Mock
     private BungeeSender bungeeSender;
 
+    @Mock
+    private CommandSender sender;
+
     @ParameterizedTest
     @CsvSource({
         "false, last position location is now reset",
@@ -49,7 +52,6 @@ class PurgeLastPositionCommandTest {
     void shouldPurgeLastPosition(boolean isCommandSender, String expectedMessage) {
         // given
         String player = "_Bobby";
-        CommandSender sender = mock(CommandSender.class);
         if (isCommandSender) {
             given(sender.getName()).willReturn(player);
         }
@@ -71,7 +73,6 @@ class PurgeLastPositionCommandTest {
     void shouldHandleNonExistentUser() {
         // given
         String name = "invalidPlayer";
-        CommandSender sender = mock(CommandSender.class);
 
         // when
         command.executeCommand(sender, Collections.singletonList(name));
@@ -88,7 +89,6 @@ class PurgeLastPositionCommandTest {
         PlayerAuth auth2 = mock(PlayerAuth.class);
         PlayerAuth auth3 = mock(PlayerAuth.class);
         given(dataSource.getAllAuths()).willReturn(Arrays.asList(auth1, auth2, auth3));
-        CommandSender sender = mock(CommandSender.class);
 
         // when
         command.executeCommand(sender, Collections.singletonList("*"));
@@ -100,7 +100,6 @@ class PurgeLastPositionCommandTest {
         verifyPositionWasReset(auth3);
         verify(sender).sendMessage(argThat(containsString("last position locations are now reset")));
     }
-
 
     private static void verifyPositionWasReset(PlayerAuth auth) {
         verify(auth).setQuitLocX(0);

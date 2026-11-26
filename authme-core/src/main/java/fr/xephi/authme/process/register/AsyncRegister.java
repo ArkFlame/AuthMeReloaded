@@ -38,9 +38,6 @@ public class AsyncRegister implements AsynchronousProcess {
     @Inject
     private SingletonStore<RegistrationExecutor> registrationExecutorFactory;
 
-    AsyncRegister() {
-    }
-
     /**
      * Performs the registration process for the given player.
      */
@@ -81,11 +78,8 @@ public class AsyncRegister implements AsynchronousProcess {
 
         AuthMeAsyncPreRegisterEvent event = bukkitService.createAndCallEvent(
             isAsync -> new AuthMeAsyncPreRegisterEvent(player, isAsync));
-        if (!event.canRegister()) {
-            return false;
-        }
-
-        return variant == RegistrationMethod.API_REGISTRATION || isPlayerIpAllowedToRegister(player);
+        return event.canRegister()
+            && (variant == RegistrationMethod.API_REGISTRATION || isPlayerIpAllowedToRegister(player));
     }
 
     /**

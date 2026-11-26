@@ -29,8 +29,6 @@ public class TiAuthConverter extends AbstractYamlPluginConverter {
 
     private static final String CONFIG_PATH = "plugins/tiAuth/config.yml";
     private static final String SQLITE_DB_PATH = "plugins/tiAuth/auth.db";
-    private static final String QUERY =
-        "SELECT username, realName, password, lastIp, lastLogin, regDate FROM auth_users";
 
     private static final ConsoleLogger logger = ConsoleLoggerFactory.get(TiAuthConverter.class);
 
@@ -54,7 +52,7 @@ public class TiAuthConverter extends AbstractYamlPluginConverter {
 
     @Override
     protected String getQuery(YamlConfiguration config) {
-        return QUERY;
+        return "SELECT username, realName, password, lastIp, lastLogin, regDate FROM auth_users";
     }
 
     @Override

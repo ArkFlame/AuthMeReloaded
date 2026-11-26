@@ -98,12 +98,10 @@ public class ValidationService implements Reloadable {
         }
         int atIndex = email.indexOf('@');
         // Equivalent to isInsideString('@', email): the '@' must not be the first or last character
-        if (atIndex <= 0 || atIndex >= email.length() - 1
-            || atIndex != email.lastIndexOf('@') || !emailRegex.matcher(email).matches()) {
-            return false;
-        }
-        return validateWhitelistAndBlacklist(email.substring(atIndex + 1),
-            EmailSettings.DOMAIN_WHITELIST, EmailSettings.DOMAIN_BLACKLIST);
+        return atIndex > 0 && atIndex < email.length() - 1
+            && atIndex == email.lastIndexOf('@') && emailRegex.matcher(email).matches()
+            && validateWhitelistAndBlacklist(email.substring(atIndex + 1),
+                EmailSettings.DOMAIN_WHITELIST, EmailSettings.DOMAIN_BLACKLIST);
     }
 
     /**
@@ -177,11 +175,9 @@ public class ValidationService implements Reloadable {
      */
     public boolean fulfillsNameRestrictions(String name, InetAddress address) {
         Collection<Pattern> restrictions = restrictedNames.get(name.toLowerCase(Locale.ROOT));
-        if (Utils.isCollectionEmpty(restrictions)) {
-            return true;
-        }
-        return matchesRestrictions(restrictions, address.getHostAddress(),
-            getHostName(new InetSocketAddress(address, 0)));
+        return Utils.isCollectionEmpty(restrictions)
+            || matchesRestrictions(restrictions, address.getHostAddress(),
+                getHostName(new InetSocketAddress(address, 0)));
     }
 
     private boolean matchesRestrictions(Collection<Pattern> restrictions, String ip, String domain) {
