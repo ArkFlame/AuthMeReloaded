@@ -72,28 +72,16 @@ class PlayerAuthViewer implements DebugSection {
         return DebugSectionPermissions.PLAYER_AUTH_VIEWER;
     }
 
-    /**
-     * Fail-safe substring method. Guarantees not to show the entire String.
-     *
-     * @param str the string to transform
-     * @param length number of characters to show from the start of the String
-     * @return the first <code>length</code> characters of the string, or half of the string if it is shorter,
-     *         or empty string if the string is null or empty
-     */
+    /** Returns a fail-safe substring that never shows the entire String: the first {@code length} characters,
+     * or half of the string if it is shorter, or an empty string if it is blank. */
     private static String safeSubstring(String str, int length) {
         if (StringUtils.isBlank(str)) {
             return "";
         }
-        int end = str.length() < length ? str.length() / 2 : length;
-        return str.substring(0, end) + "...";
+        return str.substring(0, str.length() < length ? str.length() / 2 : length) + "...";
     }
 
-    /**
-     * Formats the given timestamp to a human readable date.
-     *
-     * @param timestamp the timestamp to format (nullable)
-     * @return the formatted timestamp
-     */
+    /** Formats the given (nullable) timestamp as a human readable date, or a placeholder if absent. */
     private static String formatDate(Long timestamp) {
         if (timestamp == null || timestamp == 0) {
             return "Not available (" + (timestamp == null ? "null" : "0") + ")";

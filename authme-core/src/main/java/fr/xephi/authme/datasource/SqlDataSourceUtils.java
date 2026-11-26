@@ -114,13 +114,11 @@ public final class SqlDataSourceUtils {
                                           String columnName) throws SQLException {
         return readColumnData(metaData, tableName, columnName, "while checking for not-null constraint", rs -> {
             int nullableCode = rs.getInt("NULLABLE");
-            if (nullableCode == DatabaseMetaData.columnNoNulls) {
-                return true;
-            }
             if (nullableCode == DatabaseMetaData.columnNullableUnknown) {
                 logger.warning("Unknown nullable status for column '" + columnName + "'");
+                return false;
             }
-            return false;
+            return nullableCode == DatabaseMetaData.columnNoNulls;
         });
     }
 

@@ -42,10 +42,8 @@ public abstract class AbstractPaperAsyncChatListener implements Listener {
         }
 
         Player player = event.getPlayer();
-        boolean mayPlayerSendChat = !listenerService.shouldCancelEvent(player)
-            || permissionsManager.hasPermission(player, PlayerStatePermission.ALLOW_CHAT_BEFORE_LOGIN);
-
-        if (!mayPlayerSendChat) {
+        if (listenerService.shouldCancelEvent(player)
+            && !permissionsManager.hasPermission(player, PlayerStatePermission.ALLOW_CHAT_BEFORE_LOGIN)) {
             event.setCancelled(true);
             messages.send(player, MessageKey.DENIED_CHAT);
             return;

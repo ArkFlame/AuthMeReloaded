@@ -12,8 +12,6 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
-import java.util.Collection;
-import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -82,15 +80,9 @@ class HelpMessagesConsistencyTest {
      * @return the CommandDescription object for the {@code /authme register} command.
      */
     private static CommandDescription getAuthMeRegisterDescription() {
-        Collection<CommandDescription> commands = new CommandInitializer().getCommands();
-
-        List<CommandDescription> children = commands.stream()
+        return new CommandInitializer().getCommands().stream()
             .filter(command -> command.getLabels().contains("authme"))
-            .map(CommandDescription::getChildren)
-            .findFirst().get();
-
-        return children
-            .stream()
+            .flatMap(command -> command.getChildren().stream())
             .filter(child -> child.getLabels().contains("register"))
             .findFirst().get();
     }

@@ -15,8 +15,7 @@ public class ProxySessionManager implements HasCleanup {
 
     @Inject
     public ProxySessionManager() {
-        long countTimeout = 15;
-        activeProxySessions = new ExpiringMap<>(countTimeout, TimeUnit.SECONDS);
+        activeProxySessions = new ExpiringMap<>(15, TimeUnit.SECONDS);
     }
 
     /**

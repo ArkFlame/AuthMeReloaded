@@ -19,7 +19,6 @@ import java.security.Security;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-
 /**
  * Sends emails to players on behalf of the server.
  */
@@ -60,7 +59,6 @@ public class SendMailSsl {
         String senderName = StringUtils.isBlank(senderNameSetting)
             ? senderMail
             : senderNameSetting;
-        String mailPassword = settings.getProperty(EmailSettings.MAIL_PASSWORD);
         int port = settings.getProperty(EmailSettings.SMTP_PORT);
 
         HtmlEmail email = new HtmlEmail();
@@ -70,7 +68,8 @@ public class SendMailSsl {
         email.addTo(emailAddress);
         email.setFrom(senderMail, senderName);
         email.setSubject(settings.getProperty(EmailSettings.RECOVERY_MAIL_SUBJECT));
-        email.setAuthentication(settings.getProperty(EmailSettings.MAIL_ACCOUNT), mailPassword);
+        email.setAuthentication(settings.getProperty(EmailSettings.MAIL_ACCOUNT),
+            settings.getProperty(EmailSettings.MAIL_PASSWORD));
         email.setDebug(settings.getProperty(PluginSettings.LOG_LEVEL).includes(LogLevel.DEBUG));
 
         setPropertiesForPort(email, port);

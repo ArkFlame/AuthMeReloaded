@@ -25,12 +25,10 @@ class AbstractSqlDataSourceDeleteRecordsTest {
     // Only deleteRecords() is exercised, so real methods run and inherited abstract ones are never called.
     private final AbstractSqlDataSource dataSource =
         mock(AbstractSqlDataSource.class, Answers.CALLS_REAL_METHODS);
+    private final Connection connection = mock(Connection.class);
 
     @Test
     void shouldNotQueryDatabaseWhenNothingToDelete() throws SQLException {
-        // given
-        Connection connection = mock(Connection.class);
-
         // when
         dataSource.deleteRecords(connection, SQL, Collections.emptyList());
 
@@ -41,7 +39,6 @@ class AbstractSqlDataSourceDeleteRecordsTest {
     @Test
     void shouldBatchDeleteLowercasedNamesInOneStatement() throws SQLException {
         // given
-        Connection connection = mock(Connection.class);
         PreparedStatement statement = mock(PreparedStatement.class);
         given(connection.prepareStatement(SQL)).willReturn(statement);
 

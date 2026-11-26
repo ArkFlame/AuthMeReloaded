@@ -23,7 +23,6 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -72,9 +71,7 @@ class ProxyLoginRequestValidatorTest {
     void shouldAcceptOrRejectStoredPremiumUuid(boolean matching) {
         UUID storedUuid = UUID.randomUUID();
         UUID forwardedUuid = matching ? storedUuid : UUID.randomUUID();
-        PlayerAuth auth = PlayerAuth.builder().name("bobby").premiumUuid(storedUuid).build();
-        givenPremiumPlayerWithAuth(auth);
-
+        givenPremiumPlayerWithAuth(PlayerAuth.builder().name("bobby").premiumUuid(storedUuid).build());
         assertEquals(matching, validator.validate(player, forwardedUuid));
         verify(premiumService, never()).finalizePendingPremium(player, forwardedUuid);
     }
@@ -84,8 +81,7 @@ class ProxyLoginRequestValidatorTest {
     void shouldHandlePendingPremiumUuid(boolean matching) {
         UUID pendingUuid = UUID.randomUUID();
         UUID forwardedUuid = matching ? pendingUuid : UUID.randomUUID();
-        PlayerAuth auth = PlayerAuth.builder().name("bobby").build();
-        givenPremiumPlayerWithAuth(auth);
+        givenPremiumPlayerWithAuth(PlayerAuth.builder().name("bobby").build());
         given(pendingPremiumCache.removePending("Bobby")).willReturn(pendingUuid);
 
         assertEquals(matching, validator.validate(player, forwardedUuid));
@@ -103,8 +99,7 @@ class ProxyLoginRequestValidatorTest {
         // given — canBypassWithPremium already consumed the pending entry via the atomic gate;
         // the concurrent perform.login validate must not emit a spurious PREMIUM_PENDING_FAIL
         UUID forwardedUuid = UUID.randomUUID();
-        PlayerAuth auth = PlayerAuth.builder().name("bobby").build();
-        givenPremiumPlayerWithAuth(auth);
+        givenPremiumPlayerWithAuth(PlayerAuth.builder().name("bobby").build());
         given(pendingPremiumCache.removePending("Bobby")).willReturn(null);
 
         assertFalse(validator.validate(player, forwardedUuid));

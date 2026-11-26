@@ -34,14 +34,11 @@ public class ExpiringSet<E> extends AbstractExpiring<E, Long> {
     /** Returns whether this set contains the given entry, if it hasn't expired. */
     public boolean contains(E entry) {
         Long expiration = getEntries().get(entry);
-        if (expiration == null) {
-            return false;
-        }
-        if (expiration <= System.currentTimeMillis()) {
+        if (expiration != null && expiration <= System.currentTimeMillis()) {
             getEntries().remove(entry);
             return false;
         }
-        return true;
+        return expiration != null;
     }
 
     /** Removes the given entry from the set (if present). */
