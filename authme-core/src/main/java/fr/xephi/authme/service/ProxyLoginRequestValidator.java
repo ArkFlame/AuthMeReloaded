@@ -48,9 +48,6 @@ public class ProxyLoginRequestValidator {
     @Inject
     private Settings settings;
 
-    ProxyLoginRequestValidator() {
-    }
-
     /**
      * Validates an optional premium UUID coming from the proxy and finalizes pending premium
      * enrollment when the UUID was verified by the proxy and matches the pending entry.

@@ -38,9 +38,8 @@ public class NLoginConverter extends AbstractYamlPluginConverter {
 
     @Override
     protected Backend getBackend(YamlConfiguration config) {
-        return DEFAULT_DB_TYPE.equalsIgnoreCase(config.getString("database.type", DEFAULT_DB_TYPE))
-            ? Backend.SQLITE
-            : Backend.SQL;
+        String type = config.getString("database.type", DEFAULT_DB_TYPE);
+        return DEFAULT_DB_TYPE.equalsIgnoreCase(type) ? Backend.SQLITE : Backend.SQL;
     }
 
     @Override
@@ -93,8 +92,7 @@ public class NLoginConverter extends AbstractYamlPluginConverter {
             return null;
         }
         if (value.length() == 32) {
-            value = value.substring(0, 8) + "-" + value.substring(8, 12) + "-"
-                + value.substring(12, 16) + "-" + value.substring(16, 20) + "-" + value.substring(20);
+            value = value.replaceFirst("(.{8})(.{4})(.{4})(.{4})(.{12})", "$1-$2-$3-$4-$5");
         }
         return UuidUtils.parseUuidSafely(value);
     }

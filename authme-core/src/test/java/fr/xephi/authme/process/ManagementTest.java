@@ -2,7 +2,6 @@ package fr.xephi.authme.process;
 
 import fr.xephi.authme.TestHelper;
 import fr.xephi.authme.data.ProxySessionManager;
-import fr.xephi.authme.process.login.AsynchronousLogin;
 import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.service.PreJoinDialogService;
 import org.bukkit.entity.Player;
@@ -31,8 +30,6 @@ class ManagementTest {
 
     @Mock
     private BukkitService bukkitService;
-    @Mock
-    private AsynchronousLogin asynchronousLogin;
     @Mock
     private ProxySessionManager proxySessionManager;
     @Mock

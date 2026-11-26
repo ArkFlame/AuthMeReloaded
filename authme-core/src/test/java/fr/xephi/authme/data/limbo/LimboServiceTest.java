@@ -275,10 +275,11 @@ class LimboServiceTest {
         verify(player, never()).setOp(true);
     }
 
-    @Test
-    void shouldRestoreRevokedOperatorOnce() {
+    @ParameterizedTest(name = "operator={0}")
+    @ValueSource(booleans = {true, false})
+    void shouldRestoreRevokedOperatorAtMostOnce(boolean operator) {
         // given
-        Player player = newPlayer("Bobby", true, 0.2f, false, 0.1f);
+        Player player = newPlayer("Bobby", operator, 0.2f, false, 0.1f);
 
         // when
         limboService.revokeOperatorOnJoin(player);
@@ -286,21 +287,12 @@ class LimboServiceTest {
         limboService.restorePendingOperator(player);
 
         // then
-        verify(player).setOp(false);
-        verify(player).setOp(true);
-    }
-
-    @Test
-    void shouldNotRevokeOperatorOfNonOperator() {
-        // given
-        Player player = newPlayer("Bobby", false, 0.2f, false, 0.1f);
-
-        // when
-        limboService.revokeOperatorOnJoin(player);
-        limboService.restorePendingOperator(player);
-
-        // then
-        verify(player, never()).setOp(anyBoolean());
+        if (operator) {
+            verify(player).setOp(false);
+            verify(player).setOp(true);
+        } else {
+            verify(player, never()).setOp(anyBoolean());
+        }
     }
 
     @Test

@@ -106,9 +106,6 @@ public class PremiumNames {
     }
 
     private void addNormalized(Collection<String> target, String csv) {
-        if (csv.isEmpty()) {
-            return;
-        }
         for (String name : csv.split(",")) {
             if (!name.isEmpty()) {
                 target.add(nameNormalizer.apply(name.trim()));

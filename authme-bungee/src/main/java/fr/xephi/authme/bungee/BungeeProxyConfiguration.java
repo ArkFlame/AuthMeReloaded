@@ -9,6 +9,7 @@ import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 final class BungeeProxyConfiguration {
 
@@ -135,13 +136,10 @@ final class BungeeProxyConfiguration {
 
     /** Normalizes a collection of values, dropping empty results while preserving input order. */
     private static Set<String> normalizeAndCollect(Collection<String> values, Function<String, String> normalizer) {
-        LinkedHashSet<String> normalizedValues = new LinkedHashSet<>();
-        for (String value : values) {
-            String normalizedValue = normalizer.apply(value);
-            if (!normalizedValue.isEmpty()) {
-                normalizedValues.add(normalizedValue);
-            }
-        }
+        Set<String> normalizedValues = values.stream()
+            .map(normalizer)
+            .filter(value -> !value.isEmpty())
+            .collect(Collectors.toCollection(LinkedHashSet::new));
         return Set.copyOf(normalizedValues);
     }
 

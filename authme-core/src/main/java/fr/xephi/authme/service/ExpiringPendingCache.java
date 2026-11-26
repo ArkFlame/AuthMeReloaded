@@ -45,14 +45,11 @@ final class ExpiringPendingCache<V> {
     V get(String name) {
         String key = key(name);
         ExpiringValue<V> value = entries.get(key);
-        if (value == null) {
-            return null;
-        }
-        if (System.currentTimeMillis() > value.expiresAt) {
+        if (value != null && System.currentTimeMillis() > value.expiresAt) {
             entries.remove(key, value);
             return null;
         }
-        return value.value;
+        return value == null ? null : value.value;
     }
 
     /**
@@ -64,10 +61,7 @@ final class ExpiringPendingCache<V> {
      */
     V remove(String name) {
         ExpiringValue<V> value = entries.remove(key(name));
-        if (value == null || System.currentTimeMillis() > value.expiresAt) {
-            return null;
-        }
-        return value.value;
+        return value == null || System.currentTimeMillis() > value.expiresAt ? null : value.value;
     }
 
     /**
@@ -89,12 +83,10 @@ final class ExpiringPendingCache<V> {
     }
 
     /**
-     * Removes all expired entries without collecting their names. Prefer this over
-     * {@link #evictExpired()} when the evicted names are not needed.
+     * Removes all expired entries, discarding the names of the ones that were evicted.
      */
     void purgeExpired() {
-        long now = System.currentTimeMillis();
-        entries.entrySet().removeIf(entry -> now > entry.getValue().expiresAt);
+        evictExpired();
     }
 
     private static String key(String name) {

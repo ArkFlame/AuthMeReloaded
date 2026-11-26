@@ -21,9 +21,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
-/**
- * Ensures the LoginSecurity converter opens the SQLite file whose existence it checked.
- */
+/** Ensures the LoginSecurity converter opens the SQLite file whose existence it checked. */
 @ExtendWith(MockitoExtension.class)
 class LoginSecurityConverterPathTest {
 

@@ -17,10 +17,8 @@ class BungeeReloadCommandTest {
 
     @Mock
     private BungeeConfigManager configManager;
-
     @Mock
     private BungeeProxyBridge proxyBridge;
-
     @Mock
     private CommandSender commandSender;
 

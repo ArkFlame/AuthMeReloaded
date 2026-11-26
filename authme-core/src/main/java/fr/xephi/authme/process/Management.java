@@ -33,10 +33,8 @@ public class Management {
 
     @Inject
     private BukkitService bukkitService;
-
     @Inject
     private ProxySessionManager proxySessionManager;
-
     @Inject
     private PreJoinDialogService preJoinDialogService;
 

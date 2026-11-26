@@ -15,7 +15,6 @@ final class PremiumNames extends fr.xephi.authme.proxy.PremiumNames {
             public void info(String message) {
                 logger.info(message);
             }
-
             @Override
             public void warning(String message) {
                 logger.warning(message);

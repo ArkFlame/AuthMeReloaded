@@ -15,10 +15,8 @@ class AuthMePlayerImpl implements AuthMePlayer {
     private final String name;
     private final UUID uuid;
     private final String email;
-
     private final Instant registrationDate;
     private final String registrationIpAddress;
-
     private final Instant lastLoginDate;
     private final String lastLoginIpAddress;
 

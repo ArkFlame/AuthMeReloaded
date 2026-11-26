@@ -38,7 +38,7 @@ class ConsoleLoggerFactoryTest {
     }
 
     private static void removeSettingsAndClearMap() {
-        setSettings(null);
+        ReflectionTestUtils.setField(ConsoleLoggerFactory.class, null, "settings", null);
         getConsoleLoggerMap().clear();
     }
 
@@ -81,10 +81,6 @@ class ConsoleLoggerFactoryTest {
         // then
         assertThat(existingLogger.getLogLevel(), equalTo(LogLevel.FINE));
         assertThat(newLogger.getLogLevel(), equalTo(LogLevel.FINE));
-    }
-
-    private static void setSettings(Settings settings) {
-        ReflectionTestUtils.setField(ConsoleLoggerFactory.class, null, "settings", settings);
     }
 
     private static Map<String, ConsoleLogger> getConsoleLoggerMap() {

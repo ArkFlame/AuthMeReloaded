@@ -9,12 +9,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 /**
- * {@link SchedulerProvider} for Folia's region-threaded servers.
- *
- * <p>Folia's scheduler types are not part of the Bukkit API that core compiles against,
- * so every Folia call is made reflectively. This keeps core Java 8 and Spigot 1.8 safe
- * while still using the correct region and async schedulers at runtime. Instances are
- * only created when {@link SchedulerProviders#isFolia()} detects the Folia API.
+ * {@link SchedulerProvider} for Folia's region-threaded servers. Folia's scheduler types are not
+ * part of the Bukkit API core compiles against, so every Folia call is made reflectively. This
+ * keeps core Java 8 and Spigot 1.8 safe. Instances are only created when
+ * {@link SchedulerProviders#isFolia()} detects the Folia API.
  */
 final class FoliaSchedulerProvider implements SchedulerProvider {
 
@@ -44,9 +42,7 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
 
     @Override
     public void runOnGlobalThread(Plugin plugin, Runnable task) {
-        Object scheduler = globalScheduler.get();
-        schedule(plugin, scheduler, findMethod(scheduler, "run", Plugin.class, Consumer.class),
-            GLOBAL_SCHEDULER_NAME, plugin, toConsumer(task));
+        runOnce(globalScheduler, "run", GLOBAL_SCHEDULER_NAME, plugin, task);
     }
 
     @Override
@@ -65,15 +61,21 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
 
     @Override
     public CancellableTask runAsync(Plugin plugin, Runnable task) {
-        Object scheduler = asyncScheduler.get();
-        return schedule(plugin, scheduler,
-            findMethod(scheduler, "runNow", Plugin.class, Consumer.class),
-            ASYNC_SCHEDULER_NAME, plugin, toConsumer(task));
+        return runOnce(asyncScheduler, "runNow", ASYNC_SCHEDULER_NAME, plugin, task);
     }
 
     @Override
     public CancellableTask runAsyncTimer(Plugin plugin, Runnable task, long delayTicks, long periodTicks) {
         return scheduleRepeating(asyncScheduler.get(), plugin, task, delayTicks, periodTicks, ASYNC_SCHEDULER_NAME);
+    }
+
+    /** Schedules a one-shot Folia task on the given lazily resolved scheduler. */
+    private CancellableTask runOnce(LazyScheduler lazy, String methodName, String schedulerName,
+                                    Plugin plugin, Runnable task) {
+        Object scheduler = lazy.get();
+        return schedule(plugin, scheduler,
+            findMethod(scheduler, methodName, Plugin.class, Consumer.class),
+            schedulerName, plugin, toConsumer(task));
     }
 
     /** Schedules a repeating Folia task, converting tick delays and periods to milliseconds. */
@@ -111,10 +113,7 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
         }
     }
 
-    /**
-     * Resolves a public method on the given receiver. A {@link Class} receiver is searched
-     * directly, so callers may pass either an instance or a class without needing two helpers.
-     */
+    /** Resolves a public method on a class or instance receiver, returning null if absent. */
     private static Method findMethod(Object receiver, String name, Class<?>... parameterTypes) {
         if (receiver == null) {
             return null;
@@ -139,9 +138,7 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
         return ignored -> task.run();
     }
 
-    /**
-     * Invokes a resolved scheduler method, or warns and returns a no-op handle when it is unavailable.
-     */
+    /** Invokes a resolved scheduler method, or warns and returns a no-op handle when unavailable. */
     private static CancellableTask schedule(Plugin plugin, Object scheduler, Method method,
                                             String schedulerName, Object... arguments) {
         if (method == null) {
