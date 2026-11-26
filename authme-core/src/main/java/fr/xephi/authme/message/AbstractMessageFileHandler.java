@@ -35,7 +35,10 @@ public abstract class AbstractMessageFileHandler implements Reloadable {
     private final String defaultFile;
     private final ConcurrentHashMap<String, FileConfiguration> languageCache = new ConcurrentHashMap<>();
     // Reused for every per-player language lookup so no loader instance is allocated per message.
-    private final Function<String, FileConfiguration> languageLoader = this::loadLanguageConfiguration;
+    private final Function<String, FileConfiguration> languageLoader = language -> {
+        File file = getMessageFile(createFilePath(language));
+        return file.exists() ? YamlConfiguration.loadConfiguration(file) : UNAVAILABLE;
+    };
 
     protected AbstractMessageFileHandler(@DataFolder File dataFolder, Settings settings) {
         this.dataFolder = dataFolder;
@@ -147,11 +150,6 @@ public abstract class AbstractMessageFileHandler implements Reloadable {
         }
         FileConfiguration config = languageCache.computeIfAbsent(language, languageLoader);
         return config == UNAVAILABLE ? null : config.getString(key);
-    }
-
-    private FileConfiguration loadLanguageConfiguration(String language) {
-        File file = getMessageFile(createFilePath(language));
-        return file.exists() ? YamlConfiguration.loadConfiguration(file) : UNAVAILABLE;
     }
 
     /**

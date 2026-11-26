@@ -142,28 +142,21 @@ class AsyncAddEmailTest {
         verify(playerCache, never()).updatePlayerIfPresent(any(PlayerAuth.class));
     }
 
-    @Test
-    void shouldNotAddMailIfItIsInvalid() {
-        String email = "invalid_mail";
-        givenAuthenticatedPlayerWithoutEmail("my_Player");
-        given(validationService.validateEmail(email)).willReturn(false);
+    @ParameterizedTest(name = "{0}")
+    @CsvSource({
+        "my_Player, invalid_mail, false, INVALID_EMAIL",
+        "TestName, player@mail.tld, true, EMAIL_ALREADY_USED_ERROR"})
+    void shouldNotAddMailIfInvalidOrAlreadyUsed(
+        String name, String email, boolean emailValid, MessageKey expectedMessage) {
+        givenAuthenticatedPlayerWithoutEmail(name);
+        given(validationService.validateEmail(email)).willReturn(emailValid);
+        if (emailValid) {
+            given(validationService.isEmailFreeForRegistration(email, player)).willReturn(false);
+        }
 
         asyncAddEmail.addEmail(player, email);
 
-        verify(service).send(player, MessageKey.INVALID_EMAIL);
-        verify(playerCache, never()).updatePlayerIfPresent(any(PlayerAuth.class));
-    }
-
-    @Test
-    void shouldNotAddMailIfAlreadyUsed() {
-        String email = "player@mail.tld";
-        givenAuthenticatedPlayerWithoutEmail("TestName");
-        given(validationService.validateEmail(email)).willReturn(true);
-        given(validationService.isEmailFreeForRegistration(email, player)).willReturn(false);
-
-        asyncAddEmail.addEmail(player, email);
-
-        verify(service).send(player, MessageKey.EMAIL_ALREADY_USED_ERROR);
+        verify(service).send(player, expectedMessage);
         verify(playerCache, never()).updatePlayerIfPresent(any(PlayerAuth.class));
     }
 
@@ -228,8 +221,7 @@ class AsyncAddEmailTest {
         } else {
             given(emailService.sendEmailConfirmationMail(any(), any(), any())).willReturn(true);
         }
-        EmailChangedEvent event = spy(new EmailChangedEvent(player, null, email, false));
-        given(bukkitService.createAndCallEvent(any(Function.class))).willReturn(event);
+        givenEmailChangedEvent(email);
 
         asyncAddEmail.addEmail(player, email);
 

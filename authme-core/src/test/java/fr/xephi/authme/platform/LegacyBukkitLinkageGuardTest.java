@@ -106,8 +106,7 @@ class LegacyBukkitLinkageGuardTest {
             assertHasUtf8(info, expected);
         }
 
-        // Must NOT have direct Class entries for optional listener APIs or implementations;
-        // use String + Class.forName indirection instead.
+        // Must NOT have direct Class entries; use String + Class.forName indirection instead.
         for (String name : new String[]{
             "org/bukkit/event/player/PlayerSwapHandItemsEvent",
             "org/bukkit/event/entity/EntityAirChangeEvent",
@@ -124,8 +123,7 @@ class LegacyBukkitLinkageGuardTest {
         // Must NOT have Methodref/Fieldref directly referencing those optional event classes
         assertNoMethodRef(info, "PlayerSwapHandItemsEvent");
         assertNoMethodRef(info, "EntityAirChangeEvent");
-        // EntityPickupItemEvent class name appears in string only; method refs to it would be direct linkage
-        // Allow the string constant case already verified above.
+        // EntityPickupItemEvent appears as a string constant only; already verified above.
     }
 
     // --- Java 8 bytecode version ---
@@ -206,8 +204,8 @@ class LegacyBukkitLinkageGuardTest {
 
         Map<Integer, String> utf8Map = new HashMap<>();
         Map<Integer, Integer> classNameIndex = new HashMap<>();
-        List<int[]> fieldMethodRefs = new ArrayList<>(); // tag, classIdx, natIdx
-        Map<Integer, int[]> nameAndTypeMap = new HashMap<>();
+        List<int[]> fieldMethodRefs = new ArrayList<>(); // classIdx, natIdx
+        Map<Integer, Integer> nameAndTypeMap = new HashMap<>();
 
         // tags: 1 Utf8, 7 Class, 8 String, 9 Fieldref, 10 Methodref, 11 InterfaceMethodref, 12 NameAndType, 3/4/5/6 etc
         for (int i = 1; i < cpCount; i++) {
@@ -232,14 +230,13 @@ class LegacyBukkitLinkageGuardTest {
                 case 11: { // InterfaceMethodref
                     int classIdx = ((b[pos] & 0xFF) << 8) | (b[pos + 1] & 0xFF);
                     int natIdx = ((b[pos + 2] & 0xFF) << 8) | (b[pos + 3] & 0xFF);
-                    fieldMethodRefs.add(new int[]{tag, classIdx, natIdx});
+                    fieldMethodRefs.add(new int[]{classIdx, natIdx});
                     pos += 4;
                     break;
                 }
                 case 12: { // NameAndType
                     int nameIdx = ((b[pos] & 0xFF) << 8) | (b[pos + 1] & 0xFF);
-                    int descIdx = ((b[pos + 2] & 0xFF) << 8) | (b[pos + 3] & 0xFF);
-                    nameAndTypeMap.put(i, new int[]{nameIdx, descIdx});
+                    nameAndTypeMap.put(i, nameIdx);
                     pos += 4;
                     break;
                 }
@@ -279,18 +276,11 @@ class LegacyBukkitLinkageGuardTest {
 
         List<MemberRef> memberRefs = new ArrayList<>();
         for (int[] ref : fieldMethodRefs) {
-            int classIdx = ref[1];
-            int natIdx = ref[2];
-            Integer classNameIdx = classNameIndex.get(classIdx);
+            Integer classNameIdx = classNameIndex.get(ref[0]);
             String className = classNameIdx != null ? utf8Map.get(classNameIdx) : null;
-            int[] nat = nameAndTypeMap.get(natIdx);
-            String name = null;
-            String desc = null;
-            if (nat != null) {
-                name = utf8Map.get(nat[0]);
-                desc = utf8Map.get(nat[1]);
-            }
-            memberRefs.add(new MemberRef(className, name, desc, ref[0]));
+            Integer nameIdx = nameAndTypeMap.get(ref[1]);
+            String name = nameIdx != null ? utf8Map.get(nameIdx) : null;
+            memberRefs.add(new MemberRef(className, name));
         }
 
         return new BytecodeInfo(major, utf8Values, classNames, memberRefs);
@@ -314,19 +304,15 @@ class LegacyBukkitLinkageGuardTest {
     private static final class MemberRef {
         final String className;
         final String name;
-        final String descriptor;
-        final int tag;
 
-        MemberRef(String className, String name, String descriptor, int tag) {
+        MemberRef(String className, String name) {
             this.className = className;
             this.name = name;
-            this.descriptor = descriptor;
-            this.tag = tag;
         }
 
         @Override
         public String toString() {
-            return "MemberRef{tag=" + tag + ", class=" + className + ", name=" + name + ", desc=" + descriptor + "}";
+            return "MemberRef{class=" + className + ", name=" + name + "}";
         }
     }
 }

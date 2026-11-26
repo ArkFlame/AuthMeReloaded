@@ -66,9 +66,7 @@ public class AsynchronousUnregister implements AsynchronousProcess {
     public void unregister(Player player, String password) {
         String name = player.getName();
         PlayerAuth cachedAuth = playerCache.getAuth(name);
-        if (cachedAuth == null) {
-            return;
-        }
+        if (cachedAuth == null) return;
         if (!passwordSecurity.comparePassword(password, cachedAuth.getPassword(), name)) {
             service.send(player, MessageKey.WRONG_PASSWORD);
             return;
@@ -116,11 +114,11 @@ public class AsynchronousUnregister implements AsynchronousProcess {
     private void performPostUnregisterActions(String name, Player player) {
         boolean sendBungeeLogout = player != null && playerCache.isAuthenticated(name);
         playerCache.removePlayer(name);
-        Runnable bungeeLogout = () -> bungeeSender.sendAuthMeBungeecordMessage(player, MessageType.LOGOUT);
 
         if (player == null || !player.isOnline()) {
             if (sendBungeeLogout) {
-                bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, bungeeLogout);
+                bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player,
+                    () -> bungeeSender.sendAuthMeBungeecordMessage(player, MessageType.LOGOUT));
             }
             return;
         }
@@ -130,7 +128,7 @@ public class AsynchronousUnregister implements AsynchronousProcess {
         // Run all player-facing actions in a single hop on the player's thread
         bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, () -> {
             if (sendBungeeLogout) {
-                bungeeLogout.run();
+                bungeeSender.sendAuthMeBungeecordMessage(player, MessageType.LOGOUT);
             }
             if (force) {
                 teleportationService.teleportOnJoin(player);

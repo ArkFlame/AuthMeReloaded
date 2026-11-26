@@ -49,12 +49,9 @@ public class EmailService {
      * @return true if email could be sent, false otherwise
      */
     public boolean sendPasswordMail(String name, String mailAddress, String newPass) {
-        if (!hasAllInformation()) {
-            logger.warning("Cannot perform email registration: not all email settings are complete");
-            return false;
-        }
-
-        HtmlEmail email = initializeMail(mailAddress, "Failed to create email with the given settings:");
+        HtmlEmail email = initializeCheckedMail(mailAddress,
+            "Cannot perform email registration: not all email settings are complete",
+            "Failed to create email with the given settings:");
         if (email == null) {
             return false;
         }

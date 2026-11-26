@@ -25,8 +25,7 @@ public final class DialogWindowSpec {
                             boolean canCloseWithEscape, String secondaryButtonCommand, String body,
                             boolean stackButtonsVertically) {
         this.title = Objects.requireNonNull(title, "title");
-        Objects.requireNonNull(inputs, "inputs");
-        this.inputs = Collections.unmodifiableList(new ArrayList<DialogInputSpec>(inputs));
+        this.inputs = Collections.unmodifiableList(new ArrayList<>(Objects.requireNonNull(inputs, "inputs")));
         this.primaryButtonLabel = Objects.requireNonNull(primaryButtonLabel, "primaryButtonLabel");
         this.secondaryButtonLabel = Objects.requireNonNull(secondaryButtonLabel, "secondaryButtonLabel");
         this.showSecondaryButton = showSecondaryButton;

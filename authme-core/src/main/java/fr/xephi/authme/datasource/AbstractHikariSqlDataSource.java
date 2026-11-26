@@ -99,14 +99,8 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
         if (columnOthers.isEmpty()) {
             return null;
         }
-        StringBuilder sql = new StringBuilder("UPDATE ").append(tableName).append(" SET ");
-        for (int i = 0; i < columnOthers.size(); ++i) {
-            if (i > 0) {
-                sql.append(", ");
-            }
-            sql.append(columnOthers.get(i)).append("=?");
-        }
-        return sql.append(" WHERE ").append(col.NAME).append("=?;").toString();
+        return "UPDATE " + tableName + " SET " + String.join("=?, ", columnOthers) + "=? WHERE "
+            + col.NAME + "=?;";
     }
 
     @Override

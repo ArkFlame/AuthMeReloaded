@@ -39,8 +39,7 @@ final class SpigotDialogHelper {
     }
 
     static void showTotpDialog(Player player, DialogWindowSpec dialog) {
-        player.showDialog(newSingleActionDialog(
-            newDialogBase(dialog), dialog.primaryButtonLabel(), "2fa code $(code)"));
+        player.showDialog(newSingleActionDialog(dialog, "2fa code $(code)"));
     }
 
     static void showRecoveryCodeDialog(Player player, DialogWindowSpec dialog) {
@@ -52,19 +51,18 @@ final class SpigotDialogHelper {
     }
 
     private static void showCommandDialog(Player player, DialogWindowSpec dialog, String commandTemplate) {
-        player.showDialog(newSingleActionDialog(newDialogBase(dialog), dialog.primaryButtonLabel(), commandTemplate)
-            .columns(dialog.buttonColumns()));
+        player.showDialog(newSingleActionDialog(dialog, commandTemplate).columns(dialog.buttonColumns()));
     }
 
     static void showRegisterDialog(Player player, RegistrationType type, RegisterSecondaryArgument secondArg,
                                    DialogWindowSpec dialog) {
-        player.showDialog(newSingleActionDialog(newDialogBase(dialog), dialog.primaryButtonLabel(),
-            createRegisterTemplate(type, secondArg)));
+        player.showDialog(newSingleActionDialog(dialog, createRegisterTemplate(type, secondArg)));
     }
 
     /** Builds the common single-button dialog used by every dialog except the multi-button login dialog. */
-    private static MultiActionDialog newSingleActionDialog(DialogBase base, String buttonLabel, String commandTemplate) {
-        return new MultiActionDialog(base, newActionButton(buttonLabel, commandTemplate));
+    private static MultiActionDialog newSingleActionDialog(DialogWindowSpec dialog, String commandTemplate) {
+        return new MultiActionDialog(newDialogBase(dialog),
+            newActionButton(dialog.primaryButtonLabel(), commandTemplate));
     }
 
     private static ActionButton newActionButton(String label, String command) {

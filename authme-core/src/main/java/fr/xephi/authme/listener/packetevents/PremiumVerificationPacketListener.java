@@ -24,7 +24,6 @@ import javax.crypto.spec.SecretKeySpec;
 import java.net.InetSocketAddress;
 import java.security.GeneralSecurityException;
 import java.util.Locale;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -91,8 +90,7 @@ public class PremiumVerificationPacketListener extends PacketListenerAbstract {
             String lowerName = username.toLowerCase(Locale.ROOT);
             PlayerAuth auth = dataSource.getAuth(lowerName);
 
-            boolean isPremium = auth != null && auth.isPremium();
-            if (isPremium || pendingPremiumCache.isPending(username)) {
+            if ((auth != null && auth.isPremium()) || pendingPremiumCache.isPending(username)) {
                 byte[] verifyToken = loginVerifier.startVerification(connectionKey, username, playerUUID);
                 user.sendPacket(new WrapperLoginServerEncryptionRequest(
                     "", loginVerifier.getPublicKey(), verifyToken, true));
@@ -119,9 +117,9 @@ public class PremiumVerificationPacketListener extends PacketListenerAbstract {
         WrapperLoginClientEncryptionResponse wrapper = new WrapperLoginClientEncryptionResponse(event);
         event.setCancelled(true);
 
-        Optional<byte[]> encVerifyTokenOpt = wrapper.getEncryptedVerifyToken();
+        byte[] encVerifyToken = wrapper.getEncryptedVerifyToken().orElse(null);
         byte[] sharedSecret = null;
-        if (encVerifyTokenOpt.isPresent()) {
+        if (encVerifyToken != null) {
             // RSA-decrypt the shared secret synchronously on the event loop so that Netty
             // encryption is installed before the client's next (already AES-encrypted) packet.
             try {
@@ -145,8 +143,7 @@ public class PremiumVerificationPacketListener extends PacketListenerAbstract {
         enableChannelEncryption(user.getChannel(), sharedSecret);
 
         // Step 3: Async — verify the token and call Mojang's hasJoined endpoint.
-        byte[] encVerifyToken = encVerifyTokenOpt.get().clone();
-        loginVerifier.completeVerification(connectionKey, sharedSecret, encVerifyToken)
+        loginVerifier.completeVerification(connectionKey, sharedSecret, encVerifyToken.clone())
             .thenAccept(maybeUuid -> {
                 maybeUuid.ifPresent(uuid -> loginVerifier.storeVerified(username, uuid));
                 resumeLogin(user, username, clientVersion, playerUUID);

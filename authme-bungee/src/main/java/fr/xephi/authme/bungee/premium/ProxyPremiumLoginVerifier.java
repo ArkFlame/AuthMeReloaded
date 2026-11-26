@@ -65,7 +65,8 @@ final class ProxyPremiumLoginVerifier {
     }
 
     byte[] startVerification(String connectionKey, String username, UUID playerUuid, boolean pendingPremiumEnrollment) {
-        evictStalePendingEntries();
+        long now = System.currentTimeMillis();
+        pending.entrySet().removeIf(entry -> now - entry.getValue().startedAt() > PENDING_TTL_MS);
         verified.remove(normalize(username));
         byte[] verifyToken = new byte[4];
         secureRandom.nextBytes(verifyToken);
@@ -98,7 +99,9 @@ final class ProxyPremiumLoginVerifier {
     }
 
     byte[] decryptData(byte[] encrypted) throws GeneralSecurityException {
-        return rsaDecrypt(encrypted);
+        Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+        cipher.init(Cipher.DECRYPT_MODE, rsaKeyPair.getPrivate());
+        return cipher.doFinal(encrypted);
     }
 
     CompletableFuture<Optional<UUID>> completeVerification(
@@ -109,7 +112,7 @@ final class ProxyPremiumLoginVerifier {
         }
         return CompletableFuture.supplyAsync(() -> {
             try {
-                byte[] decryptedToken = rsaDecrypt(encryptedVerifyToken);
+                byte[] decryptedToken = decryptData(encryptedVerifyToken);
                 if (!Arrays.equals(decryptedToken, pendingVerification.verifyToken())) {
                     warningLogger.accept("Proxy premium verification failed for '" + pendingVerification.username()
                         + "': verify token mismatch");
@@ -157,20 +160,8 @@ final class ProxyPremiumLoginVerifier {
         return username.toLowerCase(Locale.ROOT);
     }
 
-    private void evictStalePendingEntries() {
-        long now = System.currentTimeMillis();
-        pending.entrySet().removeIf(entry -> now - entry.getValue().startedAt() > PENDING_TTL_MS);
-    }
-
-    private byte[] rsaDecrypt(byte[] encrypted) throws GeneralSecurityException {
-        Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-        cipher.init(Cipher.DECRYPT_MODE, rsaKeyPair.getPrivate());
-        return cipher.doFinal(encrypted);
-    }
-
     private String computeServerHash(byte[] sharedSecret) throws NoSuchAlgorithmException {
         MessageDigest sha1 = MessageDigest.getInstance("SHA-1");
-        sha1.update("".getBytes(StandardCharsets.ISO_8859_1));
         sha1.update(sharedSecret);
         sha1.update(rsaKeyPair.getPublic().getEncoded());
         return new BigInteger(sha1.digest()).toString(16);

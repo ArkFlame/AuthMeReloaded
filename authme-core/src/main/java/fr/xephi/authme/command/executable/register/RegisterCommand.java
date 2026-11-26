@@ -120,14 +120,7 @@ public class RegisterCommand extends PlayerCommand {
     }
 
     /**
-     * Verifies that the second argument is valid (based on the configuration) for either
-     * registration flow. The player is informed if the check is unsuccessful.
-     *
-     * @param player the player to register
-     * @param arguments the provided arguments
-     * @param emailRegistration whether this is an email registration rather than a password registration
-     * @param secondArgType the configured secondary argument type, looked up by the caller
-     * @return true if valid, false otherwise
+     * Verifies the second argument for either registration flow and informs the player on failure.
      */
     private boolean isSecondArgValid(Player player, List<String> arguments, boolean emailRegistration,
                                      RegisterSecondaryArgument secondArgType) {
@@ -171,17 +164,18 @@ public class RegisterCommand extends PlayerCommand {
             commonService.getProperty(REGISTER_SECOND_ARGUMENT))) {
             management.performRegister(RegistrationMethod.EMAIL_REGISTRATION,
                 EmailRegisterParams.of(player, email));
-            if (commonService.getProperty(RegistrationSettings.UNREGISTER_ON_EMAIL_VERIFICATION_FAILURE)
-                && commonService.getProperty(RegistrationSettings.UNREGISTER_AFTER_MINUTES) > 0) {
-                long delayTicks = 60L * 20L
-                    * commonService.getProperty(RegistrationSettings.UNREGISTER_AFTER_MINUTES);
-                bukkitService.runTaskLater(player, () -> {
-                    String playerName = player.getName();
-                    PlayerAuth auth = dataSource.getAuth(playerName);
-                    if (auth != null && auth.getLastLogin() == null) {
-                        management.performUnregisterByAdmin(null, playerName, player);
-                    }
-                }, delayTicks);
+            if (commonService.getProperty(RegistrationSettings.UNREGISTER_ON_EMAIL_VERIFICATION_FAILURE)) {
+                long unregisterAfterMinutes =
+                    commonService.getProperty(RegistrationSettings.UNREGISTER_AFTER_MINUTES);
+                if (unregisterAfterMinutes > 0) {
+                    bukkitService.runTaskLater(player, () -> {
+                        String playerName = player.getName();
+                        PlayerAuth auth = dataSource.getAuth(playerName);
+                        if (auth != null && auth.getLastLogin() == null) {
+                            management.performUnregisterByAdmin(null, playerName, player);
+                        }
+                    }, 60L * 20L * unregisterAfterMinutes);
+                }
             }
         }
     }

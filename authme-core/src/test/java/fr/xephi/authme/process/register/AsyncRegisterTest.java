@@ -98,10 +98,7 @@ class AsyncRegisterTest {
     @SuppressWarnings("unchecked")
     void shouldStopForCanceledEvent() {
         String name = "edbert";
-        Player player = mockPlayerWithName(name);
-        given(playerCache.isAuthenticated(name)).willReturn(false);
-        given(commonService.getProperty(RegistrationSettings.IS_ENABLED)).willReturn(true);
-        given(dataSource.isAuthAvailable(name)).willReturn(false);
+        Player player = createPlayerWithEnabledRegistration(name);
         TwoFactorRegisterParams params = TwoFactorRegisterParams.of(player);
 
         AuthMeAsyncPreRegisterEvent canceledEvent = new AuthMeAsyncPreRegisterEvent(player, true);
@@ -118,11 +115,8 @@ class AsyncRegisterTest {
     @SuppressWarnings("unchecked")
     void shouldStopForFailedExecutorCheck() {
         String name = "edbert";
-        Player player = mockPlayerWithName(name);
-        given(playerCache.isAuthenticated(name)).willReturn(false);
-        given(commonService.getProperty(RegistrationSettings.IS_ENABLED)).willReturn(true);
+        Player player = createPlayerWithEnabledRegistration(name);
         given(commonService.getProperty(RestrictionSettings.MAX_REGISTRATION_PER_IP)).willReturn(0);
-        given(dataSource.isAuthAvailable(name)).willReturn(false);
         RegistrationExecutor executor = mock(RegistrationExecutor.class);
         TwoFactorRegisterParams params = TwoFactorRegisterParams.of(player);
         given(executor.isRegistrationAdmitted(params)).willReturn(false);
@@ -141,10 +135,7 @@ class AsyncRegisterTest {
     @SuppressWarnings("unchecked")
     void shouldBypassIpLimitForApiRegistration() {
         String name = "apbert";
-        Player player = mockPlayerWithName(name);
-        given(playerCache.isAuthenticated(name)).willReturn(false);
-        given(commonService.getProperty(RegistrationSettings.IS_ENABLED)).willReturn(true);
-        given(dataSource.isAuthAvailable(name)).willReturn(false);
+        Player player = createPlayerWithEnabledRegistration(name);
         given(bukkitService.createAndCallEvent(any(Function.class)))
             .willReturn(new AuthMeAsyncPreRegisterEvent(player, false));
         RegistrationExecutor executor = mock(RegistrationExecutor.class);
@@ -164,12 +155,9 @@ class AsyncRegisterTest {
     @SuppressWarnings("unchecked")
     void shouldRejectRegistrationWhenIpLimitIsExceeded() {
         String name = "gbert";
-        Player player = mockPlayerWithName(name);
+        Player player = createPlayerWithEnabledRegistration(name);
         TestHelper.mockIpAddressToPlayer(player, "1.2.3.4");
-        given(playerCache.isAuthenticated(name)).willReturn(false);
-        given(commonService.getProperty(RegistrationSettings.IS_ENABLED)).willReturn(true);
         given(commonService.getProperty(RestrictionSettings.MAX_REGISTRATION_PER_IP)).willReturn(1);
-        given(dataSource.isAuthAvailable(name)).willReturn(false);
         given(dataSource.getAllAuthsByIp("1.2.3.4")).willReturn(Collections.singletonList("other"));
         given(bukkitService.createAndCallEvent(any(Function.class)))
             .willReturn(new AuthMeAsyncPreRegisterEvent(player, false));
@@ -184,6 +172,14 @@ class AsyncRegisterTest {
     private static Player mockPlayerWithName(String name) {
         Player player = mock(Player.class);
         given(player.getName()).willReturn(name);
+        return player;
+    }
+
+    private Player createPlayerWithEnabledRegistration(String name) {
+        Player player = mockPlayerWithName(name);
+        given(playerCache.isAuthenticated(name)).willReturn(false);
+        given(commonService.getProperty(RegistrationSettings.IS_ENABLED)).willReturn(true);
+        given(dataSource.isAuthAvailable(name)).willReturn(false);
         return player;
     }
 

@@ -76,8 +76,7 @@ class MessagesIntegrationTest {
         FileUtils.create(testFile);
         Files.copy(TestHelper.getJarFile(YML_TEST_FILE), testFile);
 
-        Settings settings = mock(Settings.class);
-        given(settings.getProperty(PluginSettings.MESSAGES_LANGUAGE)).willReturn("test");
+        Settings settings = createSettings("test");
         messagesFileHandler = createMessagesFileHandler(settings);
         messages = new Messages(messagesFileHandler);
     }
@@ -118,7 +117,7 @@ class MessagesIntegrationTest {
         "REGISTER_MESSAGE, '§3Please Tester, register to the §cTesty§3.'"
     })
     void shouldSendMessageToPlayer(MessageKey key, String expectedMessage) {
-        Player player = mockPlayer();
+        Player player = mockPlayer("Tester", "§cTesty");
 
         assertThat(messages.retrieve(key, player), arrayContaining(expectedMessage));
         messages.send(player, key);
@@ -194,7 +193,9 @@ class MessagesIntegrationTest {
     })
     void shouldResolvePlayerLocaleForMessages(String locale, String expectedMessage) {
         BukkitCompatibilityAdapter adapter = mock(BukkitCompatibilityAdapter.class);
-        Messages messagesWithLocale = createMessagesWithLocale(adapter);
+        Settings settings = createSettings("en");
+        given(settings.getProperty(PluginSettings.PER_PLAYER_LOCALE)).willReturn(true);
+        Messages messagesWithLocale = new Messages(createMessagesFileHandler(settings), null, settings, adapter);
 
         Player player = mockPlayer("TestPlayer", "TestPlayer");
         given(adapter.getPlayerLocale(player)).willReturn(Optional.of(locale));
@@ -211,10 +212,6 @@ class MessagesIntegrationTest {
         return sender;
     }
 
-    private static Player mockPlayer() {
-        return mockPlayer("Tester", "§cTesty");
-    }
-
     private static Player mockPlayer(String name, String displayName) {
         Player player = mock(Player.class);
         given(player.getName()).willReturn(name);
@@ -222,11 +219,10 @@ class MessagesIntegrationTest {
         return player;
     }
 
-    private Messages createMessagesWithLocale(BukkitCompatibilityAdapter adapter) {
+    private static Settings createSettings(String language) {
         Settings settings = mock(Settings.class);
-        given(settings.getProperty(PluginSettings.MESSAGES_LANGUAGE)).willReturn("en");
-        given(settings.getProperty(PluginSettings.PER_PLAYER_LOCALE)).willReturn(true);
-        return new Messages(createMessagesFileHandler(settings), null, settings, adapter);
+        given(settings.getProperty(PluginSettings.MESSAGES_LANGUAGE)).willReturn(language);
+        return settings;
     }
 
     private MessagesFileHandler createMessagesFileHandler(Settings settings) {

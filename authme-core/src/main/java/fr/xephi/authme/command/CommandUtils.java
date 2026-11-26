@@ -111,10 +111,9 @@ public final class CommandUtils {
      * @return the formatted argument
      */
     public static String formatArgument(CommandArgumentDescription argument) {
-        if (argument.isOptional()) {
-            return "[" + argument.getName() + "]";
-        }
-        return "<" + argument.getName() + ">";
+        return argument.isOptional()
+            ? "[" + argument.getName() + "]"
+            : "<" + argument.getName() + ">";
     }
 
     /**
@@ -131,9 +130,8 @@ public final class CommandUtils {
         if (trimmedInput.startsWith("/")) {
             trimmedInput = trimmedInput.substring(1).trim();
         }
-        if (trimmedInput.isEmpty()) {
-            return new ArrayList<>();
-        }
-        return new ArrayList<>(Arrays.asList(trimmedInput.split("\\s+")));
+        return trimmedInput.isEmpty()
+            ? new ArrayList<>()
+            : new ArrayList<>(Arrays.asList(trimmedInput.split("\\s+")));
     }
 }

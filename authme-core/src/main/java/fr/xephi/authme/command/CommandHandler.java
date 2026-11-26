@@ -79,9 +79,8 @@ public class CommandHandler {
      * @return true if the command was executed, false otherwise
      */
     public boolean processCommand(CommandSender sender, List<String> parts) {
-        List<String> nonEmptyParts = parts == null ? new ArrayList<>()
-            : parts.stream()
-                .filter(argument -> !StringUtils.isBlank(argument))
+        List<String> nonEmptyParts = parts == null ? Collections.emptyList()
+            : parts.stream().filter(argument -> !StringUtils.isBlank(argument))
                 .collect(Collectors.toList());
         FoundCommandResult result = commandMapper.mapPartsToCommand(sender, nonEmptyParts);
         handleCommandResult(sender, result);
@@ -137,12 +136,10 @@ public class CommandHandler {
         messages.send(sender, MessageKey.UNKNOWN_COMMAND);
 
         // Show a command suggestion if available and the difference isn't too big
-        if (result.getDifference() <= SUGGEST_COMMAND_THRESHOLD) {
-            CommandDescription command = result.getCommandDescription();
-            if (command != null) {
-                messages.send(sender, MessageKey.COMMAND_DID_YOU_MEAN,
-                    CommandUtils.constructCommandPath(command));
-            }
+        CommandDescription command = result.getCommandDescription();
+        if (command != null && result.getDifference() <= SUGGEST_COMMAND_THRESHOLD) {
+            messages.send(sender, MessageKey.COMMAND_DID_YOU_MEAN,
+                CommandUtils.constructCommandPath(command));
         }
 
         messages.send(sender, MessageKey.COMMAND_SEE_HELP, result.getLabels().get(0) + " help");

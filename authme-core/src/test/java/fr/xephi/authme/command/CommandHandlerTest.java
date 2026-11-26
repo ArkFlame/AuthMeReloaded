@@ -154,24 +154,29 @@ class CommandHandlerTest {
         verify(sender, never()).sendMessage(anyString());
     }
 
-    @ParameterizedTest(name = "custom mismatch message: {0}")
-    @ValueSource(booleans = {false, true})
-    void shouldNotCallExecutableForWrongArguments(boolean useCustomMessage) {
+    @ParameterizedTest(name = "custom mismatch message: {0}, permission granted: {1}")
+    @CsvSource({"false, true", "true, true", "false, false"})
+    void shouldNotCallExecutableForWrongArguments(boolean useCustomMessage, boolean hasPermission) {
         // given
-        given(command.getExecutableCommand()).willReturn((Class) TestUnregisterCommand.class);
+        if (hasPermission) {
+            given(command.getExecutableCommand()).willReturn((Class) TestUnregisterCommand.class);
+        }
         if (useCustomMessage) {
             given(mockedCommands.get(TestUnregisterCommand.class).getArgumentsMismatchMessage())
                 .willReturn(MessageKey.USAGE_RECOVER_EMAIL);
         }
         givenMapping(asList("unreg"), asList("testPlayer"), 0.0, INCORRECT_ARGUMENTS);
-        given(permissionsManager.hasPermission(sender, command.getPermission())).willReturn(true);
+        given(permissionsManager.hasPermission(sender, command.getPermission())).willReturn(hasPermission);
 
         // when
         handler.processCommand(sender, "unreg", new String[]{"testPlayer"});
 
         // then
         verifyMappedParts("unreg", "testPlayer");
-        if (useCustomMessage) {
+        if (!hasPermission) {
+            verify(command, never()).getExecutableCommand();
+            verify(messages).send(sender, MessageKey.NO_PERMISSION);
+        } else if (useCustomMessage) {
             verify(messages).send(sender, MessageKey.USAGE_RECOVER_EMAIL);
         } else {
             verify(messages).send(sender, MessageKey.COMMAND_INCORRECT_ARGUMENTS);
@@ -179,21 +184,6 @@ class CommandHandlerTest {
             verify(messages).send(eq(sender), eq(MessageKey.COMMAND_DETAILED_HELP), anyString());
         }
         verify(sender, never()).sendMessage(anyString());
-    }
-
-    @Test
-    void shouldNotCallExecutableForWrongArgumentsAndPermissionDenied() {
-        // given
-        givenMapping(asList("unreg"), asList("testPlayer"), 0.0, INCORRECT_ARGUMENTS);
-        given(permissionsManager.hasPermission(sender, command.getPermission())).willReturn(false);
-
-        // when
-        handler.processCommand(sender, "unreg", new String[]{"testPlayer"});
-
-        // then
-        verifyMappedParts("unreg", "testPlayer");
-        verify(command, never()).getExecutableCommand();
-        verify(messages).send(sender, MessageKey.NO_PERMISSION);
     }
 
     @ParameterizedTest(name = "suggestion: {1}")

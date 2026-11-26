@@ -71,9 +71,7 @@ public class SendMailSsl {
         email.setFrom(senderMail, senderName);
         email.setSubject(settings.getProperty(EmailSettings.RECOVERY_MAIL_SUBJECT));
         email.setAuthentication(settings.getProperty(EmailSettings.MAIL_ACCOUNT), mailPassword);
-        if (settings.getProperty(PluginSettings.LOG_LEVEL).includes(LogLevel.DEBUG)) {
-            email.setDebug(true);
-        }
+        email.setDebug(settings.getProperty(PluginSettings.LOG_LEVEL).includes(LogLevel.DEBUG));
 
         setPropertiesForPort(email, port);
         return email;
@@ -113,7 +111,6 @@ public class SendMailSsl {
     private static void registerMailcapHandlers() {
         // Issue #999: Prevent UnsupportedDataTypeException: no object DCH for MIME type multipart/alternative
         // cf. http://stackoverflow.com/questions/21856211/unsupporteddatatypeexception-no-object-dch-for-mime-type
-        // Registered once per JVM to avoid concurrent mutations on the global singleton CommandMap.
         if (MAILCAP_INITIALIZED.compareAndSet(false, true)) {
             MailcapCommandMap mc = (MailcapCommandMap) CommandMap.getDefaultCommandMap();
             mc.addMailcap("text/html;; x-java-content-handler=com.sun.mail.handlers.text_html");

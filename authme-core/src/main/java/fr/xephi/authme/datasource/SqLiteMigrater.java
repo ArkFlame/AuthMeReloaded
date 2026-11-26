@@ -69,9 +69,8 @@ class SqLiteMigrater {
         FileUtils.createDirectory(backupDirectory);
 
         String backupName = "backup-" + databaseName + FileUtils.createCurrentTimeString() + ".db";
-        File backup = new File(backupDirectory, backupName);
         try {
-            Files.copy(new File(dataFolder, databaseName + ".db"), backup);
+            Files.copy(new File(dataFolder, databaseName + ".db"), new File(backupDirectory, backupName));
             return backupName;
         } catch (IOException e) {
             throw new IllegalStateException("Failed to create SQLite backup before migration", e);

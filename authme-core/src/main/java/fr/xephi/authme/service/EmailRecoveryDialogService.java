@@ -62,12 +62,11 @@ public class EmailRecoveryDialogService {
      * @param email the e-mail address supplied by the player
      */
     public void requestRecovery(Player player, String email) {
-        String playerName = player.getName();
         if (!emailService.hasAllInformation()) {
             commonService.send(player, MessageKey.INCOMPLETE_EMAIL_SETTINGS);
             return;
         }
-        if (playerCache.isAuthenticated(playerName)) {
+        if (playerCache.isAuthenticated(player.getName())) {
             commonService.send(player, MessageKey.ALREADY_LOGGED_IN_ERROR);
             return;
         }
@@ -76,7 +75,7 @@ public class EmailRecoveryDialogService {
             return;
         }
 
-        DataSourceValue<String> emailResult = dataSource.getEmail(playerName);
+        DataSourceValue<String> emailResult = dataSource.getEmail(player.getName());
         if (!emailResult.rowExists()) {
             commonService.send(player, MessageKey.USAGE_REGISTER);
             return;
