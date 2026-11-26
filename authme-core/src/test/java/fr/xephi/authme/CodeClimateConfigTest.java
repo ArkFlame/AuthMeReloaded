@@ -28,17 +28,12 @@ class CodeClimateConfigTest {
 
         // then
         assertThat(excludePaths, not(empty()));
-        removeTestsExclusionOrThrow(excludePaths);
+        assertThat("Expected an exclusion for test classes",
+            excludePaths.removeIf("src/test/java/**/*Test.java"::equals), equalTo(true));
         for (String path : excludePaths) {
             if (!new File(path).exists()) {
                 fail("Path '" + path + "' does not exist!");
             }
         }
-    }
-
-    private static void removeTestsExclusionOrThrow(List<String> excludePaths) {
-        boolean wasRemoved = excludePaths.removeIf("src/test/java/**/*Test.java"::equals);
-        assertThat("Expected an exclusion for test classes",
-            wasRemoved, equalTo(true));
     }
 }

@@ -204,16 +204,12 @@ final class VelocityProxyBridge {
         String playerName = message.playerName();
         String normalizedName = VelocityAuthenticationStore.normalizeName(playerName);
         String serverName = serverConnection.getServer().getServerInfo().getName();
-        ProxyMessageType type = message.type();
 
-        if (type == ProxyMessageType.LOGIN) {
-            handleLoginMessage(playerName, normalizedName, serverName, serverConnection);
-        } else if (type == ProxyMessageType.LOGOUT) {
-            handleLogoutMessage(playerName, normalizedName, serverName);
-        } else if (type == ProxyMessageType.PERFORM_LOGIN_ACK) {
-            handlePerformLoginAck(playerName, serverName);
-        } else {
-            handlePremiumMessage(type, playerName);
+        switch (message.type()) {
+            case LOGIN -> handleLoginMessage(playerName, normalizedName, serverName, serverConnection);
+            case LOGOUT -> handleLogoutMessage(playerName, normalizedName, serverName);
+            case PERFORM_LOGIN_ACK -> handlePerformLoginAck(playerName, serverName);
+            default -> handlePremiumMessage(message.type(), playerName);
         }
     }
 
@@ -228,10 +224,9 @@ final class VelocityProxyBridge {
             authenticationStore.markAuthenticated(playerName);
             sendAutoLoginIfAlreadySwitched(playerName, serverConnection.getServer());
             redirectToLoginServer(playerName);
-        } else if (pendingAutoLogins.containsKey(playerName)) {
+        } else if (pendingAutoLogins.remove(playerName) != null) {
             // Implicit ACK: login from non-auth server confirms perform.login was processed
             logger.info("Auto-login confirmed for {} via login from server '{}'", playerName, serverName);
-            pendingAutoLogins.remove(playerName);
         } else {
             logger.debug("Ignoring login from non-auth server '{}' for {} (no pending auto-login)",
                 serverName, playerName);
@@ -376,8 +371,9 @@ final class VelocityProxyBridge {
             return;
         }
 
-        String serverName = currentServer.get().getServer().getServerInfo().getName();
-        boolean sent = sendPerformLoginMessage(currentServer.get(), normalizedName, verifiedPremiumUuid);
+        ServerConnection connection = currentServer.get();
+        String serverName = connection.getServer().getServerInfo().getName();
+        boolean sent = sendPerformLoginMessage(connection, normalizedName, verifiedPremiumUuid);
         if (sent) {
             logger.info("Sending auto-login request to server '{}' for player {} (verifiedPremiumUuid={})",
                 serverName, normalizedName, verifiedPremiumUuid);
@@ -461,10 +457,9 @@ final class VelocityProxyBridge {
             logger.debug("Keeping auth state for {}: a duplicate connection was closed", normalizedName);
             return;
         }
-        if (pendingAutoLogins.containsKey(normalizedName)) {
+        if (pendingAutoLogins.remove(normalizedName) != null) {
             logger.debug("Cancelling pending auto-login for {} (player disconnected)", normalizedName);
         }
-        pendingAutoLogins.remove(normalizedName);
         if (authenticationStore.isAuthenticated(normalizedName)) {
             logger.debug("Clearing auth state for {} (player disconnected)", normalizedName);
         }
@@ -520,8 +515,7 @@ final class VelocityProxyBridge {
         // Try via the specific triggering connection first to avoid the race condition where
         // ServerConnectedEvent fires before the player is added to RegisteredServer.playersConnected.
         boolean sent = triggeringConnection != null
-            ? triggeringConnection.sendPluginMessage(AUTHME_CHANNEL, payload)
-            : server.sendPluginMessage(AUTHME_CHANNEL, payload);
+            && triggeringConnection.sendPluginMessage(AUTHME_CHANNEL, payload);
         if (!sent) {
             sent = server.sendPluginMessage(AUTHME_CHANNEL, payload);
         }
@@ -616,7 +610,8 @@ final class VelocityProxyBridge {
     }
 
     private void redirectToLoginServer(String normalizedPlayerName) {
-        if (configuration.loginServer().isEmpty()) {
+        String loginServer = configuration.loginServer();
+        if (loginServer.isEmpty()) {
             return;
         }
         Optional<Player> playerOpt = proxyServer.getPlayer(normalizedPlayerName);
@@ -624,14 +619,14 @@ final class VelocityProxyBridge {
             logger.debug("Cannot redirect {} to loginServer: player no longer on proxy", normalizedPlayerName);
             return;
         }
-        Optional<RegisteredServer> targetServer = proxyServer.getServer(configuration.loginServer());
+        Optional<RegisteredServer> targetServer = proxyServer.getServer(loginServer);
         if (targetServer.isEmpty()) {
             logger.warn("loginServer '{}' is not registered on the proxy; cannot redirect {}",
-                configuration.loginServer(), normalizedPlayerName);
+                loginServer, normalizedPlayerName);
             return;
         }
         logger.info("Redirecting {} to login server '{}' after authentication",
-            normalizedPlayerName, configuration.loginServer());
+            normalizedPlayerName, loginServer);
         playerOpt.get().createConnectionRequest(targetServer.get()).fireAndForget();
     }
 
@@ -639,7 +634,8 @@ final class VelocityProxyBridge {
         if (!configuration.sendOnLogoutEnabled()) {
             return;
         }
-        if (configuration.sendOnLogoutTarget().isEmpty()) {
+        String target = configuration.sendOnLogoutTarget();
+        if (target.isEmpty()) {
             logger.warn("Received logout for {} but sendOnLogout has no configured target server", normalizedPlayerName);
             return;
         }
@@ -650,14 +646,14 @@ final class VelocityProxyBridge {
             return;
         }
 
-        Optional<RegisteredServer> targetServer = proxyServer.getServer(configuration.sendOnLogoutTarget());
+        Optional<RegisteredServer> targetServer = proxyServer.getServer(target);
         if (targetServer.isEmpty()) {
             logger.warn("Received logout for {} but target server '{}' is not registered on the proxy",
-                normalizedPlayerName, configuration.sendOnLogoutTarget());
+                normalizedPlayerName, target);
             return;
         }
 
-        logger.info("Redirecting {} to server '{}' after logout", normalizedPlayerName, configuration.sendOnLogoutTarget());
+        logger.info("Redirecting {} to server '{}' after logout", normalizedPlayerName, target);
         player.get().createConnectionRequest(targetServer.get()).fireAndForget();
     }
 

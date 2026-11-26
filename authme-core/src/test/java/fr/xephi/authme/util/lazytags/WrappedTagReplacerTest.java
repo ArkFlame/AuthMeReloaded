@@ -1,13 +1,12 @@
 package fr.xephi.authme.util.lazytags;
 
 import fr.xephi.authme.util.lazytags.TagReplacerTest.TestTagService;
-import org.hamcrest.Description;
-import org.hamcrest.Matcher;
-import org.hamcrest.TypeSafeMatcher;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -18,42 +17,27 @@ import static org.hamcrest.Matchers.equalTo;
  */
 class WrappedTagReplacerTest {
 
-    @Test
-    void shouldApplyTags() {
+    @ParameterizedTest
+    @CsvSource({"8, i+i = 16", "1, i+i = 2"})
+    void shouldApplyTags(int argument, String expectedDouble) {
         TestTagService tagService = new TestTagService();
-        List<Tag<Integer>> tags = tagService.getAvailableTags();
         List<SampleClass> objects = Arrays.asList(
             new SampleClass(3, "pi is %PI"),
             new SampleClass(5, "no tags here"),
             new SampleClass(7, "i+i = %double"));
 
         WrappedTagReplacer<SampleClass, Integer> replacer = new WrappedTagReplacer<>(
-            tags, objects, SampleClass::getDescription, (o, s) -> new SampleClass(o.number, s));
-        List<SampleClass> result1 = replacer.getAdaptedItems(8);
-        List<SampleClass> result2 = replacer.getAdaptedItems(1);
+            tagService.getAvailableTags(), objects, SampleClass::getDescription,
+            (o, s) -> new SampleClass(o.number, s));
+        List<SampleClass> result = replacer.getAdaptedItems(argument);
 
-        assertThat(tagService.piCount, equalTo(2));
+        assertThat(tagService.piCount, equalTo(1));
         assertThat(tagService.selfCount, equalTo(0));
-        assertThat(tagService.doubleCount, equalTo(2));
+        assertThat(tagService.doubleCount, equalTo(1));
         assertThat(tagService.squareCount, equalTo(0));
-        assertThat(result1, contains(
-            sampleClass(3, "pi is 3.14159"), sampleClass(5, "no tags here"), sampleClass(7, "i+i = 16")));
-        assertThat(result2, contains(
-            sampleClass(3, "pi is 3.14159"), sampleClass(5, "no tags here"), sampleClass(7, "i+i = 2")));
-    }
-
-    private static Matcher<SampleClass> sampleClass(int number, String description) {
-        return new TypeSafeMatcher<SampleClass>() {
-            @Override
-            protected boolean matchesSafely(SampleClass item) {
-                return number == item.number && description.equals(item.description);
-            }
-
-            @Override
-            public void describeTo(Description description) {
-                description.appendText("SampleClass[number=" + number + ";description=" + description + "]");
-            }
-        };
+        assertThat(result, contains(
+            new SampleClass(3, "pi is 3.14159"), new SampleClass(5, "no tags here"),
+            new SampleClass(7, expectedDouble)));
     }
 
     private static final class SampleClass {
@@ -67,6 +51,20 @@ class WrappedTagReplacerTest {
 
         String getDescription() {
             return description;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (!(obj instanceof SampleClass)) {
+                return false;
+            }
+            SampleClass other = (SampleClass) obj;
+            return number == other.number && Objects.equals(description, other.description);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(number, description);
         }
     }
 }

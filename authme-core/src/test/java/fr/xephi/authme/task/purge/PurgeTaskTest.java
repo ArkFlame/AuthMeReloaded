@@ -9,11 +9,14 @@ import fr.xephi.authme.service.CancellableTask;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.Server;
+import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -82,7 +85,6 @@ class PurgeTaskTest {
             mockOfflinePlayer("Alpha", true),  mockOfflinePlayer("BOGUS", false),  mockOfflinePlayer("charlie", false),
             mockOfflinePlayer("Delta", false), mockOfflinePlayer("BRAVO", false),  mockOfflinePlayer("Echo", true),
             mockOfflinePlayer("Golf", false),  mockOfflinePlayer("123456", false), mockOfflinePlayer("HOTEL", false)};
-        reset(purgeService, permissionsManager);
         setPermissionsBehavior();
         PurgeTask task = new PurgeTask(purgeService, permissionsManager, null, names, players);
 
@@ -131,7 +133,6 @@ class PurgeTaskTest {
         Set<String> names = newHashSet("name1", "name2");
         OfflinePlayer[] players = new OfflinePlayer[]{
             mockOfflinePlayer(null, false),  mockOfflinePlayer("charlie", false),  mockOfflinePlayer("name1", false)};
-        reset(purgeService, permissionsManager);
         setPermissionsBehavior();
 
         PurgeTask task = new PurgeTask(purgeService, permissionsManager, null, names, players);
@@ -141,46 +142,35 @@ class PurgeTaskTest {
         assertRanPurgeWithPlayers(players[2]);
     }
 
-    @Test
-    void shouldStopTaskAndInformSenderUponCompletion() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldStopTaskAndInformSenderUponCompletion(boolean usePlayer) {
         Set<String> names = newHashSet("name1", "name2");
-        Player sender = mock(Player.class);
-        UUID uuid = UUID.randomUUID();
-        given(sender.getUniqueId()).willReturn(uuid);
-        PurgeTask task = new PurgeTask(purgeService, permissionsManager, sender, names, new OfflinePlayer[0]);
+        Server server = mock(Server.class);
+        ReflectionTestUtils.setField(Bukkit.class, null, "server", server);
+        CommandSender expectedSender;
+        PurgeTask task;
+        if (usePlayer) {
+            Player sender = mock(Player.class);
+            UUID uuid = UUID.randomUUID();
+            given(sender.getUniqueId()).willReturn(uuid);
+            given(server.getPlayer(uuid)).willReturn(sender);
+            task = new PurgeTask(purgeService, permissionsManager, sender, names, new OfflinePlayer[0]);
+            expectedSender = sender;
+        } else {
+            ConsoleCommandSender console = mock(ConsoleCommandSender.class);
+            given(server.getConsoleSender()).willReturn(console);
+            task = new PurgeTask(purgeService, permissionsManager, null, names, new OfflinePlayer[0]);
+            expectedSender = console;
+        }
         CancellableTask taskHandle = mock(CancellableTask.class);
         task.setTaskHandle(taskHandle);
 
-        Server server = mock(Server.class);
-        ReflectionTestUtils.setField(Bukkit.class, null, "server", server);
-        given(server.getPlayer(uuid)).willReturn(sender);
-
         task.run(); // Run for the first time -> results in empty names list
-
         task.run();
 
         verify(taskHandle).cancel();
-        verify(sender).sendMessage(argThat(containsString("Database has been purged successfully")));
-    }
-
-    @Test
-    void shouldStopTaskAndInformConsoleUser() {
-        Set<String> names = newHashSet("name1", "name2");
-        PurgeTask task = new PurgeTask(purgeService, permissionsManager, null, names, new OfflinePlayer[0]);
-        CancellableTask taskHandle = mock(CancellableTask.class);
-        task.setTaskHandle(taskHandle);
-
-        Server server = mock(Server.class);
-        ReflectionTestUtils.setField(Bukkit.class, null, "server", server);
-        ConsoleCommandSender consoleSender = mock(ConsoleCommandSender.class);
-        given(server.getConsoleSender()).willReturn(consoleSender);
-
-        task.run(); // Run for the first time -> results in empty names list
-
-        task.run();
-
-        verify(taskHandle).cancel();
-        verify(consoleSender).sendMessage(argThat(containsString("Database has been purged successfully")));
+        verify(expectedSender).sendMessage(argThat(containsString("Database has been purged successfully")));
     }
 
     private OfflinePlayer mockOfflinePlayer(String name, boolean hasBypassPermission) {

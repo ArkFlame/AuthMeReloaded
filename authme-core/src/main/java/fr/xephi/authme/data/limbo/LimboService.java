@@ -92,9 +92,9 @@ public class LimboService {
         }
 
         Location location = teleportationService.consumeOriginalJoinLocation(name, spawnLoader.getPlayerLocationOrSpawn(player));
-        LimboPlayer merged = helper.merge(existingLimbo, limboFromDisk);
         boolean wasOperator = pendingOperators.remove(uuid);
-        merged = helper.merge(helper.createLimboPlayer(player, isRegistered, location, wasOperator), merged);
+        LimboPlayer merged = helper.merge(helper.createLimboPlayer(player, isRegistered, location, wasOperator),
+            helper.merge(existingLimbo, limboFromDisk));
         LimboPlayer limboPlayer = isRegistered ? merged : helper.withoutOperator(merged);
 
         LimboMessageType messageType = isRegistered ? LimboMessageType.LOG_IN : LimboMessageType.REGISTER;
@@ -299,20 +299,19 @@ public class LimboService {
             .ifPresent(limbo -> taskManager.registerMessageTask(player, limbo, messageType));
     }
 
-    /**
-     * @param player the player whose message task should be muted
-     */
+    /** @param player the player whose message task should be muted */
     public void muteMessageTask(Player player) {
-        getLimboOrLogError(player, "mute message task")
-            .ifPresent(limbo -> LimboPlayerTaskManager.setMuted(limbo.getMessageTask(), true));
+        setMessageTaskMuted(player, true);
     }
 
-    /**
-     * @param player the player whose message task should be unmuted
-     */
+    /** @param player the player whose message task should be unmuted */
     public void unmuteMessageTask(Player player) {
-        getLimboOrLogError(player, "unmute message task")
-            .ifPresent(limbo -> LimboPlayerTaskManager.setMuted(limbo.getMessageTask(), false));
+        setMessageTaskMuted(player, false);
+    }
+
+    private void setMessageTaskMuted(Player player, boolean muted) {
+        getLimboOrLogError(player, muted ? "mute message task" : "unmute message task")
+            .ifPresent(limbo -> LimboPlayerTaskManager.setMuted(limbo.getMessageTask(), muted));
     }
 
     /**

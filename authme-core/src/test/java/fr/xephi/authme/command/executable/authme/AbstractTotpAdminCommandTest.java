@@ -33,13 +33,9 @@ abstract class AbstractTotpAdminCommandTest {
 
     @Test
     void shouldHandleUnknownUser() {
-        // given
         CommandSender sender = mock(CommandSender.class);
-
-        // when
         getCommand().executeCommand(sender, Collections.singletonList("user"));
 
-        // then
         verify(messages).send(sender, MessageKey.UNKNOWN_USER);
         verify(dataSource, only()).getAuth("user");
     }

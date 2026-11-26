@@ -49,29 +49,26 @@ class ManagementTest {
         verify(bukkitService).runTaskOptionallyAsync(any(Runnable.class));
     }
 
-    @Test
-    void shouldForceLoginFromProxyByNameQueuesBeforeOnlineForceLogin() {
-        String playerName = "Connor";
-        Player player = mock(Player.class);
-        when(bukkitService.getPlayerExact(playerName)).thenReturn(player);
-        when(player.isOnline()).thenReturn(true);
+    @ParameterizedTest(name = "{0}, online={1}, approved={2}")
+    @CsvSource({"Connor, true, true", "ConNor, false, true", "OfflinePlayer, false, false"})
+    void shouldForceLoginFromProxyByName(String playerName, boolean online, boolean approved) {
+        if (online) {
+            Player player = mock(Player.class);
+            when(bukkitService.getPlayerExact(playerName)).thenReturn(player);
+            when(player.isOnline()).thenReturn(true);
+        } else {
+            when(bukkitService.getPlayerExact(playerName)).thenReturn(null);
+            when(preJoinDialogService.approvePreJoinForceLogin(playerName.toLowerCase())).thenReturn(approved);
+        }
 
         management.forceLoginFromProxy(playerName);
 
         verify(proxySessionManager).processProxySessionMessage(playerName);
-        verify(bukkitService).runTaskOptionallyAsync(any(Runnable.class));
-    }
-
-    @ParameterizedTest(name = "{0}, approved={1}")
-    @CsvSource({"ConNor, true", "OfflinePlayer, false"})
-    void shouldForceLoginFromProxyByNameForOfflinePlayer(String playerName, boolean approved) {
-        when(bukkitService.getPlayerExact(playerName)).thenReturn(null);
-        when(preJoinDialogService.approvePreJoinForceLogin(playerName.toLowerCase())).thenReturn(approved);
-
-        management.forceLoginFromProxy(playerName);
-
-        verify(proxySessionManager).processProxySessionMessage(playerName);
-        verify(preJoinDialogService).approvePreJoinForceLogin(playerName.toLowerCase());
-        verify(bukkitService, never()).runTaskOptionallyAsync(any());
+        if (online) {
+            verify(bukkitService).runTaskOptionallyAsync(any(Runnable.class));
+        } else {
+            verify(preJoinDialogService).approvePreJoinForceLogin(playerName.toLowerCase());
+            verify(bukkitService, never()).runTaskOptionallyAsync(any());
+        }
     }
 }

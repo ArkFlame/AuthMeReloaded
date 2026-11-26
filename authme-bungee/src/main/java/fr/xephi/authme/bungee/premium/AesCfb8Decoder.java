@@ -1,9 +1,10 @@
 package fr.xephi.authme.bungee.premium;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageDecoder;
-import io.netty.buffer.ByteBuf;
 
 import javax.crypto.Cipher;
 import java.util.List;
@@ -18,8 +19,6 @@ final class AesCfb8Decoder extends MessageToMessageDecoder<ByteBuf> {
 
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf msg, List<Object> out) {
-        byte[] input = new byte[msg.readableBytes()];
-        msg.readBytes(input);
-        out.add(Unpooled.wrappedBuffer(cipher.update(input)));
+        out.add(Unpooled.wrappedBuffer(cipher.update(ByteBufUtil.getBytes(msg))));
     }
 }

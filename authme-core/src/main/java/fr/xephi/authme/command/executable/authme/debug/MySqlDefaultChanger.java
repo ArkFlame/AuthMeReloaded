@@ -42,7 +42,7 @@ class MySqlDefaultChanger implements DebugSection {
     private static final String NOT_NULL_SUFFIX = ChatColor.DARK_AQUA + "@" + ChatColor.RESET;
     private static final String DEFAULT_VALUE_SUFFIX = ChatColor.GOLD + "#" + ChatColor.RESET;
 
-    private ConsoleLogger logger = ConsoleLoggerFactory.get(MySqlDefaultChanger.class);
+    private final ConsoleLogger logger = ConsoleLoggerFactory.get(MySqlDefaultChanger.class);
 
     @Inject
     private Settings settings;
@@ -185,10 +185,11 @@ class MySqlDefaultChanger implements DebugSection {
             final DatabaseMetaData metaData = con.getMetaData();
             for (Columns col : Columns.values()) {
                 String columnName = settings.getProperty(col.getColumnNameProperty());
-                String isNullText = isNotNullColumn(metaData, tableName, columnName) ? "NOT NULL" : "nullable";
+                boolean isNotNull = isNotNullColumn(metaData, tableName, columnName);
                 Object defaultValue = getColumnDefaultValue(metaData, tableName, columnName);
+                String isNullText = isNotNull ? "NOT NULL" : "nullable";
                 String defaultText = defaultValue == null ? "no default" : "default: '" + defaultValue + "'";
-                sender.sendMessage(formatColumnWithMetadata(col, metaData, tableName)
+                sender.sendMessage(formatColumn(col, isNotNull, defaultValue != null)
                     + " (" + columnName + "): " + isNullText + ", " + defaultText);
             }
         } catch (SQLException e) {
@@ -224,7 +225,10 @@ class MySqlDefaultChanger implements DebugSection {
 
             List<String> formattedColumns = new ArrayList<>(Columns.values().length);
             for (Columns col : Columns.values()) {
-                formattedColumns.add(formatColumnWithMetadata(col, metaData, tableName));
+                String columnName = settings.getProperty(col.getColumnNameProperty());
+                formattedColumns.add(formatColumn(col,
+                    isNotNullColumn(metaData, tableName, columnName),
+                    getColumnDefaultValue(metaData, tableName, columnName) != null));
             }
             return String.join(ChatColor.RESET + ", ", formattedColumns);
         } catch (SQLException e) {
@@ -233,11 +237,7 @@ class MySqlDefaultChanger implements DebugSection {
         }
     }
 
-    private String formatColumnWithMetadata(Columns column, DatabaseMetaData metaData,
-                                            String tableName) throws SQLException {
-        String columnName = settings.getProperty(column.getColumnNameProperty());
-        boolean isNotNull = isNotNullColumn(metaData, tableName, columnName);
-        boolean hasDefaultValue = getColumnDefaultValue(metaData, tableName, columnName) != null;
+    private String formatColumn(Columns column, boolean isNotNull, boolean hasDefaultValue) {
         return column.name()
             + (isNotNull ? NOT_NULL_SUFFIX : "")
             + (hasDefaultValue ? DEFAULT_VALUE_SUFFIX : "");
