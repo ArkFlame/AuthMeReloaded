@@ -40,7 +40,6 @@ public class ConfirmTotpCommand extends AbstractTotpPlayerCommand {
             messages.send(player, MessageKey.TWO_FACTOR_ENABLE_ERROR_NO_CODE);
         } else {
             if (generateTotpService.isTotpCodeCorrectForGeneratedTotpKey(player, inputTotpCode)) {
-                generateTotpService.removeGenerateTotpKey(player);
                 insertTotpKeyIntoDatabase(player, auth, totpDetails);
             } else {
                 messages.send(player, MessageKey.TWO_FACTOR_ENABLE_ERROR_WRONG_CODE);
@@ -52,9 +51,12 @@ public class ConfirmTotpCommand extends AbstractTotpPlayerCommand {
         String totpKey = totpDetails.getTotpKey();
         String playerName = player.getName();
         boolean updated = dataSource.setTotpKey(playerName, totpKey);
-        applyTotpKeyUpdate(player, auth, updated, totpKey, MessageKey.TWO_FACTOR_ENABLE_SUCCESS);
+        // Only discard the generated key once it has been persisted, so a failed DB write can be retried
+        // without forcing the player to run /totp add (and rescan the QR code) again.
         if (updated) {
+            generateTotpService.removeGenerateTotpKey(player);
             logger.info("Player '" + playerName + "' has successfully added a TOTP key to their account");
         }
+        applyTotpKeyUpdate(player, auth, updated, totpKey, MessageKey.TWO_FACTOR_ENABLE_SUCCESS);
     }
 }

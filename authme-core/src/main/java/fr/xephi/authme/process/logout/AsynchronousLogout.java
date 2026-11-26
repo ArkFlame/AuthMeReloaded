@@ -62,19 +62,22 @@ public class AsynchronousLogout implements AsynchronousProcess {
             return;
         }
 
-        database.updateSession(auth);
-        // TODO: send an update when a messaging service will be implemented (SESSION)
-        if (service.getProperty(RestrictionSettings.SAVE_QUIT_LOCATION)) {
-            auth.setQuitLocation(quitLocation);
-            database.updateQuitLoc(auth);
-            // TODO: send an update when a messaging service will be implemented (QUITLOC)
+        try {
+            database.updateSession(auth);
+            // TODO: send an update when a messaging service will be implemented (SESSION)
+            if (service.getProperty(RestrictionSettings.SAVE_QUIT_LOCATION)) {
+                auth.setQuitLocation(quitLocation);
+                database.updateQuitLoc(auth);
+                // TODO: send an update when a messaging service will be implemented (QUITLOC)
+            }
+        } finally {
+            // Always unauthenticate the player, even if persisting the session data failed.
+            playerCache.removePlayer(name);
+            codeManager.unverify(name);
+            database.setUnlogged(name);
+            sessionService.revokeSession(name);
+            bungeeSender.sendAuthMeBungeecordMessage(player, MessageType.LOGOUT);
+            syncProcessManager.processSyncPlayerLogout(player);
         }
-
-        playerCache.removePlayer(name);
-        codeManager.unverify(name);
-        database.setUnlogged(name);
-        sessionService.revokeSession(name);
-        bungeeSender.sendAuthMeBungeecordMessage(player, MessageType.LOGOUT);
-        syncProcessManager.processSyncPlayerLogout(player);
     }
 }

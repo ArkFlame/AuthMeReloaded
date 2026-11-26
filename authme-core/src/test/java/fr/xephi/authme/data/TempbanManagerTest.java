@@ -15,6 +15,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -251,6 +254,16 @@ class TempbanManagerTest {
         verify(counter1).removeExpiredEntries();
         verify(counter2).removeExpiredEntries();
         assertThat(counts.keySet(), contains("33.33.33.33"));
+    }
+
+    @Test
+    void shouldKeepCrossThreadStateVolatile() throws NoSuchFieldException {
+        // config state is written by reload() on the main thread and read on async login threads
+        for (String name : Arrays.asList("isEnabled", "threshold", "length", "resetThreshold", "customCommand")) {
+            Field field = TempbanManager.class.getDeclaredField(name);
+            assertThat(name + " must be volatile for cross-thread visibility",
+                Modifier.isVolatile(field.getModifiers()), equalTo(true));
+        }
     }
 
     private static Settings mockSettings(int maxTries, int tempbanLength, String customCommand) {

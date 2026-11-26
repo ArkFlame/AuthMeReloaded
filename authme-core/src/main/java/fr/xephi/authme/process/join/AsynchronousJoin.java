@@ -179,7 +179,8 @@ public class AsynchronousJoin implements AsynchronousProcess {
      */
     public void processJoin(Player player) {
         String name = player.getName().toLowerCase(Locale.ROOT);
-        String ip = PlayerUtils.getPlayerIp(player);
+        // The player may have disconnected before this async task ran; getAddress() is null then.
+        String ip = player.getAddress() == null ? null : PlayerUtils.getPlayerIp(player);
         PreJoinDialogService.PendingDialogState dialogState = preJoinDialogService.consumeSession(name);
         String pendingLoginPassword = dialogState.loginPassword();
         String pendingRecoveryEmail = dialogState.recoveryEmail();
@@ -193,7 +194,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
 
         if (!validationService.fulfillsNameRestrictions(player)) {
             kickWithMessageKey(player, MessageKey.NOT_OWNER_ERROR);
-            if (service.getProperty(RestrictionSettings.BAN_UNKNOWN_IP)) {
+            if (service.getProperty(RestrictionSettings.BAN_UNKNOWN_IP) && ip != null) {
                 bukkitService.runOnGlobalRegion(() -> server.banIP(ip));
             }
             return;
@@ -615,6 +616,10 @@ public class AsynchronousJoin implements AsynchronousProcess {
      * @return true if the verification is OK (no infraction), false if player has been kicked
      */
     private boolean validatePlayerCountForIp(Player player, String ip) {
+        if (ip == null) {
+            // Player already disconnected: no IP to count against and no one to kick.
+            return true;
+        }
         int maxPerIp = service.getProperty(RestrictionSettings.MAX_JOIN_PER_IP);
         if (maxPerIp > 0 && !ProcessSharedActions.isExemptFromIpLimit(service, player, ip)) {
             int count = 0;

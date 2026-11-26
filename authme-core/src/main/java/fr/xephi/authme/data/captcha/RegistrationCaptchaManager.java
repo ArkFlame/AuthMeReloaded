@@ -19,7 +19,7 @@ public class RegistrationCaptchaManager implements CaptchaManager, SettingsDepen
 
     private final ExpiringSet<String> verifiedNamesForRegistration;
     private final CaptchaCodeStorage captchaCodeStorage;
-    private boolean isEnabled;
+    private volatile boolean isEnabled;
 
     @Inject
     RegistrationCaptchaManager(Settings settings) {

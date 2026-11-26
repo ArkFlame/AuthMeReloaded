@@ -352,6 +352,18 @@ public class AsynchronousJoinTest {
     }
 
     @Test
+    public void shouldHandleJoinWhenPlayerSocketAddressIsGone() {
+        // The player disconnected after the join event but before this async task ran,
+        // so Bukkit no longer exposes the socket address (getAddress() == null).
+        Player player = givenRegisteredPlayer();
+        given(player.getAddress()).willReturn(null);
+
+        asynchronousJoin.processJoin(player);
+
+        verify(limboService).createLimboPlayer(player, true);
+    }
+
+    @Test
     public void shouldRestoreOperatorOfUnregisteredPlayerWhenRegistrationIsOptional() {
         Player player = mockPlayer("Bobby");
         givenDefaultJoinRestrictions(player);

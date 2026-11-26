@@ -131,14 +131,14 @@ public class AsynchronousUnregister implements AsynchronousProcess {
         }
 
         boolean force = service.getProperty(RegistrationSettings.FORCE);
-        if (force) {
-            teleportationService.teleportOnJoin(player);
-        }
 
         // Run all player-facing actions in a single hop on the player's thread
         bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, () -> {
             if (sendBungeeLogout) {
                 bungeeLogout.run();
+            }
+            if (force) {
+                teleportationService.teleportOnJoin(player);
             }
             commandManager.runCommandsOnUnregister(player);
             if (force) {

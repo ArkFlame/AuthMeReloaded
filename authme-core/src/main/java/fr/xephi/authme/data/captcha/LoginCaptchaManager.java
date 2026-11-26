@@ -18,8 +18,8 @@ public class LoginCaptchaManager implements CaptchaManager, SettingsDependent, H
     private final TimedCounter<String> playerCounts;
     private final CaptchaCodeStorage captchaCodeStorage;
 
-    private boolean isEnabled;
-    private int threshold;
+    private volatile boolean isEnabled;
+    private volatile int threshold;
 
     @Inject
     LoginCaptchaManager(Settings settings) {

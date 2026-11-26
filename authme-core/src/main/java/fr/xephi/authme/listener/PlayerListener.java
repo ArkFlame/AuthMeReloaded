@@ -167,7 +167,6 @@ public class PlayerListener extends AbstractCancelListener implements Listener {
         try {
             final PlayerAuth auth = dataSource.getAuth(name);
             final boolean isAuthAvailable = auth != null;
-            teleportationService.preloadAuthStatus(name, isAuthAvailable);
             // The address is immutable for this event: read it once instead of twice.
             final InetAddress address = event.getAddress();
             onJoinVerifier.checkNameRestrictions(name, address);
@@ -176,6 +175,9 @@ public class PlayerListener extends AbstractCancelListener implements Listener {
             onJoinVerifier.checkNameCasing(name, auth);
             final String ip = address.getHostAddress();
             onJoinVerifier.checkPlayerCountry(name, ip, isAuthAvailable);
+            // Preload only once every check passed: a rejected connection never reaches
+            // onPlayerJoin, so its entry would stay in the preloaded-status map forever.
+            teleportationService.preloadAuthStatus(name, isAuthAvailable);
         } catch (FailedVerificationException e) {
             denyPreLogin(event, name, e);
         }

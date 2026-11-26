@@ -29,11 +29,12 @@ public class TempbanManager implements SettingsDependent, HasCleanup {
     private final BukkitService bukkitService;
     private final Messages messages;
 
-    private boolean isEnabled;
-    private int threshold;
-    private int length;
-    private long resetThreshold;
-    private String customCommand;
+    // Written by reload() on the main thread, read from async login and cleanup threads.
+    private volatile boolean isEnabled;
+    private volatile int threshold;
+    private volatile int length;
+    private volatile long resetThreshold;
+    private volatile String customCommand;
 
     @Inject
     TempbanManager(BukkitService bukkitService, Messages messages, Settings settings) {

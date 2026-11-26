@@ -14,6 +14,6 @@ public class SpigotPlatformAdapter extends AbstractSpigotPlatformAdapter {
     public String getCompatibilityError() {
         return getCompatibilityError(
             "This AuthMe Spigot 1.8 build requires the Bukkit/Spigot 1.8+ API.",
-            "org.spigotmc.event.player.PlayerInteractAtEntityEvent");
+            "org.bukkit.event.player.PlayerInteractAtEntityEvent");
     }
 }

@@ -45,7 +45,8 @@ public final class BungeeProxyBridge implements Listener {
 
     private final ProxyServer proxyServer;
     private final Logger logger;
-    private BungeeProxyConfiguration configuration;
+    // Replaced by /abreloadproxy on the main thread and read by plugin-message and retry threads.
+    private volatile BungeeProxyConfiguration configuration;
     private final BungeeAuthenticationStore authenticationStore;
     private final Map<String, AtomicInteger> pendingAutoLogins = new ConcurrentHashMap<>();
     private final Set<String> notifiedAuthServers = ConcurrentHashMap.newKeySet();

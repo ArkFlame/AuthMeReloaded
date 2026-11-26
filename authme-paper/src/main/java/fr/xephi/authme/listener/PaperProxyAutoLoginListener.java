@@ -35,7 +35,8 @@ public class PaperProxyAutoLoginListener implements Listener, PluginMessageListe
     private final BungeeReceiver bungeeReceiver;
     private final PreJoinDialogService preJoinDialogService;
 
-    private boolean enabled;
+    // Written by reload() on the main thread, read when the proxy message arrives on the netty thread
+    private volatile boolean enabled;
     private boolean channelRegistered;
 
     @Inject

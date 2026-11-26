@@ -4,6 +4,7 @@ import fr.xephi.authme.data.limbo.UserGroup;
 import net.milkbowl.vault.permission.Permission;
 import org.bukkit.Server;
 import org.bukkit.entity.Player;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -16,6 +17,7 @@ import java.util.stream.Stream;
 import static java.util.stream.Collectors.toList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -44,6 +46,18 @@ class VaultHandlerTest {
         return Stream.of(
             Arguments.of("should return groups", new String[]{"abc", "test"}, Arrays.asList("abc", "test")),
             Arguments.of("should handle null as groups", null, Collections.emptyList()));
+    }
+
+    @Test
+    void shouldReturnNullForMissingPrimaryGroup() {
+        Permission permissionMock = vaultHandlerTest.permissionMock;
+        Player player = mock(Player.class);
+        given(permissionMock.getPrimaryGroup(null, player)).willReturn(null);
+
+        UserGroup result = vaultHandlerTest.getPrimaryGroup(player);
+
+        assertThat(result, nullValue());
+        verify(permissionMock).getPrimaryGroup(null, player);
     }
 
     /** Test implementation using a mock Vault Permission instance. */

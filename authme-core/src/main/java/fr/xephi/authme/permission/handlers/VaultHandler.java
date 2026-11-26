@@ -89,7 +89,8 @@ public class VaultHandler implements PermissionHandler {
 
     @Override
     public UserGroup getPrimaryGroup(OfflinePlayer player) {
-        return new UserGroup(vaultProvider.getPrimaryGroup(null, player));
+        String primaryGroup = vaultProvider.getPrimaryGroup(null, player);
+        return primaryGroup == null ? null : new UserGroup(primaryGroup);
     }
 
     @Override

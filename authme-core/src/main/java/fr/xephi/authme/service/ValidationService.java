@@ -48,9 +48,10 @@ public class ValidationService implements Reloadable {
     @Inject
     private GeoIpService geoIpService;
 
-    private Pattern passwordRegex;
-    private Pattern emailRegex;
-    private Multimap<String, Pattern> restrictedNames;
+    // Written by reload() on the main thread, read on async pre-login/login threads
+    private volatile Pattern passwordRegex;
+    private volatile Pattern emailRegex;
+    private volatile Multimap<String, Pattern> restrictedNames;
 
     ValidationService() {
     }

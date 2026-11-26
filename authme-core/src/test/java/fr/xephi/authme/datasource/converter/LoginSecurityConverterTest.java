@@ -29,6 +29,7 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
@@ -107,6 +108,35 @@ class LoginSecurityConverterTest extends AbstractConverterTest {
         assertThat(auth.getWorld(), equalTo("world"));
         assertThat(auth.getYaw(), equalTo(90.0F));
         assertThat(auth.getPitch(), equalTo(45.0F));
+    }
+
+    @Test
+    void shouldSkipRowsWithNullOrEmptyName() throws SQLException, ClassNotFoundException {
+        Class.forName("org.sqlite.JDBC");
+        File dbFile = new File(tempFolder, "LoginSecurity.db");
+        try (Connection setup = DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath());
+             Statement statement = setup.createStatement()) {
+            statement.execute("CREATE TABLE ls_players (id INTEGER PRIMARY KEY, last_name TEXT, password TEXT, "
+                + "last_login TIMESTAMP, registration_date DATE, unique_user_id TEXT, ip_address TEXT)");
+            statement.execute("CREATE TABLE ls_locations (id INTEGER PRIMARY KEY, x DOUBLE, y DOUBLE, z DOUBLE, "
+                + "world TEXT, yaw DOUBLE, pitch DOUBLE)");
+            statement.execute("INSERT INTO ls_players VALUES (1, NULL, 'hash', NULL, NULL, NULL, NULL)");
+            statement.execute("INSERT INTO ls_players VALUES (2, '', 'hash', NULL, NULL, NULL, NULL)");
+            statement.execute("INSERT INTO ls_players VALUES (3, 'ValidPlayer', 'bcrypt-hash', "
+                + "NULL, NULL, NULL, '127.0.0.1')");
+            statement.execute("INSERT INTO ls_locations VALUES (1, 0, 0, 0, 'world', 0, 0)");
+            statement.execute("INSERT INTO ls_locations VALUES (2, 0, 0, 0, 'world', 0, 0)");
+            statement.execute("INSERT INTO ls_locations VALUES (3, 0, 0, 0, 'world', 0, 0)");
+        }
+        given(dataSource.isAuthAvailable("ValidPlayer")).willReturn(false);
+        CommandSender sender = mock(CommandSender.class);
+
+        try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath())) {
+            converter.performConversion(sender, connection);
+        }
+
+        verify(dataSource, times(1)).saveAuth(authCaptor.capture());
+        assertThat(authCaptor.getValue().getNickname(), equalTo("validplayer"));
     }
 
     @Test

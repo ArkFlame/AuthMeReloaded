@@ -16,6 +16,8 @@ import fr.xephi.authme.listener.ServerListener;
 import fr.xephi.authme.process.register.RegisterSecondaryArgument;
 import fr.xephi.authme.process.register.RegistrationType;
 import net.md_5.bungee.api.dialog.MultiActionDialog;
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.junit.jupiter.api.Test;
@@ -26,6 +28,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -101,5 +104,15 @@ public class Spigot121PlatformAdapterTest {
         adapter.showRegisterDialog(player, RegistrationType.PASSWORD, RegisterSecondaryArgument.NONE, dialog);
 
         verify(player).showDialog(any(MultiActionDialog.class));
+    }
+
+    @Test
+    public void getPlayerRespawnLocationFallsBackToBedSpawnWhenApiMethodIsMissing() {
+        Player player = mock(Player.class);
+        Location bedSpawn = new Location(mock(World.class), 1.0, 2.0, 3.0);
+        given(player.getRespawnLocation()).willThrow(new NoSuchMethodError("Player.getRespawnLocation"));
+        given(player.getBedSpawnLocation()).willReturn(bedSpawn);
+
+        assertThat(adapter.getPlayerRespawnLocation(player), is(bedSpawn));
     }
 }

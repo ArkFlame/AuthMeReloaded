@@ -38,11 +38,16 @@ public class Spigot121PlatformAdapter extends AbstractSpigotPlatformAdapter {
 
     /**
      * Spigot 1.20.6+ exposes {@link Player#getRespawnLocation()}, which preserves the server's actual respawn target
-     * instead of limiting us to the legacy bed-only API.
+     * instead of limiting us to the legacy bed-only API. Servers in the 1.20.1-1.20.5 range lack the method, so fall
+     * back to the bed-only API there rather than failing the teleport with a {@link NoSuchMethodError}.
      */
     @Override
     public Location getPlayerRespawnLocation(Player player) {
-        return player.getRespawnLocation();
+        try {
+            return player.getRespawnLocation();
+        } catch (NoSuchMethodError e) {
+            return super.getPlayerRespawnLocation(player);
+        }
     }
 
     @Override

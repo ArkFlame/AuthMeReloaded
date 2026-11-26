@@ -4,6 +4,7 @@ import fr.xephi.authme.ConsoleLogger;
 import fr.xephi.authme.data.limbo.persistence.LimboPersistence;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.service.BukkitService;
+import fr.xephi.authme.service.CancellableTask;
 import fr.xephi.authme.service.TeleportationService;
 import fr.xephi.authme.settings.Settings;
 import fr.xephi.authme.settings.SpawnLoader;
@@ -271,6 +272,10 @@ public class LimboService {
     public void replaceTasksAfterRegistration(Player player) {
         Optional<LimboPlayer> limboPlayer = getLimboOrLogError(player, "reset tasks");
         limboPlayer.ifPresent(limbo -> {
+            // The register timeout has fired its purpose. Cancel it explicitly: registerTimeoutTask only
+            // replaces an existing task when a login timeout is configured, so with loginTimeout=0
+            // (timeout disabled) the old register timeout would otherwise still kick the player later.
+            limbo.setTimeoutTask((CancellableTask) null);
             taskManager.registerTimeoutTask(player, limbo, LimboMessageType.LOG_IN);
             taskManager.registerMessageTask(player, limbo, LimboMessageType.LOG_IN);
         });

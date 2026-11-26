@@ -23,6 +23,7 @@ import java.util.concurrent.Executors;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doNothing;
@@ -75,6 +76,19 @@ class TaskCloserTest {
         verify(bukkitScheduler, times(3)).isCurrentlyRunning(taskIds.capture());
         assertThat(taskIds.getAllValues(), contains(ACTIVE_WORKERS_ID[0], ACTIVE_WORKERS_ID[1], ACTIVE_WORKERS_ID[1]));
         verify(taskCloser, times(2)).sleep();
+        verify(dataSource).closeConnection();
+    }
+
+    @Test
+    void shouldCloseDataSourceWhenSchedulerCheckFails() throws InterruptedException {
+        doNothing().when(taskCloser).sleep(); // avoid sleeping in tests
+        mockActiveWorkers();
+        given(bukkitScheduler.isCurrentlyRunning(ACTIVE_WORKERS_ID[0]))
+            .willThrow(new IllegalStateException("scheduler unavailable"));
+
+        assertThrows(IllegalStateException.class, taskCloser::run);
+
+        verify(taskCloser).sleep();
         verify(dataSource).closeConnection();
     }
 

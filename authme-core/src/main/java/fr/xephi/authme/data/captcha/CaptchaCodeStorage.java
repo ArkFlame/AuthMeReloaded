@@ -13,8 +13,8 @@ public class CaptchaCodeStorage {
 
     /** Map of captcha codes (with player name as key, case-insensitive). */
     private final ExpiringMap<String, String> captchaCodes;
-    /** Number of characters newly generated captcha codes should have. */
-    private int captchaLength;
+    /** Number of characters newly generated captcha codes should have. Written by reload, read on login threads. */
+    private volatile int captchaLength;
 
     /**
      * Returns the case-insensitive key used for a player's captcha code.

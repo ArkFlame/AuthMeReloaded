@@ -7,6 +7,8 @@ import fr.xephi.authme.util.expiring.TimedCounter;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.Locale;
 
 import static fr.xephi.authme.AuthMeMatchers.stringWithLength;
@@ -155,6 +157,22 @@ class LoginCaptchaManagerTest {
 
         // then
         assertThat(result, equalTo(false));
+    }
+
+    @Test
+    void shouldKeepReloadedConfigVolatile() throws NoSuchFieldException {
+        // reload() writes the config on the main thread; login threads read it while checking captchas
+        assertFieldsAreVolatile(LoginCaptchaManager.class, "isEnabled", "threshold");
+        assertFieldsAreVolatile(RegistrationCaptchaManager.class, "isEnabled");
+        assertFieldsAreVolatile(CaptchaCodeStorage.class, "captchaLength");
+    }
+
+    private static void assertFieldsAreVolatile(Class<?> clazz, String... names) throws NoSuchFieldException {
+        for (String name : names) {
+            Field field = clazz.getDeclaredField(name);
+            assertThat(clazz.getSimpleName() + "." + name + " must be volatile for cross-thread visibility",
+                Modifier.isVolatile(field.getModifiers()), equalTo(true));
+        }
     }
 
     private static Settings mockSettings(int maxTries, int captchaLength) {

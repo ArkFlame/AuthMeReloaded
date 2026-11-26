@@ -97,6 +97,24 @@ class GetIpCommandTest {
         verify(sender).sendMessage(argThat(containsString("not registered")));
     }
 
+    @Test
+    void shouldHandlePlayerWithoutAddress() {
+        // given
+        String playerName = "noaddress";
+        Player player = mock(Player.class);
+        given(player.getName()).willReturn(playerName);
+        given(player.getAddress()).willReturn(null);
+        given(bukkitService.getPlayerExact(playerName)).willReturn(player);
+        given(dataSource.getAuth(playerName)).willReturn(null);
+        CommandSender sender = mock(CommandSender.class);
+
+        // when
+        command.executeCommand(sender, Collections.singletonList(playerName));
+
+        // then
+        verify(sender).sendMessage(argThat(containsString("not registered")));
+    }
+
     private static Player mockPlayer(String name, String ip) {
         Player player = mock(Player.class);
         given(player.getName()).willReturn(name);

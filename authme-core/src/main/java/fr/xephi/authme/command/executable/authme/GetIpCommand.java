@@ -2,11 +2,11 @@ package fr.xephi.authme.command.executable.authme;
 
 import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.service.BukkitService;
-import fr.xephi.authme.util.PlayerUtils;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import javax.inject.Inject;
+import java.net.InetSocketAddress;
 import java.util.List;
 
 public class GetIpCommand extends AbstractPlayerAuthCommand {
@@ -21,9 +21,12 @@ public class GetIpCommand extends AbstractPlayerAuthCommand {
         PlayerAuth auth = getDataSource().getAuth(playerName);
 
         final String displayName = player == null ? playerName : player.getName();
-        if (player != null) {
-            sender.sendMessage("Current IP of " + displayName + " is " + PlayerUtils.getPlayerIp(player)
-                + ":" + player.getAddress().getPort());
+        // getAddress() and its resolved InetAddress may be null for players whose connection is not
+        // fully established (or is already being torn down); avoid failing the whole command then.
+        InetSocketAddress address = player == null ? null : player.getAddress();
+        if (address != null && address.getAddress() != null) {
+            sender.sendMessage("Current IP of " + displayName + " is "
+                + address.getAddress().getHostAddress() + ":" + address.getPort());
         }
 
         if (auth == null) {

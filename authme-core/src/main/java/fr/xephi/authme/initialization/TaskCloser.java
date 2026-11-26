@@ -42,35 +42,38 @@ public class TaskCloser implements Runnable {
         logger.log(Level.INFO, "Waiting for {0} tasks to finish", pendingTasks.size());
         int progress = 0;
 
-        //one minute + some time checking the running state
-        int tries = 60;
-        while (!pendingTasks.isEmpty()) {
-            if (tries <= 0) {
-                logger.log(Level.INFO, "Async tasks times out after to many tries {0}", pendingTasks);
-                break;
-            }
-
-            try {
-                sleep();
-            } catch (InterruptedException ignored) {
-                Thread.currentThread().interrupt();
-                break;
-            }
-
-            for (Iterator<Integer> iterator = pendingTasks.iterator(); iterator.hasNext(); ) {
-                int taskId = iterator.next();
-                if (!scheduler.isCurrentlyRunning(taskId)) {
-                    iterator.remove();
-                    progress++;
-                    logger.log(Level.INFO, "Progress: {0} / {1}", new Object[]{progress, pendingTasks.size()});
+        try {
+            //one minute + some time checking the running state
+            int tries = 60;
+            while (!pendingTasks.isEmpty()) {
+                if (tries <= 0) {
+                    logger.log(Level.INFO, "Async tasks times out after to many tries {0}", pendingTasks);
+                    break;
                 }
+
+                try {
+                    sleep();
+                } catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+
+                for (Iterator<Integer> iterator = pendingTasks.iterator(); iterator.hasNext(); ) {
+                    int taskId = iterator.next();
+                    if (!scheduler.isCurrentlyRunning(taskId)) {
+                        iterator.remove();
+                        progress++;
+                        logger.log(Level.INFO, "Progress: {0} / {1}", new Object[]{progress, pendingTasks.size()});
+                    }
+                }
+
+                tries--;
             }
-
-            tries--;
-        }
-
-        if (dataSource != null) {
-            dataSource.closeConnection();
+        } finally {
+            // Close the data source even if polling the scheduler fails unexpectedly
+            if (dataSource != null) {
+                dataSource.closeConnection();
+            }
         }
     }
 

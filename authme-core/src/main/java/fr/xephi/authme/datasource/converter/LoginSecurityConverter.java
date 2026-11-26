@@ -100,6 +100,11 @@ public class LoginSecurityConverter implements Converter {
         long successfulSaves = 0;
         while (resultSet.next()) {
             String name = resultSet.getString("last_name");
+            // A row without a usable name cannot be imported; PlayerAuth rejects a null nickname
+            // and an empty one would create an account no player can log in with.
+            if (name == null || name.isEmpty()) {
+                continue;
+            }
             if (dataSource.isAuthAvailable(name)) {
                 skippedPlayers.add(name);
             } else {

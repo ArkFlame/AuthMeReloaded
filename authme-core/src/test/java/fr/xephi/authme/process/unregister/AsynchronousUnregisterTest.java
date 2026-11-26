@@ -29,6 +29,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 
 import static fr.xephi.authme.service.BukkitServiceTestHelper.setBukkitServiceToScheduleSyncEntityTaskFromOptionallyAsyncTask;
@@ -36,6 +38,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.only;
@@ -132,6 +135,32 @@ class AsynchronousUnregisterTest {
         if (!applyBlindEffect) {
             verify(player, never()).addPotionEffect(any(PotionEffect.class));
         }
+    }
+
+    @Test
+    void shouldOnlyTeleportOnThePlayerThread() {
+        Player player = mock(Player.class);
+        String name = "Frank21";
+        HashedPassword password = givenRegisteredPlayer(player, name);
+        given(player.isOnline()).willReturn(true);
+        given(passwordSecurity.comparePassword("pass", password, name)).willReturn(true);
+        given(dataSource.removeAuth(name)).willReturn(true);
+        given(service.getProperty(RegistrationSettings.FORCE)).willReturn(true);
+        given(service.getProperty(RegistrationSettings.APPLY_BLIND_EFFECT)).willReturn(false);
+
+        List<Runnable> scheduledTasks = new ArrayList<>();
+        doAnswer(invocation -> {
+            scheduledTasks.add(invocation.getArgument(1));
+            return null;
+        }).when(bukkitService).scheduleSyncTaskFromOptionallyAsyncTask(any(Player.class), any(Runnable.class));
+
+        asynchronousUnregister.unregister(player, "pass");
+
+        verify(teleportationService, never()).teleportOnJoin(player);
+        assertThat(scheduledTasks.size(), equalTo(1));
+        scheduledTasks.get(0).run();
+        verify(teleportationService).teleportOnJoin(player);
+        verify(commandManager).runCommandsOnUnregister(player);
     }
 
     @Test
