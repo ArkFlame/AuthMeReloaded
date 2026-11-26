@@ -57,7 +57,7 @@ final class VelocityProxyBridge {
     private final Set<String> handshakeRetriesPending = ConcurrentHashMap.newKeySet();
     private final PremiumNames premiumNames;
     // Players with a pending premium verification (ran /premium but not yet confirmed via reconnect)
-    private volatile Set<String> pendingPremiumUsernames = ConcurrentHashMap.newKeySet();
+    private final Set<String> pendingPremiumUsernames = ConcurrentHashMap.newKeySet();
     private final VelocityPremiumVerificationManager premiumVerificationManager;
     private final ScheduledExecutorService retryScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread t = new Thread(r, "authme-velocity-retry");

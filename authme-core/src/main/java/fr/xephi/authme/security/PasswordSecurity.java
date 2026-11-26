@@ -87,8 +87,12 @@ public class PasswordSecurity implements Reloadable {
      */
     public boolean comparePassword(String password, HashedPassword hashedPassword, String playerName) {
         String playerLowerCase = playerName.toLowerCase(Locale.ROOT);
-        return methodMatches(encryptionMethod, password, hashedPassword, playerLowerCase)
-            || compareWithLegacyHashes(password, hashedPassword, playerLowerCase);
+        if (methodMatches(encryptionMethod, password, hashedPassword, playerLowerCase)) {
+            return true;
+        }
+        // No legacy hashes configured is the common case: skip building an iterator on the login path.
+        return !legacyEncryptionMethods.isEmpty()
+            && compareWithLegacyHashes(password, hashedPassword, playerLowerCase);
     }
 
     /**
@@ -120,6 +124,9 @@ public class PasswordSecurity implements Reloadable {
      * @return An immutable list of encryption methods in configuration order (null for unsupported algorithms)
      */
     private List<EncryptionMethod> createLegacyEncryptionMethods(Collection<HashAlgorithm> algorithms) {
+        if (algorithms.isEmpty()) {
+            return Collections.emptyList();
+        }
         List<EncryptionMethod> methods = new ArrayList<>(algorithms.size());
         for (HashAlgorithm algorithm : algorithms) {
             methods.add(initializeEncryptionMethod(algorithm));

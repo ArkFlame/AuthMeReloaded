@@ -30,8 +30,6 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import static fr.xephi.authme.util.StringUtils.isInsideString;
-
 /**
  * Validation service.
  */
@@ -241,14 +239,21 @@ public class ValidationService implements Reloadable {
     private Multimap<String, Pattern> loadNameRestrictions(Set<String> configuredRestrictions) {
         Multimap<String, Pattern> restrictions = HashMultimap.create();
         for (String restriction : configuredRestrictions) {
-            String[] data = isInsideString(';', restriction) ? restriction.split(";") : new String[0];
-            // split() drops trailing empty entries, so "name;;" has no usable restriction
-            if (data.length >= 2 && !data[1].isEmpty()) {
-                restrictions.put(data[0].toLowerCase(Locale.ROOT), Pattern.compile(toRegex(data[1])));
-            } else {
-                logger.warning("Restricted user rule must have a ';' separating name from restriction,"
-                    + " but found: '" + restriction + "'");
+            int separator = restriction.indexOf(';');
+            // The ';' must separate a non-empty name from a non-empty restriction, i.e. be
+            // strictly inside the string; this also mirrors split() dropping trailing empty parts.
+            if (separator > 0 && separator < restriction.length() - 1) {
+                int ruleEnd = restriction.indexOf(';', separator + 1);
+                String rule = restriction.substring(separator + 1,
+                    ruleEnd < 0 ? restriction.length() : ruleEnd);
+                if (!rule.isEmpty()) {
+                    restrictions.put(restriction.substring(0, separator).toLowerCase(Locale.ROOT),
+                        Pattern.compile(toRegex(rule)));
+                    continue;
+                }
             }
+            logger.warning("Restricted user rule must have a ';' separating name from restriction,"
+                + " but found: '" + restriction + "'");
         }
         return restrictions;
     }

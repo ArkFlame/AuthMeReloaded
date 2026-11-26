@@ -42,8 +42,11 @@ final class EmailProcessHelper {
      */
     static boolean persistEmail(CommonService service, DataSource dataSource, PlayerCache playerCache,
                                 PlayerAuth auth, Player player, String email, MessageKey successKey) {
+        String previousEmail = auth.getEmail();
         auth.setEmail(email);
         if (!dataSource.updateEmail(auth)) {
+            // auth usually is the instance held by the player cache, so undo the change that was not persisted.
+            auth.setEmail(previousEmail);
             service.send(player, MessageKey.ERROR);
             return false;
         }

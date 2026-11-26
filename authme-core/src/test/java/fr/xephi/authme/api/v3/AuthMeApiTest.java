@@ -36,6 +36,7 @@ import static fr.xephi.authme.IsEqualByReflectionMatcher.hasEqualValuesOnAllFiel
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.ArgumentMatchers.any;
@@ -483,6 +484,7 @@ class AuthMeApiTest {
 
         // then
         assertThat(result, equalTo(names));
+        assertThat(result, not(sameInstance(names)));
         verify(dataSource).getAllAuthsByIp(ip);
     }
 

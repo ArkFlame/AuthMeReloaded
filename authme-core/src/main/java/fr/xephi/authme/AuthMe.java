@@ -141,11 +141,11 @@ public class AuthMe extends JavaPlugin {
         ConsoleLogger.initialize(getLogger(), new File(getDataFolder(), LOG_FILENAME));
         logger = ConsoleLoggerFactory.get(AuthMe.class);
 
-        PlatformAdapter platformAdapter = loadPlatformAdapter();
-        if (!isStartupAllowed(platformAdapter)) {
+        PlatformSelection platformSelection = loadPlatformAdapter();
+        if (!isStartupAllowed(platformSelection)) {
             return;
         }
-        if (!initializeWithErrorHandling(platformAdapter)) {
+        if (!initializeWithErrorHandling(platformSelection.adapter)) {
             return;
         }
 
@@ -154,8 +154,7 @@ public class AuthMe extends JavaPlugin {
 
         // Schedule clean up task
         CleanupTask cleanupTask = injector.getSingleton(CleanupTask.class);
-        injector.getSingleton(BukkitService.class)
-            .runTaskTimerAsynchronously(cleanupTask, CLEANUP_INTERVAL, CLEANUP_INTERVAL);
+        bukkitService.runTaskTimerAsynchronously(cleanupTask, CLEANUP_INTERVAL, CLEANUP_INTERVAL);
 
         // Do a backup on start
         backupService.doBackup(BackupService.BackupCause.START);
@@ -173,11 +172,11 @@ public class AuthMe extends JavaPlugin {
     /**
      * Checks whether the running environment allows the plugin to start, stopping it otherwise.
      *
-     * @param platformAdapter the platform adapter in use
+     * @param platformSelection the platform adapter selected at startup
      * @return true if startup may continue, false if the plugin was stopped
      */
-    private boolean isStartupAllowed(PlatformAdapter platformAdapter) {
-        String compatibilityError = platformAdapter.getCompatibilityError();
+    private boolean isStartupAllowed(PlatformSelection platformSelection) {
+        String compatibilityError = platformSelection.compatibilityError;
         if (compatibilityError != null) {
             logger.warning("You are running an unsupported server version (" + getServerNameVersionSafe() + "). "
                 + compatibilityError);
@@ -282,10 +281,11 @@ public class AuthMe extends JavaPlugin {
         Injector injector = new InjectorBuilder()
             .addDefaultHandlers("fr.xephi.authme")
             .create();
+        Server server = getServer();
         injector.register(AuthMe.class, this);
-        injector.register(Server.class, getServer());
-        injector.register(PluginManager.class, getServer().getPluginManager());
-        injector.register(BukkitScheduler.class, getServer().getScheduler());
+        injector.register(Server.class, server);
+        injector.register(PluginManager.class, server.getPluginManager());
+        injector.register(BukkitScheduler.class, server.getScheduler());
         injector.provide(DataFolder.class, getDataFolder());
         injector.registerProvider(Settings.class, SettingsProvider.class);
         injector.registerProvider(DataSource.class, DataSourceProvider.class);
@@ -315,8 +315,9 @@ public class AuthMe extends JavaPlugin {
      * Picks the first registered adapter that is compatible with the running server; if none is,
      * the first one is returned so its compatibility error is reported at startup.
      */
-    private PlatformAdapter loadPlatformAdapter() {
+    private PlatformSelection loadPlatformAdapter() {
         PlatformAdapter first = null;
+        String firstError = null;
         Iterator<PlatformAdapter> adapters =
             ServiceLoader.load(PlatformAdapter.class, getClass().getClassLoader()).iterator();
         int skipped = 0;
@@ -333,18 +334,34 @@ public class AuthMe extends JavaPlugin {
                 ++skipped;
                 continue;
             }
-            if (adapter.getCompatibilityError() == null) {
-                return adapter;
+            String compatibilityError = adapter.getCompatibilityError();
+            if (compatibilityError == null) {
+                return new PlatformSelection(adapter, null);
             }
             if (first == null) {
                 first = adapter;
+                firstError = compatibilityError;
             }
         }
         if (first != null) {
-            return first;
+            return new PlatformSelection(first, firstError);
         }
         throw new IllegalStateException(
             "No PlatformAdapter found. Ensure you are using a version-specific AuthMe jar.");
+    }
+
+    /**
+     * The platform adapter chosen at startup together with the compatibility error determined while
+     * selecting it, so the error is not computed a second time.
+     */
+    private static final class PlatformSelection {
+        private final PlatformAdapter adapter;
+        private final String compatibilityError;
+
+        PlatformSelection(PlatformAdapter adapter, String compatibilityError) {
+            this.adapter = adapter;
+            this.compatibilityError = compatibilityError;
+        }
     }
 
     /**

@@ -75,8 +75,11 @@ public class ListenerService implements SettingsDependent {
             return false;
         }
         String name = player.getName();
+        // Authenticated players never have their event canceled: return before any further lookups
+        if (playerCache.isAuthenticated(name)) {
+            return false;
+        }
         return !validationService.isUnrestricted(name)
-            && !playerCache.isAuthenticated(name)
             && (isRegistrationForced || dataSource.isAuthAvailable(name))
             && !PlayerUtils.isNpc(player);
     }

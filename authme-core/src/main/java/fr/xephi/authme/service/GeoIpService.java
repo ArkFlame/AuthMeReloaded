@@ -1,6 +1,8 @@
 package fr.xephi.authme.service;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
@@ -64,12 +66,21 @@ public class GeoIpService {
     // MD5 is 128 bits, i.e. 32 hexadecimal characters
     private static final Pattern CHECKSUM_PATTERN = Pattern.compile("[0-9a-fA-F]{32}");
 
+    // Upper bound for the addresses remembered as having no known country
+    private static final int MAX_NEGATIVE_CACHE_SIZE = 256;
+
     private final ConsoleLogger logger = ConsoleLoggerFactory.get(GeoIpService.class);
     private final Path dataFile;
     private final BukkitService bukkitService;
     private final Settings settings;
 
-    private DatabaseReader databaseReader;
+    // Addresses without a known country in the current database, so repeated lookups do not redo
+    // the same work. Cleared whenever a new database reader is installed, keeping results identical.
+    private final Cache<InetAddress, Boolean> unknownCountries = CacheBuilder.newBuilder()
+        .maximumSize(MAX_NEGATIVE_CACHE_SIZE)
+        .build();
+
+    private volatile DatabaseReader databaseReader;
     private volatile boolean downloading;
 
     @Inject
@@ -184,6 +195,8 @@ public class GeoIpService {
             .withCache(new CHMCache())
             .fileMode(FileMode.MEMORY)
             .build();
+        // The data changed: previously unknown addresses may be resolvable now
+        unknownCountries.invalidateAll();
         logger.info(LICENSE);
 
         // clear downloading flag, because we now have working reader instance
@@ -346,10 +359,19 @@ public class GeoIpService {
         }
 
         try {
-            AbstractCountryResponse response = databaseReader.country(InetAddress.getByName(ip));
+            InetAddress address = InetAddress.getByName(ip);
+            // A miss for the current database cannot change until a new reader is installed
+            if (unknownCountries.getIfPresent(address) != null) {
+                return fallback;
+            }
+            AbstractCountryResponse response = databaseReader.country(address);
             // Reader.getCountry() can be null for unknown addresses
             Country country = response == null ? null : response.getCountry();
-            return country == null ? fallback : extractor.apply(country);
+            if (country == null) {
+                unknownCountries.put(address, Boolean.TRUE);
+                return fallback;
+            }
+            return extractor.apply(country);
         } catch (UnknownHostException e) {
             // Ignore invalid ip addresses
             // Legacy GEO IP Database returned an unknown country object with Country-Code: '--' and Country-Name: 'N/A'

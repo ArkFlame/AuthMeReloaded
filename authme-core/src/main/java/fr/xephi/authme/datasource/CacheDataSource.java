@@ -128,17 +128,30 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
     }
 
     /**
-     * Applies a cache change only when the underlying data source update succeeded.
+     * Applies a cache change only when the underlying data source update succeeded. On failure the
+     * entry is dropped instead, because the cache may no longer reflect the database state.
      *
      * @param succeeded whether the source update succeeded
+     * @param name the affected player name, or null if no cache entry depends on the update
      * @param cacheChange the cache change to perform on success
      * @return the value of {@code succeeded}
      */
-    private boolean updateCacheOnSuccess(boolean succeeded, Runnable cacheChange) {
+    private boolean updateCacheOnSuccess(boolean succeeded, String name, Runnable cacheChange) {
         if (succeeded) {
             cacheChange.run();
+        } else if (name != null) {
+            cachedAuths.invalidate(normalize(name));
         }
         return succeeded;
+    }
+
+    /**
+     * Reloads a single entry from the underlying data source, using its normalized cache key.
+     *
+     * @param name the player name
+     */
+    private void refreshCache(String name) {
+        cachedAuths.refresh(normalize(name));
     }
 
     @Override
@@ -168,28 +181,33 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public boolean saveAuth(PlayerAuth auth) {
-        return updateCacheOnSuccess(source.saveAuth(auth), () -> cachedAuths.refresh(auth.getNickname()));
+        return updateCacheOnSuccess(source.saveAuth(auth), auth.getNickname(),
+            () -> refreshCache(auth.getNickname()));
     }
 
     @Override
     public boolean updatePassword(PlayerAuth auth) {
-        return updateCacheOnSuccess(source.updatePassword(auth), () -> cachedAuths.refresh(auth.getNickname()));
+        return updateCacheOnSuccess(source.updatePassword(auth), auth.getNickname(),
+            () -> refreshCache(auth.getNickname()));
     }
 
     @Override
     public boolean updatePassword(String user, HashedPassword password) {
         String key = normalize(user);
-        return updateCacheOnSuccess(source.updatePassword(key, password), () -> cachedAuths.refresh(key));
+        return updateCacheOnSuccess(source.updatePassword(key, password), user,
+            () -> cachedAuths.refresh(key));
     }
 
     @Override
     public boolean updateSession(PlayerAuth auth) {
-        return updateCacheOnSuccess(source.updateSession(auth), () -> cachedAuths.refresh(auth.getNickname()));
+        return updateCacheOnSuccess(source.updateSession(auth), auth.getNickname(),
+            () -> refreshCache(auth.getNickname()));
     }
 
     @Override
     public boolean updateQuitLoc(final PlayerAuth auth) {
-        return updateCacheOnSuccess(source.updateQuitLoc(auth), () -> cachedAuths.refresh(auth.getNickname()));
+        return updateCacheOnSuccess(source.updateQuitLoc(auth), auth.getNickname(),
+            () -> refreshCache(auth.getNickname()));
     }
 
     @Override
@@ -200,7 +218,7 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
     @Override
     public boolean removeAuth(String name) {
         String key = normalize(name);
-        return updateCacheOnSuccess(source.removeAuth(key), () -> cachedAuths.invalidate(key));
+        return updateCacheOnSuccess(source.removeAuth(key), name, () -> cachedAuths.invalidate(key));
     }
 
     @Override
@@ -217,13 +235,14 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public boolean updateEmail(final PlayerAuth auth) {
-        return updateCacheOnSuccess(source.updateEmail(auth), () -> cachedAuths.refresh(auth.getNickname()));
+        return updateCacheOnSuccess(source.updateEmail(auth), auth.getNickname(),
+            () -> refreshCache(auth.getNickname()));
     }
 
     @Override
     public boolean updatePremiumUuid(PlayerAuth auth) {
-        return updateCacheOnSuccess(source.updatePremiumUuid(auth),
-            () -> cachedAuths.put(auth.getNickname(), Optional.of(auth)));
+        return updateCacheOnSuccess(source.updatePremiumUuid(auth), auth.getNickname(),
+            () -> cachedAuths.put(normalize(auth.getNickname()), Optional.of(auth)));
     }
 
     @Override
@@ -244,7 +263,7 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
     @Override
     public void purgeRecords(Collection<String> banned) {
         source.purgeRecords(banned);
-        cachedAuths.invalidateAll(banned);
+        cachedAuths.invalidateAll(banned.stream().map(CacheDataSource::normalize).collect(Collectors.toList()));
     }
 
     @Override
@@ -303,7 +322,7 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public boolean updateRealName(String user, String realName) {
-        return updateCacheOnSuccess(source.updateRealName(user, realName), () -> cachedAuths.refresh(user));
+        return updateCacheOnSuccess(source.updateRealName(user, realName), user, () -> refreshCache(user));
     }
 
     @Override
@@ -338,12 +357,12 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public boolean setTotpKey(String user, String totpKey) {
-        return updateCacheOnSuccess(source.setTotpKey(user, totpKey), () -> cachedAuths.refresh(user));
+        return updateCacheOnSuccess(source.setTotpKey(user, totpKey), user, () -> refreshCache(user));
     }
 
     @Override
     public void invalidateCache(String playerName) {
-        cachedAuths.invalidate(playerName);
+        cachedAuths.invalidate(normalize(playerName));
     }
 
 }

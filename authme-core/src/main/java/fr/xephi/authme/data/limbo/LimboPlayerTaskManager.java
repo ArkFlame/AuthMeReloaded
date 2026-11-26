@@ -26,6 +26,12 @@ import static fr.xephi.authme.service.BukkitService.TICKS_PER_SECOND;
  */
 class LimboPlayerTaskManager {
 
+    /** Shared empty replacement array; {@link Messages} only reads it. */
+    private static final String[] NO_ARGS = new String[0];
+    private static final MessageResult LOGIN_MESSAGE = new MessageResult(MessageKey.LOGIN_MESSAGE, NO_ARGS);
+    private static final MessageResult TOTP_MESSAGE =
+        new MessageResult(MessageKey.TWO_FACTOR_CODE_REQUIRED, NO_ARGS);
+
     @Inject
     private Messages messages;
 
@@ -117,10 +123,10 @@ class LimboPlayerTaskManager {
      */
     private MessageResult getMessageKey(String name, LimboMessageType messageType) {
         if (messageType == LimboMessageType.LOG_IN) {
-            return new MessageResult(MessageKey.LOGIN_MESSAGE);
+            return LOGIN_MESSAGE;
         }
         if (messageType == LimboMessageType.TOTP_CODE) {
-            return new MessageResult(MessageKey.TWO_FACTOR_CODE_REQUIRED);
+            return TOTP_MESSAGE;
         }
         if (registrationCaptchaManager.isCaptchaRequired(name)) {
             String captchaCode = registrationCaptchaManager.getCaptchaCodeOrGenerateNew(name);

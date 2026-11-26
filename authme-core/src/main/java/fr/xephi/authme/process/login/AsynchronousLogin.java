@@ -41,13 +41,19 @@ import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
 import javax.inject.Inject;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /** Asynchronous task for a player login. */
 public class AsynchronousLogin implements AsynchronousProcess {
 
     private final ConsoleLogger logger = ConsoleLoggerFactory.get(AsynchronousLogin.class);
+
+    /** Lowercase names of players whose login is currently being processed, to ignore duplicate requests. */
+    private final Set<String> loginsInProgress = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     @Inject
     private DataSource dataSource;
@@ -116,28 +122,36 @@ public class AsynchronousLogin implements AsynchronousProcess {
     private void login(Player player, String password, boolean quiet) {
         String name = player.getName();
         String lowerCaseName = name.toLowerCase(Locale.ROOT);
-        PlayerAuth auth = getPlayerAuth(player, lowerCaseName, quiet);
-        if (auth == null) {
+        // Ignore a duplicate request while the same player's login is still being processed
+        if (!loginsInProgress.add(lowerCaseName)) {
             return;
         }
-        // Resolve the IP once for the whole login call and pass it to every check that needs it
-        String ip = PlayerUtils.getPlayerIp(player);
-        if (!canLogin(player, ip, quiet)
-            || (password != null && !checkPlayerInfo(player, name, lowerCaseName, ip, auth, password))) {
-            return;
-        }
-        if (password != null && auth.getTotpKey() != null) {
-            LimboPlayer limbo = limboService.getLimboPlayer(player);
-            if (limbo == null) {
-                service.send(player, MessageKey.LOGIN_MESSAGE);
+        try {
+            PlayerAuth auth = getPlayerAuth(player, lowerCaseName, quiet);
+            if (auth == null) {
                 return;
             }
-            limboService.resetMessageTask(player, LimboMessageType.TOTP_CODE);
-            limbo.setState(LimboPlayerState.TOTP_REQUIRED);
-            showTotpDialogIfEnabled(player, lowerCaseName);
-            // TODO #1141: Check if we should check limbo state before processing password
-        } else {
-            doPerformLogin(player, name, ip, auth, quiet);
+            // Resolve the IP once for the whole login call and pass it to every check that needs it
+            String ip = PlayerUtils.getPlayerIp(player);
+            if (!canLogin(player, ip, quiet)
+                || (password != null && !checkPlayerInfo(player, name, lowerCaseName, ip, auth, password))) {
+                return;
+            }
+            if (password != null && auth.getTotpKey() != null) {
+                LimboPlayer limbo = limboService.getLimboPlayer(player);
+                if (limbo == null) {
+                    service.send(player, MessageKey.LOGIN_MESSAGE);
+                    return;
+                }
+                limboService.resetMessageTask(player, LimboMessageType.TOTP_CODE);
+                limbo.setState(LimboPlayerState.TOTP_REQUIRED);
+                showTotpDialogIfEnabled(player, lowerCaseName);
+                // TODO #1141: Check if we should check limbo state before processing password
+            } else {
+                doPerformLogin(player, name, ip, auth, quiet);
+            }
+        } finally {
+            loginsInProgress.remove(lowerCaseName);
         }
     }
 

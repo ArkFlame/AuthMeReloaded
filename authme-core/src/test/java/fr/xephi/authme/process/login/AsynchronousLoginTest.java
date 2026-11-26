@@ -45,6 +45,7 @@ import org.mockito.stubbing.Answer;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -278,6 +279,31 @@ class AsynchronousLoginTest {
 
         verify(commonService).send(player, MessageKey.LOGIN_MESSAGE);
         verify(asynchronousLogin, never()).performLogin(player, auth);
+    }
+
+    @Test
+    void shouldIgnoreConcurrentLoginForSamePlayer() {
+        Player player = mockPlayer("bobby");
+        TestHelper.mockIpAddressToPlayer(player, "203.0.113.5");
+        PlayerAuth auth = PlayerAuth.builder().name("bobby").build();
+        given(playerCache.isAuthenticated("bobby")).willReturn(false);
+        given(dataSource.getAuth("bobby")).willReturn(auth);
+        given(commonService.getProperty(DatabaseSettings.MYSQL_COL_GROUP)).willReturn("");
+        given(commonService.getProperty(RestrictionSettings.MAX_LOGIN_PER_IP)).willReturn(0);
+        given(commonService.getProperty(PluginSettings.USE_ASYNC_TASKS)).willReturn(false);
+        given(loginCaptchaManager.isCaptchaRequired("bobby")).willReturn(false);
+        AtomicBoolean reentered = new AtomicBoolean(false);
+        given(passwordSecurity.comparePassword("hunter2", auth.getPassword(), "bobby")).willAnswer(invocation -> {
+            if (reentered.compareAndSet(false, true)) {
+                // Simulate a second /login arriving while the password check is still running
+                asynchronousLogin.login(player, "hunter2");
+            }
+            return true;
+        });
+
+        asynchronousLogin.login(player, "hunter2");
+
+        verify(passwordSecurity, only()).comparePassword("hunter2", auth.getPassword(), "bobby");
     }
 
     @Test

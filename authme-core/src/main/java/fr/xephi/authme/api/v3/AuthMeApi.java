@@ -20,6 +20,7 @@ import org.bukkit.entity.Player;
 
 import javax.inject.Inject;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -122,7 +123,7 @@ public class AuthMeApi {
      * Get the last location of an online player.
      *
      * @param player The player to process
-     * @return The location of the player
+     * @return The location of the player, or null if no location has been stored
      */
     public Location getLastLocation(Player player) {
         PlayerAuth auth = playerCache.getAuth(player.getName());
@@ -144,7 +145,7 @@ public class AuthMeApi {
      * Get the last ip address of a player.
      *
      * @param playerName The name of the player to process
-     * @return The last ip address of the player
+     * @return The last ip address of the player, or null if the player is unknown
      */
     public String getLastIp(String playerName) {
         PlayerAuth auth = getAuth(playerName);
@@ -155,10 +156,10 @@ public class AuthMeApi {
      * Get user names by ip.
      *
      * @param address The ip address to process
-     * @return The list of user names related to the ip address
+     * @return A mutable copy of the user names related to the ip address
      */
     public List<String> getNamesByIp(String address) {
-        return dataSource.getAllAuthsByIp(address);
+        return new ArrayList<>(dataSource.getAllAuthsByIp(address));
     }
 
     /**
@@ -203,6 +204,7 @@ public class AuthMeApi {
      *
      * @param playerName The player name to check
      * @return true if player is registered, false otherwise
+     * @throws NullPointerException if {@code playerName} is null
      */
     public boolean isRegistered(String playerName) {
         String player = playerName.toLowerCase(Locale.ROOT);
@@ -227,6 +229,7 @@ public class AuthMeApi {
      * @param password   The password to register the player with
      *
      * @return true if the player was registered successfully
+     * @throws NullPointerException if {@code playerName} is null
      */
     public boolean registerPlayer(String playerName, String password) {
         String name = playerName.toLowerCase(Locale.ROOT);

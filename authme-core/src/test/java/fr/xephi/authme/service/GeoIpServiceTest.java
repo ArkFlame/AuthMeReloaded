@@ -128,6 +128,23 @@ class GeoIpServiceTest {
     }
 
     @Test
+    void shouldCacheNegativeLookupResults() throws Exception {
+        // given
+        InetAddress ip = InetAddress.getByName("24.45.167.89");
+        given(lookupService.country(ip)).willReturn(null);
+        given(settings.getProperty(ProtectionSettings.ENABLE_GEOIP)).willReturn(true);
+
+        // when
+        String firstResult = geoIpService.getCountryName(ip.getHostAddress());
+        String secondResult = geoIpService.getCountryName(ip.getHostAddress());
+
+        // then
+        assertThat(firstResult, equalTo("N/A"));
+        assertThat(secondResult, equalTo("N/A"));
+        verify(lookupService).country(ip);
+    }
+
+    @Test
     void shouldRejectMissingChecksumAsCheckedFailure() throws Exception {
         // given
         Path database = dataFolder.toPath().resolve("GeoLite2-Country.mmdb");
