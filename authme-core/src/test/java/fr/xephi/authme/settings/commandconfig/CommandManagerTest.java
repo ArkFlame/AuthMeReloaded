@@ -10,6 +10,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -18,6 +21,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
+import java.util.stream.Stream;
 
 import static fr.xephi.authme.service.BukkitServiceTestHelper.setBukkitServiceToScheduleSyncDelayedTaskWithEntityAndDelay;
 import static org.mockito.ArgumentMatchers.any;
@@ -60,84 +65,41 @@ class CommandManagerTest {
         given(player.getName()).willReturn("Bobby");
     }
 
-    @Test
-    void shouldExecuteCommandsOnLogin() {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("loginScenarios")
+    void shouldExecuteCommandsOnLogin(String scenario, List<String> alts,
+                                      String[] extraConsoleCommands, long[] delays) {
         // given
         initManagerWithIpAndDelayedTask();
 
         // when
-        manager.runCommandsOnLogin(player, Collections.emptyList());
-
-        // then
-        verify(bukkitService).dispatchConsoleCommand("msg Bobby Welcome back");
-        verify(bukkitService).dispatchCommand(any(Player.class), eq("motd"));
-        verify(bukkitService).dispatchCommand(any(Player.class), eq("list"));
-        verify(bukkitService).scheduleSyncDelayedTask(eq(player), any(Runnable.class), eq(60L));
-        verify(bukkitService).scheduleSyncDelayedTask(eq(player), any(Runnable.class), eq(120L));
-        verifyNoMoreInteractions(bukkitService);
-        verifyNoInteractions(geoIpService);
-    }
-
-    @Test
-    void shouldExecuteCommandsOnLoginWithTwoAlts() {
-        // given
-        initManagerWithIpAndDelayedTask();
-
-        // when
-        manager.runCommandsOnLogin(player, Arrays.asList("willy", "nilly", "billy", "silly"));
+        manager.runCommandsOnLogin(player, alts);
 
         // then
         verify(bukkitService).dispatchConsoleCommand("msg Bobby Welcome back");
         verify(bukkitService).dispatchCommand(player, "motd");
         verify(bukkitService).dispatchCommand(player, "list");
-        verify(bukkitService).dispatchConsoleCommand("helpop Player Bobby has more than 1 account");
-        verify(bukkitService).scheduleSyncDelayedTask(eq(player), any(Runnable.class), eq(60L));
-        verify(bukkitService).scheduleSyncDelayedTask(eq(player), any(Runnable.class), eq(120L));
-        verify(bukkitService).scheduleSyncDelayedTask(eq(player), any(Runnable.class), eq(180L));
+        for (String command : extraConsoleCommands) {
+            verify(bukkitService).dispatchConsoleCommand(command);
+        }
+        for (long delay : delays) {
+            verify(bukkitService).scheduleSyncDelayedTask(eq(player), any(Runnable.class), eq(delay));
+        }
         verifyNoMoreInteractions(bukkitService);
         verifyNoInteractions(geoIpService);
     }
 
-    @Test
-    void shouldExecuteCommandsOnLoginWithFifteenAlts() {
-        // given
-        initManagerWithIpAndDelayedTask();
-
-        // when
-        manager.runCommandsOnLogin(player, Collections.nCopies(15, "swag"));
-
-        // then
-        verify(bukkitService).dispatchConsoleCommand("msg Bobby Welcome back");
-        verify(bukkitService).dispatchCommand(player, "motd");
-        verify(bukkitService).dispatchCommand(player, "list");
-        verify(bukkitService).dispatchConsoleCommand("helpop Player Bobby has more than 1 account");
-        verify(bukkitService).dispatchConsoleCommand("log Bobby 127.0.0.3 many accounts");
-        verify(bukkitService).scheduleSyncDelayedTask(eq(player), any(Runnable.class), eq(60L));
-        verify(bukkitService).scheduleSyncDelayedTask(eq(player), any(Runnable.class), eq(120L));
-        verify(bukkitService).scheduleSyncDelayedTask(eq(player), any(Runnable.class), eq(180L));
-        verify(bukkitService).scheduleSyncDelayedTask(eq(player), any(Runnable.class), eq(240L));
-        verifyNoMoreInteractions(bukkitService);
-        verifyNoInteractions(geoIpService);
-    }
-
-    @Test
-    void shouldExecuteCommandsOnLoginWithTwentyFiveAlts() {
-        // given
-        initManagerWithIpAndDelayedTask();
-
-        // when
-        manager.runCommandsOnLogin(player, Collections.nCopies(25, "yolo"));
-
-        // then
-        verify(bukkitService).dispatchConsoleCommand("msg Bobby Welcome back");
-        verify(bukkitService).dispatchCommand(player, "motd");
-        verify(bukkitService).dispatchCommand(player, "list");
-        verify(bukkitService).dispatchConsoleCommand("helpop Player Bobby has more than 1 account");
-        verify(bukkitService).scheduleSyncDelayedTask(eq(player), any(Runnable.class), eq(60L));
-        verify(bukkitService).scheduleSyncDelayedTask(eq(player), any(Runnable.class), eq(120L));
-        verify(bukkitService).scheduleSyncDelayedTask(eq(player), any(Runnable.class), eq(180L));
-        verifyNoMoreInteractions(bukkitService);
-        verifyNoInteractions(geoIpService);
+    private static Stream<Arguments> loginScenarios() {
+        return Stream.of(
+            Arguments.of("no other accounts", Collections.emptyList(),
+                new String[0], new long[]{60L, 120L}),
+            Arguments.of("two other accounts", Arrays.asList("willy", "nilly", "billy", "silly"),
+                new String[]{"helpop Player Bobby has more than 1 account"}, new long[]{60L, 120L, 180L}),
+            Arguments.of("fifteen other accounts", Collections.nCopies(15, "swag"),
+                new String[]{"helpop Player Bobby has more than 1 account",
+                    "log Bobby 127.0.0.3 many accounts"}, new long[]{60L, 120L, 180L, 240L}),
+            Arguments.of("twenty-five other accounts", Collections.nCopies(25, "yolo"),
+                new String[]{"helpop Player Bobby has more than 1 account"}, new long[]{60L, 120L, 180L}));
     }
 
     @Test

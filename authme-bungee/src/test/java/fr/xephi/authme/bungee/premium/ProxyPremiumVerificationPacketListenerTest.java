@@ -1,7 +1,8 @@
 package fr.xephi.authme.bungee.premium;
 
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -20,22 +21,18 @@ class ProxyPremiumVerificationPacketListenerTest {
         loginVerifier.shutdown();
     }
 
-    @Test
-    void shouldStoreVerificationOfNameNotConnected() {
-        ProxyPremiumVerificationPacketListener listener = createListener(false);
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void shouldHandleVerificationBasedOnConnectionState(boolean nameConnected) {
+        ProxyPremiumVerificationPacketListener listener = createListener(nameConnected);
 
         listener.onVerificationCompleted("notch", Optional.of(MOJANG_UUID), false);
 
-        assertEquals(MOJANG_UUID, loginVerifier.getVerifiedUuid("notch"));
-    }
-
-    @Test
-    void shouldDiscardVerificationWhenPlayerWithNameIsAlreadyConnected() {
-        ProxyPremiumVerificationPacketListener listener = createListener(true);
-
-        listener.onVerificationCompleted("notch", Optional.of(MOJANG_UUID), false);
-
-        assertNull(loginVerifier.getVerifiedUuid("notch"));
+        if (nameConnected) {
+            assertNull(loginVerifier.getVerifiedUuid("notch"));
+        } else {
+            assertEquals(MOJANG_UUID, loginVerifier.getVerifiedUuid("notch"));
+        }
     }
 
     private ProxyPremiumVerificationPacketListener createListener(boolean nameConnected) {

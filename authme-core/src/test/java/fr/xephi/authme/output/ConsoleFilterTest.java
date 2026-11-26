@@ -1,9 +1,12 @@
 package fr.xephi.authme.output;
 
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mockito;
 
 import java.util.logging.LogRecord;
+import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -21,46 +24,27 @@ class ConsoleFilterTest {
     private static final String SENSITIVE_COMMAND = "User issued server command: /login test test";
     private static final String NORMAL_COMMAND = "User issued server command: /motd 2";
 
-
-    @Test
-    void shouldReplaceSensitiveRecord() {
-        // given
-        LogRecord record = createRecord(SENSITIVE_COMMAND);
-
-        // when
-        boolean result = filter.isLoggable(record);
-
-        // then
-        assertThat(result, equalTo(true));
-        verify(record).setMessage("User issued an AuthMe command");
+    private static Stream<Arguments> recordsAndExpectedFiltering() {
+        return Stream.of(
+            Arguments.of(SENSITIVE_COMMAND, true),
+            Arguments.of(NORMAL_COMMAND, false),
+            Arguments.of((String) null, false));
     }
 
-    @Test
-    void shouldNotFilterRegularCommand() {
-        // given
-        LogRecord record = createRecord(NORMAL_COMMAND);
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("recordsAndExpectedFiltering")
+    void shouldFilterRecordsAsExpected(String message, boolean shouldFilter) {
+        LogRecord record = createRecord(message);
 
-        // when
         boolean result = filter.isLoggable(record);
 
-        // then
         assertThat(result, equalTo(true));
-        verify(record, never()).setMessage("User issued an AuthMe command");
+        if (shouldFilter) {
+            verify(record).setMessage("User issued an AuthMe command");
+        } else {
+            verify(record, never()).setMessage("User issued an AuthMe command");
+        }
     }
-
-    @Test
-    void shouldManageRecordWithNullMessage() {
-        // given
-        LogRecord record = createRecord(null);
-
-        // when
-        boolean result = filter.isLoggable(record);
-
-        // then
-        assertThat(result, equalTo(true));
-        verify(record, never()).setMessage("User issued an AuthMe command");
-    }
-
 
     /**
      * Creates a mock of {@link LogRecord} and sets it to return the given message.

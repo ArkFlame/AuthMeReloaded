@@ -1,6 +1,12 @@
 package fr.xephi.authme.util;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.List;
+import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -14,30 +20,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class StringUtilsTest {
 
-    @Test
-    void shouldFindContainedItem() {
-        String text = "This is a test of containsAny()";
-        String piece = "test";
-
-        boolean result = StringUtils.containsAny(text, asList("some", "words", "that", "do not", "exist", piece));
-
-        assertThat(result, equalTo(true));
+    @ParameterizedTest
+    @MethodSource("containsAnyCases")
+    void shouldCheckContainsAny(String text, List<String> pieces, boolean expected) {
+        assertThat(StringUtils.containsAny(text, pieces), equalTo(expected));
     }
 
-    @Test
-    void shouldReturnFalseIfNoneFound() {
-        String text = "This is a test string";
-
-        boolean result = StringUtils.containsAny(text, asList("some", "other", "words", null));
-
-        assertThat(result, equalTo(false));
-    }
-
-    @Test
-    void shouldReturnFalseForNullString() {
-        boolean result = StringUtils.containsAny(null, asList("some", "words", "to", "check"));
-
-        assertThat(result, equalTo(false));
+    private static Stream<Arguments> containsAnyCases() {
+        return Stream.of(
+            Arguments.of("This is a test of containsAny()",
+                asList("some", "words", "that", "do not", "exist", "test"), true),
+            Arguments.of("This is a test string", asList("some", "other", "words", null), false),
+            Arguments.of(null, asList("some", "words", "to", "check"), false));
     }
 
     @Test

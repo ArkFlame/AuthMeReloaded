@@ -37,8 +37,8 @@ class CleanupTaskTest {
         cleanupTask.run();
 
         // then
-        verify(services.get(0)).performCleanup();
-        verify(services.get(1)).performCleanup();
-        verify(services.get(2)).performCleanup();
+        for (HasCleanup service : services) {
+            verify(service).performCleanup();
+        }
     }
 }

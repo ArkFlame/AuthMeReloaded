@@ -2,6 +2,8 @@ package fr.xephi.authme.service;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -107,16 +109,15 @@ class PreJoinDialogServiceTest {
         assertThat(service.consumeSession("bobby").forceLogin(), is(false));
     }
 
-    @Test
-    void shouldReturnFalseForApproveWhenNoPreJoinDialogPending() {
-        assertThat(service.approvePreJoinForceLogin("nobody"), is(false));
-    }
+    @ParameterizedTest(name = "session present: {0}")
+    @ValueSource(booleans = {false, true})
+    void shouldReturnFalseForApproveWhenNoPreJoinDialogPending(boolean sessionPresent) {
+        String name = sessionPresent ? "bobby" : "nobody";
+        if (sessionPresent) {
+            service.openSession(name);
+        }
 
-    @Test
-    void shouldReturnFalseForApproveWhenSessionHasNoDialog() {
-        service.openSession("bobby");
-
-        assertThat(service.approvePreJoinForceLogin("bobby"), is(false));
+        assertThat(service.approvePreJoinForceLogin(name), is(false));
     }
 
     @Test

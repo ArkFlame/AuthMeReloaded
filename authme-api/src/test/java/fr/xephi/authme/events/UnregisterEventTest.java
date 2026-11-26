@@ -3,6 +3,8 @@ package fr.xephi.authme.events;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -16,16 +18,13 @@ class UnregisterEventTest {
     private final Player player = mock(Player.class);
     private final CommandSender initiator = mock(CommandSender.class);
 
-    @Test
-    void byPlayerExposesPlayerAndAsyncFlag() {
-        UnregisterByPlayerEvent sync = new UnregisterByPlayerEvent(player, false);
-        assertThat(sync.getPlayer(), sameInstance(player));
-        assertThat(sync.isAsynchronous(), equalTo(false));
-        assertThat(sync.getHandlers(), sameInstance(UnregisterByPlayerEvent.getHandlerList()));
-
-        UnregisterByPlayerEvent async = new UnregisterByPlayerEvent(player, true);
-        assertThat(async.getPlayer(), sameInstance(player));
-        assertThat(async.isAsynchronous(), equalTo(true));
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void byPlayerExposesPlayerAndAsyncFlag(boolean async) {
+        UnregisterByPlayerEvent event = new UnregisterByPlayerEvent(player, async);
+        assertThat(event.getPlayer(), sameInstance(player));
+        assertThat(event.isAsynchronous(), equalTo(async));
+        assertThat(event.getHandlers(), sameInstance(UnregisterByPlayerEvent.getHandlerList()));
     }
 
     @Test

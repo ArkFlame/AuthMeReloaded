@@ -20,6 +20,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -30,6 +33,7 @@ import org.mockito.quality.Strictness;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.logging.Logger;
@@ -42,6 +46,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -277,12 +282,16 @@ class BungeeProxyBridgeTest {
         verify(authServerInfo, never()).sendData(any(String.class), any(byte[].class), eq(false));
     }
 
-    @Test
-    void shouldBlockNonWhitelistedCommandForUnauthenticatedPlayer() {
+    @ParameterizedTest
+    @CsvSource({
+        "/spawn, true",
+        "'/login secret', false"
+    })
+    void shouldHandleCommandForUnauthenticatedPlayer(String message, boolean shouldCancel) {
         given(commandEvent.isCancelled()).willReturn(false);
         given(commandEvent.isCommand()).willReturn(true);
         given(commandEvent.getSender()).willReturn(player);
-        given(commandEvent.getMessage()).willReturn("/spawn");
+        given(commandEvent.getMessage()).willReturn(message);
         given(player.getName()).willReturn("Alice");
         given(player.getServer()).willReturn(currentServer);
         given(currentServer.getInfo()).willReturn(authServerInfo);
@@ -291,24 +300,7 @@ class BungeeProxyBridgeTest {
         BungeeProxyBridge bridge = newBridge();
         bridge.onCommand(commandEvent);
 
-        verify(commandEvent).setCancelled(true);
-    }
-
-    @Test
-    void shouldAllowWhitelistedCommandForUnauthenticatedPlayer() {
-        given(commandEvent.isCancelled()).willReturn(false);
-        given(commandEvent.isCommand()).willReturn(true);
-        given(commandEvent.getSender()).willReturn(player);
-        given(commandEvent.getMessage()).willReturn("/login secret");
-        given(player.getName()).willReturn("Alice");
-        given(player.getServer()).willReturn(currentServer);
-        given(currentServer.getInfo()).willReturn(authServerInfo);
-        given(authServerInfo.getName()).willReturn("lobby");
-
-        BungeeProxyBridge bridge = newBridge();
-        bridge.onCommand(commandEvent);
-
-        verify(commandEvent, never()).setCancelled(true);
+        verify(commandEvent, times(shouldCancel ? 1 : 0)).setCancelled(true);
     }
 
     @Test
@@ -459,40 +451,11 @@ class BungeeProxyBridgeTest {
         assertPerformLoginPayload(payloadCaptor.getValue(), "alice", "test-secret");
     }
 
-    @Test
-    void shouldForceOnlineModeForPremiumHandshakeWhenOfflineCompatibilityDisabled() {
+    @ParameterizedTest
+    @MethodSource("premiumOnlineModePayloads")
+    void shouldForceOnlineModeForPremiumPlayers(byte[] payload) {
         stubIncomingPluginMessage();
-        given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.message("premium.set", "Alice"));
-        given(preLoginEvent.getConnection()).willReturn(pendingConnection);
-        given(pendingConnection.getName()).willReturn("Alice");
-        given(pendingConnection.isOnlineMode()).willReturn(false);
-
-        BungeeProxyBridge bridge = newBridge();
-        bridge.onPluginMessage(pluginMessageEvent);
-        bridge.onPreLogin(preLoginEvent);
-
-        verify(pendingConnection).setOnlineMode(true);
-    }
-
-    @Test
-    void shouldForceOnlineModeForPendingPremiumEnrollmentAtPreLogin() {
-        stubIncomingPluginMessage();
-        given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.message("premium.pending.set", "Alice"));
-        given(preLoginEvent.getConnection()).willReturn(pendingConnection);
-        given(pendingConnection.getName()).willReturn("Alice");
-        given(pendingConnection.isOnlineMode()).willReturn(false);
-
-        BungeeProxyBridge bridge = newBridge();
-        bridge.onPluginMessage(pluginMessageEvent);
-        bridge.onPreLogin(preLoginEvent);
-
-        verify(pendingConnection).setOnlineMode(true);
-    }
-
-    @Test
-    void shouldForceOnlineModeForPremiumHandshakeAfterChunkedPremiumListResync() {
-        stubIncomingPluginMessage();
-        given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.chunkPayload(0, true, "Alice"));
+        given(pluginMessageEvent.getData()).willReturn(payload);
         given(preLoginEvent.getConnection()).willReturn(pendingConnection);
         given(pendingConnection.getName()).willReturn("Alice");
         given(pendingConnection.isOnlineMode()).willReturn(false);
@@ -611,6 +574,13 @@ class BungeeProxyBridgeTest {
         restarted.shutdown();
 
         verify(pendingConnection).setOnlineMode(true);
+    }
+
+    private static Stream<byte[]> premiumOnlineModePayloads() {
+        return Stream.of(
+            ProxyTestFixtures.message("premium.set", "Alice"),
+            ProxyTestFixtures.message("premium.pending.set", "Alice"),
+            ProxyTestFixtures.chunkPayload(0, true, "Alice"));
     }
 
     private void stubEventsAllowed() {

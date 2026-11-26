@@ -86,7 +86,7 @@ class PermissionConsistencyTest {
             if (PLUGIN_YML_PERMISSIONS_WILDCARDS.contains(def.node)) {
                 validateChildren(def, errors);
             } else {
-                if (!doesPermissionExist(def.node, permissionNodes)) {
+                if (permissionNodes.stream().noneMatch(n -> def.node.equals(n.getNode()))) {
                     errors.add("Permission '" + def.node + "' in plugin.yml does not exist in the codebase");
                 } else if (!def.children.isEmpty()) {
                     errors.add("Permission '" + def.node + "' has children in plugin.yml "
@@ -99,15 +99,6 @@ class PermissionConsistencyTest {
         if (!errors.isEmpty()) {
             fail("Found consistency issues!\n" + String.join("\n", errors));
         }
-    }
-
-    private static boolean doesPermissionExist(String key, List<PermissionNode> nodes) {
-        for (PermissionNode node : nodes) {
-            if (key.equals(node.getNode())) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /**

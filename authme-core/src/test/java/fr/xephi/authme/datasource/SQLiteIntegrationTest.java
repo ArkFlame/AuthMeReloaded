@@ -1,6 +1,5 @@
 package fr.xephi.authme.datasource;
 
-import ch.jalu.configme.properties.Property;
 import fr.xephi.authme.TestHelper;
 import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.settings.Settings;
@@ -9,6 +8,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -20,6 +22,7 @@ import java.sql.Statement;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -50,9 +53,9 @@ class SQLiteIntegrationTest extends AbstractDataSourceIntegrationTest {
 
         settings = mock(Settings.class);
         TestHelper.returnDefaultsForAllProperties(settings);
-        set(DatabaseSettings.MYSQL_DATABASE, "sqlite-test");
-        set(DatabaseSettings.MYSQL_TABLE, "authme");
-        set(DatabaseSettings.MYSQL_COL_PLAYER_UUID, "playerUUID");
+        setProperty(settings, DatabaseSettings.MYSQL_DATABASE, "sqlite-test");
+        setProperty(settings, DatabaseSettings.MYSQL_TABLE, "authme");
+        setProperty(settings, DatabaseSettings.MYSQL_COL_PLAYER_UUID, "playerUUID");
         TestHelper.setupLogger();
 
         Path sqlInitFile = TestHelper.getJarPath(TestHelper.PROJECT_ROOT + "datasource/sql-initialize.sql");
@@ -78,37 +81,34 @@ class SQLiteIntegrationTest extends AbstractDataSourceIntegrationTest {
         silentClose(con);
     }
 
-    @Test
-    void shouldSetUpTableIfMissing() throws SQLException {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("tableSetups")
+    void shouldSetUpTableIfMissing(String description, String[] tableStatements) throws SQLException {
         Statement st = con.createStatement();
-        // table is absent
+        // Drop the table; optionally recreate it with only some of the columns first, since SQLite doesn't
+        // support ALTER TABLE t DROP COLUMN c. Either way setup() has to leave a fully usable table.
         st.execute("DROP TABLE authme");
+        for (String statement : tableStatements) {
+            st.execute(statement);
+        }
         SQLite sqLite = new SQLite(settings, null, con);
 
         sqLite.setup();
 
         // Save some player to verify database is operational
         sqLite.saveAuth(PlayerAuth.builder().name("Name").build());
-        assertThat(sqLite.getAllAuths(), hasSize(1));
+        assertThat(description, sqLite.getAllAuths(), hasSize(1));
     }
 
-    @Test
-    void shouldCreateMissingColumns() throws SQLException {
-        Statement st = con.createStatement();
-        // drop table and create one with only some of the columns: SQLite doesn't support ALTER TABLE t DROP COLUMN c
-        st.execute("DROP TABLE authme");
-        st.execute("CREATE TABLE authme ("
-            + "id bigint, "
-            + "username varchar(255) unique, "
-            + "password varchar(255) not null, "
-            + "primary key (id));");
-        SQLite sqLite = new SQLite(settings, null, con);
-
-        sqLite.setup();
-
-        // Save some player to verify database is operational
-        sqLite.saveAuth(PlayerAuth.builder().name("Name").build());
-        assertThat(sqLite.getAllAuths(), hasSize(1));
+    private static Stream<Arguments> tableSetups() {
+        return Stream.of(
+            Arguments.of("table absent", new String[0]),
+            Arguments.of("missing columns", new String[]{
+                "CREATE TABLE authme ("
+                    + "id bigint, "
+                    + "username varchar(255) unique, "
+                    + "password varchar(255) not null, "
+                    + "primary key (id));"}));
     }
 
     @Test
@@ -131,10 +131,6 @@ class SQLiteIntegrationTest extends AbstractDataSourceIntegrationTest {
     protected DataSource getDataSource(String saltColumn) {
         when(settings.getProperty(DatabaseSettings.MYSQL_COL_SALT)).thenReturn(saltColumn);
         return new SQLite(settings, null, con);
-    }
-
-    private static <T> void set(Property<T> property, T value) {
-        when(settings.getProperty(property)).thenReturn(value);
     }
 
     private static void silentClose(Connection con) {

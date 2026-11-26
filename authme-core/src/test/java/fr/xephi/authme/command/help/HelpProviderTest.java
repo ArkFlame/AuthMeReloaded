@@ -139,19 +139,30 @@ class HelpProviderTest {
         assertThat(lines.get(2), containsString("player: 'player' argument description (Optional)"));
     }
 
-    /** Verifies that the "Arguments:" line is not shown if the command has no arguments. */
-    @Test
-    void shouldNotShowAnythingIfCommandHasNoArguments() {
+    /** Verifies that a section with no content only produces the help banner. */
+    @ParameterizedTest(name = "no output for empty {0}")
+    @MethodSource("emptySectionCases")
+    void shouldNotShowAnythingForEmptySection(String section, String parentLabel, String childLabel,
+                                              List<String> labels, int flags) {
         // given
-        CommandDescription command = getCommandWithLabel(commands, "authme");
-        FoundCommandResult result = newFoundResult(command, Collections.singletonList("authme"));
+        CommandDescription command = childLabel == null
+            ? getCommandWithLabel(commands, parentLabel)
+            : getCommandWithLabel(commands, parentLabel, childLabel);
+        FoundCommandResult result = newFoundResult(command, labels);
 
         // when
-        helpProvider.outputHelp(sender, result, SHOW_ARGUMENTS);
+        helpProvider.outputHelp(sender, result, flags);
 
         // then
-        List<String> lines = getLines(sender);
-        assertThat(lines, hasSize(1)); // only has the help banner
+        assertThat(getLines(sender), hasSize(1));
+    }
+
+    static Stream<Arguments> emptySectionCases() {
+        return Stream.of(
+            Arguments.of("arguments", "authme", null, Collections.singletonList("authme"), SHOW_ARGUMENTS),
+            Arguments.of("permissions", "authme", null, Collections.singletonList("authme"), SHOW_PERMISSIONS),
+            Arguments.of("alternatives", "authme", "login", Arrays.asList("authme", "login"), SHOW_ALTERNATIVES),
+            Arguments.of("children", "authme", "register", Collections.singletonList("authme"), SHOW_CHILDREN));
     }
 
     @ParameterizedTest(name = "{0} ({4})")
@@ -176,20 +187,6 @@ class HelpProviderTest {
         assertThat(lines.get(2), containsString(AdminPermission.UNREGISTER.getNode() + " (" + expectedResult + ")"));
         assertThat(lines.get(3), containsString("Default: Op only (" + expectedResult + ")"));
         assertThat(lines.get(4), containsString("Result: " + expectedResult));
-    }
-
-    @Test
-    void shouldNotShowAnythingForEmptyPermissions() {
-        // given
-        CommandDescription command = getCommandWithLabel(commands, "authme");
-        FoundCommandResult result = newFoundResult(command, Collections.singletonList("authme"));
-
-        // when
-        helpProvider.outputHelp(sender, result, SHOW_PERMISSIONS);
-
-        // then
-        List<String> lines = getLines(sender);
-        assertThat(lines, hasSize(1));
     }
 
     @Test
@@ -226,20 +223,6 @@ class HelpProviderTest {
     }
 
     @Test
-    void shouldNotShowAnythingIfHasNoAlternatives() {
-        // given
-        CommandDescription command = getCommandWithLabel(commands, "authme", "login");
-        FoundCommandResult result = newFoundResult(command, Arrays.asList("authme", "login"));
-
-        // when
-        helpProvider.outputHelp(sender, result, SHOW_ALTERNATIVES);
-
-        // then
-        List<String> lines = getLines(sender);
-        assertThat(lines, hasSize(1));
-    }
-
-    @Test
     void shouldShowChildren() {
         // given
         CommandDescription command = getCommandWithLabel(commands, "authme");
@@ -258,20 +241,6 @@ class HelpProviderTest {
         assertThat(lines.get(1), equalTo("Children:"));
         assertThat(lines.get(2), equalTo(" /authme login: Command for login [localized]"));
         assertThat(lines.get(3), equalTo(" /authme register: Registration command [localized]"));
-    }
-
-    @Test
-    void shouldNotShowCommandsTitleForCommandWithNoChildren() {
-        // given
-        CommandDescription command = getCommandWithLabel(commands, "authme", "register");
-        FoundCommandResult result = newFoundResult(command, Collections.singletonList("authme"));
-
-        // when
-        helpProvider.outputHelp(sender, result, SHOW_CHILDREN);
-
-        // then
-        List<String> lines = getLines(sender);
-        assertThat(lines, hasSize(1));
     }
 
     @Test

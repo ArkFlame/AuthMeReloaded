@@ -40,7 +40,6 @@ class NoOpExtensionTest {
         String name = "Bobby";
         HashedPassword password = new HashedPassword("test", "toast");
 
-
         extension.extendAuth(auth, id, connection);
         extension.changePassword(name, password, connection);
         extension.removeAuth(name, connection);

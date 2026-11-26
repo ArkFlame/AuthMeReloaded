@@ -4,11 +4,15 @@ import org.bukkit.Server;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.PluginManager;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -30,122 +34,33 @@ class PermissionsManagerTest {
     @Mock
     private PluginManager pluginManager;
 
-    @Test
-    void shouldUseDefaultPermissionForCommandSender() {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("createParameters")
+    void shouldEvaluateDefaultPermission(String description, boolean player, PermissionNode node,
+                                         boolean op, boolean expected) {
         // given
-        PermissionNode node = TestPermissions.LOGIN;
-        CommandSender sender = mock(CommandSender.class);
+        CommandSender sender = player ? mock(Player.class) : mock(CommandSender.class);
+        if (op) {
+            given(sender.isOp()).willReturn(true);
+        }
 
         // when
         boolean result = permissionsManager.hasPermission(sender, node);
 
         // then
-        assertThat(result, equalTo(true));
+        assertThat(result, equalTo(expected));
     }
 
-    @Test
-    void shouldGrantToOpCommandSender() {
-        // given
-        PermissionNode node = TestPermissions.DELETE_USER;
-        CommandSender sender = mock(CommandSender.class);
-        given(sender.isOp()).willReturn(true);
-
-        // when
-        boolean result = permissionsManager.hasPermission(sender, node);
-
-        // then
-        assertThat(result, equalTo(true));
-    }
-
-    @Test
-    void shouldDenyPermissionEvenForOpCommandSender() {
-        // given
-        PermissionNode node = TestPermissions.WORLD_DOMINATION;
-        CommandSender sender = mock(CommandSender.class);
-
-        // when
-        boolean result = permissionsManager.hasPermission(sender, node);
-
-        // then
-        assertThat(result, equalTo(false));
-    }
-
-    @Test
-    void shouldAllowForNonOpPlayer() {
-        // given
-        PermissionNode node = TestPermissions.LOGIN;
-        Player player = mock(Player.class);
-
-        // when
-        boolean result = permissionsManager.hasPermission(player, node);
-
-        // then
-        assertThat(result, equalTo(true));
-    }
-
-    @Test
-    void shouldDenyForNonOpPlayer() {
-        // given
-        PermissionNode node = TestPermissions.DELETE_USER;
-        Player player = mock(Player.class);
-
-        // when
-        boolean result = permissionsManager.hasPermission(player, node);
-
-        // then
-        assertThat(result, equalTo(false));
-    }
-
-    @Test
-    void shouldAllowForOpPlayer() {
-        // given
-        PermissionNode node = TestPermissions.DELETE_USER;
-        Player player = mock(Player.class);
-        given(player.isOp()).willReturn(true);
-
-        // when
-        boolean result = permissionsManager.hasPermission(player, node);
-
-        // then
-        assertThat(result, equalTo(true));
-    }
-
-    @Test
-    void shouldDenyEvenForOpPlayer() {
-        // given
-        PermissionNode node = TestPermissions.WORLD_DOMINATION;
-        Player player = mock(Player.class);
-
-        // when
-        boolean result = permissionsManager.hasPermission(player, node);
-
-        // then
-        assertThat(result, equalTo(false));
-    }
-
-    @Test
-    void shouldHandleNullPermissionForCommandSender() {
-        // given
-        PermissionNode node = null;
-        CommandSender sender = mock(CommandSender.class);
-
-        // when
-        boolean result = permissionsManager.hasPermission(sender, node);
-
-        // then
-        assertThat(result, equalTo(true));
-    }
-
-    @Test
-    void shouldHandleNullPermissionForPlayer() {
-        // given
-        PermissionNode node = null;
-        Player player = mock(Player.class);
-
-        // when
-        boolean result = permissionsManager.hasPermission(player, node);
-
-        // then
-        assertThat(result, equalTo(true));
+    private static Stream<Arguments> createParameters() {
+        return Stream.of(
+            Arguments.of("default permission for command sender", false, TestPermissions.LOGIN, false, true),
+            Arguments.of("op command sender", false, TestPermissions.DELETE_USER, true, true),
+            Arguments.of("deny NOT_ALLOWED for command sender", false, TestPermissions.WORLD_DOMINATION, false, false),
+            Arguments.of("null permission for command sender", false, null, false, true),
+            Arguments.of("default permission for player", true, TestPermissions.LOGIN, false, true),
+            Arguments.of("deny for non-op player", true, TestPermissions.DELETE_USER, false, false),
+            Arguments.of("allow for op player", true, TestPermissions.DELETE_USER, true, true),
+            Arguments.of("deny NOT_ALLOWED for player", true, TestPermissions.WORLD_DOMINATION, false, false),
+            Arguments.of("null permission for player", true, null, false, true));
     }
 }

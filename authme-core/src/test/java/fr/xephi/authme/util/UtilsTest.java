@@ -4,16 +4,19 @@ import fr.xephi.authme.TestHelper;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
-import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -31,56 +34,53 @@ class UtilsTest {
         TestHelper.setupLogger();
     }
 
-    @Test
-    void shouldCompilePattern() {
-        String pattern = "gr(a|e)ys?";
-
-        Pattern result = Utils.safePatternCompile(pattern);
-
-        assertThat(result.toString(), equalTo(pattern));
+    // The second pattern is invalid (missing closing ')') and must default to the match-all pattern.
+    @ParameterizedTest
+    @CsvSource({
+        "'gr(a|e)ys?', 'gr(a|e)ys?'",
+        "'gr(a|eys?', '.*?'"
+    })
+    void shouldCompilePattern(String pattern, String expectedPattern) {
+        assertThat(Utils.safePatternCompile(pattern).toString(), equalTo(expectedPattern));
     }
 
-    @Test
-    void shouldDefaultToAllAllowedPattern() {
-        String invalidPattern = "gr(a|eys?"; // missing closing ')'
-
-        Pattern result = Utils.safePatternCompile(invalidPattern);
-
-        assertThat(result.toString(), equalTo(".*?"));
-    }
-
-    @Test
-    void shouldLogAndSendMessage() {
+    @ParameterizedTest
+    @MethodSource("commandSenders")
+    void shouldLogAndSendMessage(CommandSender sender, boolean shouldReceiveMessage) {
         Logger logger = TestHelper.setupLogger();
-        Player player = mock(Player.class);
         String message = "Finished adding foo to the bar";
-
-        Utils.logAndSendMessage(player, message);
-
-        verify(logger).info(message);
-        verify(player).sendMessage(message);
-    }
-
-    @Test
-    void shouldHandleNullAsCommandSender() {
-        Logger logger = TestHelper.setupLogger();
-        String message = "Test test, test.";
-
-        Utils.logAndSendMessage(null, message);
-
-        verify(logger).info(message);
-    }
-
-    @Test
-    void shouldNotSendToCommandSenderTwice() {
-        Logger logger = TestHelper.setupLogger();
-        CommandSender sender = mock(ConsoleCommandSender.class);
-        String message = "Test test, test.";
 
         Utils.logAndSendMessage(sender, message);
 
         verify(logger).info(message);
-        verifyNoInteractions(sender);
+        verifyMessageHandling(sender, message, shouldReceiveMessage);
+    }
+
+    @ParameterizedTest
+    @MethodSource("commandSenders")
+    void shouldLogAndSendWarning(CommandSender sender, boolean shouldReceiveMessage) {
+        Logger logger = TestHelper.setupLogger();
+        String message = "Error while performing action";
+
+        Utils.logAndSendWarning(sender, message);
+
+        verify(logger).warning(message);
+        verifyMessageHandling(sender, ChatColor.RED + message, shouldReceiveMessage);
+    }
+
+    private static void verifyMessageHandling(CommandSender sender, String message, boolean shouldReceiveMessage) {
+        if (shouldReceiveMessage) {
+            verify(sender).sendMessage(message);
+        } else if (sender != null) {
+            verifyNoInteractions(sender);
+        }
+    }
+
+    private static Stream<Arguments> commandSenders() {
+        return Stream.of(
+            Arguments.of(mock(CommandSender.class), true),
+            Arguments.of(null, false),
+            Arguments.of(mock(ConsoleCommandSender.class), false));
     }
 
     @Test
@@ -91,41 +91,6 @@ class UtilsTest {
         assertThat(Utils.isCollectionEmpty(emptyList), equalTo(true));
         assertThat(Utils.isCollectionEmpty(nonEmptyColl), equalTo(false));
         assertThat(Utils.isCollectionEmpty(null), equalTo(true));
-    }
-
-    @Test
-    void shouldLogAndSendWarning() {
-        Logger logger = TestHelper.setupLogger();
-        String message = "Error while performing action";
-        CommandSender sender = mock(CommandSender.class);
-
-        Utils.logAndSendWarning(sender, message);
-
-        verify(logger).warning(message);
-        verify(sender).sendMessage(ChatColor.RED + message);
-    }
-
-    @Test
-    void shouldLogWarningAndNotSendToConsoleSender() {
-        Logger logger = TestHelper.setupLogger();
-        String message = "Error while performing action";
-        CommandSender sender = mock(ConsoleCommandSender.class);
-
-        Utils.logAndSendWarning(sender, message);
-
-        verify(logger).warning(message);
-        verifyNoInteractions(sender);
-    }
-
-    @Test
-    void shouldLogWarningAndHandleNullCommandSender() {
-        Logger logger = TestHelper.setupLogger();
-        String message = "Error while performing action";
-        CommandSender sender = null;
-
-        Utils.logAndSendWarning(sender, message);
-
-        verify(logger).warning(message);
     }
 
     @Test

@@ -11,6 +11,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -19,6 +22,8 @@ import java.net.InetAddress;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -70,17 +75,22 @@ class GeoIpServiceTest {
         verify(lookupService).country(ip);
     }
 
-    @Test
-    void shouldNotLookUpCountryForLocalhostIp() throws Exception  {
-        // given
-        String ip = "127.0.0.1";
-
-        // when
-        String result = geoIpService.getCountryCode(ip);
+    @ParameterizedTest(name = "localhost lookup #{index}")
+    @MethodSource("localhostLookups")
+    void shouldNotLookUpCountryForLocalhostIp(BiFunction<GeoIpService, String, String> lookup, String expected)
+        throws Exception {
+        // given / when
+        String result = lookup.apply(geoIpService, "127.0.0.1");
 
         // then
-        assertThat(result, equalTo("LOCALHOST"));
+        assertThat(result, equalTo(expected));
         verify(lookupService, never()).country(any());
+    }
+
+    private static Stream<Arguments> localhostLookups() {
+        return Stream.of(
+            Arguments.of((BiFunction<GeoIpService, String, String>) GeoIpService::getCountryCode, "LOCALHOST"),
+            Arguments.of((BiFunction<GeoIpService, String, String>) GeoIpService::getCountryName, "LocalHost"));
     }
 
     @Test
@@ -98,19 +108,6 @@ class GeoIpServiceTest {
         // then
         assertThat(result, equalTo(countryName));
         verify(lookupService).country(ip);
-    }
-
-    @Test
-    void shouldNotLookUpCountryNameForLocalhostIp() throws Exception {
-        // given
-        InetAddress ip = InetAddress.getByName("127.0.0.1");
-
-        // when
-        String result = geoIpService.getCountryName(ip.getHostAddress());
-
-        // then
-        assertThat(result, equalTo("LocalHost"));
-        verify(lookupService, never()).country(ip);
     }
 
     @Test

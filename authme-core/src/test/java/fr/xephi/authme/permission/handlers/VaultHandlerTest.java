@@ -4,14 +4,18 @@ import fr.xephi.authme.data.limbo.UserGroup;
 import net.milkbowl.vault.permission.Permission;
 import org.bukkit.Server;
 import org.bukkit.entity.Player;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -23,38 +27,26 @@ class VaultHandlerTest {
 
     private VaultHandlerTestImpl vaultHandlerTest = VaultHandlerTestImpl.create();
 
-    @Test
-    void shouldReturnGroups() {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("createParameters")
+    void shouldGetGroups(String description, String[] vaultGroups, List<String> expectedGroups) {
         // given
         Permission permissionMock = vaultHandlerTest.permissionMock;
         Player player = mock(Player.class);
-        given(permissionMock.getPlayerGroups(null, player)).willReturn(new String[]{"abc", "test"});
+        given(permissionMock.getPlayerGroups(null, player)).willReturn(vaultGroups);
 
         // when
         List<UserGroup> result = vaultHandlerTest.getGroups(player);
 
         // then
-        List<String> groupNames = result.stream().map(UserGroup::getGroupName).collect(toList());
-        assertThat(groupNames, contains("abc", "test"));
+        assertThat(result.stream().map(UserGroup::getGroupName).collect(toList()), equalTo(expectedGroups));
         verify(permissionMock).getPlayerGroups(null, player);
     }
 
-    /**
-     * Bug #1702: VaultHandler may return null for groups list.
-     */
-    @Test
-    void shouldHandleNullAsGroups() {
-        // given
-        Permission permissionMock = vaultHandlerTest.permissionMock;
-        Player player = mock(Player.class);
-        given(permissionMock.getPlayerGroups(null, player)).willReturn(null);
-
-        // when
-        List<UserGroup> result = vaultHandlerTest.getGroups(player);
-
-        // then
-        assertThat(result, empty());
-        verify(permissionMock).getPlayerGroups(null, player);
+    private static Stream<Arguments> createParameters() {
+        return Stream.of(
+            Arguments.of("should return groups", new String[]{"abc", "test"}, Arrays.asList("abc", "test")),
+            Arguments.of("should handle null as groups", null, Collections.emptyList()));
     }
 
     /** Test implementation using a mock Vault Permission instance. */

@@ -26,6 +26,8 @@ import net.kyori.adventure.text.Component;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -36,6 +38,9 @@ import org.slf4j.Logger;
 
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Stream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -449,83 +454,78 @@ class VelocityProxyBridgeTest {
         assertPerformLoginPayload(payloadCaptor.getValue(), "alice", "test-secret");
     }
 
-    @Test
-    void shouldSendConfigPhaseAutoLoginForAuthenticatedPlayerEnteringAuthServer() {
-        given(player.getUsername()).willReturn("Alice");
-        given(currentServer.getServer()).willReturn(authServer);
-        given(authServer.getServerInfo()).willReturn(authServerInfo);
-        given(authServerInfo.getName()).willReturn("lobby");
-        given(currentServer.sendPluginMessage(eq(VelocityProxyBridge.AUTHME_CHANNEL), any(byte[].class)))
-            .willReturn(true);
-
-        VelocityAuthenticationStore store = new VelocityAuthenticationStore();
-        store.markAuthenticated("alice");
-
-        VelocityProxyBridge bridge = new VelocityProxyBridge(proxyServer, logger, ProxyTestFixtures.configuration(true, false, COMMANDS), store, null);
-        bridge.onPlayerEnteredConfiguration(new PlayerEnteredConfigurationEvent(player, currentServer));
-
+    @ParameterizedTest(name = "config-phase auto-login scenario {index}")
+    @MethodSource("configPhaseAutoLoginScenarios")
+    void shouldSendConfigPhaseAutoLogin(Consumer<VelocityProxyBridgeTest> scenario) {
+        scenario.accept(this);
         verify(currentServer).sendPluginMessage(eq(VelocityProxyBridge.AUTHME_CHANNEL), payloadCaptor.capture());
         assertPerformLoginPayload(payloadCaptor.getValue(), "alice", "test-secret");
     }
 
-    @Test
-    void shouldNotSendConfigPhaseAutoLoginForUnauthenticatedPlayer() {
-        given(player.getUsername()).willReturn("Alice");
-        given(currentServer.getServer()).willReturn(authServer);
-        given(authServer.getServerInfo()).willReturn(authServerInfo);
-        given(authServerInfo.getName()).willReturn("lobby");
+    private static Stream<Consumer<VelocityProxyBridgeTest>> configPhaseAutoLoginScenarios() {
+        return Stream.<Consumer<VelocityProxyBridgeTest>>of(
+            // authenticated player entering the auth server
+            t -> {
+                given(t.player.getUsername()).willReturn("Alice");
+                given(t.currentServer.getServer()).willReturn(t.authServer);
+                given(t.authServer.getServerInfo()).willReturn(t.authServerInfo);
+                given(t.authServerInfo.getName()).willReturn("lobby");
+                given(t.currentServer.sendPluginMessage(eq(VelocityProxyBridge.AUTHME_CHANNEL), any(byte[].class)))
+                    .willReturn(true);
+                VelocityProxyBridge bridge = newBridgeWithAuthenticatedStore(t);
+                bridge.onPlayerEnteredConfiguration(new PlayerEnteredConfigurationEvent(t.player, t.currentServer));
+            },
+            // authenticated player switching to a non-auth server
+            t -> {
+                given(t.player.getUsername()).willReturn("Alice");
+                given(t.currentServer.getServer()).willReturn(t.nonAuthServer);
+                given(t.nonAuthServer.getServerInfo()).willReturn(t.nonAuthServerInfo);
+                given(t.nonAuthServerInfo.getName()).willReturn("survival");
+                given(t.currentServer.sendPluginMessage(eq(VelocityProxyBridge.AUTHME_CHANNEL), any(byte[].class)))
+                    .willReturn(true);
+                VelocityProxyBridge bridge = newBridgeWithAuthenticatedStore(t);
+                bridge.onPlayerEnterConfiguration(new PlayerEnterConfigurationEvent(t.player, t.currentServer));
+            }
+        );
+    }
 
-        VelocityProxyBridge bridge = new VelocityProxyBridge(proxyServer, logger, ProxyTestFixtures.configuration(true, false, COMMANDS),
-            new VelocityAuthenticationStore(), null);
-        bridge.onPlayerEnteredConfiguration(new PlayerEnteredConfigurationEvent(player, currentServer));
-
+    @ParameterizedTest(name = "no config-phase auto-login scenario {index}")
+    @MethodSource("noConfigPhaseAutoLoginScenarios")
+    void shouldNotSendConfigPhaseAutoLogin(Consumer<VelocityProxyBridgeTest> scenario) {
+        scenario.accept(this);
         verify(currentServer, never()).sendPluginMessage(any(), any(byte[].class));
     }
 
-    @Test
-    void shouldNotSendConfigPhaseAutoLoginWhenEnteringNonAuthServer() {
-        given(player.getUsername()).willReturn("Alice");
-        given(currentServer.getServer()).willReturn(nonAuthServer);
-        given(nonAuthServer.getServerInfo()).willReturn(nonAuthServerInfo);
-        given(nonAuthServerInfo.getName()).willReturn("survival");
-
-        VelocityAuthenticationStore store = new VelocityAuthenticationStore();
-        store.markAuthenticated("alice");
-
-        VelocityProxyBridge bridge = new VelocityProxyBridge(proxyServer, logger, ProxyTestFixtures.configuration(true, false, COMMANDS), store, null);
-        bridge.onPlayerEnteredConfiguration(new PlayerEnteredConfigurationEvent(player, currentServer));
-
-        verify(currentServer, never()).sendPluginMessage(any(), any(byte[].class));
+    private static Stream<Consumer<VelocityProxyBridgeTest>> noConfigPhaseAutoLoginScenarios() {
+        return Stream.<Consumer<VelocityProxyBridgeTest>>of(
+            // unauthenticated player entering the auth server
+            t -> {
+                given(t.player.getUsername()).willReturn("Alice");
+                given(t.currentServer.getServer()).willReturn(t.authServer);
+                given(t.authServer.getServerInfo()).willReturn(t.authServerInfo);
+                given(t.authServerInfo.getName()).willReturn("lobby");
+                t.newBridge().onPlayerEnteredConfiguration(new PlayerEnteredConfigurationEvent(t.player, t.currentServer));
+            },
+            // authenticated player entering a non-auth server normally
+            t -> {
+                given(t.player.getUsername()).willReturn("Alice");
+                given(t.currentServer.getServer()).willReturn(t.nonAuthServer);
+                given(t.nonAuthServer.getServerInfo()).willReturn(t.nonAuthServerInfo);
+                given(t.nonAuthServerInfo.getName()).willReturn("survival");
+                newBridgeWithAuthenticatedStore(t)
+                    .onPlayerEnteredConfiguration(new PlayerEnteredConfigurationEvent(t.player, t.currentServer));
+            },
+            // entered configuration without a server connection
+            t -> newBridgeWithAuthenticatedStore(t)
+                .onPlayerEnteredConfiguration(new PlayerEnteredConfigurationEvent(t.player, null))
+        );
     }
 
-    @Test
-    void shouldSendConfigPhaseAutoLoginWhenEnteringNonAuthServerOnServerSwitch() {
-        given(player.getUsername()).willReturn("Alice");
-        given(currentServer.getServer()).willReturn(nonAuthServer);
-        given(nonAuthServer.getServerInfo()).willReturn(nonAuthServerInfo);
-        given(nonAuthServerInfo.getName()).willReturn("survival");
-        given(currentServer.sendPluginMessage(eq(VelocityProxyBridge.AUTHME_CHANNEL), any(byte[].class)))
-            .willReturn(true);
-
+    private static VelocityProxyBridge newBridgeWithAuthenticatedStore(VelocityProxyBridgeTest test) {
         VelocityAuthenticationStore store = new VelocityAuthenticationStore();
         store.markAuthenticated("alice");
-
-        VelocityProxyBridge bridge = new VelocityProxyBridge(proxyServer, logger, ProxyTestFixtures.configuration(true, false, COMMANDS), store, null);
-        bridge.onPlayerEnterConfiguration(new PlayerEnterConfigurationEvent(player, currentServer));
-
-        verify(currentServer).sendPluginMessage(eq(VelocityProxyBridge.AUTHME_CHANNEL), payloadCaptor.capture());
-        assertPerformLoginPayload(payloadCaptor.getValue(), "alice", "test-secret");
-    }
-
-    @Test
-    void shouldNotSendConfigPhaseAutoLoginWhenEnteredConfigurationWithoutServerConnection() {
-        VelocityAuthenticationStore store = new VelocityAuthenticationStore();
-        store.markAuthenticated("alice");
-
-        VelocityProxyBridge bridge = new VelocityProxyBridge(proxyServer, logger, ProxyTestFixtures.configuration(true, false, COMMANDS), store, null);
-        bridge.onPlayerEnteredConfiguration(new PlayerEnteredConfigurationEvent(player, null));
-
-        verify(currentServer, never()).sendPluginMessage(any(), any(byte[].class));
+        return new VelocityProxyBridge(test.proxyServer, test.logger,
+            ProxyTestFixtures.configuration(true, false, COMMANDS), store, null);
     }
 
     // --- Command blocking tests ---
@@ -546,85 +546,67 @@ class VelocityProxyBridgeTest {
         verify(commandEvent).setResult(CommandExecuteEvent.CommandResult.denied());
     }
 
-    @Test
-    void shouldAllowWhitelistedCommandForUnauthenticatedPlayer() {
-        given(commandEvent.getCommandSource()).willReturn(player);
-        given(commandEvent.getCommand()).willReturn("login secret");
-        given(player.getUsername()).willReturn("alice");
-        given(player.getCurrentServer()).willReturn(Optional.of(currentServer));
-        given(currentServer.getServer()).willReturn(authServer);
-        given(authServer.getServerInfo()).willReturn(authServerInfo);
-        given(authServerInfo.getName()).willReturn("lobby");
-
-        VelocityProxyBridge bridge = newBridge();
+    @ParameterizedTest(name = "allow command scenario {index}")
+    @MethodSource("allowedCommandScenarios")
+    void shouldAllowCommandWhenNotBlocked(Function<VelocityProxyBridgeTest, VelocityProxyBridge> scenario) {
+        VelocityProxyBridge bridge = scenario.apply(this);
         bridge.onCommandExecute(commandEvent);
 
         verify(commandEvent, never()).setResult(any());
     }
 
-    @Test
-    void shouldAllowCommandForAuthenticatedPlayer() {
-        given(commandEvent.getCommandSource()).willReturn(player);
-        given(player.getUsername()).willReturn("alice");
-        given(player.getCurrentServer()).willReturn(Optional.of(currentServer));
-        given(currentServer.getServer()).willReturn(authServer);
-        given(authServer.getServerInfo()).willReturn(authServerInfo);
-        given(authServerInfo.getName()).willReturn("lobby");
-
-        VelocityAuthenticationStore store = new VelocityAuthenticationStore();
-        store.markAuthenticated("alice");
-
-        VelocityProxyBridge bridge = new VelocityProxyBridge(proxyServer, logger, ProxyTestFixtures.configuration(true, false, COMMANDS), store, null);
-        bridge.onCommandExecute(commandEvent);
-
-        verify(commandEvent, never()).setResult(any());
-    }
-
-    @Test
-    void shouldAllowCommandIfNotOnAuthServer() {
-        given(commandEvent.getCommandSource()).willReturn(player);
-        given(player.getCurrentServer()).willReturn(Optional.of(currentServer));
-        given(currentServer.getServer()).willReturn(nonAuthServer);
-        given(nonAuthServer.getServerInfo()).willReturn(nonAuthServerInfo);
-        given(nonAuthServerInfo.getName()).willReturn("survival");
-
-        VelocityProxyBridge bridge = newBridge();
-        bridge.onCommandExecute(commandEvent);
-
-        verify(commandEvent, never()).setResult(any());
-    }
-
-    @Test
-    void shouldAllowCommandIfPlayerHasNoCurrentServer() {
-        given(commandEvent.getCommandSource()).willReturn(player);
-        given(player.getCurrentServer()).willReturn(Optional.empty());
-
-        VelocityProxyBridge bridge = newBridge();
-        bridge.onCommandExecute(commandEvent);
-
-        verify(commandEvent, never()).setResult(any());
-    }
-
-    @Test
-    void shouldAllowCommandIfSourceIsNotAPlayer() {
-        given(commandEvent.getCommandSource()).willReturn(consoleSource);
-
-        VelocityProxyBridge bridge = newBridge();
-        bridge.onCommandExecute(commandEvent);
-
-        verify(commandEvent, never()).setResult(any());
-    }
-
-    @Test
-    void shouldNotBlockCommandIfCommandsRequireAuthIsDisabled() {
-        VelocityProxyConfiguration config = new VelocityProxyConfiguration(
-            Set.of("lobby"), false, true, "Authentication required.", false, false, "",
-            false, Set.of("/login"), true, "", "", false);
-
-        VelocityProxyBridge bridge = new VelocityProxyBridge(proxyServer, logger, config, new VelocityAuthenticationStore(), null);
-        bridge.onCommandExecute(commandEvent);
-
-        verify(commandEvent, never()).setResult(any());
+    private static Stream<Function<VelocityProxyBridgeTest, VelocityProxyBridge>> allowedCommandScenarios() {
+        return Stream.<Function<VelocityProxyBridgeTest, VelocityProxyBridge>>of(
+            // whitelisted command from an unauthenticated player on the auth server
+            t -> {
+                given(t.commandEvent.getCommandSource()).willReturn(t.player);
+                given(t.commandEvent.getCommand()).willReturn("login secret");
+                given(t.player.getUsername()).willReturn("alice");
+                given(t.player.getCurrentServer()).willReturn(Optional.of(t.currentServer));
+                given(t.currentServer.getServer()).willReturn(t.authServer);
+                given(t.authServer.getServerInfo()).willReturn(t.authServerInfo);
+                given(t.authServerInfo.getName()).willReturn("lobby");
+                return t.newBridge();
+            },
+            // already authenticated player
+            t -> {
+                given(t.commandEvent.getCommandSource()).willReturn(t.player);
+                given(t.player.getUsername()).willReturn("alice");
+                given(t.player.getCurrentServer()).willReturn(Optional.of(t.currentServer));
+                given(t.currentServer.getServer()).willReturn(t.authServer);
+                given(t.authServer.getServerInfo()).willReturn(t.authServerInfo);
+                given(t.authServerInfo.getName()).willReturn("lobby");
+                return newBridgeWithAuthenticatedStore(t);
+            },
+            // player connected to a non-auth server
+            t -> {
+                given(t.commandEvent.getCommandSource()).willReturn(t.player);
+                given(t.player.getCurrentServer()).willReturn(Optional.of(t.currentServer));
+                given(t.currentServer.getServer()).willReturn(t.nonAuthServer);
+                given(t.nonAuthServer.getServerInfo()).willReturn(t.nonAuthServerInfo);
+                given(t.nonAuthServerInfo.getName()).willReturn("survival");
+                return t.newBridge();
+            },
+            // player with no current server
+            t -> {
+                given(t.commandEvent.getCommandSource()).willReturn(t.player);
+                given(t.player.getCurrentServer()).willReturn(Optional.empty());
+                return t.newBridge();
+            },
+            // command source is not a player
+            t -> {
+                given(t.commandEvent.getCommandSource()).willReturn(t.consoleSource);
+                return t.newBridge();
+            },
+            // command blocking disabled in the configuration
+            t -> {
+                VelocityProxyConfiguration config = new VelocityProxyConfiguration(
+                    Set.of("lobby"), false, true, "Authentication required.", false, false, "",
+                    false, Set.of("/login"), true, "", "", false);
+                return new VelocityProxyBridge(t.proxyServer, t.logger, config,
+                    new VelocityAuthenticationStore(), null);
+            }
+        );
     }
 
     // --- Chat blocking tests ---
@@ -644,59 +626,51 @@ class VelocityProxyBridgeTest {
         verify(chatEvent).setResult(PlayerChatEvent.ChatResult.denied());
     }
 
-    @Test
-    void shouldAllowChatForAuthenticatedPlayer() {
-        given(chatEvent.getPlayer()).willReturn(player);
-        given(player.getUsername()).willReturn("alice");
-        given(player.getCurrentServer()).willReturn(Optional.of(currentServer));
-        given(currentServer.getServer()).willReturn(authServer);
-        given(authServer.getServerInfo()).willReturn(authServerInfo);
-        given(authServerInfo.getName()).willReturn("lobby");
-
-        VelocityAuthenticationStore store = new VelocityAuthenticationStore();
-        store.markAuthenticated("alice");
-
-        VelocityProxyBridge bridge = new VelocityProxyBridge(proxyServer, logger, ProxyTestFixtures.configuration(true, false, COMMANDS), store, null);
+    @ParameterizedTest(name = "allow chat scenario {index}")
+    @MethodSource("allowedChatScenarios")
+    void shouldAllowChatWhenNotBlocked(Function<VelocityProxyBridgeTest, VelocityProxyBridge> scenario) {
+        VelocityProxyBridge bridge = scenario.apply(this);
         bridge.onPlayerChat(chatEvent);
 
         verify(chatEvent, never()).setResult(any());
     }
 
-    @Test
-    void shouldAllowChatIfNotOnAuthServer() {
-        given(chatEvent.getPlayer()).willReturn(player);
-        given(player.getCurrentServer()).willReturn(Optional.of(currentServer));
-        given(currentServer.getServer()).willReturn(nonAuthServer);
-        given(nonAuthServer.getServerInfo()).willReturn(nonAuthServerInfo);
-        given(nonAuthServerInfo.getName()).willReturn("survival");
-
-        VelocityProxyBridge bridge = newBridge();
-        bridge.onPlayerChat(chatEvent);
-
-        verify(chatEvent, never()).setResult(any());
-    }
-
-    @Test
-    void shouldAllowChatIfPlayerHasNoCurrentServer() {
-        given(chatEvent.getPlayer()).willReturn(player);
-        given(player.getCurrentServer()).willReturn(Optional.empty());
-
-        VelocityProxyBridge bridge = newBridge();
-        bridge.onPlayerChat(chatEvent);
-
-        verify(chatEvent, never()).setResult(any());
-    }
-
-    @Test
-    void shouldNotBlockChatIfChatRequiresAuthIsDisabled() {
-        VelocityProxyConfiguration config = new VelocityProxyConfiguration(
-            Set.of("lobby"), false, true, "Authentication required.", false, false, "",
-            true, Set.of("/login"), false, "", "", false);
-
-        VelocityProxyBridge bridge = new VelocityProxyBridge(proxyServer, logger, config, new VelocityAuthenticationStore(), null);
-        bridge.onPlayerChat(chatEvent);
-
-        verify(chatEvent, never()).setResult(any());
+    private static Stream<Function<VelocityProxyBridgeTest, VelocityProxyBridge>> allowedChatScenarios() {
+        return Stream.<Function<VelocityProxyBridgeTest, VelocityProxyBridge>>of(
+            // already authenticated player on the auth server
+            t -> {
+                given(t.chatEvent.getPlayer()).willReturn(t.player);
+                given(t.player.getUsername()).willReturn("alice");
+                given(t.player.getCurrentServer()).willReturn(Optional.of(t.currentServer));
+                given(t.currentServer.getServer()).willReturn(t.authServer);
+                given(t.authServer.getServerInfo()).willReturn(t.authServerInfo);
+                given(t.authServerInfo.getName()).willReturn("lobby");
+                return newBridgeWithAuthenticatedStore(t);
+            },
+            // player connected to a non-auth server
+            t -> {
+                given(t.chatEvent.getPlayer()).willReturn(t.player);
+                given(t.player.getCurrentServer()).willReturn(Optional.of(t.currentServer));
+                given(t.currentServer.getServer()).willReturn(t.nonAuthServer);
+                given(t.nonAuthServer.getServerInfo()).willReturn(t.nonAuthServerInfo);
+                given(t.nonAuthServerInfo.getName()).willReturn("survival");
+                return t.newBridge();
+            },
+            // player with no current server
+            t -> {
+                given(t.chatEvent.getPlayer()).willReturn(t.player);
+                given(t.player.getCurrentServer()).willReturn(Optional.empty());
+                return t.newBridge();
+            },
+            // chat blocking disabled in the configuration
+            t -> {
+                VelocityProxyConfiguration config = new VelocityProxyConfiguration(
+                    Set.of("lobby"), false, true, "Authentication required.", false, false, "",
+                    true, Set.of("/login"), false, "", "", false);
+                return new VelocityProxyBridge(t.proxyServer, t.logger, config,
+                    new VelocityAuthenticationStore(), null);
+            }
+        );
     }
 
     @Test

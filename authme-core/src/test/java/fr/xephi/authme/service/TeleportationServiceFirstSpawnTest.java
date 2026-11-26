@@ -12,9 +12,14 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.stream.Stream;
 
 import static fr.xephi.authme.service.BukkitServiceTestHelper.setBukkitServiceToScheduleSyncEntityTaskFromOptionallyAsyncTask;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -92,37 +97,28 @@ class TeleportationServiceFirstSpawnTest {
         verify(spawnLoader, never()).getSpawnLocation(any(World.class));
     }
 
-    @Test
-    void shouldKeepRegularSpawnForReturningPlayerWhenAuthmeHasPriority() {
+    @ParameterizedTest(name = "priority \"{0}\" for {1}")
+    @MethodSource("regularSpawnPriorities")
+    void shouldKeepRegularSpawn(String spawnPriority, String playerName, boolean registered) {
         // given
-        givenSpawnSettings("authme,essentials,default");
+        givenSpawnSettings(spawnPriority);
         World world = mock(World.class);
         Location regularSpawn = new Location(world, 1.0, 2.0, 3.0);
-        given(dataSource.isAuthAvailable("Veteran")).willReturn(true);
+        given(dataSource.isAuthAvailable(playerName)).willReturn(registered);
         given(spawnLoader.getSpawnLocation(world)).willReturn(regularSpawn);
 
         // when
-        Location result = teleportationService.prepareOnJoinSpawnLocation("Veteran", world);
+        Location result = teleportationService.prepareOnJoinSpawnLocation(playerName, world);
 
         // then
         assertThat(result, equalTo(regularSpawn));
         verify(spawnLoader, never()).getFirstSpawn();
     }
 
-    @Test
-    void shouldNotOverrideSpawnPriorityWhenAuthmeIsNotFirst() {
-        // given
-        givenSpawnSettings("essentials,authme,default");
-        World world = mock(World.class);
-        Location regularSpawn = new Location(world, 1.0, 2.0, 3.0);
-        given(spawnLoader.getSpawnLocation(world)).willReturn(regularSpawn);
-
-        // when
-        Location result = teleportationService.prepareOnJoinSpawnLocation("Newbie", world);
-
-        // then
-        assertThat(result, equalTo(regularSpawn));
-        verify(spawnLoader, never()).getFirstSpawn();
+    private static Stream<Arguments> regularSpawnPriorities() {
+        return Stream.of(
+            Arguments.of("authme,essentials,default", "Veteran", true),
+            Arguments.of("essentials,authme,default", "Newbie", false));
     }
 
     private void givenSpawnSettings(String spawnPriority) {

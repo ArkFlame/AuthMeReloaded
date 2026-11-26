@@ -23,11 +23,17 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -93,28 +99,18 @@ class AbstractSpigotPlatformAdapterTest {
 
     // --- Listener selection matrix tests ---
 
-    @Test
-    void shouldReturnLegacyOnlyListenersFor18Capabilities() {
-        // 1.8: no optional API classes available
-        AbstractSpigotPlatformAdapter adapter = new CapabilityControlledAdapter(capsFor());
+    @ParameterizedTest
+    @MethodSource("listenerMatrixParams")
+    void shouldSelectListenersForCapabilities(Set<String> capabilities,
+                                              List<Class<? extends Listener>> expected,
+                                              List<Class<? extends Listener>> absent) {
+        AbstractSpigotPlatformAdapter adapter = new CapabilityControlledAdapter(capabilities);
         List<Class<? extends Listener>> listeners = adapter.getListeners();
 
-        assertThat(listeners, containsInAnyOrder(
-            PlayerListener.class,
-            BlockListener.class,
-            EntityListener.class,
-            ServerListener.class,
-            DoubleLoginFixListener.class,
-            LoginLocationFixListener.class,
-            AdvancedShulkerFixListener.class,
-            LegacyPlayerLoginListener.class,
-            LegacyPlayerPickupItemListener.class));
-
-        // verify no modern/optional listeners present
-        assertThat(listeners, not(hasItem(LegacyPlayerSpawnLocationListener.class)));
-        assertThat(listeners, not(hasItem(PlayerSwapHandItemsListener.class)));
-        assertThat(listeners, not(hasItem(EntityAirChangeListener.class)));
-        assertThat(listeners, not(hasItem(EntityPickupItemListener.class)));
+        assertThat(listeners, containsInAnyOrder(expected.toArray(new Class<?>[0])));
+        for (Class<? extends Listener> listener : absent) {
+            assertThat(listeners, not(hasItem(listener)));
+        }
     }
 
     @Test
@@ -127,84 +123,6 @@ class AbstractSpigotPlatformAdapterTest {
     }
 
     @Test
-    void shouldIncludeSpawnLocationAndSwapHandFor19Capabilities() {
-        // 1.9-1.10: spawn-location + swap-hand available, but not air-change or modern pickup
-        AbstractSpigotPlatformAdapter adapter = new CapabilityControlledAdapter(capsFor(
-            "org.spigotmc.event.player.PlayerSpawnLocationEvent",
-            "org.bukkit.event.player.PlayerSwapHandItemsEvent"));
-        List<Class<? extends Listener>> listeners = adapter.getListeners();
-
-        assertThat(listeners, containsInAnyOrder(
-            PlayerListener.class,
-            BlockListener.class,
-            EntityListener.class,
-            ServerListener.class,
-            DoubleLoginFixListener.class,
-            LoginLocationFixListener.class,
-            AdvancedShulkerFixListener.class,
-            LegacyPlayerLoginListener.class,
-            LegacyPlayerPickupItemListener.class,
-            LegacyPlayerSpawnLocationListener.class,
-            PlayerSwapHandItemsListener.class));
-
-        assertThat(listeners, not(hasItem(EntityAirChangeListener.class)));
-        assertThat(listeners, not(hasItem(EntityPickupItemListener.class)));
-    }
-
-    @Test
-    void shouldIncludeAirChangeFor111Capabilities() {
-        // 1.11: adds air-change on top of 1.9 set
-        AbstractSpigotPlatformAdapter adapter = new CapabilityControlledAdapter(capsFor(
-            "org.spigotmc.event.player.PlayerSpawnLocationEvent",
-            "org.bukkit.event.player.PlayerSwapHandItemsEvent",
-            "org.bukkit.event.entity.EntityAirChangeEvent"));
-        List<Class<? extends Listener>> listeners = adapter.getListeners();
-
-        assertThat(listeners, containsInAnyOrder(
-            PlayerListener.class,
-            BlockListener.class,
-            EntityListener.class,
-            ServerListener.class,
-            DoubleLoginFixListener.class,
-            LoginLocationFixListener.class,
-            AdvancedShulkerFixListener.class,
-            LegacyPlayerLoginListener.class,
-            LegacyPlayerPickupItemListener.class,
-            LegacyPlayerSpawnLocationListener.class,
-            PlayerSwapHandItemsListener.class,
-            EntityAirChangeListener.class));
-
-        assertThat(listeners, not(hasItem(EntityPickupItemListener.class)));
-    }
-
-    @Test
-    void shouldUseModernPickupInsteadOfLegacyFor112Plus() {
-        // 1.12+: all optional APIs available -> modern pickup replaces legacy
-        AbstractSpigotPlatformAdapter adapter = new CapabilityControlledAdapter(capsFor(
-            "org.spigotmc.event.player.PlayerSpawnLocationEvent",
-            "org.bukkit.event.player.PlayerSwapHandItemsEvent",
-            "org.bukkit.event.entity.EntityAirChangeEvent",
-            "org.bukkit.event.entity.EntityPickupItemEvent"));
-        List<Class<? extends Listener>> listeners = adapter.getListeners();
-
-        assertThat(listeners, containsInAnyOrder(
-            PlayerListener.class,
-            BlockListener.class,
-            EntityListener.class,
-            ServerListener.class,
-            DoubleLoginFixListener.class,
-            LoginLocationFixListener.class,
-            AdvancedShulkerFixListener.class,
-            LegacyPlayerLoginListener.class,
-            LegacyPlayerSpawnLocationListener.class,
-            PlayerSwapHandItemsListener.class,
-            EntityAirChangeListener.class,
-            EntityPickupItemListener.class));
-
-        assertThat(listeners, not(hasItem(LegacyPlayerPickupItemListener.class)));
-    }
-
-    @Test
     void shouldNotIncludeLegacyPickupWhenModernPickupAvailable() {
         // Edge: only modern pickup available, no other optional APIs
         AbstractSpigotPlatformAdapter adapter = new CapabilityControlledAdapter(
@@ -213,6 +131,58 @@ class AbstractSpigotPlatformAdapterTest {
 
         assertThat(listeners, hasItem(EntityPickupItemListener.class));
         assertThat(listeners, not(hasItem(LegacyPlayerPickupItemListener.class)));
+    }
+
+    private static Stream<Arguments> listenerMatrixParams() {
+        // 1.8: no optional API classes available
+        List<Class<? extends Listener>> listeners18 = baseListeners();
+
+        // 1.9-1.10: spawn-location + swap-hand available, but not air-change or modern pickup
+        List<Class<? extends Listener>> listeners19 = new ArrayList<>(listeners18);
+        listeners19.add(LegacyPlayerSpawnLocationListener.class);
+        listeners19.add(PlayerSwapHandItemsListener.class);
+
+        // 1.11: adds air-change on top of the 1.9 set
+        List<Class<? extends Listener>> listeners111 = new ArrayList<>(listeners19);
+        listeners111.add(EntityAirChangeListener.class);
+
+        // 1.12+: all optional APIs available -> modern pickup replaces legacy
+        List<Class<? extends Listener>> listeners112 = new ArrayList<>(listeners111);
+        listeners112.remove(LegacyPlayerPickupItemListener.class);
+        listeners112.add(EntityPickupItemListener.class);
+
+        return Stream.of(
+            Arguments.of(capsFor(), listeners18, Arrays.asList(
+                LegacyPlayerSpawnLocationListener.class, PlayerSwapHandItemsListener.class,
+                EntityAirChangeListener.class, EntityPickupItemListener.class)),
+            Arguments.of(capsFor(
+                "org.spigotmc.event.player.PlayerSpawnLocationEvent",
+                "org.bukkit.event.player.PlayerSwapHandItemsEvent"), listeners19,
+                Arrays.asList(EntityAirChangeListener.class, EntityPickupItemListener.class)),
+            Arguments.of(capsFor(
+                "org.spigotmc.event.player.PlayerSpawnLocationEvent",
+                "org.bukkit.event.player.PlayerSwapHandItemsEvent",
+                "org.bukkit.event.entity.EntityAirChangeEvent"), listeners111,
+                Collections.singletonList(EntityPickupItemListener.class)),
+            Arguments.of(capsFor(
+                "org.spigotmc.event.player.PlayerSpawnLocationEvent",
+                "org.bukkit.event.player.PlayerSwapHandItemsEvent",
+                "org.bukkit.event.entity.EntityAirChangeEvent",
+                "org.bukkit.event.entity.EntityPickupItemEvent"), listeners112,
+                Collections.singletonList(LegacyPlayerPickupItemListener.class)));
+    }
+
+    private static List<Class<? extends Listener>> baseListeners() {
+        return Arrays.asList(
+            PlayerListener.class,
+            BlockListener.class,
+            EntityListener.class,
+            ServerListener.class,
+            DoubleLoginFixListener.class,
+            LoginLocationFixListener.class,
+            AdvancedShulkerFixListener.class,
+            LegacyPlayerLoginListener.class,
+            LegacyPlayerPickupItemListener.class);
     }
 
     private static Set<String> capsFor(String... classNames) {

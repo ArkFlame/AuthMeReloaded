@@ -86,44 +86,30 @@ class CommandUtilsTest {
         checkArgumentCount(command, 1, 3);
     }
 
-    @Test
-    void shouldFormatSimpleArgument() {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("buildSyntaxCases")
+    void shouldFormatCommandSyntax(String name, String parentLabel, String childLabel,
+                                   List<String> labels, String expectedSyntax) {
         // given
-        CommandDescription command = TestCommandsUtil.getCommandWithLabel(commands, "authme");
-        List<String> labels = Collections.singletonList("authme");
+        CommandDescription command = childLabel == null
+            ? TestCommandsUtil.getCommandWithLabel(commands, parentLabel)
+            : TestCommandsUtil.getCommandWithLabel(commands, parentLabel, childLabel);
 
         // when
         String result = CommandUtils.buildSyntax(command, labels);
 
         // then
-        assertThat(result, equalTo(ChatColor.WHITE + "/authme" + ChatColor.YELLOW));
+        assertThat(result, equalTo(expectedSyntax));
     }
 
-    @Test
-    void shouldFormatCommandWithMultipleArguments() {
-        // given
-        CommandDescription command = TestCommandsUtil.getCommandWithLabel(commands, "authme", "register");
-        List<String> labels = Arrays.asList("authme", "reg");
-
-        // when
-        String result = CommandUtils.buildSyntax(command, labels);
-
-        // then
-        assertThat(result, equalTo(ChatColor.WHITE + "/authme" + ChatColor.YELLOW + " reg <password> <confirmation>"));
-    }
-
-
-    @Test
-    void shouldFormatCommandWithOptionalArgument() {
-        // given
-        CommandDescription command = TestCommandsUtil.getCommandWithLabel(commands, "email");
-        List<String> labels = Collections.singletonList("email");
-
-        // when
-        String result = CommandUtils.buildSyntax(command, labels);
-
-        // then
-        assertThat(result, equalTo(ChatColor.WHITE + "/email" + ChatColor.YELLOW + " [player]"));
+    static Stream<Arguments> buildSyntaxCases() {
+        return Stream.of(
+            Arguments.of("simple argument", "authme", null,
+                Collections.singletonList("authme"), ChatColor.WHITE + "/authme" + ChatColor.YELLOW),
+            Arguments.of("multiple arguments", "authme", "register", Arrays.asList("authme", "reg"),
+                ChatColor.WHITE + "/authme" + ChatColor.YELLOW + " reg <password> <confirmation>"),
+            Arguments.of("optional argument", "email", null,
+                Collections.singletonList("email"), ChatColor.WHITE + "/email" + ChatColor.YELLOW + " [player]"));
     }
 
     @ParameterizedTest(name = "{0}")

@@ -1,7 +1,15 @@
 package fr.xephi.authme.events;
 
 import org.bukkit.entity.Player;
+import org.bukkit.event.HandlerList;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
+
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -13,58 +21,50 @@ class PlayerLifecycleEventTest {
 
     private final Player player = mock(Player.class);
 
-    @Test
-    void loginEventExposesPlayerAndCompatibilityFlag() {
-        LoginEvent event = new LoginEvent(player);
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("simplePlayerEvents")
+    void playerEventExposesPlayerAndHandlerList(String name, Function<Player, CustomEvent> factory,
+                                                Function<CustomEvent, Player> playerGetter,
+                                                HandlerList handlerList) {
+        CustomEvent event = factory.apply(player);
+        assertThat(name, playerGetter.apply(event), sameInstance(player));
+        assertThat(name, event.getHandlers(), sameInstance(handlerList));
+        assertThat(name, event.isAsynchronous(), equalTo(false));
+    }
 
+    private static Stream<Arguments> simplePlayerEvents() {
+        return Stream.of(
+            Arguments.of("login", (Function<Player, CustomEvent>) p -> new LoginEvent(p),
+                (Function<CustomEvent, Player>) e -> ((LoginEvent) e).getPlayer(), LoginEvent.getHandlerList()),
+            Arguments.of("logout", (Function<Player, CustomEvent>) p -> new LogoutEvent(p),
+                (Function<CustomEvent, Player>) e -> ((LogoutEvent) e).getPlayer(), LogoutEvent.getHandlerList()),
+            Arguments.of("register", (Function<Player, CustomEvent>) p -> new RegisterEvent(p),
+                (Function<CustomEvent, Player>) e -> ((RegisterEvent) e).getPlayer(), RegisterEvent.getHandlerList()));
+    }
+
+    @Test
+    void loginEventRetainsCompatibilityFlag() {
+        assertThat(new LoginEvent(player).isLogin(), equalTo(true));
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void failedLoginEventHonorsAsyncFlag(boolean async) {
+        FailedLoginEvent event = new FailedLoginEvent(player, async);
         assertThat(event.getPlayer(), sameInstance(player));
-        assertThat(event.getHandlers(), sameInstance(LoginEvent.getHandlerList()));
-        assertThat(event.isAsynchronous(), equalTo(false));
-        assertThat(event.isLogin(), equalTo(true));
+        assertThat(event.getHandlers(), sameInstance(FailedLoginEvent.getHandlerList()));
+        assertThat(event.isAsynchronous(), equalTo(async));
     }
 
-    @Test
-    void logoutEventExposesPlayer() {
-        LogoutEvent event = new LogoutEvent(player);
-
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void restoreSessionEventHonorsAsyncFlagAndCancellation(boolean async) {
+        RestoreSessionEvent event = new RestoreSessionEvent(player, async);
         assertThat(event.getPlayer(), sameInstance(player));
-        assertThat(event.getHandlers(), sameInstance(LogoutEvent.getHandlerList()));
-        assertThat(event.isAsynchronous(), equalTo(false));
-    }
-
-    @Test
-    void registerEventExposesPlayer() {
-        RegisterEvent event = new RegisterEvent(player);
-
-        assertThat(event.getPlayer(), sameInstance(player));
-        assertThat(event.getHandlers(), sameInstance(RegisterEvent.getHandlerList()));
-        assertThat(event.isAsynchronous(), equalTo(false));
-    }
-
-    @Test
-    void failedLoginEventHonorsAsyncFlag() {
-        FailedLoginEvent sync = new FailedLoginEvent(player, false);
-        assertThat(sync.getPlayer(), sameInstance(player));
-        assertThat(sync.getHandlers(), sameInstance(FailedLoginEvent.getHandlerList()));
-        assertThat(sync.isAsynchronous(), equalTo(false));
-
-        FailedLoginEvent async = new FailedLoginEvent(player, true);
-        assertThat(async.getPlayer(), sameInstance(player));
-        assertThat(async.isAsynchronous(), equalTo(true));
-    }
-
-    @Test
-    void restoreSessionEventHonorsAsyncFlagAndCancellation() {
-        RestoreSessionEvent sync = new RestoreSessionEvent(player, false);
-        assertThat(sync.getPlayer(), sameInstance(player));
-        assertThat(sync.isAsynchronous(), equalTo(false));
-        assertThat(sync.getHandlers(), sameInstance(RestoreSessionEvent.getHandlerList()));
-
-        RestoreSessionEvent async = new RestoreSessionEvent(player, true);
-        assertThat(async.getPlayer(), sameInstance(player));
-        assertThat(async.isAsynchronous(), equalTo(true));
-        assertThat(async.isCancelled(), equalTo(false));
-        async.setCancelled(true);
-        assertThat(async.isCancelled(), equalTo(true));
+        assertThat(event.isAsynchronous(), equalTo(async));
+        assertThat(event.getHandlers(), sameInstance(RestoreSessionEvent.getHandlerList()));
+        assertThat(event.isCancelled(), equalTo(false));
+        event.setCancelled(true);
+        assertThat(event.isCancelled(), equalTo(true));
     }
 }

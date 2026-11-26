@@ -9,11 +9,15 @@ import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.inventory.InventoryView;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Collections;
+import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -48,10 +52,11 @@ class StrictInventoryWhitelistTest {
         assertThat(event.isCancelled(), equalTo(true));
     }
 
-    @Test
-    void shouldAllowExactTitleWhenStrictCheckIsEnabled() {
-        givenWhitelistWithStrictCheck(true);
-        InventoryOpenEvent event = inventoryOpenEvent("/L");
+    @ParameterizedTest(name = "strict={0}, title={1}")
+    @MethodSource("allowedTitles")
+    void shouldAllowWhitelistedTitle(boolean strict, String title) {
+        givenWhitelistWithStrictCheck(strict);
+        InventoryOpenEvent event = inventoryOpenEvent(title);
 
         listener.onPlayerInventoryOpen(event);
 
@@ -59,15 +64,10 @@ class StrictInventoryWhitelistTest {
         verifyNoInteractions(bukkitService);
     }
 
-    @Test
-    void shouldAllowSimilarTitleWhenStrictCheckIsDisabled() {
-        givenWhitelistWithStrictCheck(false);
-        InventoryOpenEvent event = inventoryOpenEvent("/lx");
-
-        listener.onPlayerInventoryOpen(event);
-
-        assertThat(event.isCancelled(), equalTo(false));
-        verifyNoInteractions(bukkitService);
+    private static Stream<Arguments> allowedTitles() {
+        return Stream.of(
+            Arguments.of(true, "/L"),
+            Arguments.of(false, "/lx"));
     }
 
     private void givenWhitelistWithStrictCheck(boolean strict) {

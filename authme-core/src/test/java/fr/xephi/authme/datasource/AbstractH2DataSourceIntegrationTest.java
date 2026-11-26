@@ -1,6 +1,5 @@
 package fr.xephi.authme.datasource;
 
-import ch.jalu.configme.properties.Property;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import fr.xephi.authme.TestHelper;
@@ -42,8 +41,8 @@ abstract class AbstractH2DataSourceIntegrationTest extends AbstractDataSourceInt
 
         settings = mock(Settings.class);
         TestHelper.returnDefaultsForAllProperties(settings);
-        set(DatabaseSettings.MYSQL_DATABASE, "h2_test");
-        set(DatabaseSettings.MYSQL_TABLE, "authme");
+        setProperty(settings, DatabaseSettings.MYSQL_DATABASE, "h2_test");
+        setProperty(settings, DatabaseSettings.MYSQL_TABLE, "authme");
         TestHelper.setRealLogger();
 
         Path sqlInitFile = TestHelper.getJarPath(TestHelper.PROJECT_ROOT + "datasource/sql-initialize.sql");
@@ -83,10 +82,6 @@ abstract class AbstractH2DataSourceIntegrationTest extends AbstractDataSourceInt
 
     /** Creates the data source under test with the shared settings and connection. */
     protected abstract DataSource createDataSource(Settings settings, HikariDataSource hikariSource);
-
-    private static <T> void set(Property<T> property, T value) {
-        when(settings.getProperty(property)).thenReturn(value);
-    }
 
     private static void silentClose(HikariDataSource con) {
         if (con != null && !con.isClosed()) {

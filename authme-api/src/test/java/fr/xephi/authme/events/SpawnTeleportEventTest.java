@@ -3,6 +3,8 @@ package fr.xephi.authme.events;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -30,20 +32,18 @@ class SpawnTeleportEventTest {
         assertThat(event.getHandlers(), sameInstance(FirstSpawnTeleportEvent.getHandlerList()));
     }
 
-    @Test
-    void spawnEventExposesAuthenticationFlag() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void spawnEventExposesAuthenticationFlag(boolean authenticated) {
         given(player.getLocation()).willReturn(from);
 
-        SpawnTeleportEvent authenticated = new SpawnTeleportEvent(player, to, true);
-        assertThat(authenticated.isAuthenticated(), equalTo(true));
-        assertThat(authenticated.getPlayer(), sameInstance(player));
-        assertThat(authenticated.getFrom(), sameInstance(from));
-        assertThat(authenticated.getTo(), sameInstance(to));
-        assertThat(authenticated.isAsynchronous(), equalTo(false));
-        assertThat(authenticated.getHandlers(), sameInstance(SpawnTeleportEvent.getHandlerList()));
-
-        SpawnTeleportEvent guest = new SpawnTeleportEvent(player, to, false);
-        assertThat(guest.isAuthenticated(), equalTo(false));
+        SpawnTeleportEvent event = new SpawnTeleportEvent(player, to, authenticated);
+        assertThat(event.isAuthenticated(), equalTo(authenticated));
+        assertThat(event.getPlayer(), sameInstance(player));
+        assertThat(event.getFrom(), sameInstance(from));
+        assertThat(event.getTo(), sameInstance(to));
+        assertThat(event.isAsynchronous(), equalTo(false));
+        assertThat(event.getHandlers(), sameInstance(SpawnTeleportEvent.getHandlerList()));
     }
 
     @Test

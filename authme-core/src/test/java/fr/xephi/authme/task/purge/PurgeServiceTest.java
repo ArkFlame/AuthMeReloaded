@@ -13,6 +13,8 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -67,24 +69,12 @@ class PurgeServiceTest {
         TestHelper.setupLogger();
     }
 
-    @Test
-    void shouldNotRunAutoPurge() {
+    @ParameterizedTest
+    @CsvSource({"false, 60", "true, 0"})
+    void shouldNotRunAutoPurge(boolean useAutoPurge, int daysBeforeRemovePlayer) {
         // given
-        given(settings.getProperty(PurgeSettings.USE_AUTO_PURGE)).willReturn(false);
-        given(settings.getProperty(PurgeSettings.DAYS_BEFORE_REMOVE_PLAYER)).willReturn(60);
-
-        // when
-        purgeService.runAutoPurge();
-
-        // then
-        verifyNoInteractions(bukkitService, dataSource);
-    }
-
-    @Test
-    void shouldNotRunAutoPurgeForInvalidInterval() {
-        // given
-        given(settings.getProperty(PurgeSettings.USE_AUTO_PURGE)).willReturn(true);
-        given(settings.getProperty(PurgeSettings.DAYS_BEFORE_REMOVE_PLAYER)).willReturn(0);
+        given(settings.getProperty(PurgeSettings.USE_AUTO_PURGE)).willReturn(useAutoPurge);
+        given(settings.getProperty(PurgeSettings.DAYS_BEFORE_REMOVE_PLAYER)).willReturn(daysBeforeRemovePlayer);
 
         // when
         purgeService.runAutoPurge();

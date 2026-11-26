@@ -79,10 +79,10 @@ class PurgeTaskTest {
         // alpha and echo have bypass permission
         // Foxtrot and india are not present as OfflinePlayer
         // Additionally, BOGUS and 123456 are not present in the names list
-        OfflinePlayer[] players = asArray(
+        OfflinePlayer[] players = new OfflinePlayer[]{
             mockOfflinePlayer("Alpha", true),  mockOfflinePlayer("BOGUS", false),  mockOfflinePlayer("charlie", false),
             mockOfflinePlayer("Delta", false), mockOfflinePlayer("BRAVO", false),  mockOfflinePlayer("Echo", true),
-            mockOfflinePlayer("Golf", false),  mockOfflinePlayer("123456", false), mockOfflinePlayer("HOTEL", false));
+            mockOfflinePlayer("Golf", false),  mockOfflinePlayer("123456", false), mockOfflinePlayer("HOTEL", false)};
         reset(purgeService, permissionsManager);
         setPermissionsBehavior();
         PurgeTask task = new PurgeTask(purgeService, permissionsManager, null, names, players);
@@ -131,8 +131,8 @@ class PurgeTaskTest {
     void shouldHandleOfflinePlayerWithNullName() {
         // given
         Set<String> names = newHashSet("name1", "name2");
-        OfflinePlayer[] players = asArray(
-            mockOfflinePlayer(null, false),  mockOfflinePlayer("charlie", false),  mockOfflinePlayer("name1", false));
+        OfflinePlayer[] players = new OfflinePlayer[]{
+            mockOfflinePlayer(null, false),  mockOfflinePlayer("charlie", false),  mockOfflinePlayer("name1", false)};
         reset(purgeService, permissionsManager);
         setPermissionsBehavior();
 
@@ -199,10 +199,6 @@ class PurgeTaskTest {
         given(player.getName()).willReturn(name);
         playerBypassAssignments.put(player, hasBypassPermission);
         return player;
-    }
-
-    private OfflinePlayer[] asArray(OfflinePlayer... players) {
-        return players;
     }
 
     private void setPermissionsBehavior() {

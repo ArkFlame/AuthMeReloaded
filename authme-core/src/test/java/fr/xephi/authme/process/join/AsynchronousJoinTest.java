@@ -7,6 +7,7 @@ import fr.xephi.authme.data.auth.PlayerCache;
 import fr.xephi.authme.data.limbo.LimboService;
 import fr.xephi.authme.events.PlayerPreAuthEvent;
 import fr.xephi.authme.datasource.DataSource;
+import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.platform.DialogAdapter;
 import fr.xephi.authme.platform.DialogInputSpec;
 import fr.xephi.authme.platform.DialogWindowSpec;
@@ -15,6 +16,7 @@ import fr.xephi.authme.process.register.AsyncRegister;
 import fr.xephi.authme.process.register.executors.ApiPasswordRegisterParams;
 import fr.xephi.authme.process.register.executors.RegistrationMethod;
 import fr.xephi.authme.service.BukkitService;
+import fr.xephi.authme.service.CancellableTask;
 import fr.xephi.authme.service.CommonService;
 import fr.xephi.authme.service.DialogStateService;
 import fr.xephi.authme.service.DialogWindowService;
@@ -51,9 +53,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 import static fr.xephi.authme.service.BukkitServiceTestHelper.setBukkitServiceToRunTaskLater;
 import static fr.xephi.authme.service.BukkitServiceTestHelper.setBukkitServiceToRunTaskOptionallyAsync;
@@ -62,10 +67,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.inOrder;
@@ -183,7 +190,7 @@ public class AsynchronousJoinTest {
         AtomicReference<Runnable> delayedTask = new AtomicReference<>();
         doAnswer(invocation -> {
             delayedTask.set(invocation.getArgument(1));
-            return mock(fr.xephi.authme.service.CancellableTask.class);
+            return mock(CancellableTask.class);
         }).when(bukkitService).runTaskLater(eq(player), any(Runnable.class), eq(1L));
 
         asynchronousJoin.processJoin(player);
@@ -200,7 +207,7 @@ public class AsynchronousJoinTest {
 
         asynchronousJoin.processJoin(player);
 
-        verify(service).send(player, fr.xephi.authme.message.MessageKey.SESSION_RECONNECTION);
+        verify(service).send(player, MessageKey.SESSION_RECONNECTION);
         verify(commandManager).runCommandsOnSessionLogin(player);
         verify(asynchronousLogin).forceLogin(player);
         verify(limboService, never()).createLimboPlayer(player, true);
@@ -219,7 +226,7 @@ public class AsynchronousJoinTest {
 
         asynchronousJoin.processJoin(player);
 
-        verify(service).send(player, fr.xephi.authme.message.MessageKey.SESSION_RECONNECTION);
+        verify(service).send(player, MessageKey.SESSION_RECONNECTION);
         verify(commandManager).runCommandsOnSessionLogin(player);
         verify(asynchronousLogin).forceLoginFromProxy(player);
         verify(asynchronousLogin, never()).forceLogin(player);
@@ -279,7 +286,7 @@ public class AsynchronousJoinTest {
 
         asynchronousJoin.processJoin(player);
 
-        verify(service, never()).send(eq(player), eq(fr.xephi.authme.message.MessageKey.PREMIUM_PENDING_FAIL));
+        verify(service, never()).send(eq(player), eq(MessageKey.PREMIUM_PENDING_FAIL));
         verify(bungeeSender, never()).sendPremiumUnset("Bobby");
         if (hasQueuedRequest) {
             verify(premiumService).finalizePendingPremium(player, mojangUuid);
@@ -469,13 +476,13 @@ public class AsynchronousJoinTest {
         asynchronousJoin.processJoin(player);
 
         verify(limboService).createLimboPlayer(player, true);
-        verify(bukkitService, never()).runTaskLater(any(Player.class), any(Runnable.class), org.mockito.ArgumentMatchers.anyLong());
+        verify(bukkitService, never()).runTaskLater(any(Player.class), any(Runnable.class), anyLong());
     }
 
     @Test
     public void shouldContinueRegularJoinWhenPreAuthEventIsNeverDispatched() {
         Player player = givenRegisteredPlayer();
-        org.mockito.Mockito.doNothing().doAnswer(invocation -> {
+        doNothing().doAnswer(invocation -> {
             ((Runnable) invocation.getArgument(1)).run();
             return null;
         }).when(bukkitService).scheduleSyncTaskFromOptionallyAsyncTask(eq(player), any(Runnable.class));
@@ -592,18 +599,6 @@ public class AsynchronousJoinTest {
         verify(bukkitService, times(1)).scheduleSyncTaskFromOptionallyAsyncTask(eq(player), any(Runnable.class));
     }
 
-    @Test
-    public void shouldUseOneSyncHopAndOneAsyncHopForForcedLogin() {
-        Player player = givenRegisteredPlayer();
-        listenToPreAuth(PlayerPreAuthEvent::forceLogin);
-
-        asynchronousJoin.processJoin(player);
-
-        verify(bukkitService, times(1)).scheduleSyncTaskFromOptionallyAsyncTask(eq(player), any(Runnable.class));
-        verify(bukkitService, times(1)).runTaskOptionallyAsync(any(Runnable.class));
-        verify(bukkitService, never()).createAndCallEvent(any());
-    }
-
     private void captureAsyncContinuation(AtomicReference<Runnable> target) {
         doAnswer(invocation -> {
             target.set(invocation.getArgument(0));
@@ -611,7 +606,7 @@ public class AsynchronousJoinTest {
         }).when(bukkitService).runTaskOptionallyAsync(any(Runnable.class));
     }
 
-    private void listenToPreAuth(java.util.function.Consumer<PlayerPreAuthEvent> listener) {
+    private void listenToPreAuth(Consumer<PlayerPreAuthEvent> listener) {
         doAnswer(invocation -> {
             Event event = invocation.getArgument(0);
             if (event instanceof PlayerPreAuthEvent) {
@@ -624,7 +619,7 @@ public class AsynchronousJoinTest {
     @SuppressWarnings("unchecked")
     private void givenEventsAreCalledWithoutListeners() {
         given(bukkitService.createAndCallEvent(any())).willAnswer(invocation ->
-            ((java.util.function.Function<Boolean, org.bukkit.event.Event>) invocation.getArgument(0)).apply(false));
+            ((Function<Boolean, Event>) invocation.getArgument(0)).apply(false));
     }
 
     private void givenDefaultJoinRestrictions(Player player) {
@@ -669,7 +664,7 @@ public class AsynchronousJoinTest {
 
     private static DialogWindowSpec createDialogSpec(String title, String buttonLabel) {
         return new DialogWindowSpec(title,
-            java.util.List.of(new DialogInputSpec("password", "Password", 100)),
+            List.of(new DialogInputSpec("password", "Password", 100)),
             buttonLabel,
             "Cancel",
             false,

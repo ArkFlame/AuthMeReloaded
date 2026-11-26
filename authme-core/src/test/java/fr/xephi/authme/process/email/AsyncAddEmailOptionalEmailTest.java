@@ -15,8 +15,9 @@ import fr.xephi.authme.service.ValidationService;
 import fr.xephi.authme.settings.properties.RegistrationSettings;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -61,8 +62,10 @@ class AsyncAddEmailOptionalEmailTest {
         TestHelper.setupLogger();
     }
 
-    @Test
-    void shouldSaveEmailDirectlyWhenOptionalAndMailIsConfigured() {
+    @ParameterizedTest(name = "registration setting={0}")
+    @ValueSource(strings = {"EMAIL_OPTIONAL", "EMAIL_MANDATORY"})
+    void shouldAddEmailAccordingToRegistrationSetting(String settingName) {
+        RegisterSecondaryArgument argument = RegisterSecondaryArgument.valueOf(settingName);
         String email = "my.mail@example.org";
         given(player.getName()).willReturn("testEr");
         given(playerCache.isAuthenticated("tester")).willReturn(true);
@@ -72,43 +75,28 @@ class AsyncAddEmailOptionalEmailTest {
         given(validationService.validateEmail(email)).willReturn(true);
         given(validationService.isEmailFreeForRegistration(email, player)).willReturn(true);
         given(emailService.hasAllInformation()).willReturn(true);
-        given(service.getProperty(RegistrationSettings.REGISTER_SECOND_ARGUMENT))
-            .willReturn(RegisterSecondaryArgument.EMAIL_OPTIONAL);
-        given(dataSource.updateEmail(auth)).willReturn(true);
+        given(service.getProperty(RegistrationSettings.REGISTER_SECOND_ARGUMENT)).willReturn(argument);
+        if (argument == RegisterSecondaryArgument.EMAIL_OPTIONAL) {
+            given(dataSource.updateEmail(auth)).willReturn(true);
+        } else {
+            given(emailService.sendEmailConfirmationMail(any(), any(), any())).willReturn(true);
+        }
         EmailChangedEvent event = spy(new EmailChangedEvent(player, null, email, false));
         given(bukkitService.createAndCallEvent(any(Function.class))).willReturn(event);
 
         asyncAddEmail.addEmail(player, email);
 
-        verify(auth).setEmail(email);
-        verify(dataSource).updateEmail(auth);
-        verify(playerCache).updatePlayerIfPresent(auth);
-        verify(service).send(player, MessageKey.EMAIL_ADDED_SUCCESS);
-        verify(emailService, never()).sendEmailConfirmationMail(any(), any(), any());
-        verify(pendingEmailVerificationCache, never()).addPending(any(), any(), any());
-    }
-
-    @Test
-    void shouldStillSendConfirmationCodeWhenEmailIsMandatory() {
-        String email = "my.mail@example.org";
-        given(player.getName()).willReturn("testEr");
-        given(playerCache.isAuthenticated("tester")).willReturn(true);
-        PlayerAuth auth = mock(PlayerAuth.class);
-        given(auth.getEmail()).willReturn(null);
-        given(playerCache.getAuth("tester")).willReturn(auth);
-        given(validationService.validateEmail(email)).willReturn(true);
-        given(validationService.isEmailFreeForRegistration(email, player)).willReturn(true);
-        given(emailService.hasAllInformation()).willReturn(true);
-        given(service.getProperty(RegistrationSettings.REGISTER_SECOND_ARGUMENT))
-            .willReturn(RegisterSecondaryArgument.EMAIL_MANDATORY);
-        given(emailService.sendEmailConfirmationMail(any(), any(), any())).willReturn(true);
-        EmailChangedEvent event = spy(new EmailChangedEvent(player, null, email, false));
-        given(bukkitService.createAndCallEvent(any(Function.class))).willReturn(event);
-
-        asyncAddEmail.addEmail(player, email);
-
-        verify(dataSource, never()).updateEmail(any());
-        verify(pendingEmailVerificationCache).addPending(any(), any(), any());
-        verify(service).send(player, MessageKey.EMAIL_CONFIRM_CODE_SENT, email);
+        if (argument == RegisterSecondaryArgument.EMAIL_OPTIONAL) {
+            verify(auth).setEmail(email);
+            verify(dataSource).updateEmail(auth);
+            verify(playerCache).updatePlayerIfPresent(auth);
+            verify(service).send(player, MessageKey.EMAIL_ADDED_SUCCESS);
+            verify(emailService, never()).sendEmailConfirmationMail(any(), any(), any());
+            verify(pendingEmailVerificationCache, never()).addPending(any(), any(), any());
+        } else {
+            verify(dataSource, never()).updateEmail(any());
+            verify(pendingEmailVerificationCache).addPending(any(), any(), any());
+            verify(service).send(player, MessageKey.EMAIL_CONFIRM_CODE_SENT, email);
+        }
     }
 }

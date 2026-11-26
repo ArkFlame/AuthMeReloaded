@@ -1,7 +1,14 @@
 package fr.xephi.authme.events;
 
 import org.bukkit.entity.Player;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -13,33 +20,38 @@ class AsyncEventContractTest {
 
     private final Player player = mock(Player.class);
 
-    @Test
-    void preLoginDefaultsToAllowedAndHonorsVeto() {
-        AuthMeAsyncPreLoginEvent event = new AuthMeAsyncPreLoginEvent(player, true);
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("vetoEvents")
+    void defaultsToAllowedAndHonorsVeto(String name, BiFunction<Player, Boolean, CustomEvent> factory,
+                                        Function<CustomEvent, Player> playerGetter,
+                                        Function<CustomEvent, Boolean> isAllowed,
+                                        BiConsumer<CustomEvent, Boolean> setAllowed, boolean async) {
+        CustomEvent event = factory.apply(player, async);
 
-        assertThat(event.getPlayer(), sameInstance(player));
-        assertThat(event.canLogin(), equalTo(true));
-        assertThat(event.isAsynchronous(), equalTo(true));
+        assertThat(name, playerGetter.apply(event), sameInstance(player));
+        assertThat(name, isAllowed.apply(event), equalTo(true));
+        assertThat(name, event.isAsynchronous(), equalTo(async));
 
-        event.setCanLogin(false);
-        assertThat(event.canLogin(), equalTo(false));
+        setAllowed.accept(event, false);
+        assertThat(name, isAllowed.apply(event), equalTo(false));
 
-        event.setCanLogin(true);
-        assertThat(event.canLogin(), equalTo(true));
+        setAllowed.accept(event, true);
+        assertThat(name, isAllowed.apply(event), equalTo(true));
     }
 
-    @Test
-    void preRegisterDefaultsToAllowedAndHonorsVeto() {
-        AuthMeAsyncPreRegisterEvent event = new AuthMeAsyncPreRegisterEvent(player, false);
-
-        assertThat(event.getPlayer(), sameInstance(player));
-        assertThat(event.canRegister(), equalTo(true));
-        assertThat(event.isAsynchronous(), equalTo(false));
-
-        event.setCanRegister(false);
-        assertThat(event.canRegister(), equalTo(false));
-
-        event.setCanRegister(true);
-        assertThat(event.canRegister(), equalTo(true));
+    private static Stream<Arguments> vetoEvents() {
+        return Stream.of(
+            Arguments.of("preLogin",
+                (BiFunction<Player, Boolean, CustomEvent>) (p, flag) -> new AuthMeAsyncPreLoginEvent(p, flag),
+                (Function<CustomEvent, Player>) e -> ((AuthMeAsyncPreLoginEvent) e).getPlayer(),
+                (Function<CustomEvent, Boolean>) e -> ((AuthMeAsyncPreLoginEvent) e).canLogin(),
+                (BiConsumer<CustomEvent, Boolean>) (e, value) -> ((AuthMeAsyncPreLoginEvent) e).setCanLogin(value),
+                true),
+            Arguments.of("preRegister",
+                (BiFunction<Player, Boolean, CustomEvent>) (p, flag) -> new AuthMeAsyncPreRegisterEvent(p, flag),
+                (Function<CustomEvent, Player>) e -> ((AuthMeAsyncPreRegisterEvent) e).getPlayer(),
+                (Function<CustomEvent, Boolean>) e -> ((AuthMeAsyncPreRegisterEvent) e).canRegister(),
+                (BiConsumer<CustomEvent, Boolean>) (e, value) -> ((AuthMeAsyncPreRegisterEvent) e).setCanRegister(value),
+                false));
     }
 }

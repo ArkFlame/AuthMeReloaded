@@ -15,8 +15,13 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.File;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -60,43 +65,29 @@ class PluginHookServiceTest {
         assertThat(pluginHookService.isEssentialsAvailable(), equalTo(true));
     }
 
-    @Test
-    void shouldHookIntoEssentialsAtInitialization() {
+    @ParameterizedTest(name = "hook {0} at initialization")
+    @MethodSource("pluginsAvailableAtInitialization")
+    void shouldHookIntoPluginAtInitialization(String pluginName, Class<? extends Plugin> pluginClass,
+                                              Predicate<PluginHookService> availability) {
         // given
         PluginManager pluginManager = mock(PluginManager.class);
-        setPluginAvailable(pluginManager, ESSENTIALS, Essentials.class);
+        setPluginAvailable(pluginManager, pluginName, pluginClass);
 
         // when
         PluginHookService pluginHookService = new PluginHookService(pluginManager);
 
         // then
-        assertThat(pluginHookService.isEssentialsAvailable(), equalTo(true));
+        assertThat(availability.test(pluginHookService), equalTo(true));
     }
 
-    @Test
-    void shouldHookIntoCmiAtInitialization() {
-        // given
-        PluginManager pluginManager = mock(PluginManager.class);
-        setPluginAvailable(pluginManager, CMI, Plugin.class);
-
-        // when
-        PluginHookService pluginHookService = new PluginHookService(pluginManager);
-
-        // then
-        assertThat(pluginHookService.isCmiAvailable(), equalTo(true));
-    }
-
-    @Test
-    void shouldHookIntoMultiverseAtInitialization() {
-        // given
-        PluginManager pluginManager = mock(PluginManager.class);
-        setPluginAvailable(pluginManager, MULTIVERSE, MultiverseCore.class);
-
-        // when
-        PluginHookService pluginHookService = new PluginHookService(pluginManager);
-
-        // then
-        assertThat(pluginHookService.isMultiverseAvailable(), equalTo(true));
+    private static Stream<Arguments> pluginsAvailableAtInitialization() {
+        return Stream.of(
+            Arguments.of(ESSENTIALS, Essentials.class,
+                (Predicate<PluginHookService>) PluginHookService::isEssentialsAvailable),
+            Arguments.of(CMI, Plugin.class,
+                (Predicate<PluginHookService>) PluginHookService::isCmiAvailable),
+            Arguments.of(MULTIVERSE, MultiverseCore.class,
+                (Predicate<PluginHookService>) PluginHookService::isMultiverseAvailable));
     }
 
     @Test

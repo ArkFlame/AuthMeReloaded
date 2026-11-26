@@ -1,10 +1,12 @@
 package fr.xephi.authme.datasource;
 
+import ch.jalu.configme.properties.Property;
 import ch.jalu.datasourcecolumns.data.DataSourceValue;
 import ch.jalu.datasourcecolumns.data.DataSourceValueImpl;
 import com.google.common.collect.Lists;
 import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.security.crypts.HashedPassword;
+import fr.xephi.authme.settings.Settings;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -29,6 +31,7 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.Mockito.when;
 
 /**
  * Abstract class for data source integration tests.
@@ -40,6 +43,11 @@ public abstract class AbstractDataSourceIntegrationTest {
     }
 
     protected abstract DataSource getDataSource(String saltColumn);
+
+    /** Sets a database setting on the given mock settings instance. */
+    protected static <T> void setProperty(Settings settings, Property<T> property, T value) {
+        when(settings.getProperty(property)).thenReturn(value);
+    }
 
     @Test
     void shouldReturnIfAuthIsAvailableOrNot() {

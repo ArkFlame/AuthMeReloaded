@@ -75,10 +75,10 @@ class AuthPlusConverterTest extends AbstractConverterTest {
         given(dataSource.isAuthAvailable("existingplayer")).willReturn(true);
         given(dataSource.isAuthAvailable("testplayer")).willReturn(false);
 
-        OfflinePlayer testPlayer     = offlinePlayerWithName("TestPlayer");
-        OfflinePlayer existingPlayer = offlinePlayerWithName("ExistingPlayer");
+        OfflinePlayer testPlayer     = mockOfflinePlayer("TestPlayer");
+        OfflinePlayer existingPlayer = mockOfflinePlayer("ExistingPlayer");
         // UUID_UNKNOWNPLAYER resolves to null (player never joined)
-        OfflinePlayer unknownPlayer  = offlinePlayerWithName(null);
+        OfflinePlayer unknownPlayer  = mockOfflinePlayer(null);
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
             bukkit.when(() -> Bukkit.getOfflinePlayer(UUID_TESTPLAYER)).thenReturn(testPlayer);
@@ -107,11 +107,5 @@ class AuthPlusConverterTest extends AbstractConverterTest {
 
         verifyNoInteractions(dataSource);
         verify(sender).sendMessage(argThat(containsString("does not exist")));
-    }
-
-    private static OfflinePlayer offlinePlayerWithName(String name) {
-        OfflinePlayer player = mock(OfflinePlayer.class);
-        given(player.getName()).willReturn(name);
-        return player;
     }
 }

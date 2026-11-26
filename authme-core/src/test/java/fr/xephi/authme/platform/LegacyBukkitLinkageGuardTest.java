@@ -53,7 +53,7 @@ class LegacyBukkitLinkageGuardTest {
     // --- SpawnLoader ---
 
     @Test
-    void spawnLoaderMustNotLinkToGameRuleOrDirectIsPassable() throws IOException {
+    void spawnLoaderUsesCompatibilityAdapterWithoutDirectGameRuleOrIsPassableLinkage() throws IOException {
         BytecodeInfo info = parse(SpawnLoader.class);
 
         assertNoClassName(info, "org/bukkit/GameRule",
@@ -73,11 +73,7 @@ class LegacyBukkitLinkageGuardTest {
         assertFalse(hasDirectIsPassable,
             "SpawnLoader must not have direct Methodref to org/bukkit/block/Block.isPassable; "
                 + "use BukkitCompatibilityAdapter.isBlockPassable instead. Refs: " + info.memberRefs);
-    }
 
-    @Test
-    void spawnLoaderMustUseCompatibilityAdapter() throws IOException {
-        BytecodeInfo info = parse(SpawnLoader.class);
         assertHasClassName(info, "fr/xephi/authme/platform/BukkitCompatibilityAdapter",
             "SpawnLoader should reference BukkitCompatibilityAdapter");
         assertTrue(info.utf8Values.stream().anyMatch(s -> s.contains("isBlockPassable"))

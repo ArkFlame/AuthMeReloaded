@@ -13,8 +13,13 @@ import org.bukkit.event.player.PlayerEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.stream.Stream;
 
 import static fr.xephi.authme.listener.TestPlayerUtils.mockPlayerWithName;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -50,52 +55,33 @@ class ListenerServiceTest {
         listenerService = new ListenerService(settings, dataSource, playerCache, validationService);
     }
 
-    @Test
-    void shouldHandleEventWithNullEntity() {
+    @ParameterizedTest(name = "non-player entity: {0}")
+    @MethodSource("nonPlayerEntities")
+    void shouldHandleEventWithNonPlayerEntity(Entity entity) {
         EntityEvent event = mock(EntityEvent.class);
-        given(event.getEntity()).willReturn(null);
+        given(event.getEntity()).willReturn(entity);
 
         boolean result = listenerService.shouldCancelEvent(event);
 
         assertThat(result, equalTo(false));
     }
 
-    @Test
-    void shouldHandleEntityEventWithNonPlayerEntity() {
-        EntityEvent event = mock(EntityEvent.class);
-        given(event.getEntity()).willReturn(mock(Entity.class));
-
-        boolean result = listenerService.shouldCancelEvent(event);
-
-        assertThat(result, equalTo(false));
+    private static Stream<Entity> nonPlayerEntities() {
+        return Stream.of(null, mock(Entity.class));
     }
 
-    @Test
-    void shouldAllowAuthenticatedPlayer() {
-        String playerName = "Bobby";
+    @ParameterizedTest(name = "authenticated={0}")
+    @ValueSource(booleans = {true, false})
+    void shouldCancelOnlyForUnauthenticatedPlayer(boolean authenticated) {
+        String playerName = authenticated ? "Bobby" : "Tester";
         Player player = mockPlayerWithName(playerName);
-        given(playerCache.isAuthenticated(playerName)).willReturn(true);
+        given(playerCache.isAuthenticated(playerName)).willReturn(authenticated);
         EntityEvent event = mock(EntityEvent.class);
         given(event.getEntity()).willReturn(player);
 
         boolean result = listenerService.shouldCancelEvent(event);
 
-        assertThat(result, equalTo(false));
-        verify(playerCache).isAuthenticated(playerName);
-        verifyNoInteractions(dataSource);
-    }
-
-    @Test
-    void shouldDenyUnLoggedPlayer() {
-        String playerName = "Tester";
-        Player player = mockPlayerWithName(playerName);
-        given(playerCache.isAuthenticated(playerName)).willReturn(false);
-        EntityEvent event = mock(EntityEvent.class);
-        given(event.getEntity()).willReturn(player);
-
-        boolean result = listenerService.shouldCancelEvent(event);
-
-        assertThat(result, equalTo(true));
+        assertThat(result, equalTo(!authenticated));
         verify(playerCache).isAuthenticated(playerName);
         // makes sure the setting is checked first = avoid unnecessary DB operation
         verifyNoInteractions(dataSource);

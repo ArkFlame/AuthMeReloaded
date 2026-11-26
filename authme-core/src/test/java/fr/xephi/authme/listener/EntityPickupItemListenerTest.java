@@ -5,6 +5,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -36,27 +38,20 @@ class EntityPickupItemListenerTest {
         verify(event, never()).setCancelled(anyBoolean());
     }
 
-    @Test
-    void shouldCancelForPlayerWhenShouldCancelTrue() {
+    @ParameterizedTest(name = "shouldCancel={0}")
+    @ValueSource(booleans = {true, false})
+    void shouldCancelOnlyForUnauthorizedPlayer(boolean shouldCancel) {
         Player player = mock(Player.class);
         EntityPickupItemEvent event = mock(EntityPickupItemEvent.class);
         given(event.getEntity()).willReturn(player);
-        given(listenerService.shouldCancelEvent(player)).willReturn(true);
+        given(listenerService.shouldCancelEvent(player)).willReturn(shouldCancel);
 
         listener.onPlayerPickupItem(event);
 
-        verify(event).setCancelled(true);
-    }
-
-    @Test
-    void shouldNotCancelForPlayerWhenShouldCancelFalse() {
-        Player player = mock(Player.class);
-        EntityPickupItemEvent event = mock(EntityPickupItemEvent.class);
-        given(event.getEntity()).willReturn(player);
-        given(listenerService.shouldCancelEvent(player)).willReturn(false);
-
-        listener.onPlayerPickupItem(event);
-
-        verify(event, never()).setCancelled(anyBoolean());
+        if (shouldCancel) {
+            verify(event).setCancelled(true);
+        } else {
+            verify(event, never()).setCancelled(anyBoolean());
+        }
     }
 }

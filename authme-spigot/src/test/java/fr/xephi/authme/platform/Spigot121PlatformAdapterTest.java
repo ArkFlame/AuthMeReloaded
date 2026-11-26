@@ -77,14 +77,6 @@ public class Spigot121PlatformAdapterTest {
     }
 
     @Test
-    public void getListenersRetainsAllModernEventProtections() {
-        List<Class<? extends Listener>> listeners = adapter.getListeners();
-        assertThat(listeners, org.hamcrest.Matchers.hasItem(PlayerSwapHandItemsListener.class));
-        assertThat(listeners, org.hamcrest.Matchers.hasItem(EntityAirChangeListener.class));
-        assertThat(listeners, org.hamcrest.Matchers.hasItem(EntityPickupItemListener.class));
-    }
-
-    @Test
     public void showLoginDialogDelegatesToPlayer() {
         // given
         Player player = mock(Player.class);

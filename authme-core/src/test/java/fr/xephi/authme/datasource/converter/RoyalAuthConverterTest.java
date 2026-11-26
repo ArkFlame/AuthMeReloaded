@@ -30,7 +30,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 /**
@@ -64,9 +64,9 @@ class RoyalAuthConverterTest extends AbstractConverterTest {
 
     @Test
     void shouldImportAccountsAndSkipPlayersWithoutData() throws IOException {
-        OfflinePlayer testPlayer = offlinePlayer("TestPlayer");
-        OfflinePlayer existingPlayer = offlinePlayer("ExistingPlayer");
-        OfflinePlayer playerWithoutFile = offlinePlayer("NoFilePlayer");
+        OfflinePlayer testPlayer = mockOfflinePlayer("TestPlayer");
+        OfflinePlayer existingPlayer = mockOfflinePlayer("ExistingPlayer");
+        OfflinePlayer playerWithoutFile = mockOfflinePlayer("NoFilePlayer");
         given(server.getOfflinePlayers()).willReturn(
             new OfflinePlayer[]{testPlayer, existingPlayer, playerWithoutFile});
         given(dataSource.isAuthAvailable("testplayer")).willReturn(false);
@@ -89,36 +89,15 @@ class RoyalAuthConverterTest extends AbstractConverterTest {
         verify(dataSource).saveAuth(authCaptor.capture());
         PlayerAuth auth = authCaptor.getValue();
         verify(dataSource).updateSession(auth);
+        verify(dataSource, times(1)).updateSession(any(PlayerAuth.class));
         assertThat(auth.getNickname(), equalTo("testplayer"));
         assertThat(auth.getRealName(), equalTo("TestPlayer"));
         assertThat(auth.getPassword(), equalToHash("royalauth-hash"));
         assertThat(auth.getLastLogin(), equalTo(1546300800000L));
     }
 
-    @Test
-    void shouldNotSaveAccountsForPlayersAlreadyInAuthMe() {
-        OfflinePlayer existingPlayer = offlinePlayer("ExistingPlayer");
-        given(server.getOfflinePlayers()).willReturn(new OfflinePlayer[]{existingPlayer});
-        given(dataSource.isAuthAvailable("existingplayer")).willReturn(true);
-
-        try (MockedStatic<FileUtils> fileUtils = mockStatic(FileUtils.class)) {
-            mockUserDataPath(fileUtils, "existingplayer.yml", new File(tempFolder, "existingplayer.yml"));
-
-            converter.execute(mock(CommandSender.class));
-        }
-
-        verify(dataSource, never()).saveAuth(any(PlayerAuth.class));
-        verify(dataSource, never()).updateSession(any(PlayerAuth.class));
-    }
-
     private void mockUserDataPath(MockedStatic<FileUtils> fileUtils, String fileName, File resultingFile) {
         fileUtils.when(() -> FileUtils.makePath(".", "plugins", "RoyalAuth", "userdata", fileName))
             .thenReturn(resultingFile.getAbsolutePath());
-    }
-
-    private static OfflinePlayer offlinePlayer(String name) {
-        OfflinePlayer player = mock(OfflinePlayer.class);
-        given(player.getName()).willReturn(name);
-        return player;
     }
 }

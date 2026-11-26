@@ -10,11 +10,15 @@ import org.apache.commons.mail.HtmlEmail;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Properties;
+import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -50,21 +54,22 @@ class SendMailSslTest {
         assertThat(sendMailSsl.hasAllInformation(), equalTo(true));
     }
 
-    @Test
-    void shouldCreateEmailObject() throws EmailException {
+    @ParameterizedTest
+    @MethodSource("emailObjectCases")
+    void shouldCreateEmailObject(String mailAddress, String expectedFrom, LogLevel logLevel) throws EmailException {
         // given
         given(settings.getProperty(EmailSettings.SMTP_PORT)).willReturn(465);
         String smtpHost = "mail.example.com";
         given(settings.getProperty(EmailSettings.SMTP_HOST)).willReturn(smtpHost);
         String senderAccount = "sender@example.org";
         given(settings.getProperty(EmailSettings.MAIL_ACCOUNT)).willReturn(senderAccount);
-        given(settings.getProperty(EmailSettings.MAIL_ADDRESS)).willReturn("");
+        given(settings.getProperty(EmailSettings.MAIL_ADDRESS)).willReturn(mailAddress);
         given(settings.getProperty(EmailSettings.MAIL_PASSWORD)).willReturn("pass1234");
         String senderName = "Server administration";
         given(settings.getProperty(EmailSettings.MAIL_SENDER_NAME)).willReturn(senderName);
         given(settings.getProperty(EmailSettings.RECOVERY_MAIL_SUBJECT)).willReturn("Recover password");
         given(settings.getProperty(EmailSettings.SSL_CHECK_SERVER_IDENTITY)).willReturn(true);
-        given(settings.getProperty(PluginSettings.LOG_LEVEL)).willReturn(LogLevel.DEBUG);
+        given(settings.getProperty(PluginSettings.LOG_LEVEL)).willReturn(logLevel);
 
         // when
         HtmlEmail email = sendMailSsl.initializeMail("recipient@example.com");
@@ -73,40 +78,17 @@ class SendMailSslTest {
         assertThat(email, not(nullValue()));
         assertThat(email.getToAddresses(), hasSize(1));
         assertThat(email.getToAddresses().get(0).getAddress(), equalTo("recipient@example.com"));
-        assertThat(email.getFromAddress().getAddress(), equalTo(senderAccount));
+        assertThat(email.getFromAddress().getAddress(), equalTo(expectedFrom));
         assertThat(email.getFromAddress().getPersonal(), equalTo(senderName));
         assertThat(email.getHostName(), equalTo(smtpHost));
         assertThat(email.getSmtpPort(), equalTo("465"));
     }
 
-    @Test
-    void shouldCreateEmailObjectWithAddress() throws EmailException {
-        // given
-        given(settings.getProperty(EmailSettings.SMTP_PORT)).willReturn(465);
-        String smtpHost = "mail.example.com";
-        given(settings.getProperty(EmailSettings.SMTP_HOST)).willReturn(smtpHost);
-        String senderAccount = "actualsender@example.com";
-        given(settings.getProperty(EmailSettings.MAIL_ACCOUNT)).willReturn(senderAccount);
-        String senderAddress = "mail@example.com";
-        given(settings.getProperty(EmailSettings.MAIL_ADDRESS)).willReturn(senderAddress);
-        given(settings.getProperty(EmailSettings.MAIL_PASSWORD)).willReturn("pass1234");
-        String senderName = "Server administration";
-        given(settings.getProperty(EmailSettings.MAIL_SENDER_NAME)).willReturn(senderName);
-        given(settings.getProperty(EmailSettings.RECOVERY_MAIL_SUBJECT)).willReturn("Recover password");
-        given(settings.getProperty(EmailSettings.SSL_CHECK_SERVER_IDENTITY)).willReturn(true);
-        given(settings.getProperty(PluginSettings.LOG_LEVEL)).willReturn(LogLevel.INFO);
-
-        // when
-        HtmlEmail email = sendMailSsl.initializeMail("recipient@example.com");
-
-        // then
-        assertThat(email, not(nullValue()));
-        assertThat(email.getToAddresses(), hasSize(1));
-        assertThat(email.getToAddresses().get(0).getAddress(), equalTo("recipient@example.com"));
-        assertThat(email.getFromAddress().getAddress(), equalTo(senderAddress));
-        assertThat(email.getFromAddress().getPersonal(), equalTo(senderName));
-        assertThat(email.getHostName(), equalTo(smtpHost));
-        assertThat(email.getSmtpPort(), equalTo("465"));
+    private static Stream<Arguments> emailObjectCases() {
+        return Stream.of(
+            Arguments.of("", "sender@example.org", LogLevel.DEBUG),
+            Arguments.of("mail@example.com", "mail@example.com", LogLevel.INFO)
+        );
     }
 
     @Test

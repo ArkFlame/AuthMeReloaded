@@ -18,12 +18,16 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Collections;
+import java.util.stream.Stream;
 
 import static fr.xephi.authme.service.BukkitService.TICKS_PER_SECOND;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -130,7 +134,7 @@ class LimboPlayerTaskManagerTest {
         limboPlayerTaskManager.registerMessageTask(player, limboPlayer, LimboMessageType.LOG_IN);
 
         // then: fake-clock assertion - first prompt is scheduled at tick 0 (the old fixed 2s = 40 tick wait is gone)
-        assertThat(RegistrationSettings.LOGIN_MESSAGE_DELAY.getDefaultValue(), org.hamcrest.Matchers.equalTo(0));
+        assertThat(RegistrationSettings.LOGIN_MESSAGE_DELAY.getDefaultValue(), equalTo(0));
         verify(bukkitService).runTaskTimer(eq(player), any(MessageTask.class),
             eq(0L), eq(5L * TICKS_PER_SECOND));
     }
@@ -331,60 +335,51 @@ class LimboPlayerTaskManagerTest {
         verify(messages).retrieveSingle(player, MessageKey.CAPTCHA_FOR_REGISTRATION_REQUIRED, captcha);
     }
 
-    @Test
-    void shouldRegisterTimeoutTask() {
+    @ParameterizedTest(name = "{0}={1} for {2}")
+    @MethodSource("timeoutTaskCases")
+    void shouldRegisterTimeoutTask(Property<Integer> timeoutProperty, int timeout, LimboMessageType type,
+                                   long expectedTicks) {
         // given
         Player player = mock(Player.class);
         LimboPlayer limboPlayer = mock(LimboPlayer.class);
-        given(settings.getProperty(RestrictionSettings.LOGIN_TIMEOUT)).willReturn(30);
+        given(settings.getProperty(timeoutProperty)).willReturn(timeout);
         CancellableTask bukkitTask = mock(CancellableTask.class);
         given(bukkitService.runTaskLater(eq(player), any(TimeoutTask.class), anyLong())).willReturn(bukkitTask);
 
         // when
-        limboPlayerTaskManager.registerTimeoutTask(player, limboPlayer, LimboMessageType.LOG_IN);
+        limboPlayerTaskManager.registerTimeoutTask(player, limboPlayer, type);
 
         // then
         verify(limboPlayer).setTimeoutTask(bukkitTask);
-        verify(bukkitService).runTaskLater(eq(player), any(TimeoutTask.class), eq(600L)); // 30 * TICKS_PER_SECOND
+        verify(bukkitService).runTaskLater(eq(player), any(TimeoutTask.class), eq(expectedTicks));
         verify(messages).retrieveSingle(player, MessageKey.LOGIN_TIMEOUT_ERROR);
     }
 
-    @Test
-    void shouldNotRegisterTimeoutTaskForZeroTimeout() {
+    private static Stream<Arguments> timeoutTaskCases() {
+        return Stream.of(
+            Arguments.of(RestrictionSettings.LOGIN_TIMEOUT, 30, LimboMessageType.LOG_IN, 600L),
+            Arguments.of(RestrictionSettings.REGISTER_TIMEOUT, 60, LimboMessageType.REGISTER, 1200L));
+    }
+
+    @ParameterizedTest(name = "no task for {0}=0 and {1}")
+    @MethodSource("zeroTimeoutCases")
+    void shouldNotRegisterTimeoutTaskForZeroTimeout(Property<Integer> timeoutProperty, LimboMessageType type) {
         // given
-        Player player = mock(Player.class);
-        LimboPlayer limboPlayer = mock(LimboPlayer.class);
-        given(settings.getProperty(RestrictionSettings.REGISTER_TIMEOUT)).willReturn(60);
-        CancellableTask bukkitTask = mock(CancellableTask.class);
-        given(bukkitService.runTaskLater(eq(player), any(TimeoutTask.class), anyLong())).willReturn(bukkitTask);
-
-        // when
-        limboPlayerTaskManager.registerTimeoutTask(player, limboPlayer, LimboMessageType.REGISTER);
-
-        // then
-        verify(limboPlayer).setTimeoutTask(bukkitTask);
-        verify(bukkitService).runTaskLater(eq(player), any(TimeoutTask.class), eq(1200L)); // 60 * TICKS_PER_SECOND
-        verify(messages).retrieveSingle(player, MessageKey.LOGIN_TIMEOUT_ERROR);
-    }
-
-    @Test
-    void shouldNotRegisterTimeoutTaskForZeroLoginTimeout() {
-        assertNoTimeoutTask(RestrictionSettings.LOGIN_TIMEOUT, LimboMessageType.LOG_IN);
-    }
-
-    @Test
-    void shouldNotRegisterTimeoutTaskForZeroRegisterTimeout() {
-        assertNoTimeoutTask(RestrictionSettings.REGISTER_TIMEOUT, LimboMessageType.REGISTER);
-    }
-
-    private void assertNoTimeoutTask(Property<Integer> timeoutProperty, LimboMessageType type) {
         Player player = mock(Player.class);
         LimboPlayer limboPlayer = mock(LimboPlayer.class);
         given(settings.getProperty(timeoutProperty)).willReturn(0);
 
+        // when
         limboPlayerTaskManager.registerTimeoutTask(player, limboPlayer, type);
 
+        // then
         verifyNoInteractions(limboPlayer, bukkitService);
+    }
+
+    private static Stream<Arguments> zeroTimeoutCases() {
+        return Stream.of(
+            Arguments.of(RestrictionSettings.LOGIN_TIMEOUT, LimboMessageType.LOG_IN),
+            Arguments.of(RestrictionSettings.REGISTER_TIMEOUT, LimboMessageType.REGISTER));
     }
 
     @Test

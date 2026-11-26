@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -71,18 +72,22 @@ class CommandMapperTest {
     // -----------
     // mapPartsToCommand() tests
     // -----------
-    @Test
-    void shouldMapPartsToLoginChildCommand() {
+    @ParameterizedTest(name = "login command with permission {0}")
+    @ValueSource(booleans = {true, false})
+    void shouldMapLoginChildCommandWithPermission(boolean hasPermission) {
         // given
         List<String> parts = asList("authme", "login", "test1");
-        allowAnyPermission();
+        setPermission(hasPermission);
 
         // when
         FoundCommandResult result = mapper.mapPartsToCommand(sender, parts);
 
         // then
+        FoundResultStatus expectedStatus = hasPermission
+            ? FoundResultStatus.SUCCESS
+            : FoundResultStatus.NO_PERMISSION;
         assertThat(result.getCommandDescription(), equalTo(getCommandWithLabel(commands, "authme", "login")));
-        assertThat(result.getResultStatus(), equalTo(FoundResultStatus.SUCCESS));
+        assertThat(result.getResultStatus(), equalTo(expectedStatus));
         assertThat(result.getArguments(), contains("test1"));
         assertThat(result.getDifference(), equalTo(0.0));
         assertThat(result.getLabels(), equalTo(parts.subList(0, 2)));
@@ -92,7 +97,7 @@ class CommandMapperTest {
     void shouldMapPartsToCommandWithNoCaseSensitivity() {
         // given
         List<String> parts = asList("Authme", "REG", "arg1", "arg2");
-        allowAnyPermission();
+        setPermission(true);
 
         // when
         FoundCommandResult result = mapper.mapPartsToCommand(sender, parts);
@@ -201,7 +206,7 @@ class CommandMapperTest {
     void shouldMapToBaseWithProperArguments() {
         // given
         List<String> parts = asList("Unreg", "player1");
-        allowAnyPermission();
+        setPermission(true);
 
         // when
         FoundCommandResult result = mapper.mapPartsToCommand(sender, parts);
@@ -232,27 +237,10 @@ class CommandMapperTest {
     }
 
     @Test
-    void shouldRecognizeMissingPermissionForCommand() {
-        // given
-        List<String> parts = asList("authme", "login", "test1");
-        denyAnyPermission();
-
-        // when
-        FoundCommandResult result = mapper.mapPartsToCommand(sender, parts);
-
-        // then
-        assertThat(result.getCommandDescription(), equalTo(getCommandWithLabel(commands, "authme", "login")));
-        assertThat(result.getResultStatus(), equalTo(FoundResultStatus.NO_PERMISSION));
-        assertThat(result.getArguments(), contains("test1"));
-        assertThat(result.getDifference(), equalTo(0.0));
-        assertThat(result.getLabels(), equalTo(parts.subList(0, 2)));
-    }
-
-    @Test
     void shouldSupportAuthMePrefix() {
         // given
         List<String> parts = asList("authme:unregister", "Betty");
-        allowAnyPermission();
+        setPermission(true);
 
         // when
         FoundCommandResult result = mapper.mapPartsToCommand(sender, parts);
@@ -272,12 +260,8 @@ class CommandMapperTest {
             TestLoginCommand.class, TestRegisterCommand.class, TestUnregisterCommand.class));
     }
 
-    private void allowAnyPermission() {
-        given(permissionsManager.hasPermission(eq(sender), any(PermissionNode.class))).willReturn(true);
-    }
-
-    private void denyAnyPermission() {
-        given(permissionsManager.hasPermission(eq(sender), any(PermissionNode.class))).willReturn(false);
+    private void setPermission(boolean allowed) {
+        given(permissionsManager.hasPermission(eq(sender), any(PermissionNode.class))).willReturn(allowed);
     }
 
 }

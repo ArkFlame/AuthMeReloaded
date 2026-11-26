@@ -27,6 +27,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -37,6 +39,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static fr.xephi.authme.listener.TestPlayerUtils.createInetAddress;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -282,26 +285,22 @@ class OnJoinVerifierTest {
         verifyNoInteractions(dataSource);
     }
 
-    @Test
-    void shouldUpdateMissingRealName() throws FailedVerificationException {
-        String name = "Authme";
-        PlayerAuth auth = PlayerAuth.builder().name("authme").realName("").build();
+    @ParameterizedTest(name = "{0} has real name {1}")
+    @MethodSource("realNameUpdates")
+    void shouldUpdateStoredRealName(String storedName, String realName, String connectingName)
+            throws FailedVerificationException {
+        PlayerAuth auth = PlayerAuth.builder().name(storedName).realName(realName).build();
         given(settings.getProperty(RegistrationSettings.PREVENT_OTHER_CASE)).willReturn(true);
 
-        onJoinVerifier.checkNameCasing(name, auth);
+        onJoinVerifier.checkNameCasing(connectingName, auth);
 
-        verify(dataSource).updateRealName("authme", "Authme");
+        verify(dataSource).updateRealName(storedName, connectingName);
     }
 
-    @Test
-    void shouldUpdateDefaultRealName() throws FailedVerificationException {
-        String name = "SOMEONE";
-        PlayerAuth auth = PlayerAuth.builder().name("someone").realName("Player").build();
-        given(settings.getProperty(RegistrationSettings.PREVENT_OTHER_CASE)).willReturn(true);
-
-        onJoinVerifier.checkNameCasing(name, auth);
-
-        verify(dataSource).updateRealName("someone", "SOMEONE");
+    private static Stream<Arguments> realNameUpdates() {
+        return Stream.of(
+            Arguments.of("authme", "", "Authme"),
+            Arguments.of("someone", "Player", "SOMEONE"));
     }
 
     @Test
@@ -428,29 +427,25 @@ class OnJoinVerifierTest {
         verifyNoInteractions(validationService);
     }
 
-    @Test
-    void shouldCheckAndAcceptUnregisteredPlayerCountry() throws FailedVerificationException {
-        String ip = "192.168.0.1";
-        String name = "lucas";
+    @ParameterizedTest(name = "{0}, authAvailable={2}")
+    @MethodSource("acceptedCountries")
+    void shouldCheckAndAcceptPlayerCountry(String name, String ip, boolean authAvailable)
+            throws FailedVerificationException {
         given(settings.getProperty(ProtectionSettings.ENABLE_PROTECTION)).willReturn(true);
+        if (authAvailable) {
+            given(settings.getProperty(ProtectionSettings.ENABLE_PROTECTION_REGISTERED)).willReturn(true);
+        }
         given(validationService.isCountryAdmitted(ip)).willReturn(true);
 
-        onJoinVerifier.checkPlayerCountry(name, ip, false);
+        onJoinVerifier.checkPlayerCountry(name, ip, authAvailable);
 
         verify(validationService).isCountryAdmitted(ip);
     }
 
-    @Test
-    void shouldCheckAndAcceptRegisteredPlayerCountry() throws FailedVerificationException {
-        String ip = "192.168.10.24";
-        String name = "gabriel";
-        given(settings.getProperty(ProtectionSettings.ENABLE_PROTECTION)).willReturn(true);
-        given(settings.getProperty(ProtectionSettings.ENABLE_PROTECTION_REGISTERED)).willReturn(true);
-        given(validationService.isCountryAdmitted(ip)).willReturn(true);
-
-        onJoinVerifier.checkPlayerCountry(name, ip, true);
-
-        verify(validationService).isCountryAdmitted(ip);
+    private static Stream<Arguments> acceptedCountries() {
+        return Stream.of(
+            Arguments.of("lucas", "192.168.0.1", false),
+            Arguments.of("gabriel", "192.168.10.24", true));
     }
 
     @Test

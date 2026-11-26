@@ -36,11 +36,16 @@ import io.papermc.paper.event.connection.configuration.AsyncPlayerConnectionConf
 import io.papermc.paper.event.player.PlayerCustomClickEvent;
 import fr.xephi.authme.platform.PaperDialogHelper;
 import net.kyori.adventure.audience.Audience;
+import net.kyori.adventure.key.Key;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.lang.reflect.Method;
 import java.net.InetAddress;
@@ -50,6 +55,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import static fr.xephi.authme.listener.PaperDialogFlowTestSupport.SESSION_ID;
 import static fr.xephi.authme.listener.PaperDialogFlowTestSupport.connectionSessions;
@@ -132,25 +138,37 @@ public class PaperDialogFlowListenerTest {
         }
     }
 
-    @Test
-    public void shouldFallbackToPostJoinDialogWhenPreJoinLoginIsCancelled() throws Exception {
+    @ParameterizedTest(name = "cancelling the {0} dialog falls back to post-join")
+    @MethodSource("cancelledPreJoinDialogCases")
+    public void shouldFallbackToPostJoinDialogWhenPreJoinDialogIsCancelled(String description,
+                                                                          Property<Boolean> kicksSetting,
+                                                                          Key cancelAction,
+                                                                          String responseField) throws Exception {
         PaperDialogFlowListener listener = new PaperDialogFlowListener();
         CommonService commonService = mock(CommonService.class);
         setField(listener, "commonService", commonService);
-        given(commonService.getProperty(RegistrationSettings.PRE_JOIN_LOGIN_CANCEL_KICKS)).willReturn(false);
+        given(commonService.getProperty(kicksSetting)).willReturn(false);
 
         CompletableFuture<String> future = new CompletableFuture<>();
         PlayerConfigurationConnection connection = mockConnection("Bobby");
-        seedSession(listener, connection, "pendingLoginResponses", future);
+        seedSession(listener, connection, responseField, future);
 
         PlayerCustomClickEvent event = mock(PlayerCustomClickEvent.class);
         given(event.getCommonConnection()).willReturn(connection);
-        given(event.getIdentifier()).willReturn(PaperDialogActionKeys.PRE_JOIN_LOGIN_CANCEL);
+        given(event.getIdentifier()).willReturn(cancelAction);
 
         listener.onPlayerCustomClick(event);
 
         assertThat(future.isDone(), is(true));
         assertThat(future.getNow("sentinel"), is((String) null));
+    }
+
+    private static Stream<Arguments> cancelledPreJoinDialogCases() {
+        return Stream.of(
+            Arguments.of("login", RegistrationSettings.PRE_JOIN_LOGIN_CANCEL_KICKS,
+                PaperDialogActionKeys.PRE_JOIN_LOGIN_CANCEL, "pendingLoginResponses"),
+            Arguments.of("register", RegistrationSettings.PRE_JOIN_REGISTER_CANCEL_KICKS,
+                PaperDialogActionKeys.PRE_JOIN_REGISTER_CANCEL, "pendingRegisterResponses"));
     }
 
     @Test
@@ -204,28 +222,43 @@ public class PaperDialogFlowListenerTest {
         assertThat(setup.future.getNow("sentinel"), is((String) null));
     }
 
-    @Test
-    public void shouldKickWhenPreJoinLoginIsCancelledAndSettingEnabled() throws Exception {
+    @ParameterizedTest(name = "cancelling the {0} dialog kicks when the setting is enabled")
+    @MethodSource("cancelledPreJoinDialogKickCases")
+    public void shouldKickWhenPreJoinDialogIsCancelledAndSettingEnabled(String description,
+                                                                       Property<Boolean> kicksSetting,
+                                                                       Key cancelAction,
+                                                                       String responseField,
+                                                                       MessageKey messageKey) throws Exception {
         PaperDialogFlowListener listener = new PaperDialogFlowListener();
         CommonService commonService = mock(CommonService.class);
         Messages messages = mock(Messages.class);
         setField(listener, "commonService", commonService);
         setField(listener, "messages", messages);
-        given(commonService.getProperty(RegistrationSettings.PRE_JOIN_LOGIN_CANCEL_KICKS)).willReturn(true);
-        given(messages.retrieveSingle("Bobby", MessageKey.DIALOG_LOGIN_CANCELED)).willReturn("Canceled!");
+        given(commonService.getProperty(kicksSetting)).willReturn(true);
+        given(messages.retrieveSingle("Bobby", messageKey)).willReturn("Canceled!");
 
         CompletableFuture<String> future = new CompletableFuture<>();
         PlayerConfigurationConnection connection = mockConnection("Bobby");
-        seedSession(listener, connection, "pendingLoginResponses", future);
+        seedSession(listener, connection, responseField, future);
 
         PlayerCustomClickEvent event = mock(PlayerCustomClickEvent.class);
         given(event.getCommonConnection()).willReturn(connection);
-        given(event.getIdentifier()).willReturn(PaperDialogActionKeys.PRE_JOIN_LOGIN_CANCEL);
+        given(event.getIdentifier()).willReturn(cancelAction);
 
         listener.onPlayerCustomClick(event);
 
         assertThat(future.isDone(), is(true));
         assertThat(future.getNow(null), is("Canceled!"));
+    }
+
+    private static Stream<Arguments> cancelledPreJoinDialogKickCases() {
+        return Stream.of(
+            Arguments.of("login", RegistrationSettings.PRE_JOIN_LOGIN_CANCEL_KICKS,
+                PaperDialogActionKeys.PRE_JOIN_LOGIN_CANCEL, "pendingLoginResponses",
+                MessageKey.DIALOG_LOGIN_CANCELED),
+            Arguments.of("register", RegistrationSettings.PRE_JOIN_REGISTER_CANCEL_KICKS,
+                PaperDialogActionKeys.PRE_JOIN_REGISTER_CANCEL, "pendingRegisterResponses",
+                MessageKey.DIALOG_REGISTER_CANCELED));
     }
 
     @Test
@@ -283,51 +316,6 @@ public class PaperDialogFlowListenerTest {
 
         verify(preJoinDialogService).storePendingRecoveryEmail(SESSION_ID, "bobby@example.org");
         assertThat(future.getNow("sentinel"), is((String) null));
-    }
-
-    @Test
-    public void shouldFallbackToPostJoinDialogWhenPreJoinRegisterIsCancelled() throws Exception {
-        PaperDialogFlowListener listener = new PaperDialogFlowListener();
-        CommonService commonService = mock(CommonService.class);
-        setField(listener, "commonService", commonService);
-        given(commonService.getProperty(RegistrationSettings.PRE_JOIN_REGISTER_CANCEL_KICKS)).willReturn(false);
-
-        CompletableFuture<String> future = new CompletableFuture<>();
-        PlayerConfigurationConnection connection = mockConnection("Bobby");
-        seedSession(listener, connection, "pendingRegisterResponses", future);
-
-        PlayerCustomClickEvent event = mock(PlayerCustomClickEvent.class);
-        given(event.getCommonConnection()).willReturn(connection);
-        given(event.getIdentifier()).willReturn(PaperDialogActionKeys.PRE_JOIN_REGISTER_CANCEL);
-
-        listener.onPlayerCustomClick(event);
-
-        assertThat(future.isDone(), is(true));
-        assertThat(future.getNow("sentinel"), is((String) null));
-    }
-
-    @Test
-    public void shouldKickWhenPreJoinRegisterIsCancelledAndSettingEnabled() throws Exception {
-        PaperDialogFlowListener listener = new PaperDialogFlowListener();
-        CommonService commonService = mock(CommonService.class);
-        Messages messages = mock(Messages.class);
-        setField(listener, "commonService", commonService);
-        setField(listener, "messages", messages);
-        given(commonService.getProperty(RegistrationSettings.PRE_JOIN_REGISTER_CANCEL_KICKS)).willReturn(true);
-        given(messages.retrieveSingle("Bobby", MessageKey.DIALOG_REGISTER_CANCELED)).willReturn("Canceled!");
-
-        CompletableFuture<String> future = new CompletableFuture<>();
-        PlayerConfigurationConnection connection = mockConnection("Bobby");
-        seedSession(listener, connection, "pendingRegisterResponses", future);
-
-        PlayerCustomClickEvent event = mock(PlayerCustomClickEvent.class);
-        given(event.getCommonConnection()).willReturn(connection);
-        given(event.getIdentifier()).willReturn(PaperDialogActionKeys.PRE_JOIN_REGISTER_CANCEL);
-
-        listener.onPlayerCustomClick(event);
-
-        assertThat(future.isDone(), is(true));
-        assertThat(future.getNow(null), is("Canceled!"));
     }
 
     @Test
@@ -717,33 +705,26 @@ public class PaperDialogFlowListenerTest {
         assertThat(liveFuture.isDone(), is(false));
     }
 
-    @Test
-    public void shouldDropQueuedProxyLoginWhenConnectionClosesBeforeJoin() throws Exception {
+    @ParameterizedTest(name = "queued proxy login on close, player online: {0}")
+    @ValueSource(booleans = {false, true})
+    public void shouldHandleQueuedProxyLoginOnConnectionClose(boolean playerOnline) throws Exception {
         PaperDialogFlowListener listener = new PaperDialogFlowListener();
         ProxySessionManager proxySessionManager = mock(ProxySessionManager.class);
         setField(listener, "proxySessionManager", proxySessionManager);
 
         try (var bukkit = mockStatic(Bukkit.class)) {
+            if (playerOnline) {
+                bukkit.when(() -> Bukkit.getPlayerExact("Bobby")).thenReturn(mock(Player.class));
+            }
             listener.onPlayerConnectionClose(new PlayerConnectionCloseEvent(
                 UUID.randomUUID(), "Bobby", new java.net.InetSocketAddress(InetAddress.getLoopbackAddress(), 25565), false));
         }
 
-        verify(proxySessionManager).removeLoginRequest("Bobby");
-    }
-
-    @Test
-    public void shouldKeepQueuedProxyLoginWhenPlayerWithNameIsOnline() throws Exception {
-        PaperDialogFlowListener listener = new PaperDialogFlowListener();
-        ProxySessionManager proxySessionManager = mock(ProxySessionManager.class);
-        setField(listener, "proxySessionManager", proxySessionManager);
-
-        try (var bukkit = mockStatic(Bukkit.class)) {
-            bukkit.when(() -> Bukkit.getPlayerExact("Bobby")).thenReturn(mock(Player.class));
-            listener.onPlayerConnectionClose(new PlayerConnectionCloseEvent(
-                UUID.randomUUID(), "Bobby", new java.net.InetSocketAddress(InetAddress.getLoopbackAddress(), 25565), false));
+        if (playerOnline) {
+            verify(proxySessionManager, never()).removeLoginRequest(anyString());
+        } else {
+            verify(proxySessionManager).removeLoginRequest("Bobby");
         }
-
-        verify(proxySessionManager, never()).removeLoginRequest(anyString());
     }
 
     @Test

@@ -872,28 +872,21 @@ class PlayerListenerTest {
             listener::onPlayerInventoryDrag, event -> verify(event, only()).getWhoClicked());
     }
 
-    @Test
-    void shouldAllowSignChangeEvent() {
+    @ParameterizedTest(name = "sign change, shouldCancel={0}")
+    @ValueSource(booleans = {true, false})
+    void shouldHandleSignChange(boolean shouldCancel) {
         SignChangeEvent event = mock(SignChangeEvent.class);
         Player player = mock(Player.class);
         given(event.getPlayer()).willReturn(player);
-        given(listenerService.shouldCancelEvent(player)).willReturn(false);
+        given(listenerService.shouldCancelEvent(player)).willReturn(shouldCancel);
 
         listener.onSignChange(event);
 
-        verify(event, only()).getPlayer();
-    }
-
-    @Test
-    void shouldCancelSignChangeEvent() {
-        SignChangeEvent event = mock(SignChangeEvent.class);
-        Player player = mock(Player.class);
-        given(event.getPlayer()).willReturn(player);
-        given(listenerService.shouldCancelEvent(player)).willReturn(true);
-
-        listener.onSignChange(event);
-
-        verify(event).setCancelled(true);
+        if (shouldCancel) {
+            verify(event).setCancelled(true);
+        } else {
+            verify(event, only()).getPlayer();
+        }
     }
 
     /**

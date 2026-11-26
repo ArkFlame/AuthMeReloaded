@@ -3,7 +3,6 @@ package fr.xephi.authme.command.executable.authme;
 import fr.xephi.authme.command.ExecutableCommand;
 import fr.xephi.authme.data.auth.PlayerAuth;
 import org.bukkit.command.CommandSender;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;

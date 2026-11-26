@@ -35,6 +35,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -229,8 +230,9 @@ class AsynchronousLoginTest {
         verifyNoInteractions(bukkitService);
     }
 
-    @Test
-    void shouldShowTotpDialogAfterSuccessfulPasswordCheckWhenDialogsAreEnabled() {
+    @ParameterizedTest(name = "dialogs enabled={0}")
+    @ValueSource(booleans = {true, false})
+    void shouldHandleTotpDialogAccordingToAvailability(boolean dialogsEnabled) {
         Player player = mockPlayer("bobby");
         TestHelper.mockIpAddressToPlayer(player, "203.0.113.5");
         PlayerAuth auth = PlayerAuth.builder().name("bobby").totpKey("secret").build();
@@ -238,40 +240,29 @@ class AsynchronousLoginTest {
         given(playerCache.isAuthenticated("bobby")).willReturn(false, false);
         givenExistingPlayerWithValidPassword(auth);
         given(limboService.getLimboPlayer(player)).willReturn(limboPlayer);
-        given(commonService.getProperty(RegistrationSettings.USE_DIALOG_UI)).willReturn(true);
-        given(dialogAdapter.isDialogSupported()).willReturn(true);
-        given(player.isOnline()).willReturn(true);
-        given(dialogWindowService.createTotpDialog(player)).willReturn(createDialogSpec("2FA", "Verify"));
-        doAnswer(invocation -> {
-            invocation.<Runnable>getArgument(1).run();
-            return mock(CancellableTask.class);
-        }).when(bukkitService).runTaskLater(eq(player), any(Runnable.class), eq(1L));
+        given(commonService.getProperty(RegistrationSettings.USE_DIALOG_UI)).willReturn(dialogsEnabled);
+        if (dialogsEnabled) {
+            given(dialogAdapter.isDialogSupported()).willReturn(true);
+            given(player.isOnline()).willReturn(true);
+            given(dialogWindowService.createTotpDialog(player)).willReturn(createDialogSpec("2FA", "Verify"));
+            doAnswer(invocation -> {
+                invocation.<Runnable>getArgument(1).run();
+                return mock(CancellableTask.class);
+            }).when(bukkitService).runTaskLater(eq(player), any(Runnable.class), eq(1L));
+        } else {
+            given(commonService.getProperty(RegistrationSettings.USE_PREJOIN_DIALOG_UI)).willReturn(false);
+        }
 
         asynchronousLogin.login(player, "hunter2");
 
         verify(limboService).resetMessageTask(player, LimboMessageType.TOTP_CODE);
         verify(limboPlayer).setState(LimboPlayerState.TOTP_REQUIRED);
-        verify(dialogAdapter).showTotpDialog(eq(player), any(DialogWindowSpec.class));
-        verify(asynchronousLogin, never()).performLogin(player, auth);
-    }
-
-    @Test
-    void shouldNotShowTotpDialogWhenDialogsAreDisabled() {
-        Player player = mockPlayer("bobby");
-        TestHelper.mockIpAddressToPlayer(player, "203.0.113.5");
-        PlayerAuth auth = PlayerAuth.builder().name("bobby").totpKey("secret").build();
-        LimboPlayer limboPlayer = mock(LimboPlayer.class);
-        given(playerCache.isAuthenticated("bobby")).willReturn(false);
-        givenExistingPlayerWithValidPassword(auth);
-        given(limboService.getLimboPlayer(player)).willReturn(limboPlayer);
-        given(commonService.getProperty(RegistrationSettings.USE_DIALOG_UI)).willReturn(false);
-        given(commonService.getProperty(RegistrationSettings.USE_PREJOIN_DIALOG_UI)).willReturn(false);
-
-        asynchronousLogin.login(player, "hunter2");
-
-        verify(limboService).resetMessageTask(player, LimboMessageType.TOTP_CODE);
-        verify(limboPlayer).setState(LimboPlayerState.TOTP_REQUIRED);
-        verify(dialogAdapter, never()).showTotpDialog(eq(player), any(DialogWindowSpec.class));
+        if (dialogsEnabled) {
+            verify(dialogAdapter).showTotpDialog(eq(player), any(DialogWindowSpec.class));
+            verify(asynchronousLogin, never()).performLogin(player, auth);
+        } else {
+            verify(dialogAdapter, never()).showTotpDialog(eq(player), any(DialogWindowSpec.class));
+        }
     }
 
     @Test
