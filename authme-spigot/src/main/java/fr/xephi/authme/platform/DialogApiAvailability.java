@@ -1,7 +1,5 @@
 package fr.xephi.authme.platform;
 
-import fr.xephi.authme.util.Utils;
-
 /**
  * Detects, once, whether the BungeeCord dialog API shipped with Spigot 1.21.6+ is present.
  *
@@ -11,14 +9,34 @@ import fr.xephi.authme.util.Utils;
  */
 final class DialogApiAvailability {
 
-    // Same Class.forName probe as the core hook; no dialog API class is referenced directly here.
+    private static final String DIALOG_API_CLASS = "net.md_5.bungee.api.dialog.MultiActionDialog";
+
+    // Probing must never abort plugin startup: a class that exists but cannot be linked (e.g. an
+    // incompatible bungee-chat version) throws a LinkageError, which is treated as unavailable.
     private static final boolean AVAILABLE =
-        Utils.isClassLoaded("net.md_5.bungee.api.dialog.MultiActionDialog");
+        isPresent(DIALOG_API_CLASS, DialogApiAvailability.class.getClassLoader());
 
     private DialogApiAvailability() {
     }
 
     static boolean isAvailable() {
         return AVAILABLE;
+    }
+
+    /**
+     * Probes a class without initializing it, treating both absence and link failure as unavailable.
+     *
+     * @param className the binary class name to check
+     * @param classLoader the loader to resolve it with
+     *
+     * @return true if the class resolves, false otherwise
+     */
+    static boolean isPresent(String className, ClassLoader classLoader) {
+        try {
+            Class.forName(className, false, classLoader);
+            return true;
+        } catch (ClassNotFoundException | LinkageError e) {
+            return false;
+        }
     }
 }

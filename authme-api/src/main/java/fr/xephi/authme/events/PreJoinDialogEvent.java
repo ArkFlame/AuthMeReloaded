@@ -3,6 +3,7 @@ package fr.xephi.authme.events;
 import org.bukkit.event.HandlerList;
 
 import java.net.InetAddress;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -50,10 +51,10 @@ public class PreJoinDialogEvent extends AbstractCancellableEvent {
     public PreJoinDialogEvent(String playerName, UUID playerId, InetAddress address, DialogType dialogType,
                               boolean registered, boolean isAsync) {
         super(isAsync);
-        this.playerName = playerName;
+        this.playerName = Objects.requireNonNull(playerName, "playerName");
         this.playerId = playerId;
         this.address = address;
-        this.dialogType = dialogType;
+        this.dialogType = Objects.requireNonNull(dialogType, "dialogType");
         this.registered = registered;
     }
 

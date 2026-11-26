@@ -72,9 +72,11 @@ public class EmailService {
             }
         }
 
-        boolean couldSendEmail = sendMailSsl.sendEmail(mailText, email);
-        FileUtils.delete(file);
-        return couldSendEmail;
+        try {
+            return sendMailSsl.sendEmail(mailText, email);
+        } finally {
+            FileUtils.delete(file);
+        }
     }
 
     /**

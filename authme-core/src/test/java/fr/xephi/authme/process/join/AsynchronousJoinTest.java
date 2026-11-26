@@ -71,6 +71,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
@@ -349,6 +350,17 @@ public class AsynchronousJoinTest {
         asynchronousJoin.processJoin(player);
 
         verify(limboService, never()).createLimboPlayer(eq(player), anyBoolean());
+    }
+
+    @Test
+    public void shouldResolvePlayerSocketAddressOnlyOncePerJoin() {
+        Player player = givenRegisteredPlayer();
+        clearInvocations(player);
+
+        asynchronousJoin.processJoin(player);
+
+        // The socket address must be fetched once and reused for the IP, not looked up again by PlayerUtils.
+        verify(player, times(1)).getAddress();
     }
 
     @Test

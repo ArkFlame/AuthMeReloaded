@@ -55,6 +55,7 @@ import org.bukkit.Server;
 import org.bukkit.entity.Player;
 
 import javax.inject.Inject;
+import java.net.InetSocketAddress;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -180,7 +181,8 @@ public class AsynchronousJoin implements AsynchronousProcess {
     public void processJoin(Player player) {
         String name = player.getName().toLowerCase(Locale.ROOT);
         // The player may have disconnected before this async task ran; getAddress() is null then.
-        String ip = player.getAddress() == null ? null : PlayerUtils.getPlayerIp(player);
+        InetSocketAddress address = player.getAddress();
+        String ip = address == null ? null : address.getAddress().getHostAddress();
         PreJoinDialogService.PendingDialogState dialogState = preJoinDialogService.consumeSession(name);
         String pendingLoginPassword = dialogState.loginPassword();
         String pendingRecoveryEmail = dialogState.recoveryEmail();

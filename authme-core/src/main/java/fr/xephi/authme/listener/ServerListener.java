@@ -4,6 +4,7 @@ import fr.xephi.authme.ConsoleLogger;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.listener.packetevents.PacketEventsService;
 import fr.xephi.authme.permission.PermissionsManager;
+import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.service.PluginHookService;
 import fr.xephi.authme.settings.SpawnLoader;
 import org.bukkit.event.EventHandler;
@@ -29,11 +30,17 @@ public class ServerListener implements Listener {
     private PacketEventsService packetEventsService;
     @Inject
     private PermissionsManager permissionsManager;
+    @Inject
+    private BukkitService bukkitService;
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPluginDisable(PluginDisableEvent event) {
         final String pluginName = event.getPlugin().getName();
+        // Hook changes must happen on the global region thread for Folia safety
+        bukkitService.runOnGlobalRegion(() -> handlePluginDisable(pluginName));
+    }
 
+    private void handlePluginDisable(String pluginName) {
         // Call the onPluginDisable method in the permissions manager
         permissionsManager.onPluginDisable(pluginName);
 
@@ -59,7 +66,11 @@ public class ServerListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPluginEnable(PluginEnableEvent event) {
         final String pluginName = event.getPlugin().getName();
+        // Hook changes must happen on the global region thread for Folia safety
+        bukkitService.runOnGlobalRegion(() -> handlePluginEnable(pluginName));
+    }
 
+    private void handlePluginEnable(String pluginName) {
         // Call the onPluginEnable method in the permissions manager
         permissionsManager.onPluginEnable(pluginName);
 

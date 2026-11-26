@@ -61,26 +61,6 @@ public final class BukkitServiceTestHelper {
 
     /**
      * Sets a BukkitService mock to run any Runnable it is passed to its method
-     * {@link BukkitService#scheduleSyncDelayedTask(Runnable)}.
-     *
-     * @param bukkitService the mock to set behavior on
-     */
-    public static void setBukkitServiceToScheduleSyncDelayedTask(BukkitService bukkitService) {
-        doAnswer(runRunnableAt(0)).when(bukkitService).scheduleSyncDelayedTask(any(Runnable.class));
-    }
-
-    /**
-     * Sets a BukkitService mock to run any Runnable it is passed to its method
-     * {@link BukkitService#scheduleSyncDelayedTask(Runnable, long)}.
-     *
-     * @param bukkitService the mock to set behavior on
-     */
-    public static void setBukkitServiceToScheduleSyncDelayedTaskWithDelay(BukkitService bukkitService) {
-        doAnswer(runRunnableAt(0)).when(bukkitService).scheduleSyncDelayedTask(any(Runnable.class), anyLong());
-    }
-
-    /**
-     * Sets a BukkitService mock to run any Runnable it is passed to its method
      * {@link BukkitService#scheduleSyncDelayedTask(Entity, Runnable, long)}.
      *
      * @param bukkitService the mock to set behavior on

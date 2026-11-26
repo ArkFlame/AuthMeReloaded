@@ -106,10 +106,13 @@ public class SessionService implements Reloadable {
         } else if (auth.getLastLogin() == null) {
             return SessionState.NOT_VALID;
         }
-        long timeSinceLastLogin = System.currentTimeMillis() - auth.getLastLogin();
+        long now = System.currentTimeMillis();
+        long lastLogin = auth.getLastLogin();
 
-        if (timeSinceLastLogin > 0
-            && timeSinceLastLogin < service.getProperty(PluginSettings.SESSIONS_TIMEOUT) * MILLIS_PER_MINUTE) {
+        // Reject future or invalid (negative) timestamps before subtracting so the elapsed time
+        // cannot overflow, and treat a session created at the current instant as still valid.
+        if (lastLogin >= 0 && lastLogin <= now
+            && now - lastLogin < service.getProperty(PluginSettings.SESSIONS_TIMEOUT) * MILLIS_PER_MINUTE) {
             if (ipAddress.equals(auth.getLastIp())) {
                 return SessionState.VALID;
             } else {

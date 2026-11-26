@@ -100,6 +100,20 @@ class UtilsTest {
     }
 
     @Test
+    void shouldDetectClassLoadedWithoutRunningStaticInitializer() {
+        // The class exists but its static initializer always throws: it must not be executed.
+        assertThat(Utils.isClassLoaded(FailingInitializer.class.getName()), equalTo(true));
+    }
+
+    private static final class FailingInitializer {
+        static {
+            if (true) {
+                throw new IllegalStateException("static initializer must not be run");
+            }
+        }
+    }
+
+    @Test
     void shouldDetectIfEmailIsEmpty() {
         assertThat(Utils.isEmailEmpty(""), equalTo(true));
         assertThat(Utils.isEmailEmpty(null), equalTo(true));

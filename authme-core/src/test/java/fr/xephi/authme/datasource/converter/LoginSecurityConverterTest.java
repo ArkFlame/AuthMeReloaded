@@ -68,14 +68,10 @@ class LoginSecurityConverterTest extends AbstractConverterTest {
 
     @Test
     void shouldMigrateAccountsAndSkipExistingOnes() throws SQLException, ClassNotFoundException {
-        Class.forName("org.sqlite.JDBC");
         File dbFile = new File(tempFolder, "LoginSecurity.db");
-        try (Connection setup = DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath());
+        try (Connection setup = openDatabase(dbFile);
              Statement statement = setup.createStatement()) {
-            statement.execute("CREATE TABLE ls_players (id INTEGER PRIMARY KEY, last_name TEXT, password TEXT, "
-                + "last_login TIMESTAMP, registration_date DATE, unique_user_id TEXT, ip_address TEXT)");
-            statement.execute("CREATE TABLE ls_locations (id INTEGER PRIMARY KEY, x DOUBLE, y DOUBLE, z DOUBLE, "
-                + "world TEXT, yaw DOUBLE, pitch DOUBLE)");
+            createTables(statement);
             statement.execute("INSERT INTO ls_players VALUES (1, 'TestPlayer', 'bcrypt-hash', "
                 + "'2020-01-02 03:04:05.000', '2019-01-02 00:00:00.000', '" + PLAYER_UUID
                 + "', '127.0.0.1')");
@@ -88,7 +84,7 @@ class LoginSecurityConverterTest extends AbstractConverterTest {
         given(dataSource.isAuthAvailable("ExistingPlayer")).willReturn(true);
         CommandSender sender = mock(CommandSender.class);
 
-        try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath())) {
+        try (Connection connection = openDatabase(dbFile)) {
             converter.performConversion(sender, connection);
         }
 
@@ -112,14 +108,10 @@ class LoginSecurityConverterTest extends AbstractConverterTest {
 
     @Test
     void shouldSkipRowsWithNullOrEmptyName() throws SQLException, ClassNotFoundException {
-        Class.forName("org.sqlite.JDBC");
         File dbFile = new File(tempFolder, "LoginSecurity.db");
-        try (Connection setup = DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath());
+        try (Connection setup = openDatabase(dbFile);
              Statement statement = setup.createStatement()) {
-            statement.execute("CREATE TABLE ls_players (id INTEGER PRIMARY KEY, last_name TEXT, password TEXT, "
-                + "last_login TIMESTAMP, registration_date DATE, unique_user_id TEXT, ip_address TEXT)");
-            statement.execute("CREATE TABLE ls_locations (id INTEGER PRIMARY KEY, x DOUBLE, y DOUBLE, z DOUBLE, "
-                + "world TEXT, yaw DOUBLE, pitch DOUBLE)");
+            createTables(statement);
             statement.execute("INSERT INTO ls_players VALUES (1, NULL, 'hash', NULL, NULL, NULL, NULL)");
             statement.execute("INSERT INTO ls_players VALUES (2, '', 'hash', NULL, NULL, NULL, NULL)");
             statement.execute("INSERT INTO ls_players VALUES (3, 'ValidPlayer', 'bcrypt-hash', "
@@ -131,7 +123,7 @@ class LoginSecurityConverterTest extends AbstractConverterTest {
         given(dataSource.isAuthAvailable("ValidPlayer")).willReturn(false);
         CommandSender sender = mock(CommandSender.class);
 
-        try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath())) {
+        try (Connection connection = openDatabase(dbFile)) {
             converter.performConversion(sender, connection);
         }
 
@@ -147,5 +139,17 @@ class LoginSecurityConverterTest extends AbstractConverterTest {
 
         verify(sender).sendMessage(argThat(containsString("does not exist")));
         verifyNoInteractions(dataSource);
+    }
+
+    private static Connection openDatabase(File dbFile) throws SQLException, ClassNotFoundException {
+        Class.forName("org.sqlite.JDBC");
+        return DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath());
+    }
+
+    private static void createTables(Statement statement) throws SQLException {
+        statement.execute("CREATE TABLE ls_players (id INTEGER PRIMARY KEY, last_name TEXT, password TEXT, "
+            + "last_login TIMESTAMP, registration_date DATE, unique_user_id TEXT, ip_address TEXT)");
+        statement.execute("CREATE TABLE ls_locations (id INTEGER PRIMARY KEY, x DOUBLE, y DOUBLE, z DOUBLE, "
+            + "world TEXT, yaw DOUBLE, pitch DOUBLE)");
     }
 }

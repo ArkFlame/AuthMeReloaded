@@ -104,8 +104,7 @@ class OnJoinVerifierTest {
     @Test
     void shouldRefuseNonVipPlayerForFullServer() {
         Player player = mock(Player.class);
-        PlayerLoginEvent event = new PlayerLoginEvent(player, "hostname", null);
-        event.setResult(PlayerLoginEvent.Result.KICK_FULL);
+        PlayerLoginEvent event = createFullServerEvent(player);
         given(player.getName()).willReturn("VipCheck");
         given(permissionsManager.hasPermissionOffline("VipCheck", PlayerStatePermission.IS_VIP)).willReturn(false);
         String serverFullMessage = "server is full";
@@ -122,8 +121,7 @@ class OnJoinVerifierTest {
     @Test
     void shouldKickNonVipForJoiningVipPlayer() {
         Player player = mock(Player.class);
-        PlayerLoginEvent event = new PlayerLoginEvent(player, "hostname", null);
-        event.setResult(PlayerLoginEvent.Result.KICK_FULL);
+        PlayerLoginEvent event = createFullServerEvent(player);
         given(player.getName()).willReturn("VipPlayer");
         given(permissionsManager.hasPermissionOffline("VipPlayer", PlayerStatePermission.IS_VIP)).willReturn(true);
         List<Player> onlinePlayers = Arrays.asList(mock(Player.class), mock(Player.class));
@@ -145,8 +143,7 @@ class OnJoinVerifierTest {
     @Test
     void shouldKickVipPlayerIfNoPlayerCanBeKicked() {
         Player player = mock(Player.class);
-        PlayerLoginEvent event = new PlayerLoginEvent(player, "hostname", null);
-        event.setResult(PlayerLoginEvent.Result.KICK_FULL);
+        PlayerLoginEvent event = createFullServerEvent(player);
         given(player.getName()).willReturn("VipPlayer");
         given(permissionsManager.hasPermissionOffline("VipPlayer", PlayerStatePermission.IS_VIP)).willReturn(true);
         List<Player> onlinePlayers = Collections.singletonList(mock(Player.class));
@@ -488,6 +485,12 @@ class OnJoinVerifierTest {
             () -> onJoinVerifier.checkNameRestrictions(name, address));
         assertThat(exception.getReason(), equalTo(MessageKey.NOT_OWNER_ERROR));
         verify(bukkitService).runOnGlobalRegion(any(Runnable.class));
+    }
+
+    private static PlayerLoginEvent createFullServerEvent(Player player) {
+        PlayerLoginEvent event = new PlayerLoginEvent(player, "hostname", null);
+        event.setResult(PlayerLoginEvent.Result.KICK_FULL);
+        return event;
     }
 
     private void configureNicknameCharacterCheck(int maxLength) {

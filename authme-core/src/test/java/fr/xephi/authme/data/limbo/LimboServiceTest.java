@@ -5,6 +5,7 @@ import fr.xephi.authme.TestHelper;
 import fr.xephi.authme.data.limbo.persistence.LimboPersistence;
 import fr.xephi.authme.permission.PermissionsManager;
 import fr.xephi.authme.service.BukkitService;
+import fr.xephi.authme.service.CancellableTask;
 import fr.xephi.authme.service.TeleportationService;
 import fr.xephi.authme.settings.Settings;
 import fr.xephi.authme.settings.SpawnLoader;
@@ -506,6 +507,25 @@ class LimboServiceTest {
         verify(player).setAllowFlight(true);
         verify(player).setWalkSpeed(0.3f);
         verify(player).setFlySpeed(0.15f);
+        verify(limboPersistence).removeLimboPlayer(player);
+    }
+
+    @Test
+    void shouldRemoveInMemoryLimboOnAutoLogin() {
+        // given - an in-memory limbo left over from the join flow, no disk limbo
+        Player player = newPlayer("Premium", false, 0.2f, false, 0.1f);
+        CancellableTask messageTaskHandle = mock(CancellableTask.class);
+        LimboPlayer inMemoryLimbo = new LimboPlayer(null, false, Collections.emptyList(), false, 0.0f, 0.0f);
+        inMemoryLimbo.setMessageTask(null, messageTaskHandle);
+        getLimboMap().put(player.getUniqueId(), inMemoryLimbo);
+        given(limboPersistence.getLimboPlayer(player)).willReturn(null);
+
+        // when
+        limboService.restoreSpeedsForAutoLogin(player);
+
+        // then - the entry and its scheduled tasks must not leak past auto-login
+        assertThat(limboService.hasLimboPlayer(player), equalTo(false));
+        verify(messageTaskHandle).cancel();
         verify(limboPersistence).removeLimboPlayer(player);
     }
 

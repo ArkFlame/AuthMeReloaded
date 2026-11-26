@@ -3,6 +3,7 @@ package fr.xephi.authme.listener;
 import fr.xephi.authme.TestHelper;
 import fr.xephi.authme.listener.packetevents.PacketEventsService;
 import fr.xephi.authme.permission.PermissionsManager;
+import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.service.PluginHookService;
 import fr.xephi.authme.settings.SpawnLoader;
 import org.bukkit.event.server.PluginDisableEvent;
@@ -10,13 +11,21 @@ import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.event.server.PluginEvent;
 import org.bukkit.plugin.Plugin;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
@@ -50,9 +59,40 @@ class ServerListenerTest {
     @Mock
     private SpawnLoader spawnLoader;
 
+    @Mock
+    private BukkitService bukkitService;
+
     @BeforeAll
     static void initLogger() {
         TestHelper.setupLogger();
+    }
+
+    @BeforeEach
+    void runGlobalRegionTasksImmediately() {
+        lenient().doAnswer(invocation -> {
+            ((Runnable) invocation.getArgument(0)).run();
+            return null;
+        }).when(bukkitService).runOnGlobalRegion(any(Runnable.class));
+    }
+
+    @Test
+    void shouldDeferPluginHandlingToGlobalRegionThread() {
+        List<Runnable> pendingTasks = new ArrayList<>();
+        doAnswer(invocation -> {
+            pendingTasks.add(invocation.getArgument(0));
+            return null;
+        }).when(bukkitService).runOnGlobalRegion(any(Runnable.class));
+
+        PluginDisableEvent event = mockEventWithPluginName(PluginDisableEvent.class, PACKET_EVENTS);
+        serverListener.onPluginDisable(event);
+
+        // Nothing may be executed on the calling thread; the work is handed to the global region
+        verifyNoInteractions(permissionsManager, packetEventsService);
+        assertEquals(1, pendingTasks.size());
+
+        pendingTasks.get(0).run();
+        verify(permissionsManager).onPluginDisable(PACKET_EVENTS);
+        verify(packetEventsService).disable();
     }
 
     @Test

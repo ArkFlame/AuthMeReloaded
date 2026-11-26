@@ -18,8 +18,9 @@ import org.bukkit.event.HandlerList;
  *       logged in, so use it only for players whose authentication is handled elsewhere.</li>
  * </ul>
  * The event is always dispatched synchronously on the player's owning thread: the main thread on
- * Bukkit/Paper and the player's region thread on Folia. {@link #isAsynchronous()} is therefore always
- * {@code false}, and listeners may safely interact with the player. AuthMe waits for every listener to
+ * Bukkit/Paper and the player's region thread on Folia. AuthMe always constructs the event with the
+ * asynchronous flag set to {@code false}; {@link #isAsynchronous()} reports that constructor flag, so
+ * listeners may safely interact with the player. AuthMe waits for every listener to
  * return before continuing the asynchronous join, so the decision made here is final. The event is
  * never called when the player is not subject to authentication (for example unrestricted names).
  */

@@ -448,6 +448,10 @@ public final class BungeeProxyBridge implements Listener {
     }
 
     private ParsedPluginMessage parsePluginMessage(byte[] data) {
+        if (data == null) {
+            logger.warning("Received AuthMe plugin message without a payload on the authme:main channel");
+            return new ParsedPluginMessage(null, null);
+        }
         ByteArrayDataInput input = ByteStreams.newDataInput(data);
 
         try {
@@ -457,7 +461,16 @@ public final class BungeeProxyBridge implements Listener {
             }
             String argument = input.readUTF();
             boolean rawArgument = type == ProxyMessageType.PREMIUM_LIST || type == ProxyMessageType.PREMIUM_LIST_CHUNK;
-            return new ParsedPluginMessage(type, rawArgument ? argument : BungeeAuthenticationStore.normalizeName(argument));
+            if (rawArgument) {
+                // The premium list payload is a raw CSV/chunk string; an empty value is authoritative.
+                return new ParsedPluginMessage(type, argument);
+            }
+            String normalizedName = BungeeAuthenticationStore.normalizeName(argument);
+            if (normalizedName.isEmpty()) {
+                logger.warning("Ignoring AuthMe plugin message '" + type.id() + "' without a player name");
+                return new ParsedPluginMessage(null, null);
+            }
+            return new ParsedPluginMessage(type, normalizedName);
         } catch (IllegalStateException e) {
             logger.warning("Received malformed AuthMe plugin message on the authme:main channel");
             return new ParsedPluginMessage(null, null);

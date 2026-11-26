@@ -278,6 +278,65 @@ class SessionServiceTest {
         verify(dataSource, only()).grantSession("bobby");
     }
 
+    @Test
+    void shouldRefuseSessionForNegativeLastLoginTimestamp() {
+        // given
+        Player player = givenSession(NAME, IP, playerAuth(NAME, -1L, IP));
+
+        // when
+        boolean result = sessionService.canResumeSession(player);
+
+        // then
+        assertThat(result, equalTo(false));
+        verify(dataSource).setUnlogged(NAME);
+        verify(dataSource).revokeSession(NAME);
+    }
+
+    @Test
+    void shouldRefuseSessionForOverflowingLastLoginTimestamp() {
+        // given
+        Player player = givenSession(NAME, IP, playerAuth(NAME, Long.MIN_VALUE, IP));
+
+        // when
+        boolean result = sessionService.canResumeSession(player);
+
+        // then
+        assertThat(result, equalTo(false));
+        verify(dataSource).setUnlogged(NAME);
+        verify(dataSource).revokeSession(NAME);
+    }
+
+    @Test
+    void shouldRefuseSessionForLastLoginInTheFuture() {
+        // given: a clock that went backwards must not resurrect a session
+        Player player = givenSession(NAME, IP,
+            playerAuth(NAME, System.currentTimeMillis() + 60 * 1000, IP));
+
+        // when
+        boolean result = sessionService.canResumeSession(player);
+
+        // then
+        assertThat(result, equalTo(false));
+        verify(dataSource).setUnlogged(NAME);
+        verify(dataSource).revokeSession(NAME);
+    }
+
+    @Test
+    void shouldAcceptRecentSessionWithMaximalTimeoutWithoutOverflow() {
+        // given
+        Player player = givenSession(NAME, IP,
+            playerAuth(NAME, System.currentTimeMillis() - 60 * 1000, IP));
+        given(commonService.getProperty(PluginSettings.SESSIONS_TIMEOUT)).willReturn(Integer.MAX_VALUE);
+        given(bukkitService.createAndCallEvent(any(Function.class)))
+            .willReturn(new RestoreSessionEvent(player, false));
+
+        // when
+        boolean result = sessionService.canResumeSession(player);
+
+        // then
+        assertThat(result, equalTo(true));
+    }
+
     private static PlayerAuth playerAuth(String name, Long lastLogin, String lastIp) {
         return PlayerAuth.builder().name(name).lastLogin(lastLogin).lastIp(lastIp).build();
     }

@@ -49,7 +49,9 @@ public final class Utils {
      */
     public static boolean isClassLoaded(String className) {
         try {
-            Class.forName(className);
+            // Do not initialize the class: callers only check for presence of optional APIs,
+            // and running static initializers can fail or cause unwanted side effects.
+            Class.forName(className, false, Utils.class.getClassLoader());
             return true;
         } catch (ClassNotFoundException e) {
             return false;

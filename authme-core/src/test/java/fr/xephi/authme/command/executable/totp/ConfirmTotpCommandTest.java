@@ -38,6 +38,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 @MockitoSettings(strictness = Strictness.WARN)
 public class ConfirmTotpCommandTest {
 
+    private static final String PLAYER_NAME = "George";
+
     @InjectMocks
     private ConfirmTotpCommand command;
 
@@ -58,11 +60,9 @@ public class ConfirmTotpCommandTest {
     @Test
     public void shouldAddTotpCodeToUserAfterSuccessfulConfirmation() {
         // given
-        Player player = mock(Player.class);
-        String playerName = "George";
-        given(player.getName()).willReturn(playerName);
-        PlayerAuth auth = PlayerAuth.builder().name(playerName).build();
-        given(playerCache.getAuth(playerName)).willReturn(auth);
+        Player player = mockPlayer();
+        PlayerAuth auth = PlayerAuth.builder().name(PLAYER_NAME).build();
+        given(playerCache.getAuth(PLAYER_NAME)).willReturn(auth);
         String generatedTotpKey = "totp-key";
         given(generateTotpService.getGeneratedTotpKey(player)).willReturn(new TotpGenerationResult(generatedTotpKey, "url-not-relevant"));
         String totpCode = "954321";
@@ -75,7 +75,7 @@ public class ConfirmTotpCommandTest {
         // then
         verify(generateTotpService).isTotpCodeCorrectForGeneratedTotpKey(player, totpCode);
         verify(generateTotpService).removeGenerateTotpKey(player);
-        verify(dataSource).setTotpKey(playerName, generatedTotpKey);
+        verify(dataSource).setTotpKey(PLAYER_NAME, generatedTotpKey);
         verify(playerCache).updatePlayerIfPresent(auth);
         verify(messages).send(player, MessageKey.TWO_FACTOR_ENABLE_SUCCESS);
         assertThat(auth.getTotpKey(), equalTo(generatedTotpKey));
@@ -84,11 +84,9 @@ public class ConfirmTotpCommandTest {
     @Test
     public void shouldHandleWrongTotpCode() {
         // given
-        Player player = mock(Player.class);
-        String playerName = "George";
-        given(player.getName()).willReturn(playerName);
-        PlayerAuth auth = PlayerAuth.builder().name(playerName).build();
-        given(playerCache.getAuth(playerName)).willReturn(auth);
+        Player player = mockPlayer();
+        PlayerAuth auth = PlayerAuth.builder().name(PLAYER_NAME).build();
+        given(playerCache.getAuth(PLAYER_NAME)).willReturn(auth);
         given(generateTotpService.getGeneratedTotpKey(player)).willReturn(new TotpGenerationResult("totp-key", "url-not-relevant"));
         String totpCode = "754321";
         given(generateTotpService.isTotpCodeCorrectForGeneratedTotpKey(player, totpCode)).willReturn(false);
@@ -99,7 +97,7 @@ public class ConfirmTotpCommandTest {
         // then
         verify(generateTotpService).isTotpCodeCorrectForGeneratedTotpKey(player, totpCode);
         verify(generateTotpService, never()).removeGenerateTotpKey(any(Player.class));
-        verify(playerCache, only()).getAuth(playerName);
+        verify(playerCache, only()).getAuth(PLAYER_NAME);
         verify(messages).send(player, MessageKey.TWO_FACTOR_ENABLE_ERROR_WRONG_CODE);
         verifyNoInteractions(dataSource);
     }
@@ -107,11 +105,9 @@ public class ConfirmTotpCommandTest {
     @Test
     public void shouldHandleMissingTotpKey() {
         // given
-        Player player = mock(Player.class);
-        String playerName = "George";
-        given(player.getName()).willReturn(playerName);
-        PlayerAuth auth = PlayerAuth.builder().name(playerName).build();
-        given(playerCache.getAuth(playerName)).willReturn(auth);
+        Player player = mockPlayer();
+        PlayerAuth auth = PlayerAuth.builder().name(PLAYER_NAME).build();
+        given(playerCache.getAuth(PLAYER_NAME)).willReturn(auth);
         given(generateTotpService.getGeneratedTotpKey(player)).willReturn(null);
 
         // when
@@ -119,7 +115,7 @@ public class ConfirmTotpCommandTest {
 
         // then
         verify(generateTotpService, only()).getGeneratedTotpKey(player);
-        verify(playerCache, only()).getAuth(playerName);
+        verify(playerCache, only()).getAuth(PLAYER_NAME);
         verify(messages).send(player, MessageKey.TWO_FACTOR_ENABLE_ERROR_NO_CODE);
         verifyNoInteractions(dataSource);
     }
@@ -127,17 +123,15 @@ public class ConfirmTotpCommandTest {
     @Test
     public void shouldStopForAlreadyExistingTotpKeyOnAccount() {
         // given
-        Player player = mock(Player.class);
-        String playerName = "George";
-        given(player.getName()).willReturn(playerName);
-        PlayerAuth auth = PlayerAuth.builder().name(playerName).totpKey("A987234").build();
-        given(playerCache.getAuth(playerName)).willReturn(auth);
+        Player player = mockPlayer();
+        PlayerAuth auth = PlayerAuth.builder().name(PLAYER_NAME).totpKey("A987234").build();
+        given(playerCache.getAuth(PLAYER_NAME)).willReturn(auth);
 
         // when
         command.runCommand(player, Collections.singletonList("871634"));
 
         // then
-        verify(playerCache, only()).getAuth(playerName);
+        verify(playerCache, only()).getAuth(PLAYER_NAME);
         verifyNoInteractions(generateTotpService, dataSource);
         verify(messages).send(player, MessageKey.TWO_FACTOR_ALREADY_ENABLED);
     }
@@ -145,18 +139,22 @@ public class ConfirmTotpCommandTest {
     @Test
     public void shouldHandleMissingAuthAccount() {
         // given
-        Player player = mock(Player.class);
-        String playerName = "George";
-        given(player.getName()).willReturn(playerName);
-        given(playerCache.getAuth(playerName)).willReturn(null);
+        Player player = mockPlayer();
+        given(playerCache.getAuth(PLAYER_NAME)).willReturn(null);
 
         // when
         command.runCommand(player, Collections.singletonList("984685"));
 
         // then
-        verify(playerCache, only()).getAuth(playerName);
+        verify(playerCache, only()).getAuth(PLAYER_NAME);
         verifyNoInteractions(generateTotpService, dataSource);
         verify(messages).send(player, MessageKey.NOT_LOGGED_IN);
+    }
+
+    private static Player mockPlayer() {
+        Player player = mock(Player.class);
+        given(player.getName()).willReturn(PLAYER_NAME);
+        return player;
     }
 }
 

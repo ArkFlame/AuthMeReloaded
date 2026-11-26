@@ -1,5 +1,6 @@
 package fr.xephi.authme.process;
 
+import fr.xephi.authme.TestHelper;
 import fr.xephi.authme.data.ProxySessionManager;
 import fr.xephi.authme.process.login.AsynchronousLogin;
 import fr.xephi.authme.service.BukkitService;
@@ -36,6 +37,17 @@ class ManagementTest {
     private ProxySessionManager proxySessionManager;
     @Mock
     private PreJoinDialogService preJoinDialogService;
+
+    @Test
+    void shouldQueueLogoutWhenLocationCaptureThrows() {
+        TestHelper.setupLogger();
+        Player player = mock(Player.class);
+        when(player.getLocation()).thenThrow(new IllegalStateException("Player is not in a world"));
+
+        management.performLogout(player);
+
+        verify(bukkitService).runTaskOptionallyAsync(any(Runnable.class));
+    }
 
     @Test
     void shouldForceLoginFromProxyByNameQueuesBeforeOnlineForceLogin() {

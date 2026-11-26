@@ -595,6 +595,10 @@ final class VelocityProxyBridge {
             // premium.list and premium.list.chunk carry non-player-name data; read as-is
             String argument = input.readUTF();
             boolean rawArgument = type == ProxyMessageType.PREMIUM_LIST || type == ProxyMessageType.PREMIUM_LIST_CHUNK;
+            if (!rawArgument && argument.isEmpty()) {
+                logger.warn("Ignoring authme:main message '{}' with an empty player name", typeId);
+                return new ParsedMessage(null, null);
+            }
             return new ParsedMessage(type, rawArgument ? argument : VelocityAuthenticationStore.normalizeName(argument));
         } catch (IllegalStateException e) {
             logger.warn("Received malformed AuthMe plugin message on the authme:main channel");

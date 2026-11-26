@@ -46,29 +46,33 @@ public abstract class AbstractPaperPlatformAdapter extends AbstractSpigotPlatfor
     @Override
     public void teleportPlayer(Player player, Location location) {
         UUID playerId = player.getUniqueId();
-        CompletableFuture<Boolean> previous = pendingTeleports.get(playerId);
-        CompletableFuture<Boolean> teleport;
-        if (previous == null) {
-            teleport = player.teleportAsync(location);
-        } else {
-            teleport = new CompletableFuture<>();
-            previous.whenComplete((ignoredResult, ignoredError) -> {
-                ScheduledTask task = player.getScheduler().run(JavaPlugin.getPlugin(AuthMe.class),
-                    ignored -> player.teleportAsync(location).whenComplete((result, error) -> {
-                        if (error == null) {
-                            teleport.complete(result);
-                        } else {
-                            teleport.completeExceptionally(error);
-                        }
-                    }),
-                    () -> teleport.complete(false));
-                if (task == null) {
-                    teleport.complete(false);
-                }
-            });
-        }
-        pendingTeleports.put(playerId, teleport);
+        // compute() makes reading the pending teleport and installing the new one atomic, so two
+        // concurrent teleports for the same player are still applied in call order instead of both
+        // seeing an empty queue and racing each other.
+        CompletableFuture<Boolean> teleport = pendingTeleports.compute(playerId, (ignoredId, previous) -> {
+            if (previous == null) {
+                return player.teleportAsync(location);
+            }
+            CompletableFuture<Boolean> chained = new CompletableFuture<>();
+            previous.whenComplete((ignoredResult, ignoredError) -> runChainedTeleport(player, location, chained));
+            return chained;
+        });
         teleport.whenComplete((ignoredResult, ignoredError) -> pendingTeleports.remove(playerId, teleport));
+    }
+
+    private void runChainedTeleport(Player player, Location location, CompletableFuture<Boolean> result) {
+        ScheduledTask task = player.getScheduler().run(JavaPlugin.getPlugin(AuthMe.class),
+            ignored -> player.teleportAsync(location).whenComplete((teleportResult, error) -> {
+                if (error == null) {
+                    result.complete(teleportResult);
+                } else {
+                    result.completeExceptionally(error);
+                }
+            }),
+            () -> result.complete(false));
+        if (task == null) {
+            result.complete(false);
+        }
     }
 
     @Override

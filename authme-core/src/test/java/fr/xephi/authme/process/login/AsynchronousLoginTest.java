@@ -52,6 +52,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -151,12 +152,7 @@ class AsynchronousLoginTest {
     void shouldNotForceLoginUserWithAlreadyOnlineIp() {
         String name = "oscar";
         String ip = "1.1.1.245";
-        Player player = mockPlayer(name);
-        TestHelper.mockIpAddressToPlayer(player, ip);
-        given(playerCache.isAuthenticated(name)).willReturn(false);
-        PlayerAuth auth = PlayerAuth.builder().name(name).build();
-        given(dataSource.getAuth(name)).willReturn(auth);
-        given(commonService.getProperty(DatabaseSettings.MYSQL_COL_GROUP)).willReturn("");
+        Player player = prepareForceLoginPlayer(name, ip);
         doReturn(true).when(asynchronousLogin).hasReachedMaxLoggedInPlayersForIp(any(Player.class), anyString());
 
         asynchronousLogin.forceLogin(player);
@@ -171,12 +167,7 @@ class AsynchronousLoginTest {
     void shouldNotForceLoginForCanceledEvent() {
         String name = "oscar";
         String ip = "1.1.1.245";
-        Player player = mockPlayer(name);
-        TestHelper.mockIpAddressToPlayer(player, ip);
-        given(playerCache.isAuthenticated(name)).willReturn(false);
-        PlayerAuth auth = PlayerAuth.builder().name(name).build();
-        given(dataSource.getAuth(name)).willReturn(auth);
-        given(commonService.getProperty(DatabaseSettings.MYSQL_COL_GROUP)).willReturn("");
+        Player player = prepareForceLoginPlayer(name, ip);
         given(commonService.getProperty(PluginSettings.USE_ASYNC_TASKS)).willReturn(true);
         doReturn(false).when(asynchronousLogin).hasReachedMaxLoggedInPlayersForIp(any(Player.class), anyString());
         doAnswer((Answer<Void>) invocation -> {
@@ -222,6 +213,21 @@ class AsynchronousLoginTest {
             verify(commonService).hasPermission(player, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS);
         }
         verifyNoInteractions(bukkitService);
+    }
+
+    @Test
+    void shouldNotResolveCallerIpAgainWhenCountingOnlinePlayers() {
+        String ip = "1.1.1.245";
+        Player player = mockPlayer("albania");
+        given(commonService.getProperty(RestrictionSettings.MAX_LOGIN_PER_IP)).willReturn(2);
+        given(commonService.hasPermission(player, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS)).willReturn(false);
+        given(bukkitService.getOnlinePlayers()).willReturn(List.of(player));
+        clearInvocations(player);
+
+        boolean result = asynchronousLogin.hasReachedMaxLoggedInPlayersForIp(player, ip);
+
+        assertThat(result, equalTo(false));
+        verify(player, never()).getAddress();
     }
 
     @ParameterizedTest(name = "dialogs enabled={0}")
@@ -304,6 +310,16 @@ class AsynchronousLoginTest {
     private static Player mockPlayer(String name) {
         Player player = mock(Player.class);
         given(player.getName()).willReturn(name);
+        return player;
+    }
+
+    private Player prepareForceLoginPlayer(String name, String ip) {
+        Player player = mockPlayer(name);
+        TestHelper.mockIpAddressToPlayer(player, ip);
+        given(playerCache.isAuthenticated(name)).willReturn(false);
+        PlayerAuth auth = PlayerAuth.builder().name(name).build();
+        given(dataSource.getAuth(name)).willReturn(auth);
+        given(commonService.getProperty(DatabaseSettings.MYSQL_COL_GROUP)).willReturn("");
         return player;
     }
 

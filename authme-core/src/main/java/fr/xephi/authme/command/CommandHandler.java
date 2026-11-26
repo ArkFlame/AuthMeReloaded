@@ -9,7 +9,8 @@ import fr.xephi.authme.util.StringUtils;
 import org.bukkit.command.CommandSender;
 
 import javax.inject.Inject;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,9 +60,13 @@ public class CommandHandler {
      * @return True if the command was executed, false otherwise.
      */
     public boolean processCommand(CommandSender sender, String bukkitCommandLabel, String[] bukkitArgs) {
-        // Add the Bukkit command label to the front so we get a list like [authme, register, bobby, mysecret]
-        List<String> parts = skipEmptyArguments(bukkitArgs);
-        parts.add(0, bukkitCommandLabel);
+        // Add the Bukkit command label to the front so we get a list like [authme, register, bobby, mysecret].
+        // Blank arguments are filtered out centrally in the List overload below.
+        List<String> parts = new ArrayList<>();
+        parts.add(bukkitCommandLabel);
+        if (bukkitArgs != null) {
+            Collections.addAll(parts, bukkitArgs);
+        }
 
         return processCommand(sender, parts);
     }
@@ -74,7 +79,7 @@ public class CommandHandler {
      * @return true if the command was executed, false otherwise
      */
     public boolean processCommand(CommandSender sender, List<String> parts) {
-        FoundCommandResult result = commandMapper.mapPartsToCommand(sender, parts);
+        FoundCommandResult result = commandMapper.mapPartsToCommand(sender, skipEmptyArguments(parts));
         handleCommandResult(sender, result);
         return !FoundResultStatus.MISSING_BASE_COMMAND.equals(result.getResultStatus());
     }
@@ -129,13 +134,16 @@ public class CommandHandler {
     }
 
     /**
-     * Skip all entries of the given array that are simply whitespace.
+     * Skip all entries of the given list that are simply whitespace.
      *
-     * @param args The array to process
+     * @param parts The list to process
      * @return List of the items that are not empty
      */
-    private static List<String> skipEmptyArguments(String[] args) {
-        return Arrays.stream(args)
+    private static List<String> skipEmptyArguments(List<String> parts) {
+        if (parts == null) {
+            return new ArrayList<>();
+        }
+        return parts.stream()
             .filter(argument -> !StringUtils.isBlank(argument))
             .collect(Collectors.toList());
     }

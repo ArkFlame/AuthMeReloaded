@@ -22,6 +22,7 @@ import io.papermc.paper.threadedregions.scheduler.EntityScheduler;
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -32,12 +33,15 @@ import org.mockito.MockedStatic;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -165,5 +169,73 @@ public class FoliaPlatformAdapterTest {
         // then
         verify(asyncScheduler).runAtFixedRate(isNull(), any(), eq(200L), eq(350L), eq(TimeUnit.MILLISECONDS));
         verify(scheduledTask).cancel();
+    }
+
+    @Test
+    public void isOwnedByCurrentThreadDelegatesToRegionCheck() {
+        // given
+        Entity entity = mock(Entity.class);
+        Location location = mock(Location.class);
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            bukkit.when(() -> Bukkit.isOwnedByCurrentRegion(entity)).thenReturn(true);
+            bukkit.when(() -> Bukkit.isOwnedByCurrentRegion(location)).thenReturn(false);
+
+            // when / then
+            assertThat(adapter.isOwnedByCurrentThread(entity), is(true));
+            assertThat(adapter.isOwnedByCurrentThread(location), is(false));
+        }
+    }
+
+    @Test
+    public void concurrentTeleportOfSamePlayerWaitsForPendingTeleport() throws InterruptedException {
+        // given
+        Player player = mock(Player.class);
+        given(player.getUniqueId()).willReturn(UUID.randomUUID());
+        Location first = mock(Location.class);
+        Location second = mock(Location.class);
+        CountDownLatch firstTeleportStarted = new CountDownLatch(1);
+        CountDownLatch releaseFirstTeleport = new CountDownLatch(1);
+        CountDownLatch secondTeleportCallStarted = new CountDownLatch(1);
+        AtomicInteger secondTeleportCount = new AtomicInteger();
+        given(player.teleportAsync(first)).willAnswer(invocation -> {
+            firstTeleportStarted.countDown();
+            assertTrue(releaseFirstTeleport.await(5, TimeUnit.SECONDS));
+            return CompletableFuture.completedFuture(true);
+        });
+        given(player.teleportAsync(second)).willAnswer(invocation -> {
+            secondTeleportCount.incrementAndGet();
+            return CompletableFuture.completedFuture(true);
+        });
+        EntityScheduler scheduler = mock(EntityScheduler.class);
+        given(player.getScheduler()).willReturn(scheduler);
+        given(scheduler.run(isNull(), any(), any())).willAnswer(invocation -> {
+            invocation.<Consumer<ScheduledTask>>getArgument(1).accept(mock(ScheduledTask.class));
+            return mock(ScheduledTask.class);
+        });
+
+        try (MockedStatic<JavaPlugin> javaPluginMock = mockStatic(JavaPlugin.class)) {
+            javaPluginMock.when(() -> JavaPlugin.getPlugin(AuthMe.class)).thenReturn(null);
+
+            Thread firstCaller = new Thread(() -> adapter.teleportPlayer(player, first));
+            firstCaller.start();
+            assertTrue(firstTeleportStarted.await(5, TimeUnit.SECONDS));
+
+            Thread secondCaller = new Thread(() -> {
+                secondTeleportCallStarted.countDown();
+                adapter.teleportPlayer(player, second);
+            });
+            secondCaller.start();
+            assertTrue(secondTeleportCallStarted.await(5, TimeUnit.SECONDS));
+            secondCaller.join(500);
+
+            // then the second teleport must not start while the first one is still pending
+            assertThat(secondTeleportCount.get(), is(0));
+
+            releaseFirstTeleport.countDown();
+            firstCaller.join(5_000);
+            secondCaller.join(5_000);
+            assertThat(secondTeleportCount.get(), is(1));
+        }
     }
 }

@@ -374,7 +374,8 @@ public class AsynchronousLogin implements AsynchronousProcess {
         int count = 0;
         for (Player onlinePlayer : bukkitService.getOnlinePlayers()) {
             String onlineName = onlinePlayer.getName();
-            if (ip.equalsIgnoreCase(PlayerUtils.getPlayerIp(onlinePlayer))
+            // The caller's IP was already resolved; do not look its socket address up a second time
+            if ((onlinePlayer == player || ip.equalsIgnoreCase(PlayerUtils.getPlayerIp(onlinePlayer)))
                 && !onlineName.equals(name)
                 && dataSource.isLogged(onlineName.toLowerCase(Locale.ROOT))) {
                 ++count;

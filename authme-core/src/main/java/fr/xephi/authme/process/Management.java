@@ -1,6 +1,8 @@
 package fr.xephi.authme.process;
 
+import fr.xephi.authme.ConsoleLogger;
 import fr.xephi.authme.data.ProxySessionManager;
+import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.process.changepassword.AsyncChangePassword;
 import fr.xephi.authme.process.email.AsyncAddEmail;
 import fr.xephi.authme.process.email.AsyncChangeEmail;
@@ -26,6 +28,8 @@ import java.util.Locale;
  * Performs auth actions, e.g. when a player joins, registers or wants to change his password.
  */
 public class Management {
+
+    private final ConsoleLogger logger = ConsoleLoggerFactory.get(Management.class);
 
     @Inject
     private BukkitService bukkitService;
@@ -86,9 +90,19 @@ public class Management {
     }
 
     public void performLogout(Player player) {
-        // Capture location on the main thread before handing off to the async task.
-        Location quitLocation = player.getLocation();
+        // Capture location on the main thread before handing off to the async task. The lookup must never
+        // abort the submission: if it fails the logout is still queued, only the saved quit location is lost.
+        Location quitLocation = captureQuitLocation(player);
         runTask(() -> asynchronousLogout.logout(player, quitLocation));
+    }
+
+    private Location captureQuitLocation(Player player) {
+        try {
+            return player.getLocation();
+        } catch (RuntimeException e) {
+            logger.warning("Could not capture the logout location of '" + player.getName() + "': " + e.getMessage());
+            return null;
+        }
     }
 
     public <P extends RegistrationParameters> void performRegister(RegistrationMethod<P> variant, P parameters) {

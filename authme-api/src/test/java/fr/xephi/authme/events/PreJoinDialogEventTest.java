@@ -10,6 +10,7 @@ import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
 class PreJoinDialogEventTest {
@@ -72,5 +73,17 @@ class PreJoinDialogEventTest {
     void shouldOfferLoginAndRegisterDialogTypes() {
         assertThat(PreJoinDialogEvent.DialogType.values(),
             arrayContaining(PreJoinDialogEvent.DialogType.LOGIN, PreJoinDialogEvent.DialogType.REGISTER));
+    }
+
+    @Test
+    void shouldRejectNullPlayerName() {
+        assertThrows(NullPointerException.class, () -> new PreJoinDialogEvent(null, playerId, address,
+            PreJoinDialogEvent.DialogType.LOGIN, true, true));
+    }
+
+    @Test
+    void shouldRejectNullDialogType() {
+        assertThrows(NullPointerException.class, () -> new PreJoinDialogEvent("Bobby", playerId, address,
+            null, true, true));
     }
 }

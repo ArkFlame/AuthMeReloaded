@@ -38,6 +38,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.logging.Logger;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -209,6 +210,45 @@ class BungeeProxyBridgeTest {
         BungeeProxyBridge bridge = newBridge();
         bridge.onPluginMessage(pluginMessageEvent);
 
+        verify(pluginMessageEvent).setCancelled(true);
+    }
+
+    @Test
+    void shouldIgnorePluginMessageWithoutPayload() {
+        stubIncomingPluginMessage();
+        given(pluginMessageEvent.getData()).willReturn(null);
+
+        BungeeProxyBridge bridge = newBridge();
+
+        assertDoesNotThrow(() -> bridge.onPluginMessage(pluginMessageEvent));
+        verify(pluginMessageEvent).setCancelled(true);
+    }
+
+    @Test
+    void shouldIgnoreNameBearingMessageWithEmptyPlayerName() {
+        stubIncomingPluginMessage();
+        given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.message("login", ""));
+        given(sourceServer.getInfo()).willReturn(authServerInfo);
+        given(authServerInfo.getName()).willReturn("lobby");
+
+        BungeeAuthenticationStore authenticationStore = new BungeeAuthenticationStore();
+        BungeeProxyBridge bridge = new BungeeProxyBridge(proxyServer, logger,
+            ProxyTestFixtures.configuration(), authenticationStore, null);
+        bridge.onPluginMessage(pluginMessageEvent);
+
+        assertFalse(authenticationStore.isAuthenticated(""),
+            "a login without a player name must not authenticate anyone");
+        verify(pluginMessageEvent).setCancelled(true);
+    }
+
+    @Test
+    void shouldAcceptEmptyPremiumListPayload() {
+        stubIncomingPluginMessage();
+        given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.listPayload(""));
+
+        BungeeProxyBridge bridge = newBridge();
+
+        assertDoesNotThrow(() -> bridge.onPluginMessage(pluginMessageEvent));
         verify(pluginMessageEvent).setCancelled(true);
     }
 

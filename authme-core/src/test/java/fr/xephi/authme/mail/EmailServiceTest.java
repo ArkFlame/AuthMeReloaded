@@ -24,6 +24,7 @@ import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -95,6 +96,23 @@ class EmailServiceTest {
                 "Hi <playername />, your new pass is <generatedpass />",
                 false, false, "Hi bobby, your new pass is myPassw0rd")
         );
+    }
+
+    @Test
+    void shouldDeletePasswordImageWhenSendingFails() throws EmailException {
+        given(settings.getPasswordEmailMessage()).willReturn("Your password is <generatedpass />");
+        given(settings.getProperty(EmailSettings.PASSWORD_AS_IMAGE)).willReturn(true);
+        given(settings.getProperty(PluginSettings.SERVER_NAME)).willReturn("serverName");
+        HtmlEmail email = mock(HtmlEmail.class);
+        given(sendMailSsl.hasAllInformation()).willReturn(true);
+        given(sendMailSsl.initializeMail("user@example.com")).willReturn(email);
+        given(sendMailSsl.sendEmail(anyString(), eq(email)))
+            .willThrow(new IllegalStateException("mail transport failure"));
+
+        assertThrows(IllegalStateException.class,
+            () -> emailService.sendPasswordMail("Player", "user@example.com", "new_password"));
+
+        assertThat(new File(dataFolder, "Player_new_pass.jpg").exists(), equalTo(false));
     }
 
     @ParameterizedTest

@@ -185,7 +185,7 @@ public class LimboService {
      * Restores walk/fly speed for a player that has been auto-logged in (premium bypass or session),
      * bypassing the normal limbo lifecycle. Repairs zero speeds left in Bukkit playerdata by a
      * previous session that crashed while the player was unauthenticated, and cleans up any
-     * stale disk limbo.
+     * stale disk or in-memory limbo.
      *
      * @param player the auto-logged-in player
      */
@@ -197,6 +197,12 @@ public class LimboService {
             // Disk limbo captured speeds before revokeLimboStates ran — restore from it
             logger.debug("Restored speeds from disk LimboPlayer for `{0}` during auto-login", lowerName);
             doRestoreEntities(player, diskLimbo);
+        }
+        // The player is authenticated, so any in-memory limbo left over from the join flow must
+        // be dropped as well: otherwise the entry and its scheduled tasks leak for the session.
+        LimboPlayer inMemoryLimbo = entries.remove(player.getUniqueId());
+        if (inMemoryLimbo != null) {
+            inMemoryLimbo.clearTasks();
         }
         persistence.removeLimboPlayer(player);
     }

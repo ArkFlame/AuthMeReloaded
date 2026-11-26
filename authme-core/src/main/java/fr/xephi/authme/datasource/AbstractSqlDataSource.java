@@ -19,7 +19,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -247,6 +246,9 @@ public abstract class AbstractSqlDataSource implements DataSource {
      * Deletes all records whose names are in the given collection. The caller keeps ownership of the connection.
      */
     protected void deleteRecords(Connection con, String sql, Collection<String> names) throws SQLException {
+        if (names.isEmpty()) {
+            return;
+        }
         try (PreparedStatement pst = con.prepareStatement(sql)) {
             for (String name : names) {
                 pst.setString(1, name.toLowerCase(Locale.ROOT));
@@ -300,10 +302,13 @@ public abstract class AbstractSqlDataSource implements DataSource {
 
     /** Adds the configured UUID columns to the table when they are not there yet. */
     protected void addUuidColumnsIfAbsent(DatabaseMetaData md, Statement st) throws SQLException {
-        for (String uuidColumn : Arrays.asList(col.PLAYER_UUID, col.PREMIUM_UUID)) {
-            if (!uuidColumn.isEmpty()) {
-                addColumnIfAbsent(md, st, uuidColumn, "VARCHAR(36)");
-            }
+        addUuidColumnIfAbsent(md, st, col.PLAYER_UUID);
+        addUuidColumnIfAbsent(md, st, col.PREMIUM_UUID);
+    }
+
+    private void addUuidColumnIfAbsent(DatabaseMetaData md, Statement st, String uuidColumn) throws SQLException {
+        if (!uuidColumn.isEmpty()) {
+            addColumnIfAbsent(md, st, uuidColumn, "VARCHAR(36)");
         }
     }
 

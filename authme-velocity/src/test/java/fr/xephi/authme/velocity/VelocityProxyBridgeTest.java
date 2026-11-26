@@ -49,6 +49,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
@@ -169,6 +170,32 @@ class VelocityProxyBridgeTest {
         bridge.onServerConnected(new ServerConnectedEvent(player, authServer, null));
 
         verify(currentServer, never()).sendPluginMessage(any(), any(byte[].class));
+    }
+
+    @Test
+    void shouldIgnoreNameBearingMessageWithEmptyPlayerName() {
+        stubIncomingPluginMessage();
+        given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.message("login", ""));
+        given(sourceConnection.getServer()).willReturn(authServer);
+        stubAuthServer();
+
+        VelocityProxyBridge bridge = newBridge();
+        bridge.onPluginMessage(pluginMessageEvent);
+
+        verify(pluginMessageEvent).setResult(PluginMessageEvent.ForwardResult.handled());
+        verify(proxyServer, never()).getPlayer(anyString());
+    }
+
+    @Test
+    void shouldIgnoreMalformedPluginMessagePayload() {
+        stubIncomingPluginMessage();
+        given(pluginMessageEvent.getData()).willReturn(new byte[] {0});
+
+        VelocityProxyBridge bridge = newBridge();
+        bridge.onPluginMessage(pluginMessageEvent);
+
+        verify(pluginMessageEvent).setResult(PluginMessageEvent.ForwardResult.handled());
+        verify(proxyServer, never()).getPlayer(anyString());
     }
 
     @Test
