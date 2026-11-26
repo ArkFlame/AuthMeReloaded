@@ -23,8 +23,7 @@ public final class DialogInputSpec {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof DialogInputSpec)) return false;
+        if (!(o instanceof DialogInputSpec)) return this == o;
         DialogInputSpec that = (DialogInputSpec) o;
         return maxLength == that.maxLength && id.equals(that.id) && label.equals(that.label);
     }

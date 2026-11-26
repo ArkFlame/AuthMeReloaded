@@ -33,20 +33,17 @@ public class UnregisterCommand extends PlayerCommand {
         String playerPass = arguments.get(0);
         String playerName = player.getName();
 
-        // Make sure the player is authenticated
         if (!playerCache.isAuthenticated(playerName)) {
             commonService.send(player, MessageKey.NOT_LOGGED_IN);
             return;
         }
 
-        // Check if the user has been verified or not
         if (codeManager.isVerificationRequired(player)) {
             codeManager.codeExistOrGenerateNew(playerName);
             commonService.send(player, MessageKey.VERIFICATION_CODE_REQUIRED);
             return;
         }
 
-        // Unregister the player
         management.performUnregister(player, playerPass);
     }
 

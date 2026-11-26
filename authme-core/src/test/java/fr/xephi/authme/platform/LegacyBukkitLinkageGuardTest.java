@@ -89,23 +89,21 @@ class LegacyBukkitLinkageGuardTest {
         BytecodeInfo info = parse(AbstractSpigotPlatformAdapter.class);
 
         // Modern API names may appear as String constants, but never as direct Class entries.
-        for (String name : new String[]{
-            "org.bukkit.event.player.PlayerSwapHandItemsEvent",
-            "org.bukkit.event.entity.EntityAirChangeEvent",
-            "org.bukkit.event.entity.EntityPickupItemEvent",
-            "org.spigotmc.event.player.PlayerSpawnLocationEvent"}) {
-            assertHasUtf8(info, name);
-            String descriptor = name.replace('.', '/');
+        for (String[] pair : new String[][]{
+            {"org.bukkit.event.player.PlayerSwapHandItemsEvent",
+                "fr/xephi/authme/listener/PlayerSwapHandItemsListener"},
+            {"org.bukkit.event.entity.EntityAirChangeEvent",
+                "fr/xephi/authme/listener/EntityAirChangeListener"},
+            {"org.bukkit.event.entity.EntityPickupItemEvent",
+                "fr/xephi/authme/listener/EntityPickupItemListener"},
+            {"org.spigotmc.event.player.PlayerSpawnLocationEvent",
+                "fr/xephi/authme/listener/LegacyPlayerSpawnLocationListener"}}) {
+            assertHasUtf8(info, pair[0]);
+            String descriptor = pair[0].replace('.', '/');
             assertNoClassName(info, descriptor,
                 "AbstractSpigotPlatformAdapter must not have direct Class for " + descriptor);
-        }
-        for (String name : new String[]{
-            "fr/xephi/authme/listener/PlayerSwapHandItemsListener",
-            "fr/xephi/authme/listener/EntityAirChangeListener",
-            "fr/xephi/authme/listener/EntityPickupItemListener",
-            "fr/xephi/authme/listener/LegacyPlayerSpawnLocationListener"}) {
-            assertNoClassName(info, name,
-                "AbstractSpigotPlatformAdapter must not have direct Class for " + name);
+            assertNoClassName(info, pair[1],
+                "AbstractSpigotPlatformAdapter must not have direct Class for " + pair[1]);
         }
 
         // Must NOT have Methodref/Fieldref directly referencing those optional event classes

@@ -9,9 +9,7 @@ import org.bukkit.event.player.PlayerEvent;
 import javax.inject.Inject;
 
 /**
- * Shared base for listeners that cancel events for players who are not allowed to act
- * yet. The service lookup and the cancellation live here so that individual listeners
- * only need to declare their event handler.
+ * Shared base for listeners that cancel events for players who are not allowed to act yet.
  */
 abstract class AbstractCancelListener {
 

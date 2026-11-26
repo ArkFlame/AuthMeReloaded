@@ -14,6 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
@@ -60,20 +61,10 @@ class LastLoginCommandTest {
     void shouldDisplayLastLoginOfUser() {
         // given
         String player = "SomePlayer";
-        long lastLogin = System.currentTimeMillis() -
-            (412 * DAY_IN_MSEC + 10 * HOUR_IN_MSEC - 9000);
-        PlayerAuth auth = mock(PlayerAuth.class);
-        given(auth.getLastLogin()).willReturn(lastLogin);
-        given(auth.getLastIp()).willReturn("123.45.66.77");
-        given(dataSource.getAuth(player)).willReturn(auth);
         CommandSender sender = mock(CommandSender.class);
 
-        // when
-        command.executeCommand(sender, Collections.singletonList(player));
-
-        // then
-        verify(dataSource).getAuth(player);
-        assertLastLoginOutput(sender, player, lastLogin);
+        // when - then
+        assertLastLoginDisplayed(sender, Collections.singletonList(player), player);
     }
 
     @Test
@@ -83,17 +74,19 @@ class LastLoginCommandTest {
         CommandSender sender = mock(CommandSender.class);
         given(sender.getName()).willReturn(name);
 
-        long lastLogin = System.currentTimeMillis()
-            - (412 * DAY_IN_MSEC + 10 * HOUR_IN_MSEC - 9000);
+        // when - then
+        assertLastLoginDisplayed(sender, Collections.emptyList(), name);
+    }
+
+    private void assertLastLoginDisplayed(CommandSender sender, List<String> arguments, String name) {
+        long lastLogin = System.currentTimeMillis() - (412 * DAY_IN_MSEC + 10 * HOUR_IN_MSEC - 9000);
         PlayerAuth auth = mock(PlayerAuth.class);
         given(auth.getLastLogin()).willReturn(lastLogin);
         given(auth.getLastIp()).willReturn("123.45.66.77");
         given(dataSource.getAuth(name)).willReturn(auth);
 
-        // when
-        command.executeCommand(sender, Collections.emptyList());
+        command.executeCommand(sender, arguments);
 
-        // then
         verify(dataSource).getAuth(name);
         assertLastLoginOutput(sender, name, lastLogin);
     }

@@ -32,8 +32,7 @@ public class HelpCommand implements ExecutableCommand {
     @Inject
     private HelpProvider helpProvider;
 
-    // Convention: arguments is not the actual invoked arguments but the command that was invoked,
-    // e.g. "/authme help register" would typically be arguments = [register], but here we pass [authme, register]
+    // Convention: arguments are the invoked command parts, e.g. [authme, register] for "/authme help register"
     @Override
     public void executeCommand(CommandSender sender, List<String> arguments) {
         FoundCommandResult result = commandMapper.mapPartsToCommand(sender, arguments);
@@ -61,5 +60,4 @@ public class HelpCommand implements ExecutableCommand {
             helpProvider.outputHelp(sender, result, ALL_OPTIONS);
         }
     }
-
 }

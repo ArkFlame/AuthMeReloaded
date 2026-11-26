@@ -18,30 +18,22 @@ public final class SchedulerProviders {
     private SchedulerProviders() {
     }
 
-    /**
-     * @return the provider for the server this plugin is running on
-     */
+    /** @return the provider for the server this plugin is running on */
     public static SchedulerProvider current() {
         return CURRENT;
     }
 
-    /**
-     * @return true if the Folia scheduler API is available on this server
-     */
+    /** @return true if the Folia scheduler API is available on this server */
     public static boolean isFolia() {
         return Utils.isClassLoaded(FOLIA_SCHEDULER_CLASS);
     }
 
-    /**
-     * @return a provider backed by the Bukkit scheduler
-     */
+    /** @return a provider backed by the Bukkit scheduler */
     public static SchedulerProvider bukkit() {
         return new BukkitSchedulerProvider();
     }
 
-    /**
-     * @return a provider backed by Folia's region and async schedulers
-     */
+    /** @return a provider backed by Folia's region and async schedulers */
     public static SchedulerProvider folia() {
         return new FoliaSchedulerProvider();
     }
