@@ -14,7 +14,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -46,7 +45,8 @@ public class CommandHandler {
         this.permissionsManager = permissionsManager;
         this.messages = messages;
         this.helpProvider = helpProvider;
-        initializeCommands(commandFactory, commandMapper.getCommandClasses());
+        commandMapper.getCommandClasses()
+            .forEach(clazz -> commands.put(clazz, commandFactory.newInstance(clazz)));
     }
 
     /**
@@ -79,7 +79,11 @@ public class CommandHandler {
      * @return true if the command was executed, false otherwise
      */
     public boolean processCommand(CommandSender sender, List<String> parts) {
-        FoundCommandResult result = commandMapper.mapPartsToCommand(sender, skipEmptyArguments(parts));
+        List<String> nonEmptyParts = parts == null ? new ArrayList<>()
+            : parts.stream()
+                .filter(argument -> !StringUtils.isBlank(argument))
+                .collect(Collectors.toList());
+        FoundCommandResult result = commandMapper.mapPartsToCommand(sender, nonEmptyParts);
         handleCommandResult(sender, result);
         return !FoundResultStatus.MISSING_BASE_COMMAND.equals(result.getResultStatus());
     }
@@ -113,17 +117,6 @@ public class CommandHandler {
     }
 
     /**
-     * Initialize all required ExecutableCommand objects.
-     *
-     * @param commandFactory factory to create command objects
-     * @param commandClasses the classes to instantiate
-     */
-    private void initializeCommands(Factory<ExecutableCommand> commandFactory,
-                                    Set<Class<? extends ExecutableCommand>> commandClasses) {
-        commandClasses.forEach(clazz -> commands.put(clazz, commandFactory.newInstance(clazz)));
-    }
-
-    /**
      * Returns the {@link ExecutableCommand} instance for the command of the given mapping result.
      *
      * @param result the command mapping result
@@ -131,21 +124,6 @@ public class CommandHandler {
      */
     private ExecutableCommand getExecutableCommand(FoundCommandResult result) {
         return commands.get(result.getCommandDescription().getExecutableCommand());
-    }
-
-    /**
-     * Skip all entries of the given list that are simply whitespace.
-     *
-     * @param parts The list to process
-     * @return List of the items that are not empty
-     */
-    private static List<String> skipEmptyArguments(List<String> parts) {
-        if (parts == null) {
-            return new ArrayList<>();
-        }
-        return parts.stream()
-            .filter(argument -> !StringUtils.isBlank(argument))
-            .collect(Collectors.toList());
     }
 
     /**
@@ -178,14 +156,11 @@ public class CommandHandler {
         }
 
         MessageKey usageMessage = getExecutableCommand(result).getArgumentsMismatchMessage();
-        if (usageMessage == null) {
-            showHelpForCommand(sender, result);
-        } else {
+        if (usageMessage != null) {
             messages.send(sender, usageMessage);
+            return;
         }
-    }
 
-    private void showHelpForCommand(CommandSender sender, FoundCommandResult result) {
         messages.send(sender, MessageKey.COMMAND_INCORRECT_ARGUMENTS);
         helpProvider.outputHelp(sender, result, HelpProvider.SHOW_ARGUMENTS);
 

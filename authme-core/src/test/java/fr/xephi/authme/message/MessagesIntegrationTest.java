@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.arrayWithSize;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
@@ -89,7 +90,7 @@ class MessagesIntegrationTest {
     @Test
     void shouldHandleMessageWithNewLines() {
         CommandSender sender = mockSender();
-        String[] lines = new String[]{"We've got", "new lines", "and ' apostrophes"};
+        String[] lines = {"We've got", "new lines", "and ' apostrophes"};
 
         assertThat(messages.retrieve(MessageKey.UNKNOWN_USER, sender), equalTo(lines));
         assertThat(messages.retrieveSingle(sender, MessageKey.UNKNOWN_USER),
@@ -100,16 +101,6 @@ class MessagesIntegrationTest {
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
         verify(sender, times(3)).sendMessage(captor.capture());
         assertThat(captor.getAllValues(), contains(lines));
-    }
-
-    @Test
-    void shouldFormatColorCodes() {
-        CommandSender sender = mockSender();
-
-        String[] message = messages.retrieve(MessageKey.LOGIN_SUCCESS, sender);
-
-        assertThat(message, arrayWithSize(1));
-        assertThat(message[0], equalTo("§cHere we have§bdefined some colors §dand some other §lthings"));
     }
 
     @Test
@@ -129,6 +120,7 @@ class MessagesIntegrationTest {
     void shouldSendMessageToPlayer(MessageKey key, String expectedMessage) {
         Player player = mockPlayer();
 
+        assertThat(messages.retrieve(key, player), arrayContaining(expectedMessage));
         messages.send(player, key);
 
         verify(player).sendMessage(expectedMessage);

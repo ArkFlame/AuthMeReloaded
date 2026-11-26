@@ -59,6 +59,7 @@ import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.withSettings;
 
 /**
  * Integration test verifying that all services can be initialized in {@link AuthMe}
@@ -107,9 +108,7 @@ class AuthMeInitializationTest {
         given(server.getPluginManager()).willReturn(pluginManager);
         TestHelper.setupLogger();
 
-        Injector injector = new InjectorBuilder()
-            .addDefaultHandlers("fr.xephi.authme")
-            .create();
+        Injector injector = new InjectorBuilder().addDefaultHandlers("fr.xephi.authme").create();
         injector.provide(DataFolder.class, dataFolder);
         injector.register(Server.class, server);
         injector.register(PluginManager.class, pluginManager);
@@ -176,12 +175,12 @@ class AuthMeInitializationTest {
         given(server.getPluginManager()).willReturn(pluginManager);
         given(server.getScheduler()).willReturn(mock(BukkitScheduler.class));
         TestHelper.setupLogger();
-        PlatformAdapter platformAdapter = mock(PlatformAdapter.class, org.mockito.Mockito.withSettings().lenient());
+        PlatformAdapter platformAdapter = mock(PlatformAdapter.class, withSettings().lenient());
 
         // when - invoke private initialize(PlatformAdapter) - verify DI registration of BukkitCompatibilityAdapter
         // We only need to verify that initialize registers platformAdapter under all expected keys before it fails
         // on missing settings/DB. Stub getListeners leniently so we don't trigger unnecessary stubbing check.
-        org.mockito.BDDMockito.given(platformAdapter.getListeners()).willReturn(EventRegistrationAdapter.getCommonListeners());
+        given(platformAdapter.getListeners()).willReturn(EventRegistrationAdapter.getCommonListeners());
         java.lang.reflect.Method init = ReflectionTestUtils.getMethod(AuthMe.class, "initialize", PlatformAdapter.class);
         try {
             ReflectionTestUtils.invokeMethod(init, authMe, platformAdapter);
@@ -190,7 +189,7 @@ class AuthMeInitializationTest {
         }
 
         // then - injector must have been created and contain BukkitCompatibilityAdapter
-        ch.jalu.injector.Injector injector = ReflectionTestUtils.getFieldValue(AuthMe.class, authMe, "injector");
+        Injector injector = ReflectionTestUtils.getFieldValue(AuthMe.class, authMe, "injector");
         assertThat(injector, not(nullValue()));
         assertThat(injector.getIfAvailable(BukkitCompatibilityAdapter.class), not(nullValue()));
         assertThat(injector.getIfAvailable(BukkitCompatibilityAdapter.class), sameInstance((BukkitCompatibilityAdapter) platformAdapter));

@@ -305,10 +305,7 @@ public class AsynchronousLogin implements AsynchronousProcess {
         }
 
         ProcessSharedActions.sendLoginMessageToProxy(bukkitService, bungeeSender, player);
-        // As the scheduling executes the Task most likely after the current
-        // task, we schedule it in the end
-        // so that we can be sure, and have not to care if it might be
-        // processed in other order.
+        // Schedule the sync login task last so it runs after the current task
         if (proxyInitiated) {
             syncProcessManager.processSyncPlayerLoginFromProxy(player, isFirstLogin, auths);
         } else {
@@ -323,13 +320,6 @@ public class AsynchronousLogin implements AsynchronousProcess {
             return;
         }
 
-        String message = formatAccountNames(auths);
-        logger.fine("The user " + playerName + " has " + accountCount + " accounts:");
-        logger.fine(message);
-        notifyOnlinePlayersAboutAccounts(playerName, accountCount, message);
-    }
-
-    private String formatAccountNames(List<String> auths) {
         // Build the final message in one pass: no intermediate list, joined String or concatenated copies
         StringBuilder builder = new StringBuilder().append(ChatColor.GRAY);
         boolean first = true;
@@ -345,7 +335,11 @@ public class AsynchronousLogin implements AsynchronousProcess {
                 builder.append(currentName);
             }
         }
-        return builder.append('.').toString();
+        String message = builder.append('.').toString();
+
+        logger.fine("The user " + playerName + " has " + accountCount + " accounts:");
+        logger.fine(message);
+        notifyOnlinePlayersAboutAccounts(playerName, accountCount, message);
     }
 
     private void notifyOnlinePlayersAboutAccounts(String playerName, int accountCount, String message) {

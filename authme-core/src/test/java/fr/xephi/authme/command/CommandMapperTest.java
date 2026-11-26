@@ -178,12 +178,10 @@ class CommandMapperTest {
         assertThat(result.getArguments(), empty());
     }
 
-    @Test
-    void shouldHandleUnknownBase() {
-        // given
-        List<String> parts = asList("bogus", "label1", "arg1");
-
-        // when
+    @ParameterizedTest(name = "missing base command for parts {0}")
+    @MethodSource("missingBaseCases")
+    void shouldHandleMissingBaseCommand(List<String> parts) {
+        // given / when
         FoundCommandResult result = mapper.mapPartsToCommand(sender, parts);
 
         // then
@@ -192,24 +190,17 @@ class CommandMapperTest {
         assertThat(result.getCommandDescription(), nullValue());
     }
 
-    @Test
-    void shouldHandleNullInput() {
-        // given / when
-        FoundCommandResult result = mapper.mapPartsToCommand(sender, null);
-
-        // then
-        assertThat(result.getResultStatus(), equalTo(FoundResultStatus.MISSING_BASE_COMMAND));
-        assertThat(result.getCommandDescription(), nullValue());
+    static Stream<Arguments> missingBaseCases() {
+        return Stream.of(Arguments.of((Object) null), Arguments.of(asList("bogus", "label1", "arg1")));
     }
 
     @Test
     void shouldMapToBaseWithProperArguments() {
         // given
-        List<String> parts = asList("Unreg", "player1");
         setPermission(true);
 
         // when
-        FoundCommandResult result = mapper.mapPartsToCommand(sender, parts);
+        FoundCommandResult result = mapper.mapPartsToCommand(sender, asList("Unreg", "player1"));
 
         // then
         assertThat(result.getResultStatus(), equalTo(FoundResultStatus.SUCCESS));
@@ -222,11 +213,10 @@ class CommandMapperTest {
     @Test
     void shouldPassCommandPathAsArgumentsToHelpCommand() {
         // given
-        List<String> parts = asList("email", "helptest", "arg1");
         given(permissionsManager.hasPermission(eq(sender), isNull())).willReturn(true);
 
         // when
-        FoundCommandResult result = mapper.mapPartsToCommand(sender, parts);
+        FoundCommandResult result = mapper.mapPartsToCommand(sender, asList("email", "helptest", "arg1"));
 
         // then
         assertThat(result.getResultStatus(), equalTo(FoundResultStatus.SUCCESS));
@@ -239,11 +229,10 @@ class CommandMapperTest {
     @Test
     void shouldSupportAuthMePrefix() {
         // given
-        List<String> parts = asList("authme:unregister", "Betty");
         setPermission(true);
 
         // when
-        FoundCommandResult result = mapper.mapPartsToCommand(sender, parts);
+        FoundCommandResult result = mapper.mapPartsToCommand(sender, asList("authme:unregister", "Betty"));
 
         // then
         assertThat(result.getResultStatus(), equalTo(FoundResultStatus.SUCCESS));

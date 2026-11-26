@@ -26,17 +26,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.UUID;
 
-/**
- * PermissionsManager.
- * <p>
- * A permissions manager, to manage and use various permissions systems.
- * This manager supports dynamic plugin hooking and various other features.
- * <p>
- * Written by Tim Visée.
- *
- * @author Tim Visée, http://timvisee.com
- * @version 0.3
- */
+/** Manages and uses the various supported permissions systems, including dynamic plugin hooking. */
 public class PermissionsManager implements Reloadable {
 
     private final ConsoleLogger logger = ConsoleLoggerFactory.get(PermissionsManager.class);
@@ -222,7 +212,8 @@ public class PermissionsManager implements Reloadable {
     }
 
     private boolean changeGroups(OfflinePlayer player, Collection<UserGroup> groupNames, boolean add) {
-        if (!isEnabled() || groupNames == null) {
+        PermissionHandler currentHandler = handler;
+        if (currentHandler == null || groupNames == null) {
             return false;
         }
 
@@ -231,7 +222,8 @@ public class PermissionsManager implements Reloadable {
             if (group != null) {
                 String groupName = group.getGroupName();
                 if (groupName != null && !groupName.isEmpty()) {
-                    result |= add ? handler.addToGroup(player, group) : handler.removeFromGroup(player, group);
+                    result |= add ? currentHandler.addToGroup(player, group)
+                                  : currentHandler.removeFromGroup(player, group);
                 }
             }
         }

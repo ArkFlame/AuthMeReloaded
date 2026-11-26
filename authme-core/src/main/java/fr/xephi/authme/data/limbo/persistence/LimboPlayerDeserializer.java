@@ -2,7 +2,6 @@ package fr.xephi.authme.data.limbo.persistence;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
-import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
@@ -44,7 +43,6 @@ import static fr.xephi.authme.data.limbo.persistence.LimboPlayerSerializer.VEL_Z
 import static fr.xephi.authme.data.limbo.persistence.LimboPlayerSerializer.VEHICLE_TYPE;
 import static fr.xephi.authme.data.limbo.persistence.LimboPlayerSerializer.VEHICLE_UUID;
 import static fr.xephi.authme.data.limbo.persistence.LimboPlayerSerializer.WALK_SPEED;
-import static java.util.Optional.ofNullable;
 
 /**
  * Converts a JsonElement to a LimboPlayer.
@@ -161,13 +159,12 @@ class LimboPlayerDeserializer implements JsonDeserializer<LimboPlayer> {
     private static List<UserGroup> getLimboGroups(JsonObject jsonObject) {
         JsonElement element = jsonObject.get(GROUPS);
         if (element == null) {
-            String legacyGroup = ofNullable(jsonObject.get(GROUP_LEGACY)).map(JsonElement::getAsString).orElse(null);
-            return legacyGroup == null ? Collections.emptyList() :
-                Collections.singletonList(new UserGroup(legacyGroup, null));
+            JsonElement legacyGroup = jsonObject.get(GROUP_LEGACY);
+            return legacyGroup == null ? Collections.emptyList()
+                : Collections.singletonList(new UserGroup(legacyGroup.getAsString(), null));
         }
         List<UserGroup> result = new ArrayList<>();
-        JsonArray jsonArray = element.getAsJsonArray();
-        for (JsonElement arrayElement : jsonArray) {
+        for (JsonElement arrayElement : element.getAsJsonArray()) {
             if (!arrayElement.isJsonObject()) {
                 result.add(new UserGroup(arrayElement.getAsString(), null));
             } else {
@@ -192,23 +189,19 @@ class LimboPlayerDeserializer implements JsonDeserializer<LimboPlayer> {
 
     private static float getFloat(JsonObject jsonObject, String memberName, float defaultValue) {
         JsonElement element = jsonObject.get(memberName);
-        if (element != null) {
-            try {
-                return element.getAsFloat();
-            } catch (NumberFormatException ignore) {
-            }
+        try {
+            return element == null ? defaultValue : element.getAsFloat();
+        } catch (NumberFormatException ignore) {
+            return defaultValue;
         }
-        return defaultValue;
     }
 
     private static double getDouble(JsonObject jsonObject, String memberName) {
         JsonElement element = jsonObject.get(memberName);
-        if (element != null) {
-            try {
-                return element.getAsDouble();
-            } catch (NumberFormatException ignore) {
-            }
+        try {
+            return element == null ? 0.0 : element.getAsDouble();
+        } catch (NumberFormatException ignore) {
+            return 0.0;
         }
-        return 0.0;
     }
 }

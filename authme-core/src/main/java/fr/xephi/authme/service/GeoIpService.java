@@ -143,8 +143,7 @@ public class GeoIpService {
         logger.info("Downloading GEO IP database, because the old database is older than "
                 + UPDATE_INTERVAL_DAYS + " days or doesn't exist");
 
-        Path downloadFile = null;
-        Path tempFile = null;
+        Path downloadFile = null, tempFile = null;
         try {
             // download database to temporarily location
             downloadFile = Files.createTempFile(ARCHIVE_FILE, null);
@@ -224,11 +223,10 @@ public class GeoIpService {
                 throw new IOException("Failed to download GEO IP database: MaxMind responded with HTTP " + responseCode);
             }
 
-            String hash = connection.getHeaderField("X-Database-MD5");
             Instant modifiedDate = parseModifiedDate(connection.getHeaderField("Last-Modified"));
             Files.copy(connection.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
             Files.setLastModifiedTime(destination, FileTime.from(modifiedDate));
-            return hash;
+            return connection.getHeaderField("X-Database-MD5");
         } finally {
             // Files.copy does not close the source stream, so release the socket on every path
             connection.disconnect();

@@ -29,7 +29,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 /**
  * Test for {@link AsyncChangeEmail}.
@@ -100,28 +99,20 @@ class AsyncChangeEmailTest {
         verify(service).send(player, MessageKey.USAGE_ADD_EMAIL);
     }
 
-    @Test
-    void shouldRejectInvalidNewMail() {
-        String newEmail = "bogus";
-        givenAuthenticatedPlayerWithEmail("Bobby", "old@mail.tld");
-        given(validationService.validateEmail(newEmail)).willReturn(false);
+    @ParameterizedTest(name = "newEmailValid={2}")
+    @CsvSource({
+        "bogus, old@mail.tld, false, INVALID_NEW_EMAIL",
+        "new@mail.tld, other@address.email, true, INVALID_OLD_EMAIL"
+    })
+    void shouldRejectInvalidEmails(String newEmail, String storedEmail, boolean newEmailValid,
+                                   MessageKey expectedMessage) {
+        givenAuthenticatedPlayerWithEmail("Bobby", storedEmail);
+        given(validationService.validateEmail(newEmail)).willReturn(newEmailValid);
 
         process.changeEmail(player, "old@mail.tld", newEmail);
 
         verifyEmailNotUpdated();
-        verify(service).send(player, MessageKey.INVALID_NEW_EMAIL);
-    }
-
-    @Test
-    void shouldRejectInvalidOldEmail() {
-        String newEmail = "new@mail.tld";
-        givenAuthenticatedPlayerWithEmail("Bobby", "other@address.email");
-        given(validationService.validateEmail(newEmail)).willReturn(true);
-
-        process.changeEmail(player, "old@mail.tld", newEmail);
-
-        verifyEmailNotUpdated();
-        verify(service).send(player, MessageKey.INVALID_OLD_EMAIL);
+        verify(service).send(player, expectedMessage);
     }
 
     @Test
@@ -183,7 +174,8 @@ class AsyncChangeEmailTest {
     private PlayerAuth givenAuthenticatedPlayerWithEmail(String name, String email) {
         given(player.getName()).willReturn(name);
         given(playerCache.isAuthenticated(name.toLowerCase())).willReturn(true);
-        PlayerAuth auth = authWithMail(email);
+        PlayerAuth auth = mock(PlayerAuth.class);
+        given(auth.getEmail()).willReturn(email);
         given(playerCache.getAuth(name.toLowerCase())).willReturn(auth);
         return auth;
     }
@@ -191,12 +183,6 @@ class AsyncChangeEmailTest {
     private void verifyEmailNotUpdated() {
         verify(dataSource, never()).updateEmail(any(PlayerAuth.class));
         verify(playerCache, never()).updatePlayerIfPresent(any(PlayerAuth.class));
-    }
-
-    private static PlayerAuth authWithMail(String email) {
-        PlayerAuth auth = mock(PlayerAuth.class);
-        when(auth.getEmail()).thenReturn(email);
-        return auth;
     }
 
 }

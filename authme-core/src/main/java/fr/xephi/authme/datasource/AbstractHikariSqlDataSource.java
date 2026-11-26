@@ -128,12 +128,10 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
         } catch (RuntimeException e) {
             if (e instanceof IllegalArgumentException) {
                 logger.warning("Invalid database arguments! Please check your configuration!");
-                logger.warning("If this error persists, please report it to the developer!");
-            }
-            if (e instanceof PoolInitializationException) {
+            } else if (e instanceof PoolInitializationException) {
                 logger.warning("Can't initialize database connection! Please check your configuration!");
-                logger.warning("If this error persists, please report it to the developer!");
             }
+            logger.warning("If this error persists, please report it to the developer!");
             logger.warning("Can't use the Hikari Connection Pool! Please, report this error to the developer!");
             throw e;
         }
@@ -168,8 +166,7 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
 
     @Override
     public boolean saveAuth(PlayerAuth auth) {
-        // The primary INSERT runs on a separate connection through the columns handler. If it failed,
-        // there is no account to extend, and reporting success would hide the failed registration.
+        // If the primary INSERT failed, there is no account to extend; reporting success would hide it.
         if (!super.saveAuth(auth)) {
             return false;
         }

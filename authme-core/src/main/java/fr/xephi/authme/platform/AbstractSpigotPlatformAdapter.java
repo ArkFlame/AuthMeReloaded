@@ -22,6 +22,7 @@ import org.bukkit.event.Listener;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -64,10 +65,8 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
     @Override
     public Optional<String> getPlayerLocale(Player player) {
         try {
-            Object result = null;
-            if (PLAYER_GET_LOCALE_METHOD != null) {
-                result = PLAYER_GET_LOCALE_METHOD.invoke(player);
-            } else if (PLAYER_SPIGOT_METHOD != null && SPIGOT_GET_LOCALE_METHOD != null) {
+            Object result = PLAYER_GET_LOCALE_METHOD == null ? null : PLAYER_GET_LOCALE_METHOD.invoke(player);
+            if (result == null && PLAYER_SPIGOT_METHOD != null && SPIGOT_GET_LOCALE_METHOD != null) {
                 Object spigot = PLAYER_SPIGOT_METHOD.invoke(player);
                 result = spigot == null ? null : SPIGOT_GET_LOCALE_METHOD.invoke(spigot);
             }
@@ -262,12 +261,7 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
     }
 
     protected final String getCompatibilityError(String errorMessage, String... requiredClasses) {
-        for (String className : requiredClasses) {
-            if (!Utils.isClassLoaded(className)) {
-                return errorMessage;
-            }
-        }
-        return null;
+        return Arrays.stream(requiredClasses).allMatch(Utils::isClassLoaded) ? null : errorMessage;
     }
 
     private PacketInterceptionAdapter getOrCreatePacketInterceptionAdapter() {

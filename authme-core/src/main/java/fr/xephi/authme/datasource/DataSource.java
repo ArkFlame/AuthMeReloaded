@@ -25,7 +25,7 @@ public interface DataSource extends Reloadable {
     /**
      * Return the hashed password of the player.
      *
-     * @param user The user whose password should be retrieve
+     * @param user The user whose password should be retrieved
      * @return The password hash of the player
      */
     HashedPassword getPassword(String user);
@@ -282,5 +282,4 @@ public interface DataSource extends Reloadable {
      */
     default void invalidateCache(String playerName) {
     }
-
 }

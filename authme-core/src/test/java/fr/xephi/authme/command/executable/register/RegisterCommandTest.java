@@ -30,12 +30,17 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
+import java.util.stream.Stream;
 
 import static fr.xephi.authme.IsEqualByReflectionMatcher.hasEqualValuesOnAllFields;
 import static fr.xephi.authme.listener.TestPlayerUtils.mockPlayerWithName;
@@ -44,7 +49,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
@@ -142,20 +147,6 @@ public class RegisterCommandTest {
     }
 
     @Test
-    public void shouldReturnErrorForMissingConfirmation() {
-        // given
-        givenPasswordRegistration(RegisterSecondaryArgument.CONFIRMATION);
-        Player player = mock(Player.class);
-
-        // when
-        command.executeCommand(player, Collections.singletonList("arrrr"));
-
-        // then
-        verify(commonService).send(player, MessageKey.USAGE_REGISTER);
-        verifyNoInteractions(management, emailService);
-    }
-
-    @Test
     public void shouldReturnErrorForMissingEmailConfirmation() {
         // given
         given(emailService.hasAllInformation()).willReturn(true);
@@ -238,32 +229,27 @@ public class RegisterCommandTest {
             argThat(hasEqualValuesOnAllFields(EmailRegisterParams.of(player, playerMail))));
     }
 
-    @Test
-    public void shouldScheduleUnregisterForUnverifiedEmailAccount() {
-        Player player = givenEmailVerificationRegistration("late@example.org", "lateuser", 1L, null);
-
-        // when
-        command.executeCommand(player, Collections.singletonList("late@example.org"));
-
-        // then
-        ArgumentCaptor<Runnable> task = ArgumentCaptor.forClass(Runnable.class);
-        verify(bukkitService).runTaskLater(eq(player), task.capture(), eq(1200L));
-        task.getValue().run();
-        verify(management).performUnregisterByAdmin(null, "lateuser", player);
+    static Stream<Arguments> emailVerificationUnregisterCases() {
+        return Stream.of(
+            Arguments.of("late@example.org", "lateuser", 1L, null, 1200L, 1),
+            Arguments.of("verified@example.org", "verifieduser", 10L, 123L, 12000L, 0));
     }
 
-    @Test
-    public void shouldNotUnregisterEmailAccountThatHasLoggedIn() {
-        Player player = givenEmailVerificationRegistration("verified@example.org", "verifieduser", 10L, 123L);
+    @ParameterizedTest
+    @MethodSource("emailVerificationUnregisterCases")
+    public void shouldScheduleUnregisterForUnverifiedEmailAccount(String email, String name, long minutes,
+                                                                  Long lastLogin, long delay, int invocations) {
+        // given
+        Player player = givenEmailVerificationRegistration(email, name, minutes, lastLogin);
 
         // when
-        command.executeCommand(player, Collections.singletonList("verified@example.org"));
+        command.executeCommand(player, Collections.singletonList(email));
 
         // then
         ArgumentCaptor<Runnable> task = ArgumentCaptor.forClass(Runnable.class);
-        verify(bukkitService).runTaskLater(eq(player), task.capture(), eq(12000L));
+        verify(bukkitService).runTaskLater(eq(player), task.capture(), eq(delay));
         task.getValue().run();
-        verify(management, never()).performUnregisterByAdmin(null, "verifieduser", player);
+        verify(management, times(invocations)).performUnregisterByAdmin(null, name, player);
     }
 
     private void givenEmailRegistration(String email, RegisterSecondaryArgument secondArg, boolean validEmail) {
@@ -303,30 +289,45 @@ public class RegisterCommandTest {
         verifyNoInteractions(bukkitService, dataSource);
     }
 
-    @Test
-    public void shouldRejectInvalidPasswordConfirmation() {
+    static Stream<Arguments> invalidPasswordConfirmationCases() {
+        return Stream.of(
+            Arguments.of(Collections.singletonList("arrrr"), MessageKey.USAGE_REGISTER),
+            Arguments.of(Arrays.asList("myPass", "mypass"), MessageKey.PASSWORD_MATCH_ERROR));
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidPasswordConfirmationCases")
+    public void shouldRejectInvalidPasswordConfirmation(List<String> arguments, MessageKey expectedMessage) {
         // given
         givenPasswordRegistration(RegisterSecondaryArgument.CONFIRMATION);
         Player player = mock(Player.class);
 
         // when
-        command.executeCommand(player, Arrays.asList("myPass", "mypass"));
+        command.executeCommand(player, arguments);
 
         // then
-        verify(commonService).send(player, MessageKey.PASSWORD_MATCH_ERROR);
+        verify(commonService).send(player, expectedMessage);
         verifyNoInteractions(management, emailService);
     }
 
-    @Test
-    public void shouldPerformPasswordRegistration() {
+    static Stream<Arguments> singleArgumentPasswordRegistrations() {
+        return Stream.of(
+            Arguments.of(RegisterSecondaryArgument.NONE, "newPlayer"),
+            Arguments.of(RegisterSecondaryArgument.EMAIL_OPTIONAL, "Doa"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("singleArgumentPasswordRegistrations")
+    public void shouldPerformPasswordRegistrationWithOneArgument(RegisterSecondaryArgument secondArg, String name) {
         // given
-        Player player = mockPlayerWithName("newPlayer");
+        givenPasswordRegistration(secondArg);
+        Player player = mockPlayerWithName(name);
 
         // when
         command.executeCommand(player, Collections.singletonList("myPass"));
 
         // then
-        verify(registrationCaptchaManager).isCaptchaRequired("newPlayer");
+        verify(registrationCaptchaManager).isCaptchaRequired(name);
         verify(management).performRegister(eq(RegistrationMethod.PASSWORD_REGISTRATION),
             argThat(hasEqualValuesOnAllFields(PasswordRegisterParams.of(player, "myPass", null))));
     }
@@ -364,21 +365,6 @@ public class RegisterCommandTest {
         verify(validationService).validateEmail(email);
         verify(commonService).send(player, MessageKey.INVALID_EMAIL);
         verifyNoInteractions(management);
-    }
-
-    @Test
-    public void shouldPerformNormalPasswordRegisterForOneArgument() {
-        // given
-        givenPasswordRegistration(RegisterSecondaryArgument.EMAIL_OPTIONAL);
-        Player player = mockPlayerWithName("Doa");
-
-        // when
-        command.executeCommand(player, Collections.singletonList("myPass"));
-
-        // then
-        verify(registrationCaptchaManager).isCaptchaRequired("Doa");
-        verify(management).performRegister(eq(RegistrationMethod.PASSWORD_REGISTRATION),
-            argThat(hasEqualValuesOnAllFields(PasswordRegisterParams.of(player, "myPass", null))));
     }
 
     @Test

@@ -148,15 +148,11 @@ public class PasswordRecoveryService implements Reloadable, HasCleanup {
      * @return True if the player is not on cooldown.
      */
     public boolean isOnEmailCooldown(Player player) {
-        return getCooldownDuration(player).getDuration() > 0;
-    }
-
-    private Duration getCooldownDuration(Player player) {
-        return emailCooldown.getExpiration(player.getName().toLowerCase(Locale.ROOT));
+        return emailCooldown.getExpiration(player.getName().toLowerCase(Locale.ROOT)).getDuration() > 0;
     }
 
     private boolean checkEmailCooldown(Player player) {
-        Duration waitDuration = getCooldownDuration(player);
+        Duration waitDuration = emailCooldown.getExpiration(player.getName().toLowerCase(Locale.ROOT));
         if (waitDuration.getDuration() > 0) {
             String durationText = messages.formatDuration(waitDuration);
             messages.send(player, MessageKey.EMAIL_COOLDOWN_ERROR, durationText);

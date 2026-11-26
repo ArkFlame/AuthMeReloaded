@@ -208,14 +208,10 @@ public class ValidationService implements Reloadable {
                                                   Property<List<String>> blacklist) {
         List<String> whitelistValue = settings.getProperty(whitelist);
         if (!Utils.isCollectionEmpty(whitelistValue)) {
-            return containsIgnoreCase(whitelistValue, value);
+            return whitelistValue.stream().anyMatch(value::equalsIgnoreCase);
         }
         List<String> blacklistValue = settings.getProperty(blacklist);
-        return Utils.isCollectionEmpty(blacklistValue) || !containsIgnoreCase(blacklistValue, value);
-    }
-
-    private static boolean containsIgnoreCase(Collection<String> coll, String needle) {
-        return coll.stream().anyMatch(needle::equalsIgnoreCase);
+        return Utils.isCollectionEmpty(blacklistValue) || !blacklistValue.stream().anyMatch(value::equalsIgnoreCase);
     }
 
     /**
@@ -235,7 +231,9 @@ public class ValidationService implements Reloadable {
                 String rule = restriction.substring(separator + 1, ruleEnd < 0 ? restriction.length() : ruleEnd);
                 if (!rule.isEmpty()) {
                     restrictions.put(restriction.substring(0, separator).toLowerCase(Locale.ROOT),
-                        Pattern.compile(toRegex(rule)));
+                        Pattern.compile(rule.startsWith("regex:")
+                            ? rule.replace("regex:", "")
+                            : rule.replace("*", "(.*)")));
                     continue;
                 }
             }
@@ -243,13 +241,6 @@ public class ValidationService implements Reloadable {
                 + " but found: '" + restriction + "'");
         }
         return restrictions;
-    }
-
-    private static String toRegex(String restriction) {
-        if (restriction.startsWith("regex:")) {
-            return restriction.replace("regex:", "");
-        }
-        return restriction.replace("*", "(.*)");
     }
 
     public static final class ValidationResult {

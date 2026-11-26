@@ -49,12 +49,7 @@ class AbstractSpigotPlatformAdapterTest {
 
     @Test
     void shouldUseBedSpawnLocationByDefault() {
-        AbstractSpigotPlatformAdapter adapter = new AbstractSpigotPlatformAdapter() {
-            @Override
-            public String getPlatformName() {
-                return "test";
-            }
-        };
+        AbstractSpigotPlatformAdapter adapter = new CapabilityControlledAdapter(Collections.emptySet());
         Player player = mock(Player.class);
         World world = mock(World.class);
         Location bedSpawn = new Location(world, 10.0, 64.0, -2.0);
@@ -112,10 +107,8 @@ class AbstractSpigotPlatformAdapterTest {
 
     private static Stream<Arguments> listenerMatrixParams() {
         // 1.8: no optional API classes available
-        List<Class<? extends Listener>> listeners18 = baseListeners();
-
         // 1.9-1.10: spawn-location + swap-hand available, but not air-change or modern pickup
-        List<Class<? extends Listener>> listeners19 = new ArrayList<>(listeners18);
+        List<Class<? extends Listener>> listeners19 = new ArrayList<>(baseListeners());
         listeners19.add(LegacyPlayerSpawnLocationListener.class);
         listeners19.add(PlayerSwapHandItemsListener.class);
 
@@ -129,16 +122,16 @@ class AbstractSpigotPlatformAdapterTest {
         listeners112.add(EntityPickupItemListener.class);
 
         // Edge: modern pickup only (no other optional APIs) replaces the legacy pickup listener
-        List<Class<? extends Listener>> listenersPickupOnly = new ArrayList<>(listeners18);
+        List<Class<? extends Listener>> listenersPickupOnly = new ArrayList<>(baseListeners());
         listenersPickupOnly.remove(LegacyPlayerPickupItemListener.class);
         listenersPickupOnly.add(EntityPickupItemListener.class);
 
         // 1.13+: PlayerCommandSendEvent omits the 1.8-only shulker fix
-        List<Class<? extends Listener>> listenersCommandSend = new ArrayList<>(listeners18);
+        List<Class<? extends Listener>> listenersCommandSend = new ArrayList<>(baseListeners());
         listenersCommandSend.remove(AdvancedShulkerFixListener.class);
 
         return Stream.of(
-            Arguments.of(capsFor(), listeners18, Arrays.asList(
+            Arguments.of(capsFor(), baseListeners(), Arrays.asList(
                 LegacyPlayerSpawnLocationListener.class, PlayerSwapHandItemsListener.class,
                 EntityAirChangeListener.class, EntityPickupItemListener.class)),
             Arguments.of(capsFor(

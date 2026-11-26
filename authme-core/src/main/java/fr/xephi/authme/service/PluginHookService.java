@@ -53,8 +53,6 @@ public class PluginHookService {
     }
 
     /**
-     * If Essentials is hooked into, return Essentials' data folder.
-     *
      * @return The Essentials data folder, or null if unavailable
      */
     public File getEssentialsDataFolder() {
@@ -62,8 +60,6 @@ public class PluginHookService {
     }
 
     /**
-     * If CMI is hooked into, return CMI' data folder.
-     *
      * @return The CMI data folder, or null if unavailable
      */
     public File getCmiDataFolder() {
@@ -85,84 +81,41 @@ public class PluginHookService {
         return manager.isMVWorld(world) ? manager.getMVWorld(world).getSpawnLocation() : null;
     }
 
-    // ------
-    // "Is plugin available" methods
-    // ------
-
-    /**
-     * @return true if we have a hook to Essentials, false otherwise
-     */
     public boolean isEssentialsAvailable() {
         return essentials != null;
     }
 
-    /**
-     * @return true if we have a hook to CMI, false otherwise
-     */
     public boolean isCmiAvailable() {
         return cmi != null;
     }
 
-    /**
-     * @return true if we have a hook to Multiverse, false otherwise
-     */
     public boolean isMultiverseAvailable() {
         return multiverse != null;
     }
 
-    // ------
-    // Hook methods
-    // ------
-
-    /**
-     * Attempts to create a hook into Essentials.
-     */
     public void tryHookToEssentials() {
         essentials = tryHook("Essentials", Essentials.class);
     }
 
-    /**
-     * Attempts to create a hook into CMI.
-     */
     public void tryHookToCmi() {
         cmi = tryHook("CMI", Plugin.class);
     }
 
-    /**
-     * Attempts to create a hook into Multiverse.
-     */
     public void tryHookToMultiverse() {
         multiverse = tryHook("Multiverse-Core", MultiverseCore.class);
     }
 
-    // ------
-    // Unhook methods
-    // ------
-
-    /**
-     * Unhooks from Essentials.
-     */
     public void unhookEssentials() {
         essentials = null;
     }
 
-    /**
-     * Unhooks from CMI.
-     */
     public void unhookCmi() {
         cmi = null;
     }
 
-    /**
-     * Unhooks from Multiverse.
-     */
     public void unhookMultiverse() {
         multiverse = null;
     }
-
-    // ------
-    // Helpers
-    // ------
 
     private <T extends Plugin> T tryHook(String name, Class<T> clazz) {
         try {
@@ -176,5 +129,4 @@ public class PluginHookService {
         }
         return null;
     }
-
 }

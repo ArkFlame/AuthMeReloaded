@@ -120,7 +120,7 @@ final class PaperBrigadierCommandRegistrar {
             CommandArgumentDescription argument = arguments.get(index);
             boolean isLastArgument = index == lastIndex;
             RequiredArgumentBuilder<CommandSourceStack, String> argBuilder = createArgument(argument.getName(),
-                isLastArgument ? StringArgumentType.greedyString() : anyWord());
+                isLastArgument ? StringArgumentType.greedyString() : AnyWordArgumentType.INSTANCE);
             if (isLastArgument && suggestOnlinePlayers) {
                 argBuilder.suggests(PaperBrigadierCommandRegistrar::suggestOnlinePlayerNames);
             }
@@ -134,40 +134,29 @@ final class PaperBrigadierCommandRegistrar {
 
     private static CompletableFuture<Suggestions> suggestOnlinePlayerNames(CommandContext<CommandSourceStack> context,
                                                                            SuggestionsBuilder builder) {
-        for (Player player : getOnlinePlayers(context)) {
-            builder.suggest(player.getName());
-        }
-        return builder.buildFuture();
-    }
-
-    private static Collection<? extends Player> getOnlinePlayers(CommandContext<CommandSourceStack> context) {
         CommandSender sender = context.getSource().getSender();
         Server server = sender == null ? null : sender.getServer();
         Collection<? extends Player> players = server == null ? null : server.getOnlinePlayers();
+        if (players == null) {
+            try {
+                players = Bukkit.getOnlinePlayers();
+            } catch (RuntimeException e) {
+                players = List.of();
+            }
+        }
         if (players != null) {
-            return players;
+            for (Player player : players) {
+                builder.suggest(player.getName());
+            }
         }
-        try {
-            players = Bukkit.getOnlinePlayers();
-        } catch (RuntimeException e) {
-            return List.of();
-        }
-        return players == null ? List.of() : players;
+        return builder.buildFuture();
     }
 
     private RequiredArgumentBuilder<CommandSourceStack, String> createArgument(String name, ArgumentType<String> type) {
         return RequiredArgumentBuilder.<CommandSourceStack, String>argument(name, type).executes(this::executeInput);
     }
 
-    /**
-     * Returns a Paper-compatible argument type that reads any non-whitespace characters —
-     * unlike {@code word()}, accepts {@code @}, {@code #}, etc. Wrapped in {@link CustomArgumentType}
-     * so Paper's Brigadier bridge does not reject it as an unknown raw argument type.
-     */
-    private static ArgumentType<String> anyWord() {
-        return AnyWordArgumentType.INSTANCE;
-    }
-
+    /** Reads any non-whitespace characters; wrapped in {@link CustomArgumentType} so Paper's bridge accepts it. */
     private static final class AnyWordArgumentType implements CustomArgumentType<String, String> {
         static final AnyWordArgumentType INSTANCE = new AnyWordArgumentType();
 
