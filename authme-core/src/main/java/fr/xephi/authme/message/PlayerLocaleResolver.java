@@ -7,6 +7,7 @@ import fr.xephi.authme.settings.properties.PluginSettings;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -58,7 +59,7 @@ public final class PlayerLocaleResolver {
         if (minecraftLocale == null || minecraftLocale.trim().isEmpty()) {
             return null;
         }
-        String locale = minecraftLocale.toLowerCase();
+        String locale = minecraftLocale.toLowerCase(Locale.ROOT);
         String override = LOCALE_OVERRIDES.get(locale);
         if (override != null) {
             return override;

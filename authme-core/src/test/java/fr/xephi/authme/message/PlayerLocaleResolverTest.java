@@ -108,6 +108,17 @@ class PlayerLocaleResolverTest {
     }
 
     @Test
+    void shouldNotDependOnTheDefaultLocaleWhenNormalizingCase() {
+        java.util.Locale previous = java.util.Locale.getDefault();
+        java.util.Locale.setDefault(new java.util.Locale("tr", "TR"));
+        try {
+            assertThat(PlayerLocaleResolver.toLanguageCode("IT_IT"), equalTo("it"));
+        } finally {
+            java.util.Locale.setDefault(previous);
+        }
+    }
+
+    @Test
     void shouldReturnNullForNonPlayerSender() {
         CommandSender sender = mock(CommandSender.class);
         BukkitCompatibilityAdapter adapter = mock(BukkitCompatibilityAdapter.class);
