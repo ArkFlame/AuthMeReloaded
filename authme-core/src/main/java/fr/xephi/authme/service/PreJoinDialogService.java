@@ -181,16 +181,14 @@ public class PreJoinDialogService {
             if (o == null || getClass() != o.getClass()) return false;
             PendingDialogState that = (PendingDialogState) o;
             return skipPostJoinDialog == that.skipPostJoinDialog && forceLogin == that.forceLogin
-                && Objects.equals(loginPassword, that.loginPassword)
-                && Objects.equals(recoveryEmail, that.recoveryEmail)
+                && Objects.equals(loginPassword, that.loginPassword) && Objects.equals(recoveryEmail, that.recoveryEmail)
                 && Objects.equals(registration, that.registration)
                 && Objects.equals(kickMessage, that.kickMessage);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(loginPassword, recoveryEmail, registration, skipPostJoinDialog, forceLogin,
-                kickMessage);
+            return Objects.hash(loginPassword, recoveryEmail, registration, skipPostJoinDialog, forceLogin, kickMessage);
         }
 
         @Override
@@ -222,8 +220,7 @@ public class PreJoinDialogService {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             PendingRegistration that = (PendingRegistration) o;
-            return isEmailRegistration == that.isEmailRegistration
-                && Objects.equals(primaryValue, that.primaryValue)
+            return isEmailRegistration == that.isEmailRegistration && Objects.equals(primaryValue, that.primaryValue)
                 && Objects.equals(secondaryValue, that.secondaryValue);
         }
 

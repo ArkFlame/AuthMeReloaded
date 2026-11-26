@@ -161,10 +161,7 @@ class CommandInitializerTest {
         }, 0);
     }
 
-
-    // ------------
     // Helper methods
-    // ------------
     private static void walkThroughCommands(Collection<CommandDescription> commands,
                                             BiConsumer<CommandDescription, Integer> consumer, int depth) {
         for (CommandDescription command : commands) {

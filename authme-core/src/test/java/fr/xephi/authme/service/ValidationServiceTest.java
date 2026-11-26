@@ -1,5 +1,6 @@
 package fr.xephi.authme.service;
 
+import ch.jalu.configme.properties.Property;
 import com.google.common.base.Strings;
 import fr.xephi.authme.TestHelper;
 import fr.xephi.authme.datasource.DataSource;
@@ -156,10 +157,7 @@ class ValidationServiceTest {
     void shouldCheckEmailAgainstDomainFilters(String email, boolean expected, List<String> whitelist,
                                               List<String> blacklist) {
         // given
-        given(settings.getProperty(EmailSettings.DOMAIN_WHITELIST)).willReturn(whitelist);
-        if (whitelist.isEmpty()) {
-            given(settings.getProperty(EmailSettings.DOMAIN_BLACKLIST)).willReturn(blacklist);
-        }
+        givenDomainFilter(EmailSettings.DOMAIN_WHITELIST, EmailSettings.DOMAIN_BLACKLIST, whitelist, blacklist);
 
         // when
         boolean result = validationService.validateEmail(email);
@@ -229,12 +227,11 @@ class ValidationServiceTest {
     void shouldAllowBypassForPresentPermission() {
         // given
         CommandSender sender = mock(CommandSender.class);
-        String email = "mail-address@example.com";
         given(permissionsManager.hasPermission(sender, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS))
             .willReturn(true);
 
         // when
-        boolean result = validationService.isEmailFreeForRegistration(email, sender);
+        boolean result = validationService.isEmailFreeForRegistration("mail-address@example.com", sender);
 
         // then
         verifyNoInteractions(dataSource);
@@ -277,10 +274,8 @@ class ValidationServiceTest {
     void shouldCheckCountryAgainstFilters(String ip, String countryCode, boolean expected, List<String> whitelist,
                                           List<String> blacklist) {
         // given
-        given(settings.getProperty(ProtectionSettings.COUNTRIES_WHITELIST)).willReturn(whitelist);
-        if (whitelist.isEmpty()) {
-            given(settings.getProperty(ProtectionSettings.COUNTRIES_BLACKLIST)).willReturn(blacklist);
-        }
+        givenDomainFilter(ProtectionSettings.COUNTRIES_WHITELIST, ProtectionSettings.COUNTRIES_BLACKLIST,
+            whitelist, blacklist);
         given(geoIpService.getCountryCode(ip)).willReturn(countryCode);
 
         // when
@@ -322,25 +317,15 @@ class ValidationServiceTest {
         InetSocketAddress imYourIspSocketAddr = imYourIsp.getAddress();
         willReturn("bazinga.yourisp.net").given(validationServiceSpy).getHostName(imYourIspSocketAddr);
 
-        // when
-        boolean isBobbyAdmitted = validationServiceSpy.fulfillsNameRestrictions(bobby);
-        boolean isTamaraAdmitted = validationServiceSpy.fulfillsNameRestrictions(tamara);
-        boolean isGabrielAdmitted = validationServiceSpy.fulfillsNameRestrictions(gabriel);
-        boolean isGabriel2Admitted = validationServiceSpy.fulfillsNameRestrictions(gabriel2);
-        boolean isEmanuelAdmitted = validationServiceSpy.fulfillsNameRestrictions(emanuel);
-        boolean isEmanuel2Admitted = validationServiceSpy.fulfillsNameRestrictions(emanuel2);
-        boolean isImYourIspAdmitted = validationServiceSpy.fulfillsNameRestrictions(imYourIsp);
-        boolean isNotRestrictedAdmitted = validationServiceSpy.fulfillsNameRestrictions(notRestricted);
-
-        // then
-        assertThat(isBobbyAdmitted, equalTo(true));
-        assertThat(isTamaraAdmitted, equalTo(false));
-        assertThat(isGabrielAdmitted, equalTo(true));
-        assertThat(isGabriel2Admitted, equalTo(false));
-        assertThat(isEmanuelAdmitted, equalTo(true));
-        assertThat(isEmanuel2Admitted, equalTo(false));
-        assertThat(isImYourIspAdmitted, equalTo(true));
-        assertThat(isNotRestrictedAdmitted, equalTo(true));
+        // when / then
+        assertThat(validationServiceSpy.fulfillsNameRestrictions(bobby), equalTo(true));
+        assertThat(validationServiceSpy.fulfillsNameRestrictions(tamara), equalTo(false));
+        assertThat(validationServiceSpy.fulfillsNameRestrictions(gabriel), equalTo(true));
+        assertThat(validationServiceSpy.fulfillsNameRestrictions(gabriel2), equalTo(false));
+        assertThat(validationServiceSpy.fulfillsNameRestrictions(emanuel), equalTo(true));
+        assertThat(validationServiceSpy.fulfillsNameRestrictions(emanuel2), equalTo(false));
+        assertThat(validationServiceSpy.fulfillsNameRestrictions(imYourIsp), equalTo(true));
+        assertThat(validationServiceSpy.fulfillsNameRestrictions(notRestricted), equalTo(true));
         verify(notRestricted, only()).getName();
     }
 
@@ -359,6 +344,15 @@ class ValidationServiceTest {
         ArgumentCaptor<String> stringCaptor = ArgumentCaptor.forClass(String.class);
         verify(logger).warning(stringCaptor.capture());
         assertThat(stringCaptor.getValue(), containsString("Tamara;"));
+    }
+
+    private void givenDomainFilter(Property<List<String>> whitelistProperty,
+                                   Property<List<String>> blacklistProperty,
+                                   List<String> whitelist, List<String> blacklist) {
+        given(settings.getProperty(whitelistProperty)).willReturn(whitelist);
+        if (whitelist.isEmpty()) {
+            given(settings.getProperty(blacklistProperty)).willReturn(blacklist);
+        }
     }
 
     private void givenPasswordSettings() {

@@ -62,10 +62,9 @@ class PasswordRegisterExecutorTest {
     void shouldCheckPasswordValidity(boolean valid) {
         String password = "myPass";
         String name = "player040";
-        ValidationResult validationResult = valid
+        given(validationService.validatePassword(password, name)).willReturn(valid
             ? new ValidationResult()
-            : new ValidationResult(MessageKey.PASSWORD_CHARACTERS_ERROR, "[a-z]");
-        given(validationService.validatePassword(password, name)).willReturn(validationResult);
+            : new ValidationResult(MessageKey.PASSWORD_CHARACTERS_ERROR, "[a-z]"));
         Player player = mockPlayerWithName(name);
         PasswordRegisterParams params = PasswordRegisterParams.of(player, password, null);
 

@@ -114,10 +114,9 @@ final class PaperBrigadierCommandRegistrar {
         CommandNode<CommandSourceStack> innerChain = null;
         for (int index = lastIndex; index >= 0; --index) {
             CommandArgumentDescription argument = arguments.get(index);
-            boolean isLastArgument = index == lastIndex;
             RequiredArgumentBuilder<CommandSourceStack, String> argBuilder = createArgument(argument.getName(),
-                isLastArgument ? StringArgumentType.greedyString() : AnyWordArgumentType.INSTANCE);
-            if (isLastArgument && suggestOnlinePlayers) {
+                index == lastIndex ? StringArgumentType.greedyString() : AnyWordArgumentType.INSTANCE);
+            if (index == lastIndex && suggestOnlinePlayers) {
                 argBuilder.suggests(PaperBrigadierCommandRegistrar::suggestOnlinePlayerNames);
             }
             if (innerChain != null) {

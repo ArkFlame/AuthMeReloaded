@@ -95,8 +95,7 @@ class PurgeTask implements Runnable {
             nextPlayerIndex += INTERVAL_CHECK;
             purgeService.executePurge(playerPortion, namePortion);
             if ((nextPlayerIndex / INTERVAL_CHECK) % 20 == 0) {
-                int completed = totalPurgeCount - toPurge.size();
-                sendMessage("[AuthMe] Purge progress " + completed + '/' + totalPurgeCount);
+                sendMessage("[AuthMe] Purge progress " + (totalPurgeCount - toPurge.size()) + '/' + totalPurgeCount);
             }
         } catch (RuntimeException e) {
             // An exception escaping a repeating task makes Bukkit cancel it. Since finish() is
@@ -118,16 +117,13 @@ class PurgeTask implements Runnable {
     }
 
     void setTaskHandle(CancellableTask taskHandle) {
-        boolean cancelImmediately;
         synchronized (this) {
-            cancelImmediately = cancellationRequested;
-            if (!cancelImmediately) {
+            if (!cancellationRequested) {
                 this.taskHandle = taskHandle;
+                return;
             }
         }
-        if (cancelImmediately) {
-            taskHandle.cancel();
-        }
+        taskHandle.cancel();
     }
 
     private void sendMessage(String message) {

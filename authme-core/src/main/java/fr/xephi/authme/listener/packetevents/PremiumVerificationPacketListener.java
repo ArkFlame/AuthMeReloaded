@@ -31,16 +31,10 @@ import java.util.regex.Pattern;
  * Intercepts {@code LOGIN_START} and {@code ENCRYPTION_RESPONSE} packets to perform
  * a cryptographic premium identity check against Mojang's session server.
  *
- * <p>For premium players:</p>
- * <ol>
- *   <li>Cancels {@code LOGIN_START} and sends a synthetic {@code EncryptionRequest}.</li>
- *   <li>Cancels {@code ENCRYPTION_RESPONSE}; decrypts and verifies with Mojang
- *       ({@code hasJoined}) on an async thread.</li>
- *   <li>Stores the Mojang UUID in {@link PremiumLoginVerifier} on success.</li>
- *   <li>Re-injects a {@code LOGIN_START} so vanilla processes the login normally.</li>
- * </ol>
- *
- * <p>For non-premium players, all packets pass through unmodified.</p>
+ * <p>Premium players are cancelled and sent a synthetic {@code EncryptionRequest}; the
+ * {@code ENCRYPTION_RESPONSE} is decrypted and verified with Mojang ({@code hasJoined})
+ * on an async thread, then the {@code LOGIN_START} is re-injected so vanilla completes
+ * the login. Non-premium packets pass through unmodified.</p>
  */
 public class PremiumVerificationPacketListener extends PacketListenerAbstract {
 
@@ -118,7 +112,12 @@ public class PremiumVerificationPacketListener extends PacketListenerAbstract {
 
         byte[] encVerifyToken = wrapper.getEncryptedVerifyToken().orElse(null);
         byte[] sharedSecret = null;
-        if (encVerifyToken != null) {
+        if (encVerifyToken == null) {
+            // Client sent a signed nonce (1.19.1+) instead of our plain verify token;
+            // fall through to password auth without verifying.
+            logger.warning("Player '" + username + "' returned a signed nonce during premium "
+                + "verification (expected plain verify token). Resuming without premium bypass.");
+        } else {
             // RSA-decrypt the shared secret synchronously on the event loop so that Netty
             // encryption is installed before the client's next (already AES-encrypted) packet.
             try {
@@ -126,11 +125,6 @@ public class PremiumVerificationPacketListener extends PacketListenerAbstract {
             } catch (GeneralSecurityException e) {
                 logger.warning("RSA decryption failed for '" + username + "': " + e.getMessage());
             }
-        } else {
-            // Client sent a signed nonce (1.19.1+) instead of our plain verify token;
-            // fall through to password auth without verifying.
-            logger.warning("Player '" + username + "' returned a signed nonce during premium "
-                + "verification (expected plain verify token). Resuming without premium bypass.");
         }
         if (sharedSecret == null) {
             loginVerifier.cleanupPending(connectionKey);

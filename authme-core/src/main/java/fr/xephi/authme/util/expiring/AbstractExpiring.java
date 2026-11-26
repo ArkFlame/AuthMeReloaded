@@ -5,9 +5,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Base for expiring structures, holding the shared expiration configuration and the entry storage.
- * The expiration is fixed once a structure is created; reconfiguring it only
- * affects entries added afterwards, as documented by the concrete structures.
+ * Base for expiring structures, holding the expiration configuration and the entry storage.
+ * Reconfiguring the expiration only affects entries added afterwards.
  *
  * @param <E> the key/entry type
  * @param <V> the stored value type
@@ -22,10 +21,9 @@ abstract class AbstractExpiring<E, V> {
     }
 
     /**
-     * Sets a new expiration duration. Note that already present entries
-     * will still make use of the old expiration.
+     * Sets a new expiration duration; already present entries keep the old one.
      *
-     * @param duration the duration of time after which entries expire
+     * @param duration the duration after which entries expire
      * @param unit the time unit in which {@code duration} is expressed
      */
     public void setExpiration(long duration, TimeUnit unit) {
@@ -52,8 +50,7 @@ abstract class AbstractExpiring<E, V> {
     }
 
     /**
-     * Returns whether an entry with the given expiration timestamp has expired at {@code now}.
-     * Shared by all expiring structures so the comparison is defined in a single place.
+     * Returns whether an entry expiring at {@code expiration} has expired at {@code now}.
      *
      * @param expiration the expiration timestamp in milliseconds
      * @param now the current time in milliseconds

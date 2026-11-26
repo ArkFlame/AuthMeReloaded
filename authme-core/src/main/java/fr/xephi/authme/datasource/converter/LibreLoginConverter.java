@@ -11,23 +11,14 @@ import java.sql.Timestamp;
 /**
  * Converts data from LibreLogin to AuthMe.
  * <p>
- * The storage backend is determined by reading {@code plugins/LibreLogin/config.conf}
- * ({@code database.type}):
- * <ul>
- *   <li><b>librelogin-sqlite</b> (default) — reads the SQLite database at the path configured
- *       under {@code sqlite.path} (default: {@code plugins/LibreLogin/user-data.db}).</li>
- *   <li><b>librelogin-mysql / librelogin-postgresql</b> — uses AuthMe's existing connection
- *       pool; LibreLogin must share the same database as AuthMe.</li>
- * </ul>
+ * The storage backend is read from {@code plugins/LibreLogin/config.conf} ({@code database.type}):
+ * {@code librelogin-sqlite} (default) reads the SQLite database configured under {@code sqlite.path}
+ * (default {@code plugins/LibreLogin/user-data.db}); {@code librelogin-mysql} and
+ * {@code librelogin-postgresql} use AuthMe's connection pool, so LibreLogin must share AuthMe's database.
  * <p>
- * <b>Algorithm mapping:</b>
- * <ul>
- *   <li>{@code BCrypt-2A} → configure AuthMe with {@code passwordHash: BCRYPT}</li>
- *   <li>{@code Argon2-ID} → configure AuthMe with {@code passwordHash: ARGON2ID}</li>
- *   <li>{@code SHA-256} → configure AuthMe with {@code passwordHash: SHA256}</li>
- *   <li>{@code SHA-512} → configure AuthMe with {@code passwordHash: DOUBLE_SHA512}</li>
- *   <li>{@code LOGIT-SHA-256} → configure AuthMe with {@code passwordHash: SALTEDSHA256}</li>
- * </ul>
+ * Algorithm mapping: {@code BCrypt-2A} → {@code BCRYPT}, {@code Argon2-ID} → {@code ARGON2ID},
+ * {@code SHA-256} → {@code SHA256}, {@code SHA-512} → {@code DOUBLE_SHA512},
+ * {@code LOGIT-SHA-256} → {@code SALTEDSHA256}.
  */
 public class LibreLoginConverter extends AbstractLibrePremiumConverter {
 
