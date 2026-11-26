@@ -80,20 +80,13 @@ class CacheDataSourceConsistencyTest {
     }
 
     @Test
-    void shouldInvalidateNormalizedNamesOnPurge() {
+    void shouldInvalidateNormalizedNamesOnPurgeAndExplicitInvalidation() {
         seedCache();
-
         dataSource.purgeRecords(Collections.singletonList("PlayerOne"));
-
         assertCacheInvalidated();
-    }
 
-    @Test
-    void shouldNormalizeNameOnExplicitInvalidation() {
         seedCache();
-
         dataSource.invalidateCache("PlayerOne");
-
         assertCacheInvalidated();
     }
 

@@ -115,7 +115,9 @@ public class PremiumLoginVerifier {
      * encryption, independently from the async Mojang check.
      */
     public byte[] decryptData(byte[] encrypted) throws GeneralSecurityException {
-        return rsaDecrypt(encrypted);
+        Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+        cipher.init(Cipher.DECRYPT_MODE, rsaKeyPair.getPrivate());
+        return cipher.doFinal(encrypted);
     }
 
     /**
@@ -140,7 +142,7 @@ public class PremiumLoginVerifier {
         CompletableFuture<Optional<UUID>> future = new CompletableFuture<>();
         bukkitService.runTaskAsynchronously(() -> {
             try {
-                byte[] decryptedToken = rsaDecrypt(encVerifyToken);
+                byte[] decryptedToken = decryptData(encVerifyToken);
 
                 if (!Arrays.equals(decryptedToken, pend.verifyToken())) {
                     logger.warning("Verify token mismatch during premium verification for '" + pend.username() + "'");
@@ -189,12 +191,6 @@ public class PremiumLoginVerifier {
      */
     public void removeVerified(String username) {
         verified.remove(username);
-    }
-
-    private byte[] rsaDecrypt(byte[] encrypted) throws GeneralSecurityException {
-        Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-        cipher.init(Cipher.DECRYPT_MODE, rsaKeyPair.getPrivate());
-        return cipher.doFinal(encrypted);
     }
 
     private String computeServerHash(byte[] sharedSecret) throws NoSuchAlgorithmException {

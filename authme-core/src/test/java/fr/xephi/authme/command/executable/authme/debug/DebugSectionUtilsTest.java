@@ -43,7 +43,8 @@ class DebugSectionUtilsTest {
     @Test
     void shouldFetchMapInLimboService() {
         LimboService limboService = mock(LimboService.class);
-        Map<String, LimboPlayer> limboMap = createLimboServiceWithEntries(limboService);
+        Map<String, LimboPlayer> limboMap = new HashMap<>();
+        ReflectionTestUtils.setField(LimboService.class, limboService, "entries", limboMap);
 
         Map map = DebugSectionUtils.applyToLimboPlayersMap(limboService, Function.identity());
         assertThat(map, sameInstance(limboMap));
@@ -70,11 +71,5 @@ class DebugSectionUtilsTest {
         assertThat(DebugSectionUtils.castToTypeOrNull("test", Integer.class), nullValue());
         assertThat(DebugSectionUtils.castToTypeOrNull(5, String.class), nullValue());
         assertThat(DebugSectionUtils.castToTypeOrNull(5, Integer.class), equalTo(5));
-    }
-
-    private static Map<String, LimboPlayer> createLimboServiceWithEntries(LimboService limboService) {
-        Map<String, LimboPlayer> limboMap = new HashMap<>();
-        ReflectionTestUtils.setField(LimboService.class, limboService, "entries", limboMap);
-        return limboMap;
     }
 }

@@ -1,7 +1,6 @@
 package fr.xephi.authme.util;
 
 import java.security.SecureRandom;
-import java.util.Random;
 
 /**
  * Utility for generating random strings.
@@ -9,7 +8,7 @@ import java.util.Random;
 public final class RandomStringUtils {
 
     private static final char[] CHARS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray();
-    private static final Random RANDOM = new SecureRandom();
+    private static final SecureRandom RANDOM = new SecureRandom();
     private static final int NUM_INDEX = 10;
     private static final int LOWER_ALPHANUMERIC_INDEX = 36;
     private static final int HEX_MAX_INDEX = 16;
@@ -29,8 +28,7 @@ public final class RandomStringUtils {
     }
 
     /**
-     * Generate a random hexadecimal string of the given length. In other words, the generated string
-     * contains characters only within the range [0-9a-f].
+     * Generate a random hexadecimal string of the given length, containing characters only within [0-9a-f].
      *
      * @param length The length of the random string to generate
      * @return The random hexadecimal string
@@ -40,8 +38,7 @@ public final class RandomStringUtils {
     }
 
     /**
-     * Generate a random numbers string of the given length. In other words, the generated string
-     * contains characters only within the range [0-9].
+     * Generate a random numbers string of the given length, containing characters only within [0-9].
      *
      * @param length The length of the random string to generate
      * @return The random numbers string
@@ -51,8 +48,7 @@ public final class RandomStringUtils {
     }
 
     /**
-     * Generate a random string with digits and lowercase and uppercase letters. The result of this
-     * method matches the pattern [0-9a-zA-Z].
+     * Generate a random string with digits and lowercase and uppercase letters, matching [0-9a-zA-Z].
      *
      * @param length The length of the random string to generate
      * @return The random string

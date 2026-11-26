@@ -14,6 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
@@ -71,17 +72,24 @@ class ListenerServiceTest {
         return event;
     }
 
-    @ParameterizedTest(name = "authenticated={0}")
-    @ValueSource(booleans = {true, false})
-    void shouldCancelOnlyForUnauthenticatedPlayer(boolean authenticated) {
-        String playerName = authenticated ? "Bobby" : "Tester";
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("cancellationCases")
+    void shouldCancelOnlyForUnauthenticatedPlayer(String playerName, boolean authenticated, boolean viaPlayer) {
         Player player = mockPlayerWithName(playerName);
         given(playerCache.isAuthenticated(playerName)).willReturn(authenticated);
 
-        assertThat(listenerService.shouldCancelEvent(eventWith(player)), equalTo(!authenticated));
+        boolean cancel = viaPlayer
+            ? listenerService.shouldCancelEvent(player)
+            : listenerService.shouldCancelEvent(eventWith(player));
+        assertThat(cancel, equalTo(!authenticated));
         verify(playerCache).isAuthenticated(playerName);
         // makes sure the setting is checked first = avoid unnecessary DB operation
         verifyNoInteractions(dataSource);
+    }
+
+    private static Stream<Arguments> cancellationCases() {
+        return Stream.of(Arguments.of("Bobby", true, false), Arguments.of("Tester", false, false),
+            Arguments.of("player", false, true));
     }
 
     @Test
@@ -124,17 +132,6 @@ class ListenerServiceTest {
 
     private static Stream<Player> playerEventPlayers() {
         return Stream.of(null, mockPlayerWithName("example"));
-    }
-
-    @Test
-    // The previous tests verify most of shouldCancelEvent(Player)
-    void shouldVerifyBasedOnPlayer() {
-        String playerName = "player";
-        Player player = mockPlayerWithName(playerName);
-
-        assertThat(listenerService.shouldCancelEvent(player), equalTo(true));
-        verify(playerCache).isAuthenticated(playerName);
-        verifyNoInteractions(dataSource);
     }
 
     /**

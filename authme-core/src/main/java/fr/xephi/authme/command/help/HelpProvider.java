@@ -78,10 +78,9 @@ public class HelpProvider implements Reloadable {
             return singletonList(ChatColor.DARK_RED + "Failed to retrieve any help information!");
         }
 
-        List<String> lines = new ArrayList<>();
         options = filterDisabledSections(options);
+        List<String> lines = new ArrayList<>();
         if (options == 0) {
-            // Return directly if no options are enabled so we don't include the help header
             return lines;
         }
         String language = PlayerLocaleResolver.resolveLanguage(settings, sender, compatibilityAdapter);
@@ -245,19 +244,18 @@ public class HelpProvider implements Reloadable {
 
         // Addendum to the line to specify whether the sender has permission or not when default is OP_ONLY
         final DefaultPermission defaultPermission = permission.getDefaultPermission();
-        String addendum = "";
-        if (DefaultPermission.OP_ONLY.equals(defaultPermission)) {
-            addendum = " (" + helpMessagesService.getMessage(defaultPermission.evaluate(sender)
-                ? HelpMessage.HAS_PERMISSION : HelpMessage.NO_PERMISSION, language) + ")";
-        }
+        String addendum = DefaultPermission.OP_ONLY.equals(defaultPermission)
+            ? " (" + helpMessagesService.getMessage(defaultPermission.evaluate(sender)
+                ? HelpMessage.HAS_PERMISSION : HelpMessage.NO_PERMISSION, language) + ")"
+            : "";
         lines.add(ChatColor.GOLD + helpMessagesService.getMessage(HelpMessage.DEFAULT, language) + ": "
             + ChatColor.GRAY + ChatColor.ITALIC + helpMessagesService.getMessage(defaultPermission, language)
             + addendum);
 
         // Evaluate if the sender has permission to the command
-        ChatColor permissionColor = hasPermission ? ChatColor.GREEN : ChatColor.DARK_RED;
         lines.add(String.format(ChatColor.GOLD + " %s: %s" + ChatColor.ITALIC + "%s",
-            helpMessagesService.getMessage(HelpMessage.RESULT, language), permissionColor, permissionText));
+            helpMessagesService.getMessage(HelpMessage.RESULT, language),
+            hasPermission ? ChatColor.GREEN : ChatColor.DARK_RED, permissionText));
     }
 
     /**

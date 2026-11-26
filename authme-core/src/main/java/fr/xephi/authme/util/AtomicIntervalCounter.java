@@ -19,7 +19,6 @@ public class AtomicIntervalCounter {
     public AtomicIntervalCounter(int threshold, int interval) {
         this.threshold = threshold;
         this.interval = interval;
-        reset();
     }
 
     /**

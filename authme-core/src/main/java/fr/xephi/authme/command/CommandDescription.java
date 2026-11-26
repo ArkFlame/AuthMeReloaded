@@ -2,7 +2,6 @@ package fr.xephi.authme.command;
 
 import fr.xephi.authme.permission.PermissionNode;
 import fr.xephi.authme.util.StringUtils;
-import fr.xephi.authme.util.Utils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -210,8 +209,8 @@ public class CommandDescription {
         public CommandDescription register() {
             CommandDescription command = build();
 
-            if (command.parent != null) {
-                command.parent.children.add(command);
+            if (parent != null) {
+                parent.children.add(command);
             }
             return command;
         }
@@ -222,7 +221,7 @@ public class CommandDescription {
          * @return The generated CommandDescription object
          */
         public CommandDescription build() {
-            checkArgument(!Utils.isCollectionEmpty(labels), "Labels may not be empty");
+            checkArgument(labels != null && !labels.isEmpty(), "Labels may not be empty");
             checkArgument(!StringUtils.isBlank(description), "Description may not be empty");
             checkArgument(!StringUtils.isBlank(detailedDescription), "Detailed description may not be empty");
             checkArgument(executableCommand != null, "Executable command must be set");

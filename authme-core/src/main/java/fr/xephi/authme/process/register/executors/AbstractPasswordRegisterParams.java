@@ -13,16 +13,12 @@ public abstract class AbstractPasswordRegisterParams extends RegistrationParamet
     private final String password;
     private HashedPassword hashedPassword;
 
-    /** Constructor. */
     public AbstractPasswordRegisterParams(Player player, String password) {
         super(player);
         this.password = password;
     }
 
-    /**
-     * Constructor with no defined password. Use for registration methods which
-     * have no implicit password (like two factor authentication).
-     */
+    /** Constructor without an implicit password, e.g. for two factor authentication. */
     public AbstractPasswordRegisterParams(Player player) {
         this(player, null);
     }

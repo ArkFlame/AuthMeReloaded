@@ -52,7 +52,6 @@ public class ChangePasswordCommand extends PlayerCommand {
             return;
         }
 
-        String oldPassword = arguments.get(0);
         String newPassword = arguments.get(1);
 
         // Make sure the password is allowed
@@ -61,7 +60,7 @@ public class ChangePasswordCommand extends PlayerCommand {
             return;
         }
 
-        management.performPasswordChange(player, oldPassword, newPassword);
+        management.performPasswordChange(player, arguments.get(0), newPassword);
     }
 
     @Override
