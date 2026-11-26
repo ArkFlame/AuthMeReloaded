@@ -78,9 +78,6 @@ final class MessageMigraterPropertyReader implements PropertyReader {
                 return null;
             }
             node = ((Map<?, ?>) node).get(key);
-            if (node == null) {
-                return null;
-            }
         }
         return node;
     }

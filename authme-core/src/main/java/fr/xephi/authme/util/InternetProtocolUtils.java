@@ -65,7 +65,7 @@ public final class InternetProtocolUtils {
             return false;
         }
         // fc00::/8 (reserved) and fd00::/8 (unique site-local), ref: https://en.wikipedia.org/wiki/Unique_local_address
-        int firstByte = address.getAddress()[0] & 0xFF;
-        return firstByte == 0xFC || firstByte == 0xFD;
+        return (address.getAddress()[0] & 0xFF) == 0xFC
+            || (address.getAddress()[0] & 0xFF) == 0xFD;
     }
 }

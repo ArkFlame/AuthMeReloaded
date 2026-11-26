@@ -28,25 +28,17 @@ class MessagePathHelperTest {
     }
 
     @Test
-    void shouldRecognizeIfIsMessagesFile() {
+    void shouldRecognizeMessageAndHelpFiles() {
         assertThat(MessagePathHelper.isMessagesFile("messages_nl.yml"), equalTo(true));
         assertThat(MessagePathHelper.isMessagesFile("messages_testtest.yml"), equalTo(true));
         for (String fileName : INVALID_FILE_NAMES) {
             assertThat(MessagePathHelper.isMessagesFile(fileName), equalTo(false));
         }
-    }
-
-    @Test
-    void shouldReturnLanguageForMessagesFile() {
         assertThat(MessagePathHelper.getLanguageIfIsMessagesFile("messages_nl.yml"), equalTo("nl"));
         assertThat(MessagePathHelper.getLanguageIfIsMessagesFile("messages_testtest.yml"), equalTo("testtest"));
         for (String fileName : INVALID_FILE_NAMES) {
             assertThat(MessagePathHelper.getLanguageIfIsMessagesFile(fileName), nullValue());
         }
-    }
-
-    @Test
-    void shouldRecognizeIfIsHelpFile() {
         assertThat(MessagePathHelper.isHelpFile("help_nl.yml"), equalTo(true));
         assertThat(MessagePathHelper.isHelpFile("help_testtest.yml"), equalTo(true));
         for (String fileName : INVALID_FILE_NAMES) {

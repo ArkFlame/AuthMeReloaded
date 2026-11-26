@@ -47,7 +47,7 @@ class Velocity3126Test {
      */
     @Test
     void shouldForwardOfflineUuidToBackendAndKeepPremiumIdentityForVerification() {
-        Fixture fixture = new Fixture();
+        Fixture fixture = new Fixture(true);
         fixture.recordPremiumName();
 
         GameProfileRequestEvent profileEvent = fixture.verifyProfileRequest();
@@ -95,10 +95,6 @@ class Velocity3126Test {
         private final Player player = mock(Player.class);
         private final ServerConnection currentServer = mock(ServerConnection.class);
         private final VelocityProxyBridge bridge;
-
-        private Fixture() {
-            this(true);
-        }
 
         private Fixture(boolean keepOfflineUuid) {
             given(authServer.getServerInfo()).willReturn(LOBBY);

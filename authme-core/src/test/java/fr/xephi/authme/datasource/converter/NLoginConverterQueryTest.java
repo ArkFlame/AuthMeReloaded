@@ -16,8 +16,6 @@ import static org.mockito.Mockito.mock;
  */
 class NLoginConverterQueryTest {
 
-    private static final String TABLE_KEY = "database.table.account.table-name";
-
     private final NLoginConverter converter = new NLoginConverter(mock(DataSource.class));
 
     @ParameterizedTest
@@ -27,7 +25,7 @@ class NLoginConverterQueryTest {
     })
     void shouldOnlyUseSafeTableName(String configuredTable, String expectedTable) {
         YamlConfiguration config = mock(YamlConfiguration.class);
-        given(config.getString(TABLE_KEY, "nlogin")).willReturn(configuredTable);
+        given(config.getString("database.table.account.table-name", "nlogin")).willReturn(configuredTable);
 
         String query = converter.getQuery(config);
         assertThat(query, containsString("FROM " + expectedTable));

@@ -107,15 +107,15 @@ public class VerificationCommandTest {
         verify(commonService).send(player, MessageKey.VERIFICATION_CODE_EXPIRED);
     }
 
-    @Test
-    public void shouldRejectVerificationDueToVerifiedIdentity() {
+    @ParameterizedTest
+    @MethodSource("emailCases")
+    public void shouldRejectVerificationDueToEmailState(String name, String code, boolean hasEmail,
+                                                        MessageKey expectedMessage, boolean sendAddEmailMessage) {
         // given
-        String name = "Cow";
-        String code = "973583";
         Player player = mockPlayerWithName(name);
         given(codeManager.canSendMail()).willReturn(true);
         given(codeManager.isVerificationRequired(player)).willReturn(false);
-        given(codeManager.hasEmail(name)).willReturn(true);
+        given(codeManager.hasEmail(name)).willReturn(hasEmail);
 
         // when
         command.executeCommand(player, Collections.singletonList(code));
@@ -123,27 +123,16 @@ public class VerificationCommandTest {
         // then
         verify(codeManager).isVerificationRequired(player);
         verify(codeManager).hasEmail(name);
-        verify(commonService).send(player, MessageKey.VERIFICATION_CODE_ALREADY_VERIFIED);
+        verify(commonService).send(player, expectedMessage);
+        if (sendAddEmailMessage) {
+            verify(commonService).send(player, MessageKey.ADD_EMAIL_MESSAGE);
+        }
     }
 
-    @Test
-    public void shouldRejectVerificationDueToUndefinedEmail() {
-        // given
-        String name = "Frog";
-        String code = "774543";
-        Player player = mockPlayerWithName(name);
-        given(codeManager.canSendMail()).willReturn(true);
-        given(codeManager.isVerificationRequired(player)).willReturn(false);
-        given(codeManager.hasEmail(name)).willReturn(false);
-
-        // when
-        command.executeCommand(player, Collections.singletonList(code));
-
-        // then
-        verify(codeManager).isVerificationRequired(player);
-        verify(codeManager).hasEmail(name);
-        verify(commonService).send(player, MessageKey.VERIFICATION_CODE_EMAIL_NEEDED);
-        verify(commonService).send(player, MessageKey.ADD_EMAIL_MESSAGE);
+    private static Stream<Arguments> emailCases() {
+        return Stream.of(
+            Arguments.of("Cow", "973583", true, MessageKey.VERIFICATION_CODE_ALREADY_VERIFIED, false),
+            Arguments.of("Frog", "774543", false, MessageKey.VERIFICATION_CODE_EMAIL_NEEDED, true));
     }
 
     @Test
@@ -153,5 +142,4 @@ public class VerificationCommandTest {
     }
 
 }
-
 
