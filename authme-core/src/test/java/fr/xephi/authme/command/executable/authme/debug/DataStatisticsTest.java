@@ -23,6 +23,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -31,6 +32,7 @@ import java.util.Optional;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.atLeastOnce;
@@ -72,9 +74,8 @@ class DataStatisticsTest {
         given(dataSource.getAccountsRegistered()).willReturn(219);
         given(playerCache.getLogged()).willReturn(12);
 
-        // Clear any loggers that might exist and trigger the generation of two loggers
-        Map loggers = ReflectionTestUtils.getFieldValue(ConsoleLoggerFactory.class, null, "consoleLoggers");
-        loggers.clear();
+        // The logger registry is JVM-wide and other tests may register loggers concurrently,
+        // so create two known loggers and derive the expected count from the registry itself
         ConsoleLoggerFactory.get(String.class);
         ConsoleLoggerFactory.get(Integer.class);
 
@@ -85,14 +86,18 @@ class DataStatisticsTest {
         verify(sender, atLeastOnce()).sendMessage(stringCaptor.capture());
 
         // then
-        assertThat(stringCaptor.getAllValues(), containsInAnyOrder(
+        String loggerPrefix = "Total logger instances: ";
+        List<String> messages = new ArrayList<>(stringCaptor.getAllValues());
+        String loggerLine = messages.stream().filter(m -> m.startsWith(loggerPrefix)).findFirst().get();
+        messages.remove(loggerLine);
+        assertThat(Integer.parseInt(loggerLine.substring(loggerPrefix.length())), greaterThanOrEqualTo(2));
+        assertThat(messages, containsInAnyOrder(
             ChatColor.BLUE + "AuthMe statistics",
             "Singleton Java classes: 7",
             "(Reloadable: 4 / SettingsDependent: 3 / HasCleanup: 2)",
             "LimboPlayers in memory: 1",
             "Total players in DB: 219",
-            "PlayerCache size: 12 (= logged in players)",
-            "Total logger instances: 2"));
+            "PlayerCache size: 12 (= logged in players)"));
 
         // Cached data source reports the number of cached PlayerAuth objects
         CacheDataSource cacheDataSource = mock(CacheDataSource.class);

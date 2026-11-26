@@ -117,33 +117,23 @@
         <dependencies.log4j-core.version>2.25.4</dependencies.log4j-core.version> <!-- version bundled 1.16.5 -->
         <!-- Spigot libraries -->
         <dependencies.bstats.version>3.2.1</dependencies.bstats.version>
+        <!-- Slow release-only work is off by default; enable with -Prelease / -Pcoverage -->
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <maven.source.skip>true</maven.source.skip>
+        <jacoco.skip>true</jacoco.skip>
+        <argLine></argLine>
+        <surefire.forkCount>0.5C</surefire.forkCount>
     </properties>
 
     <!-- Jenkins profile -->
     <profiles>
         <!-- Set the buildNumber using the jenkins env. variable -->
         <profile>
-            <id>jenkins</id>
-            <activation>
-                <property>
-                    <name>env.BUILD_NUMBER</name>
-                </property>
-            </activation>
+            <id>release</id>
             <properties>
-                <project.buildNumber>${env.BUILD_NUMBER}</project.buildNumber>
+                <maven.javadoc.skip>false</maven.javadoc.skip>
+                <maven.source.skip>false</maven.source.skip>
             </properties>
-        </profile>
-        <profile>
-            <id>java21-modules</id>
-            <activation>
-                <jdk>[21,)</jdk>
-            </activation>
-            <modules>
-                <module>authme-bungee</module>
-                <module>authme-spigot</module>
-                <module>authme-paper</module>
-                <module>authme-velocity</module>
-            </modules>
             <build>
                 <plugins>
                     <plugin>
@@ -168,6 +158,35 @@
                     </plugin>
                 </plugins>
             </build>
+        </profile>
+        <profile>
+            <id>coverage</id>
+            <properties>
+                <jacoco.skip>false</jacoco.skip>
+            </properties>
+        </profile>
+        <profile>
+            <id>jenkins</id>
+            <activation>
+                <property>
+                    <name>env.BUILD_NUMBER</name>
+                </property>
+            </activation>
+            <properties>
+                <project.buildNumber>${env.BUILD_NUMBER}</project.buildNumber>
+            </properties>
+        </profile>
+        <profile>
+            <id>java21-modules</id>
+            <activation>
+                <jdk>[21,)</jdk>
+            </activation>
+            <modules>
+                <module>authme-bungee</module>
+                <module>authme-spigot</module>
+                <module>authme-paper</module>
+                <module>authme-velocity</module>
+            </modules>
         </profile>
         <!-- Skip long hash tests, reduce the test time of 20-30 seconds -->
         <profile>
@@ -378,7 +397,9 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <argLine>-Xshare:off -javaagent:${dependencies.mockito.javaagent} -Dfile.encoding=${project.build.sourceEncoding} -Duser.language=en</argLine>
+                    <forkCount>${surefire.forkCount}</forkCount>
+                    <reuseForks>true</reuseForks>
+                    <argLine>-XX:TieredStopAtLevel=1 -XX:+UseSerialGC -javaagent:${dependencies.mockito.javaagent} -Dfile.encoding=${project.build.sourceEncoding} -Duser.language=en</argLine>
                 </configuration>
             </plugin>
         </plugins>
