@@ -16,10 +16,7 @@ class MySqlDefaultChangerColumnsTest {
 
     @Test
     void shouldAllHaveDifferentNameProperty() {
-        // given
         Set<String> properties = new HashSet<>();
-
-        // when / then
         for (MySqlDefaultChanger.Columns col : MySqlDefaultChanger.Columns.values()) {
             if (!properties.add(col.getColumnNameProperty().getPath())) {
                 fail("Column '" + col + "' has a column name property path that was already encountered: "
@@ -31,29 +28,20 @@ class MySqlDefaultChangerColumnsTest {
     @Test
     void shouldHaveMatchingColumnDefinitions() {
         for (MySqlDefaultChanger.Columns col : MySqlDefaultChanger.Columns.values()) {
-            verifyHasCorrespondingColumnDefinitions(col);
-            verifyHasSameDefaultValueInNotNullDefinition(col);
+            verifyColumnDefinitions(col);
         }
     }
 
-    private void verifyHasCorrespondingColumnDefinitions(MySqlDefaultChanger.Columns column) {
-        // given / when
+    private void verifyColumnDefinitions(MySqlDefaultChanger.Columns column) {
         String nullable = column.getNullableDefinition();
         String notNull = column.getNotNullDefinition();
 
-        // then
         String expectedNotNull = nullable + " NOT NULL DEFAULT ";
         assertThat(column.name(), notNull.startsWith(expectedNotNull), equalTo(true));
         // Check that `notNull` length is bigger because we expect a value after DEFAULT
         assertThat(column.name(), notNull.length() > expectedNotNull.length(), equalTo(true));
-    }
 
-    private void verifyHasSameDefaultValueInNotNullDefinition(MySqlDefaultChanger.Columns column) {
-        // given / when
-        String notNull = column.getNotNullDefinition();
         Object defaultValue = column.getDefaultValue();
-
-        // then
         String defaultValueAsString = String.valueOf(defaultValue);
         if (!notNull.endsWith("DEFAULT " + defaultValueAsString)
                 && !notNull.endsWith("DEFAULT '" + defaultValueAsString + "'")) {

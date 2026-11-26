@@ -74,9 +74,8 @@ public final class Utils {
     }
 
     /**
-     * Sends a warning to the given sender (null safe), and logs the warning to the console.
-     * This method is aware that the command sender might be the console sender and avoids
-     * displaying the message twice in this case.
+     * Sends a red warning to the given sender (null safe) and logs it to the console,
+     * skipping the send for the console sender to avoid displaying it twice.
      *
      * @param sender the sender to inform
      * @param message the warning to log and send

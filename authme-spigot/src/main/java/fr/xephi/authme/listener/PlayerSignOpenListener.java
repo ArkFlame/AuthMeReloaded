@@ -1,6 +1,5 @@
 package fr.xephi.authme.listener;
 
-import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -21,8 +20,7 @@ public class PlayerSignOpenListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onPlayerSignOpen(PlayerSignOpenEvent event) {
-        Player player = event.getPlayer();
-        if (listenerService.shouldCancelEvent(player)) {
+        if (listenerService.shouldCancelEvent(event.getPlayer())) {
             event.setCancelled(true);
         }
     }

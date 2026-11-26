@@ -16,14 +16,13 @@ public final class DialogInputSpec {
         this.label = Objects.requireNonNull(label, "label");
         this.maxLength = maxLength;
     }
-
     public String id() { return id; }
     public String label() { return label; }
     public int maxLength() { return maxLength; }
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof DialogInputSpec)) return this == o;
+        if (!(o instanceof DialogInputSpec)) return false;
         DialogInputSpec that = (DialogInputSpec) o;
         return maxLength == that.maxLength && id.equals(that.id) && label.equals(that.label);
     }

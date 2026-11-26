@@ -20,8 +20,6 @@ final class LogFilterHelper {
         "/authme changepassword ", "/authme password ", "/authme changepass ", "/authme cp ", "/email setpassword ",
         "/email code ", "/totp code ", "/totp c ", "/2fa code ", "/2fa c ");
 
-    private static final String ISSUED_COMMAND_TEXT = "issued server command:";
-
     private LogFilterHelper() {
         // Util class
     }
@@ -37,7 +35,7 @@ final class LogFilterHelper {
         // Most log lines are not command lines, so look for the (ASCII) marker without
         // allocating a lowercased copy of the whole message first.
         return message != null
-            && containsIgnoreCase(message, ISSUED_COMMAND_TEXT)
+            && containsIgnoreCase(message, "issued server command:")
             && StringUtils.containsAny(message.toLowerCase(Locale.ROOT), COMMANDS_TO_SKIP);
     }
 

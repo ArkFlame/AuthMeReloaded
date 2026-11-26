@@ -61,19 +61,14 @@ public class EmailSetPasswordCommandTest {
     @Test
     public void shouldChangePassword() {
         // given
-        String name = givenPlayerCanChangePassword("Jerry");
-        HashedPassword hashedPassword = new HashedPassword("hash");
-        given(passwordSecurity.computeHash("abc123", name)).willReturn(hashedPassword);
-        given(dataSource.updatePassword(name, hashedPassword)).willReturn(true);
-        given(validationService.validatePassword("abc123", name))
-            .willReturn(new ValidationService.ValidationResult());
+        HashedPassword hashedPassword = givenPasswordChangeSetup("Jerry", "abc123", true);
 
         // when
         command.runCommand(player, Collections.singletonList("abc123"));
 
         // then
-        verify(validationService).validatePassword("abc123", name);
-        verify(dataSource).updatePassword(name, hashedPassword);
+        verify(validationService).validatePassword("abc123", "Jerry");
+        verify(dataSource).updatePassword("Jerry", hashedPassword);
         verify(recoveryService).removeFromSuccessfulRecovery(player);
         verify(commonService).send(player, MessageKey.PASSWORD_CHANGED_SUCCESS);
     }
@@ -81,19 +76,13 @@ public class EmailSetPasswordCommandTest {
     @Test
     public void shouldReportErrorWhenDatabaseUpdateFails() {
         // given
-        String name = givenPlayerCanChangePassword("Jerry");
-        String password = "abc123";
-        HashedPassword hashedPassword = new HashedPassword("hash");
-        given(passwordSecurity.computeHash(password, name)).willReturn(hashedPassword);
-        given(validationService.validatePassword(password, name))
-            .willReturn(new ValidationService.ValidationResult());
-        given(dataSource.updatePassword(name, hashedPassword)).willReturn(false);
+        HashedPassword hashedPassword = givenPasswordChangeSetup("Jerry", "abc123", false);
 
         // when
-        command.runCommand(player, Collections.singletonList(password));
+        command.runCommand(player, Collections.singletonList("abc123"));
 
         // then
-        verify(dataSource).updatePassword(name, hashedPassword);
+        verify(dataSource).updatePassword("Jerry", hashedPassword);
         verify(recoveryService).canChangePassword(player);
         verifyNoMoreInteractions(recoveryService);
         verify(commonService).send(player, MessageKey.ERROR);
@@ -130,5 +119,14 @@ public class EmailSetPasswordCommandTest {
         given(player.getName()).willReturn(name);
         given(recoveryService.canChangePassword(player)).willReturn(true);
         return name;
+    }
+
+    private HashedPassword givenPasswordChangeSetup(String name, String password, boolean updateSucceeds) {
+        givenPlayerCanChangePassword(name);
+        HashedPassword hashedPassword = new HashedPassword("hash");
+        given(passwordSecurity.computeHash(password, name)).willReturn(hashedPassword);
+        given(validationService.validatePassword(password, name)).willReturn(new ValidationService.ValidationResult());
+        given(dataSource.updatePassword(name, hashedPassword)).willReturn(updateSucceeds);
+        return hashedPassword;
     }
 }

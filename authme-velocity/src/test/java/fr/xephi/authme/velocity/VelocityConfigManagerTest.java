@@ -16,10 +16,14 @@ class VelocityConfigManagerTest {
     @TempDir
     private Path tempDirectory;
 
+    private VelocityProxyConfiguration loadConfiguration(String yaml) throws IOException {
+        Files.writeString(tempDirectory.resolve("config.yml"), yaml);
+        return new VelocityConfigManager(tempDirectory).getConfiguration();
+    }
+
     @Test
     void shouldCreateConfigFileWithDefaults() {
         VelocityConfigManager configManager = new VelocityConfigManager(tempDirectory);
-
         assertTrue(Files.exists(tempDirectory.resolve("config.yml")));
         assertTrue(configManager.getConfiguration().authServers().contains("lobby"));
         assertFalse(configManager.getConfiguration().allServersAreAuthServers());
@@ -36,16 +40,14 @@ class VelocityConfigManagerTest {
 
     @Test
     void shouldPreserveExistingSharedSecret() throws IOException {
-        Files.writeString(tempDirectory.resolve("config.yml"), "proxySharedSecret: my-existing-secret\n");
+        VelocityProxyConfiguration configuration = loadConfiguration("proxySharedSecret: my-existing-secret\n");
 
-        VelocityConfigManager configManager = new VelocityConfigManager(tempDirectory);
-
-        assertEquals("my-existing-secret", configManager.getConfiguration().sharedSecret());
+        assertEquals("my-existing-secret", configuration.sharedSecret());
     }
 
     @Test
     void shouldNormalizeConfiguredServersAndLogoutTarget() throws IOException {
-        Files.writeString(tempDirectory.resolve("config.yml"), """
+        VelocityProxyConfiguration configuration = loadConfiguration("""
 authServers:
 - Lobby
 - HUB
@@ -60,8 +62,6 @@ premium:
   keepOfflineUuidCompatibility: true
 """);
 
-        VelocityProxyConfiguration configuration = new VelocityConfigManager(tempDirectory).getConfiguration();
-
         assertTrue(configuration.authServers().contains("lobby"));
         assertTrue(configuration.authServers().contains("hub"));
         assertFalse(configuration.serverSwitchRequiresAuth());
@@ -74,7 +74,7 @@ premium:
 
     @Test
     void shouldNormalizeCommandWhitelist() throws IOException {
-        Files.writeString(tempDirectory.resolve("config.yml"), """
+        VelocityProxyConfiguration configuration = loadConfiguration("""
             commands:
               requireAuth: true
               whitelist:
@@ -82,8 +82,6 @@ premium:
               - /REG
             chatRequiresAuth: true
             """);
-
-        VelocityProxyConfiguration configuration = new VelocityConfigManager(tempDirectory).getConfiguration();
 
         assertTrue(configuration.commandsRequireAuth());
         assertTrue(configuration.isWhitelistedCommand("login"));

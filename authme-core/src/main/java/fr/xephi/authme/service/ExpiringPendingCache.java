@@ -6,12 +6,9 @@ import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Shared storage for short-lived, per-player state that waits on an external confirmation
- * (an emailed code or a Mojang session check). Player names are matched case-insensitively.
- *
- * <p>Expired entries are discarded lazily on access and by explicit eviction; there is no
- * background thread. Keeping this logic in one place lets the pending caches share the same
- * concurrency and expiry semantics without duplicating their bookkeeping.</p>
+ * Shared storage for short-lived, per-player state awaiting an external confirmation
+ * (an emailed code or a Mojang session check). Names are matched case-insensitively and
+ * expired entries are discarded lazily or by explicit eviction; there is no background thread.
  *
  * @param <V> the type of the cached value
  */
@@ -44,11 +41,14 @@ final class ExpiringPendingCache<V> {
     V get(String name) {
         String key = key(name);
         ExpiringValue<V> value = entries.get(key);
-        if (value != null && System.currentTimeMillis() > value.expiresAt) {
-            entries.remove(key, value);
+        if (value == null) {
             return null;
         }
-        return value == null ? null : value.value;
+        if (System.currentTimeMillis() <= value.expiresAt) {
+            return value.value;
+        }
+        entries.remove(key, value);
+        return null;
     }
 
     /**
@@ -76,9 +76,7 @@ final class ExpiringPendingCache<V> {
         return evicted;
     }
 
-    /**
-     * Removes all expired entries, discarding the names of the ones that were evicted.
-     */
+    /** Removes all expired entries, discarding the names of the ones that were evicted. */
     void purgeExpired() {
         evictExpired();
     }

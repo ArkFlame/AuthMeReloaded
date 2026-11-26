@@ -37,8 +37,7 @@ class LegacyBukkitLinkageGuardTest {
         BytecodeInfo info = parse(PlayerListener.class);
 
         // PlayerListener must be clean: no Class/Methodref/Utf8 trace of the optional events.
-        assertNoClassName(info, eventName,
-            "PlayerListener must not have direct class reference to " + eventName);
+        assertNoClassName(info, eventName, "PlayerListener must not have direct class reference to " + eventName);
         assertNoMethodRef(info, eventName);
         assertNoUtf8(info, eventName);
     }
@@ -90,14 +89,10 @@ class LegacyBukkitLinkageGuardTest {
 
         // Modern API names may appear as String constants, but never as direct Class entries.
         for (String[] pair : new String[][]{
-            {"org.bukkit.event.player.PlayerSwapHandItemsEvent",
-                "fr/xephi/authme/listener/PlayerSwapHandItemsListener"},
-            {"org.bukkit.event.entity.EntityAirChangeEvent",
-                "fr/xephi/authme/listener/EntityAirChangeListener"},
-            {"org.bukkit.event.entity.EntityPickupItemEvent",
-                "fr/xephi/authme/listener/EntityPickupItemListener"},
-            {"org.spigotmc.event.player.PlayerSpawnLocationEvent",
-                "fr/xephi/authme/listener/LegacyPlayerSpawnLocationListener"}}) {
+            {"org.bukkit.event.player.PlayerSwapHandItemsEvent", "fr/xephi/authme/listener/PlayerSwapHandItemsListener"},
+            {"org.bukkit.event.entity.EntityAirChangeEvent", "fr/xephi/authme/listener/EntityAirChangeListener"},
+            {"org.bukkit.event.entity.EntityPickupItemEvent", "fr/xephi/authme/listener/EntityPickupItemListener"},
+            {"org.spigotmc.event.player.PlayerSpawnLocationEvent", "fr/xephi/authme/listener/LegacyPlayerSpawnLocationListener"}}) {
             assertHasUtf8(info, pair[0]);
             String descriptor = pair[0].replace('.', '/');
             assertNoClassName(info, descriptor,
@@ -163,12 +158,8 @@ class LegacyBukkitLinkageGuardTest {
         }
         String path = clazz.getName().replace('.', '/') + ".class";
         InputStream in = clazz.getResourceAsStream("/" + path);
-        if (in == null) {
-            in = clazz.getClassLoader().getResourceAsStream(path);
-        }
-        if (in == null) {
-            throw new IOException("Cannot locate class bytes for " + clazz.getName());
-        }
+        if (in == null) in = clazz.getClassLoader().getResourceAsStream(path);
+        if (in == null) throw new IOException("Cannot locate class bytes for " + clazz.getName());
         try (InputStream is = in) {
             BytecodeInfo info = parseBytes(is.readAllBytes(), clazz.getName());
             PARSED.put(clazz, info);

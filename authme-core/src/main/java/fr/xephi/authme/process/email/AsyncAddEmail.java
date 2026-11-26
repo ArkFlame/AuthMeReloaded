@@ -31,22 +31,16 @@ public class AsyncAddEmail implements AsynchronousProcess {
 
     @Inject
     private CommonService service;
-
     @Inject
     private DataSource dataSource;
-
     @Inject
     private PlayerCache playerCache;
-
     @Inject
     private ValidationService validationService;
-
     @Inject
     private BukkitService bukkitService;
-
     @Inject
     private EmailService emailService;
-
     @Inject
     private PendingEmailVerificationCache pendingEmailVerificationCache;
 

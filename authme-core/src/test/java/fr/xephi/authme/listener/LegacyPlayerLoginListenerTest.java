@@ -3,7 +3,6 @@ package fr.xephi.authme.listener;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.message.Messages;
 import fr.xephi.authme.service.ValidationService;
-import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerLoginEvent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,8 +44,7 @@ class LegacyPlayerLoginListenerTest {
     @MethodSource("loginScenarios")
     void shouldHandleLogin(boolean unrestricted, boolean refuseForFullServer,
                            boolean alreadyRejected, String name) throws FailedVerificationException {
-        Player player = mockPlayerWithName(name);
-        PlayerLoginEvent rawEvent = new PlayerLoginEvent(player, "", null);
+        PlayerLoginEvent rawEvent = new PlayerLoginEvent(mockPlayerWithName(name), "", null);
         if (alreadyRejected) {
             rawEvent.setResult(PlayerLoginEvent.Result.KICK_BANNED);
         }
@@ -79,8 +77,7 @@ class LegacyPlayerLoginListenerTest {
     @Test
     void shouldKickForFailedSingleSessionCheck() throws FailedVerificationException {
         String name = "someone";
-        Player player = mockPlayerWithName(name);
-        PlayerLoginEvent event = inlineSpy(new PlayerLoginEvent(player, "", null));
+        PlayerLoginEvent event = inlineSpy(new PlayerLoginEvent(mockPlayerWithName(name), "", null));
         FailedVerificationException exception = new FailedVerificationException(MessageKey.ALREADY_LOGGED_IN_ERROR);
         doThrow(exception).when(onJoinVerifier).checkSingleSession(name);
         given(messages.retrieveSingle(name, exception.getReason(), exception.getArgs())).willReturn("Already logged in");
