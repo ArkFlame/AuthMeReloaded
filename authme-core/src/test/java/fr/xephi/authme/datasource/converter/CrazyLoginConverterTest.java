@@ -55,18 +55,17 @@ class CrazyLoginConverterTest extends AbstractConverterTest {
 
     @BeforeEach
     void setUpConverter() {
+        given(settings.getProperty(ConverterSettings.CRAZYLOGIN_FILE_NAME)).willReturn("accounts.db");
         converter = new CrazyLoginConverter(tempFolder, dataSource, settings);
     }
 
     @Test
     void shouldImportAccountsFromPipeSeparatedFile() throws IOException {
-        given(settings.getProperty(ConverterSettings.CRAZYLOGIN_FILE_NAME)).willReturn("accounts.db");
         Files.write(new File(tempFolder, "accounts.db").toPath(), Arrays.asList(
             "name|password|salt", "TestPlayer|plain-text-password|extra", "SecondPlayer|other-password|extra",
             "lineWithoutSeparator"), StandardCharsets.UTF_8);
-        CommandSender sender = mock(CommandSender.class);
 
-        converter.execute(sender);
+        converter.execute(mock(CommandSender.class));
 
         verify(dataSource, times(2)).saveAuth(authCaptor.capture());
         List<PlayerAuth> saved = authCaptor.getAllValues();
@@ -80,7 +79,6 @@ class CrazyLoginConverterTest extends AbstractConverterTest {
 
     @Test
     void shouldInformSenderAboutMissingFile() {
-        given(settings.getProperty(ConverterSettings.CRAZYLOGIN_FILE_NAME)).willReturn("accounts.db");
         CommandSender sender = mock(CommandSender.class);
 
         converter.execute(sender);

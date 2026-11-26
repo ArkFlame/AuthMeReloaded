@@ -52,15 +52,13 @@ class DistributedFilesPersistenceHandlerTest {
 
     /** Existing player in seg16-f. */
     private static final UUID UUID_FAB69 = fromString("fab69c88-2cd0-1fed-f00d-dead14ca067d");
-    private static final Matcher<LimboPlayer> FAB69_MATCHER =
-        isLimbo(false, false, 0.2f, 0.1f, new UserGroup(""));
+    private static final Matcher<LimboPlayer> FAB69_MATCHER = isLimbo(false, false, 0.2f, 0.1f, new UserGroup(""));
 
     /** Player in seg16-8. */
     private static final UUID UUID_STAFF = fromString("88897c88-7c8f-c12e-4931-6206d4ca067d");
     private static final Matcher<LimboPlayer> STAFF_MATCHER =
         isLimbo(true, false, 0.3f, 0.1f, new UserGroup("staff"), new UserGroup("mod"));
 
-    /** Player in seg16-8. */
     private static final UUID UUID_8C679 = fromString("8c679491-1234-abcd-9102-1fa6e0cc3f81");
     private static final Matcher<LimboPlayer> SC679_MATCHER =
         isLimbo(false, true, 0.1f, 0.0f, new UserGroup("primary"));
@@ -70,6 +68,8 @@ class DistributedFilesPersistenceHandlerTest {
 
     /** UUID for which no data is stored (belongs to an existing segment file: seg16-8). */
     private static final UUID UNKNOWN_UUID2 = fromString("84d1cc0b-8f12-d04a-e7ba-a067d05cdc39");
+
+    private static final String[] EXPECTED_SEGMENT_FILES = {"seg16-8-limbo.json", "seg16-f-limbo.json"};
 
     private DistributedFilesPersistenceHandler persistenceHandler;
 
@@ -106,13 +106,12 @@ class DistributedFilesPersistenceHandlerTest {
         persistenceHandler = new DistributedFilesPersistenceHandler(dataFolder, bukkitService, settings);
     }
 
-    // Note ljacqu 20170314: These tests are a little slow to set up; therefore we sometimes
-    // test things in one test that would traditionally belong into two separate tests
+    // Note ljacqu 20170314: These tests are slow to set up, so some test several things at once
 
     @Test
     void shouldMigrateOldSegmentFilesOnStartup() {
         // Ensure that only the files of the current segmenting scheme remain
-        assertThat(playerDataFolder.list(), arrayContainingInAnyOrder("seg16-8-limbo.json", "seg16-f-limbo.json"));
+        assertThat(playerDataFolder.list(), arrayContainingInAnyOrder(EXPECTED_SEGMENT_FILES));
 
         // Check that the expected limbo players can be read
         assertExistingLimboPlayers();
@@ -136,7 +135,7 @@ class DistributedFilesPersistenceHandlerTest {
         assertThat(persistenceHandler.getLimboPlayer(mockPlayerWithUuid(UUID_8C679)), SC679_MATCHER);
 
         // Check that we didn't create seg16-4 by deleting UNKNOWN_UUID.
-        assertThat(playerDataFolder.list(), arrayContainingInAnyOrder("seg16-8-limbo.json", "seg16-f-limbo.json"));
+        assertThat(playerDataFolder.list(), arrayContainingInAnyOrder(EXPECTED_SEGMENT_FILES));
     }
 
     @Test

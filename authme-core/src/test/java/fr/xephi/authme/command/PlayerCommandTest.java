@@ -4,7 +4,6 @@ import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.message.Messages;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -30,42 +29,33 @@ class PlayerCommandTest {
     private Messages messages;
 
     @ParameterizedTest
-    @MethodSource("nonPlayerCommands")
-    void shouldRejectNonPlayerSender(PlayerCommand command, MessageKey key, String alternative) {
+    @MethodSource("commands")
+    void shouldExecuteCommand(PlayerCommand command, CommandSender sender, List<String> arguments,
+                              MessageKey key, String alternative) {
         // given
-        CommandSender sender = mock(CommandSender.class);
         command.messages = messages;
 
         // when
-        command.executeCommand(sender, Collections.emptyList());
+        command.executeCommand(sender, arguments);
 
         // then
-        if (alternative == null) {
+        if (key == null) {
+            verify(sender).sendMessage("testarg2");
+        } else if (alternative == null) {
             verify(messages).send(sender, key);
         } else {
             verify(messages).send(sender, key, alternative);
         }
     }
 
-    private static Stream<Arguments> nonPlayerCommands() {
+    private static Stream<Arguments> commands() {
         return Stream.of(
-            Arguments.of(new PlayerCommandImpl(), MessageKey.PLAYER_COMMAND_ONLY, null),
-            Arguments.of(new PlayerCommandWithAlt(), MessageKey.PLAYER_COMMAND_ONLY_WITH_ALTERNATIVE,
-                "/authme test <command>"));
-    }
-
-    @Test
-    void shouldCallRunCommandForPlayer() {
-        // given
-        Player player = mock(Player.class);
-        List<String> arguments = Arrays.asList("arg1", "testarg2");
-        PlayerCommandImpl command = new PlayerCommandImpl();
-
-        // when
-        command.executeCommand(player, arguments);
-
-        // then
-        verify(player).sendMessage("testarg2");
+            Arguments.of(new PlayerCommandImpl(), mock(CommandSender.class), Collections.emptyList(),
+                MessageKey.PLAYER_COMMAND_ONLY, null),
+            Arguments.of(new PlayerCommandWithAlt(), mock(CommandSender.class), Collections.emptyList(),
+                MessageKey.PLAYER_COMMAND_ONLY_WITH_ALTERNATIVE, "/authme test <command>"),
+            Arguments.of(new PlayerCommandImpl(), mock(Player.class), Arrays.asList("arg1", "testarg2"),
+                null, null));
     }
 
     private static class PlayerCommandImpl extends PlayerCommand {

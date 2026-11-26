@@ -57,7 +57,7 @@ public class PostgreSqlDataSource extends AbstractHikariSqlDataSource {
 
         // Database URL
         ds.setDriverClassName("org.postgresql.Driver");
-        ds.setJdbcUrl(this.getJdbcUrl(getHost(), getPort(), getDatabase()));
+        ds.setJdbcUrl(getJdbcUrl(getHost(), getPort(), getDatabase()));
 
         // Auth
         ds.setUsername(getUsername());
@@ -84,11 +84,10 @@ public class PostgreSqlDataSource extends AbstractHikariSqlDataSource {
     private void checkTablesAndColumns() throws SQLException {
         try (Connection con = getConnection(); Statement st = con.createStatement()) {
             // Create table with ID column if it doesn't exist
-            String sql = "CREATE TABLE IF NOT EXISTS " + tableName + " ("
+            st.executeUpdate("CREATE TABLE IF NOT EXISTS " + tableName + " ("
                 + col.ID + " BIGSERIAL,"
                 + "PRIMARY KEY (" + col.ID + ")"
-                + ");";
-            st.executeUpdate(sql);
+                + ");");
 
             DatabaseMetaData md = con.getMetaData();
             addColumnIfAbsent(md, st, col.NAME, "VARCHAR(255) NOT NULL UNIQUE;");

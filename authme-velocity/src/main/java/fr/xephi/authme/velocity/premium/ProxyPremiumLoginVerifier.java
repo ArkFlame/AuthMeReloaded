@@ -53,6 +53,5 @@ final class ProxyPremiumLoginVerifier {
         return username.toLowerCase(Locale.ROOT);
     }
 
-    private record VerifiedSession(UUID mojangUuid, long verifiedAt) {
-    }
+    private record VerifiedSession(UUID mojangUuid, long verifiedAt) { }
 }

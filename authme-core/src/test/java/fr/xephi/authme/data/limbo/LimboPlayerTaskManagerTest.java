@@ -116,18 +116,19 @@ class LimboPlayerTaskManagerTest {
         verify(limboPlayer).setMessageTask(any(MessageTask.class), eq(handle));
     }
 
-    @Test
-    void shouldShowLoginPromptImmediatelyByDefault() {
+    @ParameterizedTest(name = "login message case delay={0} for {1}")
+    @MethodSource("immediateLoginMessageCases")
+    void shouldShowLoginPromptImmediately(int delay, LimboMessageType type, MessageKey messageKey,
+                                         String messageText) {
         // given
         Player player = mock(Player.class);
         LimboPlayer limboPlayer = mock(LimboPlayer.class);
-        given(messages.retrieveSingle(player, MessageKey.LOGIN_MESSAGE)).willReturn("Please login!");
+        given(messages.retrieveSingle(player, messageKey)).willReturn(messageText);
         given(settings.getProperty(RegistrationSettings.MESSAGE_INTERVAL)).willReturn(5);
-        given(settings.getProperty(RegistrationSettings.LOGIN_MESSAGE_DELAY))
-            .willReturn(RegistrationSettings.LOGIN_MESSAGE_DELAY.getDefaultValue());
+        given(settings.getProperty(RegistrationSettings.LOGIN_MESSAGE_DELAY)).willReturn(delay);
 
         // when
-        limboPlayerTaskManager.registerMessageTask(player, limboPlayer, LimboMessageType.LOG_IN);
+        limboPlayerTaskManager.registerMessageTask(player, limboPlayer, type);
 
         // then: fake-clock assertion - first prompt is scheduled at tick 0 (the old fixed 2s = 40 tick wait is gone)
         assertThat(RegistrationSettings.LOGIN_MESSAGE_DELAY.getDefaultValue(), equalTo(0));
@@ -135,20 +136,11 @@ class LimboPlayerTaskManagerTest {
             eq(0L), eq(5L * TICKS_PER_SECOND));
     }
 
-    @Test
-    void shouldSendLoginMessageImmediatelyForZeroOrNegativeDelay() {
-        // given
-        Player player = mock(Player.class);
-        LimboPlayer limboPlayer = mock(LimboPlayer.class);
-        given(messages.retrieveSingle(player, MessageKey.TWO_FACTOR_CODE_REQUIRED)).willReturn("Enter code");
-        given(settings.getProperty(RegistrationSettings.MESSAGE_INTERVAL)).willReturn(5);
-        given(settings.getProperty(RegistrationSettings.LOGIN_MESSAGE_DELAY)).willReturn(-3);
-
-        // when
-        limboPlayerTaskManager.registerMessageTask(player, limboPlayer, LimboMessageType.TOTP_CODE);
-
-        // then
-        verify(bukkitService).runTaskTimer(eq(player), any(MessageTask.class), eq(0L), eq(5L * TICKS_PER_SECOND));
+    private static Stream<Arguments> immediateLoginMessageCases() {
+        return Stream.of(
+            Arguments.of(RegistrationSettings.LOGIN_MESSAGE_DELAY.getDefaultValue(),
+                LimboMessageType.LOG_IN, MessageKey.LOGIN_MESSAGE, "Please login!"),
+            Arguments.of(-3, LimboMessageType.TOTP_CODE, MessageKey.TWO_FACTOR_CODE_REQUIRED, "Enter code"));
     }
 
     @Test
@@ -173,11 +165,7 @@ class LimboPlayerTaskManagerTest {
         Player player = mock(Player.class);
         LimboPlayer limboPlayer = mock(LimboPlayer.class);
         stubDelayedRegistrationMessage(player, name, 5);
-        CancellableTask lookupTask = mock(CancellableTask.class);
-        doAnswer(invocation -> {
-            ((Runnable) invocation.getArgument(0)).run();
-            return lookupTask;
-        }).when(bukkitService).runTaskAsynchronously(any(Runnable.class));
+        stubAsyncLookup();
         given(dataSource.isAuthAvailable(name)).willReturn(true);
         ArgumentCaptor<Runnable> delayedAction = ArgumentCaptor.forClass(Runnable.class);
 
@@ -200,11 +188,7 @@ class LimboPlayerTaskManagerTest {
         LimboPlayer limboPlayer = mock(LimboPlayer.class);
         int interval = 5;
         stubDelayedRegistrationMessage(player, name, interval);
-        CancellableTask lookupTask = mock(CancellableTask.class);
-        doAnswer(invocation -> {
-            ((Runnable) invocation.getArgument(0)).run();
-            return lookupTask;
-        }).when(bukkitService).runTaskAsynchronously(any(Runnable.class));
+        stubAsyncLookup();
         doAnswer(invocation -> {
             ((Runnable) invocation.getArgument(1)).run();
             return null;
@@ -376,6 +360,14 @@ class LimboPlayerTaskManagerTest {
         given(player.isOnline()).willReturn(true);
         stubRegistration(player, interval);
         given(messages.retrieveSingle(player, MessageKey.REGISTER_MESSAGE)).willReturn("Please register!");
+    }
+
+    private void stubAsyncLookup() {
+        CancellableTask lookupTask = mock(CancellableTask.class);
+        doAnswer(invocation -> {
+            ((Runnable) invocation.getArgument(0)).run();
+            return lookupTask;
+        }).when(bukkitService).runTaskAsynchronously(any(Runnable.class));
     }
 
     private void stubRegistration(Player player, int interval) {

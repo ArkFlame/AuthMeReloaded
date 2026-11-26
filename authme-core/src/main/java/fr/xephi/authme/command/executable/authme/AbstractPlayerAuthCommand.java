@@ -11,10 +11,6 @@ import javax.inject.Inject;
 
 /**
  * Common base for admin commands that read a player's data from the database.
- *
- * <p>Holds the shared data source and messaging services so that each command only
- * implements its own output. Looking up a player also reports {@link MessageKey#UNKNOWN_USER}
- * in one place instead of repeating that check in every command.
  */
 public abstract class AbstractPlayerAuthCommand implements ExecutableCommand {
 
@@ -33,11 +29,8 @@ public abstract class AbstractPlayerAuthCommand implements ExecutableCommand {
     }
 
     /**
-     * Looks up the given player and reports {@link MessageKey#UNKNOWN_USER} to the sender
-     * if the player is not registered.
+     * Looks up the player and reports {@link MessageKey#UNKNOWN_USER} if not registered.
      *
-     * @param sender the sender to report an unknown player to
-     * @param playerName the name of the player to look up
      * @return the player's auth data, or null if the player is not registered
      */
     protected final PlayerAuth getAuthOrReportUnknown(CommandSender sender, String playerName) {

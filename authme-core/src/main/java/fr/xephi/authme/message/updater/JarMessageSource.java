@@ -9,10 +9,7 @@ import fr.xephi.authme.util.FileUtils;
 import java.io.IOException;
 import java.io.InputStream;
 
-/**
- * Returns messages from the JAR's message files. Favors a local JAR (e.g. messages_nl.yml)
- * before falling back to the default language (messages_en.yml).
- */
+/** Returns messages from the JAR's message files, favoring a local JAR over the default language. */
 public class JarMessageSource {
 
     private final ConsoleLogger logger = ConsoleLoggerFactory.get(JarMessageSource.class);
@@ -20,8 +17,6 @@ public class JarMessageSource {
     private final PropertyReader defaultJarMessages;
 
     /**
-     * Constructor.
-     *
      * @param localJarPath path to the messages file of the language the plugin is configured to use (may not exist)
      * @param defaultJarPath path to the default messages file in the JAR (must exist)
      */

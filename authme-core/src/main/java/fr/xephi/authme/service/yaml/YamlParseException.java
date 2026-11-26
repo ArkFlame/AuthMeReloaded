@@ -2,8 +2,6 @@ package fr.xephi.authme.service.yaml;
 
 import ch.jalu.configme.exception.ConfigMeException;
 
-import java.util.Optional;
-
 /**
  * Exception when a YAML file could not be parsed.
  */
@@ -18,7 +16,7 @@ public class YamlParseException extends RuntimeException {
      * @param configMeException the caught exception from ConfigMe
      */
     public YamlParseException(String file, ConfigMeException configMeException) {
-        super(Optional.ofNullable(configMeException.getCause()).orElse(configMeException));
+        super(configMeException.getCause() == null ? configMeException : configMeException.getCause());
         this.file = file;
     }
 

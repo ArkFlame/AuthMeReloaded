@@ -10,114 +10,109 @@ import org.bukkit.entity.Player;
  */
 public enum WalkFlySpeedRestoreType {
 
-    /**
-     * Restores from LimboPlayer to Player.
-     */
+    /** Restores from LimboPlayer to Player. */
     RESTORE {
         @Override
         public void restoreFlySpeed(Player player, LimboPlayer limbo) {
-            logger.debug(() -> "Restoring fly speed for LimboPlayer " + player.getName() + " to "
-                + limbo.getFlySpeed() + " (RESTORE mode)");
-            player.setFlySpeed(limbo.getFlySpeed());
+            restore(player, true, limbo.getFlySpeed(), "RESTORE");
         }
 
         @Override
         public void restoreWalkSpeed(Player player, LimboPlayer limbo) {
-            logger.debug(() -> "Restoring walk speed for LimboPlayer " + player.getName() + " to "
-                + limbo.getWalkSpeed() + " (RESTORE mode)");
-            player.setWalkSpeed(limbo.getWalkSpeed());
+            restore(player, false, limbo.getWalkSpeed(), "RESTORE");
         }
     },
 
-    /**
-     * Restores from LimboPlayer, using the default speed if the speed on LimboPlayer is 0.
-     */
+    /** Restores from LimboPlayer, using the default speed if the speed on LimboPlayer is 0. */
     RESTORE_NO_ZERO {
         @Override
         public void restoreFlySpeed(Player player, LimboPlayer limbo) {
-            float limboFlySpeed = limbo.getFlySpeed();
-            if (limboFlySpeed > 0.01f) {
-                logger.debug(() -> "Restoring fly speed for LimboPlayer " + player.getName() + " to "
-                    + limboFlySpeed + " (RESTORE_NO_ZERO mode)");
-                player.setFlySpeed(limboFlySpeed);
-            } else {
-                logger.debug(() -> "Restoring fly speed for LimboPlayer " + player.getName()
-                    + " to DEFAULT, it was 0! (RESTORE_NO_ZERO mode)");
-                player.setFlySpeed(LimboPlayer.DEFAULT_FLY_SPEED);
-            }
+            restoreNoZero(player, limbo, true);
         }
 
         @Override
         public void restoreWalkSpeed(Player player, LimboPlayer limbo) {
-            float limboWalkSpeed = limbo.getWalkSpeed();
-            if (limboWalkSpeed > 0.01f) {
-                logger.debug(() -> "Restoring walk speed for LimboPlayer " + player.getName() + " to "
-                    + limboWalkSpeed + " (RESTORE_NO_ZERO mode)");
-                player.setWalkSpeed(limboWalkSpeed);
-            } else {
-                logger.debug(() -> "Restoring walk speed for LimboPlayer " + player.getName()
-                    + " to DEFAULT, it was 0! (RESTORE_NO_ZERO mode)");
-                player.setWalkSpeed(LimboPlayer.DEFAULT_WALK_SPEED);
-            }
+            restoreNoZero(player, limbo, false);
         }
     },
 
-    /**
-     * Uses the max speed of Player (current speed) and the LimboPlayer.
-     */
+    /** Uses the max speed of Player (current speed) and the LimboPlayer. */
     MAX_RESTORE {
         @Override
         public void restoreFlySpeed(Player player, LimboPlayer limbo) {
-            float newSpeed = Math.max(player.getFlySpeed(), limbo.getFlySpeed());
-            logger.debug(() -> "Restoring fly speed for LimboPlayer " + player.getName() + " to " + newSpeed
-                + " (Current: " + player.getFlySpeed() + ", Limbo: " + limbo.getFlySpeed() + ") (MAX_RESTORE mode)");
-            player.setFlySpeed(newSpeed);
+            restoreMax(player, limbo, true);
         }
 
         @Override
         public void restoreWalkSpeed(Player player, LimboPlayer limbo) {
-            float newSpeed = Math.max(player.getWalkSpeed(), limbo.getWalkSpeed());
-            logger.debug(() -> "Restoring walk speed for LimboPlayer " + player.getName() + " to " + newSpeed
-                + " (Current: " + player.getWalkSpeed() + ", Limbo: " + limbo.getWalkSpeed() + ") (MAX_RESTORE mode)");
-            player.setWalkSpeed(newSpeed);
+            restoreMax(player, limbo, false);
         }
     },
 
-    /**
-     * Always sets the default speed to the player.
-     */
+    /** Always sets the default speed to the player. */
     DEFAULT {
         @Override
         public void restoreFlySpeed(Player player, LimboPlayer limbo) {
-            logger.debug(() -> "Restoring fly speed for LimboPlayer " + player.getName()
-                + " to DEFAULT (DEFAULT mode)");
-            player.setFlySpeed(LimboPlayer.DEFAULT_FLY_SPEED);
+            restoreDefault(player, true);
         }
 
         @Override
         public void restoreWalkSpeed(Player player, LimboPlayer limbo) {
-            logger.debug(() -> "Restoring walk speed for LimboPlayer " + player.getName()
-                + " to DEFAULT (DEFAULT mode)");
-            player.setWalkSpeed(LimboPlayer.DEFAULT_WALK_SPEED);
+            restoreDefault(player, false);
         }
     };
 
     private static final ConsoleLogger logger = ConsoleLoggerFactory.get(WalkFlySpeedRestoreType.class);
 
-    /**
-     * Restores the fly speed from Limbo to Player according to the restoration type.
-     *
-     * @param player the player to modify
-     * @param limbo  the limbo player to read from
-     */
     public abstract void restoreFlySpeed(Player player, LimboPlayer limbo);
 
-    /**
-     * Restores the walk speed from Limbo to Player according to the restoration type.
-     *
-     * @param player the player to modify
-     * @param limbo  the limbo player to read from
-     */
     public abstract void restoreWalkSpeed(Player player, LimboPlayer limbo);
 
+    private static void restore(Player player, boolean fly, float speed, String mode) {
+        logger.debug(() -> "Restoring " + type(fly) + " speed for LimboPlayer " + player.getName()
+            + " to " + speed + " (" + mode + " mode)");
+        setSpeed(player, fly, speed);
+    }
+
+    private static void restoreNoZero(Player player, LimboPlayer limbo, boolean fly) {
+        float speed = getSpeed(limbo, fly);
+        if (speed > 0.01f) {
+            restore(player, fly, speed, "RESTORE_NO_ZERO");
+        } else {
+            logger.debug(() -> "Restoring " + type(fly) + " speed for LimboPlayer " + player.getName()
+                + " to DEFAULT, it was 0! (RESTORE_NO_ZERO mode)");
+            setSpeed(player, fly, fly ? LimboPlayer.DEFAULT_FLY_SPEED : LimboPlayer.DEFAULT_WALK_SPEED);
+        }
+    }
+
+    private static void restoreMax(Player player, LimboPlayer limbo, boolean fly) {
+        float current = fly ? player.getFlySpeed() : player.getWalkSpeed();
+        float limboSpeed = getSpeed(limbo, fly);
+        float newSpeed = Math.max(current, limboSpeed);
+        logger.debug(() -> "Restoring " + type(fly) + " speed for LimboPlayer " + player.getName() + " to " + newSpeed
+            + " (Current: " + current + ", Limbo: " + limboSpeed + ") (MAX_RESTORE mode)");
+        setSpeed(player, fly, newSpeed);
+    }
+
+    private static void restoreDefault(Player player, boolean fly) {
+        logger.debug(() -> "Restoring " + type(fly) + " speed for LimboPlayer " + player.getName()
+            + " to DEFAULT (DEFAULT mode)");
+        setSpeed(player, fly, fly ? LimboPlayer.DEFAULT_FLY_SPEED : LimboPlayer.DEFAULT_WALK_SPEED);
+    }
+
+    private static float getSpeed(LimboPlayer limbo, boolean fly) {
+        return fly ? limbo.getFlySpeed() : limbo.getWalkSpeed();
+    }
+
+    private static String type(boolean fly) {
+        return fly ? "fly" : "walk";
+    }
+
+    private static void setSpeed(Player player, boolean fly, float speed) {
+        if (fly) {
+            player.setFlySpeed(speed);
+        } else {
+            player.setWalkSpeed(speed);
+        }
+    }
 }

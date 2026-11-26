@@ -16,7 +16,6 @@ import java.util.Collections;
 
 import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.containsString;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.only;
@@ -38,22 +37,36 @@ class GetIpCommandTest {
     @Mock
     private DataSource dataSource;
 
-
     @Test
-    void shouldGetIpOfPlayer() {
-        // given
-        given(bukkitService.getPlayerExact(anyString())).willReturn(null);
-        given(dataSource.getAuth(anyString())).willReturn(null);
-        CommandSender sender = mock(CommandSender.class);
-        String name = "Testt";
+    void shouldHandleUnregisteredPlayers() {
+        // given: offline player (not resolvable to a Player)
+        String offlineName = "Testt";
+        given(bukkitService.getPlayerExact(offlineName)).willReturn(null);
+        given(dataSource.getAuth(offlineName)).willReturn(null);
 
         // when
-        command.executeCommand(sender, Collections.singletonList(name));
+        CommandSender offlineSender = execute(offlineName);
 
         // then
-        verify(bukkitService).getPlayerExact(name);
-        verify(dataSource).getAuth(name);
-        verify(sender, only()).sendMessage(argThat(containsString("not registered")));
+        verify(bukkitService).getPlayerExact(offlineName);
+        verify(dataSource).getAuth(offlineName);
+        verify(offlineSender, only()).sendMessage(argThat(containsString("not registered")));
+
+        // given: online player with a resolvable address but no auth entry
+        String playerName = "Test";
+        String ip = "44.111.22.33";
+        Player player = mockPlayer(playerName, ip);
+        given(bukkitService.getPlayerExact(playerName)).willReturn(player);
+        given(dataSource.getAuth(playerName)).willReturn(null);
+
+        // when
+        CommandSender sender = execute(playerName);
+
+        // then
+        verify(bukkitService).getPlayerExact(playerName);
+        verify(dataSource).getAuth(playerName);
+        verify(sender).sendMessage(argThat(both(containsString(playerName)).and(containsString(ip))));
+        verify(sender).sendMessage(argThat(containsString("not registered")));
     }
 
     @Test
@@ -65,36 +78,15 @@ class GetIpCommandTest {
         given(bukkitService.getPlayerExact(playerName)).willReturn(player);
         PlayerAuth auth = PlayerAuth.builder().name("t").lastIp("44.33.22.11").registrationIp("77.11.44.88").build();
         given(dataSource.getAuth(playerName)).willReturn(auth);
-        CommandSender sender = mock(CommandSender.class);
 
         // when
-        command.executeCommand(sender, Collections.singletonList(playerName));
+        CommandSender sender = execute(playerName);
 
         // then
         verify(bukkitService).getPlayerExact(playerName);
         verify(dataSource).getAuth(playerName);
         verify(sender).sendMessage(argThat(both(containsString(playerName)).and(containsString(ip))));
         verify(sender).sendMessage(argThat(both(containsString("44.33.22.11")).and(containsString("77.11.44.88"))));
-    }
-
-    @Test
-    void shouldHandleUnregisteredOnlinePlayer() {
-        // given
-        String playerName = "Test";
-        String ip = "44.111.22.33";
-        Player player = mockPlayer(playerName, ip);
-        given(bukkitService.getPlayerExact(playerName)).willReturn(player);
-        given(dataSource.getAuth(anyString())).willReturn(null);
-        CommandSender sender = mock(CommandSender.class);
-
-        // when
-        command.executeCommand(sender, Collections.singletonList(playerName));
-
-        // then
-        verify(bukkitService).getPlayerExact(playerName);
-        verify(dataSource).getAuth(playerName);
-        verify(sender).sendMessage(argThat(both(containsString(playerName)).and(containsString(ip))));
-        verify(sender).sendMessage(argThat(containsString("not registered")));
     }
 
     @Test
@@ -106,13 +98,18 @@ class GetIpCommandTest {
         given(player.getAddress()).willReturn(null);
         given(bukkitService.getPlayerExact(playerName)).willReturn(player);
         given(dataSource.getAuth(playerName)).willReturn(null);
-        CommandSender sender = mock(CommandSender.class);
 
         // when
-        command.executeCommand(sender, Collections.singletonList(playerName));
+        CommandSender sender = execute(playerName);
 
         // then
         verify(sender).sendMessage(argThat(containsString("not registered")));
+    }
+
+    private CommandSender execute(String playerName) {
+        CommandSender sender = mock(CommandSender.class);
+        command.executeCommand(sender, Collections.singletonList(playerName));
+        return sender;
     }
 
     private static Player mockPlayer(String name, String ip) {
