@@ -101,10 +101,12 @@ public class DrawDependency implements ToolTask {
     }
 
     private void processClass(Class<?> clazz) {
-        List<String> dependencies = getDependencies(clazz);
-        if (dependencies != null) {
-            foundDependencies.putAll(mapToSuper(clazz), dependencies);
+        Resolution<?> instantiation = InjectorUtils.getResolution(clazz);
+        if (instantiation == null) {
+            return;
         }
+        List<String> dependencies = formatInjectionDependencies(instantiation);
+        foundDependencies.putAll(mapToSuper(clazz), dependencies);
     }
 
     private Class<?> mapToSuper(Class<?> clazz) {
@@ -135,11 +137,6 @@ public class DrawDependency implements ToolTask {
             return parameterType;
         }
         return InjectorUtils.convertToClass(genericType);
-    }
-
-    private List<String> getDependencies(Class<?> clazz) {
-        Resolution<?> instantiation = InjectorUtils.getResolution(clazz);
-        return instantiation == null ? null : formatInjectionDependencies(instantiation);
     }
 
     /**

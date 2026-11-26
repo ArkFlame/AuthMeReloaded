@@ -82,12 +82,10 @@ public class LoginSecurityConverter implements Converter {
      */
     @VisibleForTesting
     void performConversion(CommandSender sender, Connection connection) throws SQLException {
-        try (Statement statement = connection.createStatement()) {
-            statement.execute(
-                "SELECT * from ls_players LEFT JOIN ls_locations ON ls_locations.id = ls_players.id");
-            try (ResultSet resultSet = statement.getResultSet()) {
-                migrateData(sender, resultSet);
-            }
+        try (Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery(
+                 "SELECT * from ls_players LEFT JOIN ls_locations ON ls_locations.id = ls_players.id")) {
+            migrateData(sender, resultSet);
         }
     }
 
@@ -165,11 +163,10 @@ public class LoginSecurityConverter implements Converter {
                 return null;
             }
             connection = createSqliteConnection("plugins/LoginSecurity/LoginSecurity.db");
+        } else if (mySqlDatabase.isEmpty() || mySqlUser.isEmpty()) {
+            sender.sendMessage("The LoginSecurity database or username is not configured in AuthMe's config.yml");
+            return null;
         } else {
-            if (mySqlDatabase.isEmpty() || mySqlUser.isEmpty()) {
-                sender.sendMessage("The LoginSecurity database or username is not configured in AuthMe's config.yml");
-                return null;
-            }
             connection = createMySqlConnection();
         }
 
@@ -194,20 +191,16 @@ public class LoginSecurityConverter implements Converter {
         } catch (ClassNotFoundException e) {
             throw new IllegalStateException(e);
         }
-
-        try {
-            return DriverManager.getConnection(
-                "jdbc:sqlite:" + path, "trump", "donald");
-        } catch (SQLException e) {
-            logger.logException("Could not connect to SQLite database", e);
-            return null;
-        }
+        return openConnection("jdbc:sqlite:" + path, "trump", "donald");
     }
 
     private Connection createMySqlConnection() {
+        return openConnection("jdbc:mysql://" + mySqlHost + "/" + mySqlDatabase, mySqlUser, mySqlPassword);
+    }
+
+    private Connection openConnection(String url, String user, String password) {
         try {
-            return DriverManager.getConnection(
-                "jdbc:mysql://" + mySqlHost + "/" + mySqlDatabase, mySqlUser, mySqlPassword);
+            return DriverManager.getConnection(url, user, password);
         } catch (SQLException e) {
             logger.logException("Could not connect to SQLite database", e);
             return null;

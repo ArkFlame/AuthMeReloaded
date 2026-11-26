@@ -54,7 +54,13 @@ public abstract class AbstractPaperPlatformAdapter extends AbstractSpigotPlatfor
             teleport = new CompletableFuture<>();
             previous.whenComplete((ignoredResult, ignoredError) -> {
                 ScheduledTask task = player.getScheduler().run(JavaPlugin.getPlugin(AuthMe.class),
-                    ignored -> completeWith(teleport, player.teleportAsync(location)),
+                    ignored -> player.teleportAsync(location).whenComplete((result, error) -> {
+                        if (error == null) {
+                            teleport.complete(result);
+                        } else {
+                            teleport.completeExceptionally(error);
+                        }
+                    }),
                     () -> teleport.complete(false));
                 if (task == null) {
                     teleport.complete(false);
@@ -63,16 +69,6 @@ public abstract class AbstractPaperPlatformAdapter extends AbstractSpigotPlatfor
         }
         pendingTeleports.put(playerId, teleport);
         teleport.whenComplete((ignoredResult, ignoredError) -> pendingTeleports.remove(playerId, teleport));
-    }
-
-    private static void completeWith(CompletableFuture<Boolean> target, CompletableFuture<Boolean> source) {
-        source.whenComplete((result, error) -> {
-            if (error == null) {
-                target.complete(result);
-            } else {
-                target.completeExceptionally(error);
-            }
-        });
     }
 
     @Override

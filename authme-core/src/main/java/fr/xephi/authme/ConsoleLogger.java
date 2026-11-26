@@ -16,7 +16,6 @@ import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -26,13 +25,10 @@ import java.util.logging.Logger;
  */
 public final class ConsoleLogger {
 
-    private static final String NEW_LINE = System.getProperty("line.separator");
+    private static final String NEW_LINE = System.lineSeparator();
     /** Formatter which formats dates to something like "[08-16 21:18:46]" for any given LocalDateTime. */
-    private static final DateTimeFormatter DATE_FORMAT = new DateTimeFormatterBuilder()
-        .appendLiteral('[')
-        .appendPattern("MM-dd HH:mm:ss")
-        .appendLiteral(']')
-        .toFormatter();
+    private static final DateTimeFormatter DATE_FORMAT =
+        DateTimeFormatter.ofPattern("'['MM-dd HH:mm:ss']'");
 
     // Outside references
     private static File logFile;

@@ -99,9 +99,8 @@ public final class FileUtils {
             return;
         }
         for (File target : files) {
-            if (target.isDirectory()) {
-                purgeDirectory(target);
-            }
+            // purgeDirectory is a no-op for non-directories, so no separate isDirectory() check is needed
+            purgeDirectory(target);
             delete(target);
         }
     }

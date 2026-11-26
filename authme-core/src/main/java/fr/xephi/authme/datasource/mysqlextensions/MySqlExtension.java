@@ -87,12 +87,9 @@ public abstract class MySqlExtension {
         try (PreparedStatement pst = con.prepareStatement(retrieveIdSql)) {
             pst.setString(1, name);
             try (ResultSet rs = pst.executeQuery()) {
-                if (rs.next()) {
-                    return OptionalInt.of(rs.getInt(col.ID));
-                }
+                return rs.next() ? OptionalInt.of(rs.getInt(col.ID)) : OptionalInt.empty();
             }
         }
-        return OptionalInt.empty();
     }
 
     /**

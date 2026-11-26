@@ -90,7 +90,7 @@ public class PremiumLoginVerifier {
 
     /** Returns true if an in-flight verification exists for this connection. */
     public boolean hasPending(String connectionKey) {
-        return pending.get(connectionKey) != null;
+        return pending.containsKey(connectionKey);
     }
 
     /** Returns the username associated with the pending verification, or {@code null}. */
@@ -240,28 +240,6 @@ public class PremiumLoginVerifier {
         UUID playerUUID() { return playerUUID; }
         byte[] verifyToken() { return verifyToken; }
         long startedAt() { return startedAt; }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            PendingVerification that = (PendingVerification) o;
-            return startedAt == that.startedAt && Objects.equals(username, that.username)
-                && Objects.equals(playerUUID, that.playerUUID)
-                && Arrays.equals(verifyToken, that.verifyToken);
-        }
-
-        @Override
-        public int hashCode() {
-            int result = Objects.hash(username, playerUUID, startedAt);
-            return 31 * result + Arrays.hashCode(verifyToken);
-        }
-
-        @Override
-        public String toString() {
-            return "PendingVerification[username=" + username + ", playerUUID=" + playerUUID
-                + ", verifyToken=" + Arrays.toString(verifyToken) + ", startedAt=" + startedAt + "]";
-        }
     }
 
     static final class VerifiedSession {
@@ -275,21 +253,5 @@ public class PremiumLoginVerifier {
 
         UUID mojangUuid() { return mojangUuid; }
         long verifiedAt() { return verifiedAt; }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            VerifiedSession that = (VerifiedSession) o;
-            return verifiedAt == that.verifiedAt && Objects.equals(mojangUuid, that.mojangUuid);
-        }
-
-        @Override
-        public int hashCode() { return Objects.hash(mojangUuid, verifiedAt); }
-
-        @Override
-        public String toString() {
-            return "VerifiedSession[mojangUuid=" + mojangUuid + ", verifiedAt=" + verifiedAt + "]";
-        }
     }
 }

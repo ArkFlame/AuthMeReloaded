@@ -72,14 +72,8 @@ public class GeneratePluginYml implements AutoToolTask {
      */
     private static PartialPluginYml loadPartialPluginYmlFile(Path pluginYmlFile) {
         List<String> pluginYmlLines = FileIoUtils.readLinesFromFile(pluginYmlFile);
-        int lineNr = 0;
-        for (String line : pluginYmlLines) {
-            if ("commands:".equals(line)) {
-                break;
-            }
-            ++lineNr;
-        }
-        if (lineNr == pluginYmlLines.size()) {
+        int lineNr = pluginYmlLines.indexOf("commands:");
+        if (lineNr < 0) {
             throw new IllegalStateException("Could not find line starting 'commands:' section");
         }
         String pluginYmlStart = String.join("\n", pluginYmlLines.subList(0, lineNr));
@@ -134,16 +128,13 @@ public class GeneratePluginYml implements AutoToolTask {
     }
 
     private static Map<String, Object> buildCommandEntry(CommandDescription command) {
+        ImmutableMap.Builder<String, Object> entry = ImmutableMap.builder();
+        entry.put("description", command.getDescription());
+        entry.put("usage", buildUsage(command));
         if (command.getLabels().size() > 1) {
-            return ImmutableMap.of(
-                "description", command.getDescription(),
-                "usage", buildUsage(command),
-                "aliases", command.getLabels().subList(1, command.getLabels().size()));
-        } else {
-            return ImmutableMap.of(
-                "description", command.getDescription(),
-                "usage", buildUsage(command));
+            entry.put("aliases", command.getLabels().subList(1, command.getLabels().size()));
         }
+        return entry.build();
     }
 
     private static String buildUsage(CommandDescription command) {

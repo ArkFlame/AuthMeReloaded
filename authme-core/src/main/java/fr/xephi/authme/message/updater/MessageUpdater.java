@@ -17,6 +17,7 @@ import fr.xephi.authme.util.FileUtils;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -31,7 +32,7 @@ import static java.util.Collections.singletonList;
  */
 public class MessageUpdater {
 
-    private ConsoleLogger logger = ConsoleLoggerFactory.get(MessageUpdater.class);
+    private final ConsoleLogger logger = ConsoleLoggerFactory.get(MessageUpdater.class);
 
     /**
      * Applies any necessary migrations to the user's messages file and saves it if it has been modified.
@@ -176,16 +177,10 @@ public class MessageUpdater {
         // Add one key per section based on the comments map above so that the order is clear
         for (String path : comments.keySet()) {
             String prefix = path + ".";
-            MessageKey firstKey = null;
-            for (MessageKey key : allKeys) {
-                if (key.getKey().startsWith(prefix)) {
-                    firstKey = key;
-                    break;
-                }
-            }
-            if (firstKey == null) {
-                throw new IllegalStateException(path);
-            }
+            MessageKey firstKey = Arrays.stream(allKeys)
+                .filter(key -> key.getKey().startsWith(prefix))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException(path));
             builder.addMessageKey(firstKey);
             addedKeys.add(firstKey);
         }
@@ -218,7 +213,7 @@ public class MessageUpdater {
 
     static final class MessageKeyPropertyListBuilder {
 
-        private PropertyListBuilder propertyListBuilder = new PropertyListBuilder();
+        private final PropertyListBuilder propertyListBuilder = new PropertyListBuilder();
 
         void addMessageKey(MessageKey key) {
             propertyListBuilder.add(new MessageKeyProperty(key));

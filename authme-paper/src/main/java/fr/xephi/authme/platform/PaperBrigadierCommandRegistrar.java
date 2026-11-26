@@ -119,10 +119,8 @@ final class PaperBrigadierCommandRegistrar {
         for (int index = arguments.size() - 1; index >= 0; --index) {
             CommandArgumentDescription argument = arguments.get(index);
             boolean isLastArgument = index == arguments.size() - 1;
-            RequiredArgumentBuilder<CommandSourceStack, String> argBuilder =
-                RequiredArgumentBuilder.<CommandSourceStack, String>argument(argument.getName(),
-                    isLastArgument ? StringArgumentType.greedyString() : anyWord())
-                    .executes(this::executeInput);
+            RequiredArgumentBuilder<CommandSourceStack, String> argBuilder = createArgument(argument.getName(),
+                isLastArgument ? StringArgumentType.greedyString() : anyWord());
             if (isLastArgument && suggestOnlinePlayers) {
                 argBuilder.suggests(PaperBrigadierCommandRegistrar::suggestOnlinePlayerNames);
             }
@@ -145,23 +143,24 @@ final class PaperBrigadierCommandRegistrar {
     private static Collection<? extends Player> getOnlinePlayers(CommandContext<CommandSourceStack> context) {
         CommandSender sender = context.getSource().getSender();
         Server server = sender == null ? null : sender.getServer();
-        if (server != null) {
-            Collection<? extends Player> players = server.getOnlinePlayers();
-            if (players != null) {
-                return players;
-            }
+        Collection<? extends Player> players = server == null ? null : server.getOnlinePlayers();
+        if (players != null) {
+            return players;
         }
         try {
-            Collection<? extends Player> players = Bukkit.getOnlinePlayers();
-            return players == null ? List.of() : players;
+            players = Bukkit.getOnlinePlayers();
         } catch (RuntimeException e) {
             return List.of();
         }
+        return players == null ? List.of() : players;
+    }
+
+    private RequiredArgumentBuilder<CommandSourceStack, String> createArgument(String name, ArgumentType<String> type) {
+        return RequiredArgumentBuilder.<CommandSourceStack, String>argument(name, type).executes(this::executeInput);
     }
 
     private RequiredArgumentBuilder<CommandSourceStack, String> createFallbackArgument(String name) {
-        return RequiredArgumentBuilder.<CommandSourceStack, String>argument(name, StringArgumentType.greedyString())
-            .executes(this::executeInput);
+        return createArgument(name, StringArgumentType.greedyString());
     }
 
     /**

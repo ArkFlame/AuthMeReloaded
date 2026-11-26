@@ -17,6 +17,7 @@ import org.bukkit.entity.Player;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * Encapsulates the Paper-derived dialog API calls used by Paper and Folia.
@@ -146,13 +147,11 @@ public final class PaperDialogHelper {
     }
 
     private static List<DialogInput> createInputs(DialogWindowSpec dialog) {
-        List<DialogInput> inputs = new ArrayList<>();
-        for (DialogInputSpec input : dialog.inputs()) {
-            inputs.add(DialogInput.text(input.id(), legacyComponent(input.label()))
+        return dialog.inputs().stream()
+            .map(input -> DialogInput.text(input.id(), legacyComponent(input.label()))
                 .maxLength(input.maxLength())
-                .build());
-        }
-        return inputs;
+                .build())
+            .collect(Collectors.toList());
     }
 
     private static List<DialogBody> createBody(DialogWindowSpec dialog) {
@@ -162,14 +161,12 @@ public final class PaperDialogHelper {
     }
 
     private static String createRegisterTemplate(RegistrationType type, RegisterSecondaryArgument secondArg) {
+        boolean confirmation = secondArg == RegisterSecondaryArgument.CONFIRMATION;
         if (type == RegistrationType.EMAIL) {
-            if (secondArg == RegisterSecondaryArgument.CONFIRMATION) {
-                return "register $(email) $(confirm)";
-            }
-            return "register $(email)";
+            return confirmation ? "register $(email) $(confirm)" : "register $(email)";
         }
 
-        if (secondArg == RegisterSecondaryArgument.CONFIRMATION) {
+        if (confirmation) {
             return "register $(password) $(confirm)";
         }
         if (secondArg == RegisterSecondaryArgument.EMAIL_MANDATORY

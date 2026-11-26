@@ -102,7 +102,7 @@ public class MySQL extends AbstractHikariSqlDataSource {
         applyMariaDbSslMode(ds, driverClassName, mariaDbSslMode);
 
         if (allowPublicKeyRetrieval) {
-            ds.addDataSourceProperty("allowPublicKeyRetrieval", String.valueOf(true));
+            ds.addDataSourceProperty("allowPublicKeyRetrieval", "true");
         }
 
         // Encoding
@@ -166,8 +166,8 @@ public class MySQL extends AbstractHikariSqlDataSource {
             addColumnIfAbsent(md, st, col.REAL_NAME, "VARCHAR(255) NOT NULL AFTER " + col.NAME + ";");
             addColumnIfAbsent(md, st, col.PASSWORD, "VARCHAR(255) CHARACTER SET ascii COLLATE ascii_bin NOT NULL;");
 
-            if (!col.SALT.isEmpty() && isColumnMissing(md, col.SALT)) {
-                addColumn(st, col.SALT, "VARCHAR(255);");
+            if (!col.SALT.isEmpty()) {
+                addColumnIfAbsent(md, st, col.SALT, "VARCHAR(255);");
             }
 
             if (isColumnMissing(md, col.LAST_IP)) {
@@ -211,12 +211,12 @@ public class MySQL extends AbstractHikariSqlDataSource {
                 alterTable(st, "MODIFY " + col.TOTP_KEY + " VARCHAR(32);");
             }
 
-            if (!col.PLAYER_UUID.isEmpty() && isColumnMissing(md, col.PLAYER_UUID)) {
-                addColumn(st, col.PLAYER_UUID, "VARCHAR(36)");
+            if (!col.PLAYER_UUID.isEmpty()) {
+                addColumnIfAbsent(md, st, col.PLAYER_UUID, "VARCHAR(36)");
             }
 
-            if (!col.PREMIUM_UUID.isEmpty() && isColumnMissing(md, col.PREMIUM_UUID)) {
-                addColumn(st, col.PREMIUM_UUID, "VARCHAR(36)");
+            if (!col.PREMIUM_UUID.isEmpty()) {
+                addColumnIfAbsent(md, st, col.PREMIUM_UUID, "VARCHAR(36)");
             }
         }
         logger.info("MySQL setup finished");

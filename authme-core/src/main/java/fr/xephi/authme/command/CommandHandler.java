@@ -88,7 +88,7 @@ public class CommandHandler {
     private void handleCommandResult(CommandSender sender, FoundCommandResult result) {
         switch (result.getResultStatus()) {
             case SUCCESS:
-                executeCommand(sender, result);
+                getExecutableCommand(result).executeCommand(sender, result.getArguments());
                 break;
             case MISSING_BASE_COMMAND:
                 messages.send(sender, MessageKey.COMMAND_FAILED_TO_PARSE);
@@ -115,19 +115,7 @@ public class CommandHandler {
      */
     private void initializeCommands(Factory<ExecutableCommand> commandFactory,
                                     Set<Class<? extends ExecutableCommand>> commandClasses) {
-        for (Class<? extends ExecutableCommand> clazz : commandClasses) {
-            commands.put(clazz, commandFactory.newInstance(clazz));
-        }
-    }
-
-    /**
-     * Execute the command for the given command sender.
-     *
-     * @param sender The sender which initiated the command
-     * @param result The mapped result
-     */
-    private void executeCommand(CommandSender sender, FoundCommandResult result) {
-        getExecutableCommand(result).executeCommand(sender, result.getArguments());
+        commandClasses.forEach(clazz -> commands.put(clazz, commandFactory.newInstance(clazz)));
     }
 
     /**

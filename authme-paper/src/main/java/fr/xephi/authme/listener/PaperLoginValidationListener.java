@@ -159,11 +159,9 @@ public class PaperLoginValidationListener implements Listener {
 
     private static String getPlayerName(PlayerLoginConnection connection) {
         PlayerProfile profile = connection.getAuthenticatedProfile();
-        if (profile != null) {
-            String name = profile.getName();
-            if (name != null) {
-                return name;
-            }
+        String name = profile == null ? null : profile.getName();
+        if (name != null) {
+            return name;
         }
 
         profile = connection.getUnsafeProfile();

@@ -116,7 +116,8 @@ public final class SqlDataSourceUtils {
             int nullableCode = rs.getInt("NULLABLE");
             if (nullableCode == DatabaseMetaData.columnNoNulls) {
                 return true;
-            } else if (nullableCode == DatabaseMetaData.columnNullableUnknown) {
+            }
+            if (nullableCode == DatabaseMetaData.columnNullableUnknown) {
                 logger.warning("Unknown nullable status for column '" + columnName + "'");
             }
             return false;
@@ -148,7 +149,7 @@ public final class SqlDataSourceUtils {
      * @throws SQLException :)
      */
     public static int getColumnSize(DatabaseMetaData metaData, String tableName,
-                                         String columnName) throws SQLException {
+                                    String columnName) throws SQLException {
         return readColumnData(metaData, tableName, columnName, "while checking its size",
             rs -> rs.getInt("COLUMN_SIZE"));
     }
