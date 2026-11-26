@@ -54,33 +54,21 @@ public class CrazyLoginConverter implements Converter {
         String line;
         try (BufferedReader users = new BufferedReader(new FileReader(source))) {
             while ((line = users.readLine()) != null) {
-                if (line.contains("|")) {
-                    migrateAccount(line);
+                String[] args = line.split("\\|");
+                if (args.length < 2 || "name".equalsIgnoreCase(args[0])) {
+                    continue;
                 }
+                String playerName = args[0];
+                database.saveAuth(PlayerAuth.builder()
+                    .name(playerName.toLowerCase(Locale.ROOT))
+                    .realName(playerName)
+                    .password(args[1], null)
+                    .build());
             }
             logger.info("CrazyLogin database has been imported correctly");
         } catch (IOException ex) {
             logger.warning("Can't open the crazylogin database file! Does it exist?");
             logger.logException("Encountered", ex);
         }
-    }
-
-    /**
-     * Moves an account from CrazyLogin to the AuthMe database.
-     *
-     * @param line line read from the CrazyLogin file (one account)
-     */
-    private void migrateAccount(String line) {
-        String[] args = line.split("\\|");
-        if (args.length < 2 || "name".equalsIgnoreCase(args[0])) {
-            return;
-        }
-        String playerName = args[0];
-        PlayerAuth auth = PlayerAuth.builder()
-            .name(playerName.toLowerCase(Locale.ROOT))
-            .realName(playerName)
-            .password(args[1], null)
-            .build();
-        database.saveAuth(auth);
     }
 }

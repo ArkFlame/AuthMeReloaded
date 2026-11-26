@@ -12,6 +12,9 @@ import org.bukkit.plugin.messaging.Messenger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -23,6 +26,7 @@ import org.mockito.quality.Strictness;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -99,47 +103,40 @@ class BungeeSenderTest {
         given(plugin.isEnabled()).willReturn(true);
     }
 
-    @Test
-    void shouldSendSingleChunkForEmptyPremiumList() {
-        assertEquals("0:1:", sendAndReadSingleChunk(List.of()));
-    }
-
-    @Test
-    void shouldSendSingleChunkForSmallPremiumList() {
-        String field = sendAndReadSingleChunk(List.of("alice", "bob", "charlie"));
-        assertTrue(field.startsWith("0:1:"), "Expected single last chunk but got: " + field);
-    }
-
-    @Test
-    void shouldNormalizePremiumListUsernamesToLowercase() {
-        assertEquals("0:1:alice,bob", sendAndReadSingleChunk(List.of("Alice", "BOB")));
-    }
-
-    /**
-     * Sends the given names as a premium list and returns the payload's data field.
-     * Asserts that the sender wrote a single chunk message.
-     */
-    private String sendAndReadSingleChunk(List<String> names) {
-        givenEnabledSender();
-
-        BungeeSender sender = new BungeeSender(plugin, bukkitService, settings);
-        sender.sendPremiumList(carrier, names);
+    @ParameterizedTest
+    @MethodSource("singleChunkCases")
+    void shouldSendSingleChunk(List<String> names, String expectedField) {
+        createSenderAndSendPremiumList(names);
 
         verify(bukkitService).sendAuthMePluginMessage(eq(carrier), payloadCaptor.capture());
         ByteArrayDataInput in = ByteStreams.newDataInput(payloadCaptor.getValue());
         assertEquals("premium.list.chunk", in.readUTF());
-        return in.readUTF();
+        assertEquals(expectedField, in.readUTF());
+    }
+
+    private static Stream<Arguments> singleChunkCases() {
+        return Stream.of(
+            Arguments.of(List.of(), "0:1:"),
+            Arguments.of(List.of("alice", "bob", "charlie"), "0:1:alice,bob,charlie"),
+            Arguments.of(List.of("Alice", "BOB"), "0:1:alice,bob"));
+    }
+
+    /**
+     * Stubs an enabled sender and sends the given names as a premium list.
+     */
+    private void createSenderAndSendPremiumList(List<String> names) {
+        givenEnabledSender();
+        BungeeSender sender = new BungeeSender(plugin, bukkitService, settings);
+        sender.sendPremiumList(carrier, names);
     }
 
     @Test
     void shouldSendTwoChunksFor1001Names() {
-        givenEnabledSender();
         List<String> names = IntStream.range(0, 1001)
             .mapToObj(i -> "player" + i)
             .collect(Collectors.toList());
 
-        BungeeSender sender = new BungeeSender(plugin, bukkitService, settings);
-        sender.sendPremiumList(carrier, names);
+        createSenderAndSendPremiumList(names);
 
         verify(bukkitService, times(2)).sendAuthMePluginMessage(eq(carrier), payloadCaptor.capture());
         List<byte[]> payloads = payloadCaptor.getAllValues();

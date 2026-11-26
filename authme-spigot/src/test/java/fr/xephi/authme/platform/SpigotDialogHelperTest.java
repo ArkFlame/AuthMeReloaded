@@ -22,14 +22,14 @@ import static org.mockito.Mockito.verify;
 public class SpigotDialogHelperTest {
 
     @Test
-    public void showLoginDialogSendsCorrectCommandTemplate() {
-        Player player = mock(Player.class);
-        DialogWindowSpec dialog = createDialogSpec("Login", "Password", "Login");
+    public void showDialogsSendCorrectCommandTemplates() {
+        Player loginPlayer = mock(Player.class);
+        SpigotDialogHelper.showLoginDialog(loginPlayer, createDialogSpec("Login", "Password", "Login"));
+        assertThat(captureRunCommandAction(loginPlayer).template(), is("login $(password)"));
 
-        SpigotDialogHelper.showLoginDialog(player, dialog);
-
-        RunCommandAction action = captureRunCommandAction(player);
-        assertThat(action.template(), is("login $(password)"));
+        Player totpPlayer = mock(Player.class);
+        SpigotDialogHelper.showTotpDialog(totpPlayer, createDialogSpec("2FA", "Code", "Verify"));
+        assertThat(captureRunCommandAction(totpPlayer).template(), is("2fa code $(code)"));
     }
 
     @ParameterizedTest
@@ -55,17 +55,6 @@ public class SpigotDialogHelperTest {
             Arguments.of(List.of(
                 new DialogInputSpec("password", "Password", 100),
                 new DialogInputSpec("email", "Recovery Email", 100)), false, 2));
-    }
-
-    @Test
-    public void showTotpDialogSendsCorrectCommandTemplate() {
-        Player player = mock(Player.class);
-        DialogWindowSpec dialog = createDialogSpec("2FA", "Code", "Verify");
-
-        SpigotDialogHelper.showTotpDialog(player, dialog);
-
-        RunCommandAction action = captureRunCommandAction(player);
-        assertThat(action.template(), is("2fa code $(code)"));
     }
 
     @ParameterizedTest

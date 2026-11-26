@@ -148,8 +148,7 @@ public class AuthMeApi {
      * @return The last ip address of the player, or null if the player is unknown
      */
     public String getLastIp(String playerName) {
-        PlayerAuth auth = getAuth(playerName);
-        return auth == null ? null : auth.getLastIp();
+        return Optional.ofNullable(getAuth(playerName)).map(PlayerAuth::getLastIp).orElse(null);
     }
 
     /**
@@ -171,8 +170,7 @@ public class AuthMeApi {
      */
     @Deprecated
     public Date getLastLogin(String playerName) {
-        Instant lastLogin = getLastLoginTime(playerName);
-        return lastLogin == null ? null : Date.from(lastLogin);
+        return Optional.ofNullable(getLastLoginTime(playerName)).map(Date::from).orElse(null);
     }
 
     /**

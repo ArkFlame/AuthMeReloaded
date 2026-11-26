@@ -16,7 +16,6 @@ import static org.mockito.Mockito.mock;
 class UnregisterEventTest {
 
     private final Player player = mock(Player.class);
-    private final CommandSender initiator = mock(CommandSender.class);
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
@@ -27,22 +26,20 @@ class UnregisterEventTest {
     }
 
     @Test
-    void byAdminExposesNameAndInitiator() {
+    void byAdminExposesFieldsAndAcceptsNulls() {
+        CommandSender initiator = mock(CommandSender.class);
         UnregisterByAdminEvent event = new UnregisterByAdminEvent(player, "Bobby", true, initiator);
 
         assertThat(event.getPlayer(), sameInstance(player));
         assertThat(event.getPlayerName(), equalTo("Bobby"));
         assertThat(event.getInitiator(), sameInstance(initiator));
         assertThat(event.isAsynchronous(), equalTo(true));
-    }
 
-    @Test
-    void byAdminAllowsNullPlayerAndInitiator() {
-        UnregisterByAdminEvent event = new UnregisterByAdminEvent(null, "Bobby", false, null);
+        UnregisterByAdminEvent nullEvent = new UnregisterByAdminEvent(null, "Bobby", false, null);
 
-        assertThat(event.getPlayer(), nullValue());
-        assertThat(event.getInitiator(), nullValue());
-        assertThat(event.getPlayerName(), equalTo("Bobby"));
-        assertThat(event.isAsynchronous(), equalTo(false));
+        assertThat(nullEvent.getPlayer(), nullValue());
+        assertThat(nullEvent.getInitiator(), nullValue());
+        assertThat(nullEvent.getPlayerName(), equalTo("Bobby"));
+        assertThat(nullEvent.isAsynchronous(), equalTo(false));
     }
 }

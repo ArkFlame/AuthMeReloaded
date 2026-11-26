@@ -45,34 +45,26 @@ public class ProcessCodeCommandTest {
 
     @Test
     public void shouldSendErrorForInvalidRecoveryCode() {
-        // given
         String name = "Vultur3";
-        Player sender = mock(Player.class);
-        given(sender.getName()).willReturn(name);
+        Player sender = mockPlayer(name);
         given(codeService.hasTriesLeft(name)).willReturn(true);
         given(codeService.isCodeValid(name, "bogus")).willReturn(false);
         given(codeService.getTriesLeft(name)).willReturn(2);
 
-        // when
         command.executeCommand(sender, Collections.singletonList("bogus"));
 
-        // then
         verify(commonService).send(sender, MessageKey.INCORRECT_RECOVERY_CODE, "2");
         verifyNoMoreInteractions(recoveryService);
     }
 
     @Test
     public void shouldSendErrorForNoMoreTries() {
-        // given
         String name = "BobbY";
-        Player sender = mock(Player.class);
-        given(sender.getName()).willReturn(name);
+        Player sender = mockPlayer(name);
         given(codeService.hasTriesLeft(name)).willReturn(false);
 
-        // when
         command.executeCommand(sender, Collections.singletonList("bogus"));
 
-        // then
         verify(commonService).send(sender, MessageKey.RECOVERY_TRIES_EXCEEDED);
         verify(codeService).removeCode(name);
         verifyNoMoreInteractions(recoveryService);
@@ -80,22 +72,22 @@ public class ProcessCodeCommandTest {
 
     @Test
     public void shouldProcessCorrectCode() {
-        // given
         String name = "Dwight";
         String code = "chickenDinner";
-        Player sender = mock(Player.class);
-        given(sender.getName()).willReturn(name);
+        Player sender = mockPlayer(name);
         given(codeService.hasTriesLeft(name)).willReturn(true);
         given(codeService.isCodeValid(name, code)).willReturn(true);
 
-        // when
         command.runCommand(sender, Collections.singletonList(code));
 
-        // then
         verify(commonService).send(sender, MessageKey.RECOVERY_CODE_CORRECT);
         verify(recoveryService).addSuccessfulRecovery(sender);
         verify(codeService).removeCode(name);
     }
+
+    private static Player mockPlayer(String name) {
+        Player player = mock(Player.class);
+        given(player.getName()).willReturn(name);
+        return player;
+    }
 }
-
-

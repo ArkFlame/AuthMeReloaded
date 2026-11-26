@@ -72,13 +72,8 @@ final class ExpiringPendingCache<V> {
     Collection<String> evictExpired() {
         long now = System.currentTimeMillis();
         Collection<String> evicted = new ArrayList<>();
-        entries.entrySet().removeIf(entry -> {
-            if (now > entry.getValue().expiresAt) {
-                evicted.add(entry.getKey());
-                return true;
-            }
-            return false;
-        });
+        entries.entrySet().removeIf(
+            entry -> now > entry.getValue().expiresAt && evicted.add(entry.getKey()));
         return evicted.isEmpty() ? Collections.emptyList() : evicted;
     }
 

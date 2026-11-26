@@ -26,49 +26,35 @@ public class ExpiringSet<E> extends AbstractExpiring<E, Long> {
         super(duration, unit);
     }
 
-    /**
-     * Adds an entry to the set.
-     *
-     * @param entry the entry to add
-     */
+    /** Adds an entry to the set, resetting the expiration if it is already present. */
     public void add(E entry) {
         getEntries().put(entry, System.currentTimeMillis() + getExpirationMillis());
     }
 
-    /**
-     * Returns whether this set contains the given entry, if it hasn't expired.
-     *
-     * @param entry the entry to check
-     * @return true if the entry is present and not expired, false otherwise
-     */
+    /** Returns whether this set contains the given entry, if it hasn't expired. */
     public boolean contains(E entry) {
         Long expiration = getEntries().get(entry);
-        if (expiration != null && expiration <= System.currentTimeMillis()) {
+        if (expiration == null) {
+            return false;
+        }
+        if (expiration <= System.currentTimeMillis()) {
             getEntries().remove(entry);
             return false;
         }
-        return expiration != null;
+        return true;
     }
 
-    /**
-     * Removes the given entry from the set (if present).
-     *
-     * @param entry the entry to remove
-     */
+    /** Removes the given entry from the set (if present). */
     public void remove(E entry) {
         getEntries().remove(entry);
     }
 
-    /**
-     * Removes all entries from the set.
-     */
+    /** Removes all entries from the set. */
     public void clear() {
         getEntries().clear();
     }
 
-    /**
-     * Removes all entries which have expired from the internal structure.
-     */
+    /** Removes all entries which have expired from the internal structure. */
     public void removeExpiredEntries() {
         long now = System.currentTimeMillis();
         getEntries().entrySet().removeIf(entry -> isExpired(entry.getValue(), now));

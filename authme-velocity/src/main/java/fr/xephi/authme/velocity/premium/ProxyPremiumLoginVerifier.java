@@ -6,12 +6,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 /**
- * Keeps the short-lived mapping of player names to the Mojang UUIDs verified by Velocity.
- *
- * <p>Velocity 4 resolves premium sessions natively through {@code PreLoginEvent} and
- * {@code GameProfileRequestEvent}. The proxy therefore no longer needs to run its own
- * encryption/hasJoined handshake; it only needs to remember the verified UUID until
- * {@code perform.login} is sent to a backend.
+ * Short-lived mapping of player names to the Mojang UUIDs verified by Velocity, kept only
+ * until {@code perform.login} is sent to a backend. Velocity resolves the premium session
+ * natively, so no local encryption/hasJoined handshake is needed.
  */
 final class ProxyPremiumLoginVerifier {
 

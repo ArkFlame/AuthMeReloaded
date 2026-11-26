@@ -74,24 +74,18 @@ public class PaperBrigadierCommandRegistrarTest {
         assertThat(registration.getAliases(), contains("l", "log"));
     }
 
-    @Test
-    public void shouldDelegateBaseCommandExecutionToExistingHandler() throws Exception {
-        dispatcher.execute("authme", sourceStack);
-
-        assertThat(executingSender.get(), equalTo(sender));
-        assertThat(executedCommands, contains(List.of("authme")));
-    }
-
     @ParameterizedTest
     @MethodSource("delegationCases")
     public void shouldDelegateParsedArgumentsToExistingHandler(String input, List<String> expected) throws Exception {
         dispatcher.execute(input, sourceStack);
 
+        assertThat(executingSender.get(), equalTo(sender));
         assertThat(executedCommands, contains(expected));
     }
 
     private static Stream<Arguments> delegationCases() {
         return Stream.of(
+            Arguments.of("authme", List.of("authme")),
             Arguments.of("authme typo", List.of("authme", "typo")),
             Arguments.of("login", List.of("login")),
             Arguments.of("login password extra", List.of("login", "password", "extra")),

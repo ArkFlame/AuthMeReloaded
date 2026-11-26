@@ -24,7 +24,8 @@ class ProxyPremiumVerificationPacketListenerTest {
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
     void shouldHandleVerificationBasedOnConnectionState(boolean nameConnected) {
-        ProxyPremiumVerificationPacketListener listener = createListener(nameConnected);
+        ProxyPremiumVerificationPacketListener listener = new ProxyPremiumVerificationPacketListener(
+            name -> true, name -> false, name -> { }, loginVerifier, name -> nameConnected, message -> { });
 
         listener.onVerificationCompleted("notch", Optional.of(MOJANG_UUID), false);
 
@@ -33,10 +34,5 @@ class ProxyPremiumVerificationPacketListenerTest {
         } else {
             assertEquals(MOJANG_UUID, loginVerifier.getVerifiedUuid("notch"));
         }
-    }
-
-    private ProxyPremiumVerificationPacketListener createListener(boolean nameConnected) {
-        return new ProxyPremiumVerificationPacketListener(name -> true, name -> false, name -> { },
-            loginVerifier, name -> nameConnected, message -> { });
     }
 }

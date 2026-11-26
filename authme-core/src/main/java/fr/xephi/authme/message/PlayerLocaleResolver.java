@@ -8,7 +8,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * Maps Minecraft client locale strings (e.g. {@code "fr_fr"}) to AuthMe language codes (e.g. {@code "fr"}).
@@ -42,8 +41,8 @@ public final class PlayerLocaleResolver {
                 || !settings.getProperty(PluginSettings.PER_PLAYER_LOCALE)) {
             return null;
         }
-        Optional<String> locale = compatibilityAdapter.getPlayerLocale((Player) sender);
-        return locale.isPresent() ? toLanguageCode(locale.get()) : null;
+        return compatibilityAdapter.getPlayerLocale((Player) sender)
+            .map(PlayerLocaleResolver::toLanguageCode).orElse(null);
     }
 
     /**

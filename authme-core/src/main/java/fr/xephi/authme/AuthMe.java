@@ -78,9 +78,6 @@ public class AuthMe extends JavaPlugin {
     private BackupService backupService;
     private ConsoleLogger logger;
 
-    public AuthMe() {
-    }
-
     /*
      * Constructor for unit testing.
      */
@@ -180,22 +177,21 @@ public class AuthMe extends JavaPlugin {
      * @return true if startup may continue, false if the plugin was stopped
      */
     private boolean isStartupAllowed(PlatformSelection platformSelection) {
+        String warning;
         String compatibilityError = platformSelection.compatibilityError;
         if (compatibilityError != null) {
-            logger.warning("You are running an unsupported server version (" + getServerNameVersionSafe() + "). "
-                + compatibilityError);
-            stopOrUnload();
-            return false;
+            warning = "You are running an unsupported server version (" + getServerNameVersionSafe() + "). "
+                + compatibilityError;
+        } else if (getServer().getPluginManager().isPluginEnabled("AuthMeBridge")) {
+            // Prevent running AuthMeBridge due to major exploit issues
+            warning = "Detected AuthMeBridge, support for it has been dropped as it was "
+                + "causing exploit issues, please use AuthMeBungee instead! Aborting!";
+        } else {
+            return true;
         }
-
-        // Prevent running AuthMeBridge due to major exploit issues
-        if (getServer().getPluginManager().isPluginEnabled("AuthMeBridge")) {
-            logger.warning("Detected AuthMeBridge, support for it has been dropped as it was "
-                + "causing exploit issues, please use AuthMeBungee instead! Aborting!");
-            stopOrUnload();
-            return false;
-        }
-        return true;
+        logger.warning(warning);
+        stopOrUnload();
+        return false;
     }
 
     private boolean initializeWithErrorHandling(PlatformAdapter platformAdapter) {
