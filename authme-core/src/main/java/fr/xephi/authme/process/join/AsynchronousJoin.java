@@ -678,25 +678,14 @@ public class AsynchronousJoin implements AsynchronousProcess {
 
     /** Finalizes a pending enrollment using the connecting UUID as proof (v4 / proxy path). */
     private boolean finalizePremiumFromConnectingUuid(Player player, String name, UUID playerId) {
-        // Proxy path: atomic gate prevents double-finalization with concurrent validate().
-        UUID pendingUuid = pendingPremiumCache.removePending(name);
-        if (pendingUuid == null) {
-            return false;
-        }
-        if (playerId.equals(pendingUuid)) {
-            premiumService.finalizePendingPremium(player, pendingUuid);
-            return true;
-        }
-        failPendingPremium(player, name);
-        return false;
+        // Atomic gate prevents double-finalization with concurrent validate().
+        return finalizeWithProof(player, name, pendingPremiumCache.removePending(name), playerId);
     }
 
     /** Finalizes a pending enrollment from a queued signed perform.login behind a proxy. */
     private boolean finalizePremiumFromProxy(Player player, String name) {
-        // Behind a proxy we intentionally keep the backend UUID on the offline v3 value, so
-        // player.getUniqueId() is not proof of identity. If the signed perform.login is already
-        // queued and carries the proxy-verified Mojang UUID, finalize the pending enrollment
-        // in-join (mirrors the v4 path); otherwise defer to the perform.login message.
+        // A proxy keeps the backend UUID on the offline v3 value, so getUniqueId() is not proof of
+        // identity: the signed perform.login carries the verified Mojang UUID. Otherwise defer to it.
         ProxySessionManager.ProxyLoginRequest queued = proxySessionManager.getLoginRequest(name);
         UUID verified = queued == null ? null : queued.verifiedPremiumUuid();
         if (verified == null) {
@@ -704,8 +693,8 @@ public class AsynchronousJoin implements AsynchronousProcess {
                 + " has a pending premium enrollment but no queued verified UUID yet; deferring to perform.login");
             return false;
         }
-        // removePending is the atomic one-shot gate shared with ProxyLoginRequestValidator:
-        // if a concurrent perform.login already consumed it, stay silent and let that path win.
+        // removePending is the atomic gate shared with ProxyLoginRequestValidator: a concurrent
+        // perform.login may have consumed it already, in which case that path wins.
         UUID pendingUuid = pendingPremiumCache.removePending(name);
         if (pendingUuid == null) {
             logger.debug(() -> "canBypassWithPremium[v3/proxy]: pending entry for " + name
@@ -715,13 +704,11 @@ public class AsynchronousJoin implements AsynchronousProcess {
         if (verified.equals(pendingUuid)) {
             logger.info("canBypassWithPremium[v3/proxy]: finalizing pending premium for " + name
                 + " from queued perform.login (verified=" + verified + ")");
-            premiumService.finalizePendingPremium(player, verified);
-            return true;
+        } else {
+            logger.warning("canBypassWithPremium[v3/proxy]: verified UUID " + verified
+                + " does not match pending UUID " + pendingUuid + " for " + name + "; failing enrollment");
         }
-        logger.warning("canBypassWithPremium[v3/proxy]: verified UUID " + verified
-            + " does not match pending UUID " + pendingUuid + " for " + name + "; failing enrollment");
-        failPendingPremium(player, name);
-        return false;
+        return finalizeWithProof(player, name, pendingUuid, verified);
     }
 
     /** Finalizes a pending enrollment with a session UUID verified via PacketEvents. */
@@ -732,6 +719,14 @@ public class AsynchronousJoin implements AsynchronousProcess {
         }
         UUID verified = premiumLoginVerifier.consumeVerifiedUuid(name);
         pendingPremiumCache.removePending(name);
+        return finalizeWithProof(player, name, pendingUuid, verified);
+    }
+
+    /** Applies the shared finalize-or-fail outcome once a pending entry and a proof are available. */
+    private boolean finalizeWithProof(Player player, String name, UUID pendingUuid, UUID verified) {
+        if (pendingUuid == null) {
+            return false;
+        }
         if (verified != null && verified.equals(pendingUuid)) {
             premiumService.finalizePendingPremium(player, verified);
             return true;

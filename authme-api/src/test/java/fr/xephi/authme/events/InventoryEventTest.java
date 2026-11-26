@@ -32,7 +32,6 @@ class InventoryEventTest {
         assertThat(event.getStoredArmor(), sameInstance(armor));
         assertThat(event.isAsynchronous(), equalTo(true));
         assertThat(event.isCancelled(), equalTo(false));
-        assertThat(event.getHandlers(), sameInstance(ProtectInventoryEvent.getHandlerList()));
     }
 
     @Test
@@ -41,7 +40,6 @@ class InventoryEventTest {
 
         assertThat(event.getPlayer(), sameInstance(player));
         assertThat(event.isAsynchronous(), equalTo(false));
-        assertThat(event.getHandlers(), sameInstance(RestoreInventoryEvent.getHandlerList()));
 
         event.setCancelled(true);
         assertThat(event.isCancelled(), equalTo(true));

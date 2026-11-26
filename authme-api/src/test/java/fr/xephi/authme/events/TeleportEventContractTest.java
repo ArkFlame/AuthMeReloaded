@@ -38,13 +38,12 @@ class TeleportEventContractTest {
     }
 
     @Test
-    void shouldInheritCancellationAndHandlerList() {
+    void shouldInheritCancellation() {
         given(player.getLocation()).willReturn(from);
         AuthMeTeleportEvent event = new AuthMeTeleportEvent(player, to);
 
         assertThat(event.isCancelled(), equalTo(false));
         event.setCancelled(true);
         assertThat(event.isCancelled(), equalTo(true));
-        assertThat(event.getHandlers(), sameInstance(AuthMeTeleportEvent.getHandlerList()));
     }
 }

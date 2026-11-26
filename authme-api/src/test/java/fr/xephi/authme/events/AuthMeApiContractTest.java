@@ -43,4 +43,11 @@ class AuthMeApiContractTest {
                 equalTo(true));
         }
     }
+
+    @Test
+    void everyEventTypeIsPublicApi() {
+        for (Class<?> eventClass : ApiEventsConsistencyTest.events()) {
+            assertThat(eventClass.getSimpleName(), Modifier.isPublic(eventClass.getModifiers()), equalTo(true));
+        }
+    }
 }

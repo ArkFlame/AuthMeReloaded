@@ -13,10 +13,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.stream.Stream;
 
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
@@ -72,9 +75,9 @@ class AsyncChangePasswordTest {
         verifyNoInteractions(passwordSecurity, dataSource, commonService);
     }
 
-    @ParameterizedTest(name = "update password of {0} user")
-    @ValueSource(booleans = {true, false})
-    void shouldUpdatePassword(boolean loggedIn) {
+    @ParameterizedTest(name = "logged in={0}, save successful={1}")
+    @MethodSource("changePasswordCases")
+    void shouldUpdatePassword(boolean loggedIn, boolean saveSuccessful, MessageKey expectedMessage) {
         CommandSender sender = mock(CommandSender.class);
         String player = "my_user12";
         String password = "passPass";
@@ -85,31 +88,20 @@ class AsyncChangePasswordTest {
 
         HashedPassword hashedPassword = mock(HashedPassword.class);
         given(passwordSecurity.computeHash(password, player)).willReturn(hashedPassword);
-        given(dataSource.updatePassword(player, hashedPassword)).willReturn(true);
+        given(dataSource.updatePassword(player, hashedPassword)).willReturn(saveSuccessful);
 
         asyncChangePassword.changePasswordAsAdmin(sender, player, password);
 
-        verify(commonService).send(sender, MessageKey.PASSWORD_CHANGED_SUCCESS);
+        verify(commonService).send(sender, expectedMessage);
         verify(passwordSecurity).computeHash(password, player);
         verify(dataSource).updatePassword(player, hashedPassword);
     }
 
-    @Test
-    void shouldReportWhenSaveFailed() {
-        CommandSender sender = mock(CommandSender.class);
-        String player = "my_user12";
-        String password = "passPass";
-        given(playerCache.isAuthenticated(player)).willReturn(true);
-
-        HashedPassword hashedPassword = mock(HashedPassword.class);
-        given(passwordSecurity.computeHash(password, player)).willReturn(hashedPassword);
-        given(dataSource.updatePassword(player, hashedPassword)).willReturn(false);
-
-        asyncChangePassword.changePasswordAsAdmin(sender, player, password);
-
-        verify(commonService).send(sender, MessageKey.ERROR);
-        verify(passwordSecurity).computeHash(password, player);
-        verify(dataSource).updatePassword(player, hashedPassword);
+    private static Stream<Arguments> changePasswordCases() {
+        return Stream.of(
+            Arguments.of(true, true, MessageKey.PASSWORD_CHANGED_SUCCESS),
+            Arguments.of(false, true, MessageKey.PASSWORD_CHANGED_SUCCESS),
+            Arguments.of(true, false, MessageKey.ERROR));
     }
 
 }

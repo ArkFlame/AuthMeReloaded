@@ -103,12 +103,11 @@ public class AsyncRegister implements AsynchronousProcess {
         }
 
         List<String> otherAccounts = database.getAllAuthsByIp(ip);
-        int accountCount = otherAccounts.size();
-        if (accountCount < maxRegPerIp) {
+        if (otherAccounts.size() < maxRegPerIp) {
             return true;
         }
         service.send(player, MessageKey.MAX_REGISTER_EXCEEDED, Integer.toString(maxRegPerIp),
-            Integer.toString(accountCount), String.join(", ", otherAccounts));
+            Integer.toString(otherAccounts.size()), String.join(", ", otherAccounts));
         return false;
     }
 }

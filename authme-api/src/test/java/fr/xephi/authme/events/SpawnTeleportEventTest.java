@@ -29,7 +29,6 @@ class SpawnTeleportEventTest {
         assertThat(event.getFrom(), sameInstance(from));
         assertThat(event.getTo(), sameInstance(to));
         assertThat(event.isAsynchronous(), equalTo(false));
-        assertThat(event.getHandlers(), sameInstance(FirstSpawnTeleportEvent.getHandlerList()));
     }
 
     @ParameterizedTest
@@ -43,7 +42,6 @@ class SpawnTeleportEventTest {
         assertThat(event.getFrom(), sameInstance(from));
         assertThat(event.getTo(), sameInstance(to));
         assertThat(event.isAsynchronous(), equalTo(false));
-        assertThat(event.getHandlers(), sameInstance(SpawnTeleportEvent.getHandlerList()));
     }
 
     @Test

@@ -8,10 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 /**
- * Used to manage player's Authenticated status.
- *
- * <p>All access goes through a concurrent map, so reads and updates from async tasks are safe.
- * The map is never handed out for mutation: callers get a shared read-only view instead.</p>
+ * Used to manage player's Authenticated status with a concurrent map and a shared read-only view.
  */
 public class PlayerCache {
 
@@ -37,8 +34,7 @@ public class PlayerCache {
      * @param auth the player auth object to save
      */
     public void updatePlayerIfPresent(PlayerAuth auth) {
-        // replace(K, V) has the same "only if already present" semantics as
-        // computeIfPresent but avoids allocating a capturing lambda on every call.
+        // replace(K, V) only replaces an existing entry and avoids a capturing lambda.
         cache.replace(key(auth.getNickname()), auth);
     }
 

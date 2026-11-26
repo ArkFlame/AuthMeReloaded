@@ -15,15 +15,6 @@ import java.util.Set;
 public interface DataSource extends Reloadable {
 
     /**
-     * Return whether the data source is cached and needs to send plugin messaging updates.
-     *
-     * @return true if the data source is cached.
-     */
-    default boolean isCached() {
-        return false;
-    }
-
-    /**
      * Return whether there is a record for the given username.
      *
      * @param user The username to look up
@@ -290,14 +281,6 @@ public interface DataSource extends Reloadable {
      * @param playerName the player name
      */
     default void invalidateCache(String playerName) {
-    }
-
-    /**
-     * Refresh any cached data (if present) related to the specified player name.
-     *
-     * @param playerName the player name
-     */
-    default void refreshCache(String playerName) {
     }
 
 }

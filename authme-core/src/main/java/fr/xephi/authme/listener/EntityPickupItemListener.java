@@ -12,9 +12,8 @@ public class EntityPickupItemListener extends AbstractCancelListener implements 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onPlayerPickupItem(EntityPickupItemEvent event) {
         Entity entity = event.getEntity();
-        if (!(entity instanceof Player)) {
-            return;
+        if (entity instanceof Player) {
+            cancelIfUnauthorized((Player) entity, event);
         }
-        cancelIfUnauthorized((Player) entity, event);
     }
 }

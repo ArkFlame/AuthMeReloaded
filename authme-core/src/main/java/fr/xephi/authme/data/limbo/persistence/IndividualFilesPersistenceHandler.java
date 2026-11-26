@@ -36,8 +36,7 @@ class IndividualFilesPersistenceHandler implements LimboPersistenceHandler {
 
     @Override
     public LimboPlayer getLimboPlayer(Player player) {
-        String id = player.getUniqueId().toString();
-        File file = new File(cacheDir, id + File.separator + "data.json");
+        File file = new File(cacheDir, player.getUniqueId() + File.separator + "data.json");
         if (!file.exists()) {
             return null;
         }
@@ -53,9 +52,8 @@ class IndividualFilesPersistenceHandler implements LimboPersistenceHandler {
 
     @Override
     public void saveLimboPlayer(Player player, LimboPlayer limboPlayer) {
-        String id = player.getUniqueId().toString();
         try {
-            File file = new File(cacheDir, id + File.separator + "data.json");
+            File file = new File(cacheDir, player.getUniqueId() + File.separator + "data.json");
             Files.createParentDirs(file);
             Files.touch(file);
             Files.write(gson.toJson(limboPlayer), file, StandardCharsets.UTF_8);
@@ -72,8 +70,7 @@ class IndividualFilesPersistenceHandler implements LimboPersistenceHandler {
      */
     @Override
     public void removeLimboPlayer(Player player) {
-        String id = player.getUniqueId().toString();
-        File file = new File(cacheDir, id);
+        File file = new File(cacheDir, player.getUniqueId().toString());
         if (file.exists()) {
             FileUtils.purgeDirectory(file);
             FileUtils.delete(file);

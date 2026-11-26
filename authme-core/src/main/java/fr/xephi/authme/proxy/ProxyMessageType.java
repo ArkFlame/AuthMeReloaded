@@ -1,11 +1,10 @@
-package fr.xephi.authme.bungee;
+package fr.xephi.authme.proxy;
 
 /**
  * Message identifiers exchanged with backend AuthMe servers over the {@code authme:main} channel.
- * Keeping the wire-protocol ids in one place avoids duplicating string literals between the
- * parsing and message-building code in {@link BungeeProxyBridge}.
+ * Shared by the Bungee and Velocity bridges so both sides use the same wire-protocol ids.
  */
-enum ProxyMessageType {
+public enum ProxyMessageType {
 
     LOGIN("login"),
     LOGOUT("logout"),
@@ -24,11 +23,11 @@ enum ProxyMessageType {
         this.id = id;
     }
 
-    String id() {
+    public String id() {
         return id;
     }
 
-    static ProxyMessageType fromId(String id) {
+    public static ProxyMessageType fromId(String id) {
         for (ProxyMessageType type : values()) {
             if (type.id.equals(id)) {
                 return type;

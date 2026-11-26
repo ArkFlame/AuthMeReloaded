@@ -249,23 +249,10 @@ public class RegisterCommandTest {
 
     @Test
     public void shouldScheduleUnregisterForUnverifiedEmailAccount() {
-        // given
-        String email = "late@example.org";
-        given(validationService.validateEmail(email)).willReturn(true);
-        given(commonService.getProperty(RegistrationSettings.REGISTRATION_TYPE)).willReturn(RegistrationType.EMAIL);
-        given(commonService.getProperty(RegistrationSettings.REGISTER_SECOND_ARGUMENT))
-            .willReturn(RegisterSecondaryArgument.NONE);
-        given(emailService.hasAllInformation()).willReturn(true);
-        given(commonService.getProperty(RegistrationSettings.UNREGISTER_ON_EMAIL_VERIFICATION_FAILURE))
-            .willReturn(true);
-        given(commonService.getProperty(RegistrationSettings.UNREGISTER_AFTER_MINUTES)).willReturn(1L);
-        Player player = mockPlayerWithName("lateuser");
-        PlayerAuth auth = mock(PlayerAuth.class);
-        given(dataSource.getAuth("lateuser")).willReturn(auth);
-        given(auth.getLastLogin()).willReturn(null);
+        Player player = givenEmailVerificationRegistration("late@example.org", "lateuser", 1L, null);
 
         // when
-        command.executeCommand(player, Collections.singletonList(email));
+        command.executeCommand(player, Collections.singletonList("late@example.org"));
 
         // then
         ArgumentCaptor<Runnable> task = ArgumentCaptor.forClass(Runnable.class);
@@ -276,8 +263,19 @@ public class RegisterCommandTest {
 
     @Test
     public void shouldNotUnregisterEmailAccountThatHasLoggedIn() {
-        // given
-        String email = "verified@example.org";
+        Player player = givenEmailVerificationRegistration("verified@example.org", "verifieduser", 10L, 123L);
+
+        // when
+        command.executeCommand(player, Collections.singletonList("verified@example.org"));
+
+        // then
+        ArgumentCaptor<Runnable> task = ArgumentCaptor.forClass(Runnable.class);
+        verify(bukkitService).runTaskLater(eq(player), task.capture(), eq(12000L));
+        task.getValue().run();
+        verify(management, never()).performUnregisterByAdmin(null, "verifieduser", player);
+    }
+
+    private Player givenEmailVerificationRegistration(String email, String name, long minutes, Long lastLogin) {
         given(validationService.validateEmail(email)).willReturn(true);
         given(commonService.getProperty(RegistrationSettings.REGISTRATION_TYPE)).willReturn(RegistrationType.EMAIL);
         given(commonService.getProperty(RegistrationSettings.REGISTER_SECOND_ARGUMENT))
@@ -285,20 +283,12 @@ public class RegisterCommandTest {
         given(emailService.hasAllInformation()).willReturn(true);
         given(commonService.getProperty(RegistrationSettings.UNREGISTER_ON_EMAIL_VERIFICATION_FAILURE))
             .willReturn(true);
-        given(commonService.getProperty(RegistrationSettings.UNREGISTER_AFTER_MINUTES)).willReturn(10L);
-        Player player = mockPlayerWithName("verifieduser");
+        given(commonService.getProperty(RegistrationSettings.UNREGISTER_AFTER_MINUTES)).willReturn(minutes);
+        Player player = mockPlayerWithName(name);
         PlayerAuth auth = mock(PlayerAuth.class);
-        given(dataSource.getAuth("verifieduser")).willReturn(auth);
-        given(auth.getLastLogin()).willReturn(123L);
-
-        // when
-        command.executeCommand(player, Collections.singletonList(email));
-
-        // then
-        ArgumentCaptor<Runnable> task = ArgumentCaptor.forClass(Runnable.class);
-        verify(bukkitService).runTaskLater(eq(player), task.capture(), eq(12000L));
-        task.getValue().run();
-        verify(management, never()).performUnregisterByAdmin(null, "verifieduser", player);
+        given(dataSource.getAuth(name)).willReturn(auth);
+        given(auth.getLastLogin()).willReturn(lastLogin);
+        return player;
     }
 
     @Test

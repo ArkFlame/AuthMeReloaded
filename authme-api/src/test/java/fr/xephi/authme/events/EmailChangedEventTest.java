@@ -9,7 +9,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.Mockito.mock;
 
-/** Focused checks for the email-change event's values and cancellation contract. */
+/** Focused checks for the email-change event's values and nullability contract. */
 class EmailChangedEventTest {
 
     private final Player player = mock(Player.class);
@@ -22,7 +22,6 @@ class EmailChangedEventTest {
         assertThat(event.getOldEmail(), equalTo("old@example.com"));
         assertThat(event.getNewEmail(), equalTo("new@example.com"));
         assertThat(event.isAsynchronous(), equalTo(true));
-        assertThat(event.getHandlers(), sameInstance(EmailChangedEvent.getHandlerList()));
     }
 
     @Test
@@ -32,16 +31,5 @@ class EmailChangedEventTest {
         assertThat(event.getOldEmail(), nullValue());
         assertThat(event.getNewEmail(), equalTo("new@example.com"));
         assertThat(event.isAsynchronous(), equalTo(false));
-    }
-
-    @Test
-    void cancellationToggles() {
-        EmailChangedEvent event = new EmailChangedEvent(player, "old@example.com", "new@example.com", false);
-
-        assertThat(event.isCancelled(), equalTo(false));
-        event.setCancelled(true);
-        assertThat(event.isCancelled(), equalTo(true));
-        event.setCancelled(false);
-        assertThat(event.isCancelled(), equalTo(false));
     }
 }

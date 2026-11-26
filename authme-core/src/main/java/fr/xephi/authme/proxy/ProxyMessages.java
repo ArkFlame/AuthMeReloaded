@@ -25,4 +25,12 @@ public final class ProxyMessages {
         output.writeUTF(hmac);
         return output.toByteArray();
     }
+
+    /** Builds the binary {@code proxy.started} handshake payload sent to a backend server. */
+    public static byte[] proxyStarted(String proxyIdentity) {
+        ByteArrayDataOutput output = ByteStreams.newDataOutput();
+        output.writeUTF(ProxyMessageType.PROXY_STARTED.id());
+        output.writeUTF(proxyIdentity);
+        return output.toByteArray();
+    }
 }

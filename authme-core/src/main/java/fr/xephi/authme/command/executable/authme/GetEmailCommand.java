@@ -2,41 +2,31 @@ package fr.xephi.authme.command.executable.authme;
 
 import ch.jalu.datasourcecolumns.data.DataSourceValue;
 import fr.xephi.authme.command.CommandUtils;
-import fr.xephi.authme.command.ExecutableCommand;
-import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.message.MessageKey;
-import fr.xephi.authme.service.CommonService;
 import fr.xephi.authme.util.Utils;
 import org.bukkit.command.CommandSender;
 
-import javax.inject.Inject;
 import java.util.List;
 
 /**
  * Returns a player's email.
  */
-public class GetEmailCommand implements ExecutableCommand {
-
-    @Inject
-    private DataSource dataSource;
-
-    @Inject
-    private CommonService commonService;
+public class GetEmailCommand extends AbstractPlayerAuthCommand {
 
     @Override
     public void executeCommand(CommandSender sender, List<String> arguments) {
         String playerName = CommandUtils.getTargetPlayerName(sender, arguments);
 
-        DataSourceValue<String> email = dataSource.getEmail(playerName);
+        DataSourceValue<String> email = getDataSource().getEmail(playerName);
         if (!email.rowExists()) {
-            commonService.send(sender, MessageKey.UNKNOWN_USER);
+            getCommonService().send(sender, MessageKey.UNKNOWN_USER);
             return;
         }
         String emailValue = email.getValue();
         if (Utils.isEmailEmpty(emailValue)) {
-            commonService.send(sender, MessageKey.SHOW_NO_EMAIL);
+            getCommonService().send(sender, MessageKey.SHOW_NO_EMAIL);
         } else {
-            commonService.send(sender, MessageKey.ADMIN_EMAIL_SHOW, playerName, emailValue);
+            getCommonService().send(sender, MessageKey.ADMIN_EMAIL_SHOW, playerName, emailValue);
         }
     }
 }

@@ -14,11 +14,9 @@ public interface PermissionHandler {
     /**
      * Add the permission group of a player, if supported.
      *
-     * @param player    The player
-     * @param group The name of the group.
-     *
-     * @return True if succeed, false otherwise.
-     *         False is also returned if this feature isn't supported for the current permissions system.
+     * @param player the player
+     * @param group  the name of the group
+     * @return true if successful, false otherwise or if unsupported
      */
     boolean addToGroup(OfflinePlayer player, UserGroup group);
 
@@ -31,45 +29,37 @@ public interface PermissionHandler {
     boolean hasGroupSupport();
 
     /**
-     * Check if a player has permission by their name.
-     * Used to check an offline player's permission.
+     * Check a permission for an offline player by name.
      *
-     * @param name  The player's name.
-     * @param node The permission node.
-     *
-     * @return True if the player has permission.
+     * @param name the player's name
+     * @param node the permission node
+     * @return true if the player has the permission
      */
     boolean hasPermissionOffline(String name, PermissionNode node);
 
     /**
      * Remove the permission group of a player, if supported.
      *
-     * @param player    The player
-     * @param group The name of the group.
-     *
-     * @return True if succeed, false otherwise.
-     *         False is also returned if this feature isn't supported for the current permissions system.
+     * @param player the player
+     * @param group  the name of the group
+     * @return true if successful, false otherwise or if unsupported
      */
     boolean removeFromGroup(OfflinePlayer player, UserGroup group);
 
     /**
-     * Set the permission group of a player, if supported.
-     * This clears the current groups of the player.
+     * Set the permission group of a player, clearing its current groups, if supported.
      *
-     * @param player    The player
-     * @param group The name of the group.
-     *
-     * @return True if succeed, false otherwise.
-     *         False is also returned if this feature isn't supported for the current permissions system.
+     * @param player the player
+     * @param group  the name of the group
+     * @return true if successful, false otherwise or if unsupported
      */
     boolean setGroup(OfflinePlayer player, UserGroup group);
 
     /**
      * Get the permission groups of a player, if available.
      *
-     * @param player The player.
-     *
-     * @return Permission groups, or an empty list if this feature is not supported.
+     * @param player the player
+     * @return the groups, or an empty list if unsupported
      */
     Collection<UserGroup> getGroups(OfflinePlayer player);
 
@@ -82,10 +72,7 @@ public interface PermissionHandler {
      */
     default UserGroup getPrimaryGroup(OfflinePlayer player) {
         Collection<UserGroup> groups = getGroups(player);
-        if (Utils.isCollectionEmpty(groups)) {
-            return null;
-        }
-        return groups.iterator().next();
+        return Utils.isCollectionEmpty(groups) ? null : groups.iterator().next();
     }
 
     /**

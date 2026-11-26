@@ -23,6 +23,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
@@ -550,33 +551,26 @@ class LimboServiceTest {
         verify(limboPersistence).removeLimboPlayer(player);
     }
 
-    @Test
-    void shouldRestoreDefaultSpeedsForAutoLoginWhenNoDiskLimboAndSpeedsAreZero() {
-        // given - no disk limbo, but Bukkit loaded zero speeds from stale playerdata (crash scenario)
-        Player player = newPlayer("Premium", false, 0.0f, false, 0.0f);
+    @ParameterizedTest(name = "walk={0}, fly={1}")
+    @CsvSource({"0.0, 0.0, true", "0.2, 0.1, false"})
+    void shouldHandleSpeedsForAutoLoginWithoutDiskLimbo(float walkSpeed, float flySpeed,
+                                                        boolean shouldRestoreDefaults) {
+        // given - no disk limbo
+        Player player = newPlayer("Premium", false, walkSpeed, false, flySpeed);
         given(limboPersistence.getLimboPlayer(player)).willReturn(null);
 
         // when
         limboService.restoreSpeedsForAutoLogin(player);
 
         // then
-        verify(player).setWalkSpeed(LimboPlayer.DEFAULT_WALK_SPEED);
-        verify(player).setFlySpeed(LimboPlayer.DEFAULT_FLY_SPEED);
-        verify(limboPersistence).removeLimboPlayer(player);
-    }
-
-    @Test
-    void shouldNotModifySpeedsForAutoLoginWhenNoDiskLimboAndSpeedsAreNormal() {
-        // given - no disk limbo, player authenticated cleanly before session (nominal case)
-        Player player = newPlayer("Premium", false, 0.2f, false, 0.1f);
-        given(limboPersistence.getLimboPlayer(player)).willReturn(null);
-
-        // when
-        limboService.restoreSpeedsForAutoLogin(player);
-
-        // then - speeds already correct, must not be overwritten
-        verify(player, Mockito.never()).setWalkSpeed(Mockito.anyFloat());
-        verify(player, Mockito.never()).setFlySpeed(Mockito.anyFloat());
+        if (shouldRestoreDefaults) {
+            verify(player).setWalkSpeed(LimboPlayer.DEFAULT_WALK_SPEED);
+            verify(player).setFlySpeed(LimboPlayer.DEFAULT_FLY_SPEED);
+        } else {
+            // speeds already correct, must not be overwritten
+            verify(player, Mockito.never()).setWalkSpeed(Mockito.anyFloat());
+            verify(player, Mockito.never()).setFlySpeed(Mockito.anyFloat());
+        }
         verify(limboPersistence).removeLimboPlayer(player);
     }
 

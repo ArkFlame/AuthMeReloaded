@@ -58,21 +58,29 @@ class GeoIpServiceTest {
         geoIpService = new GeoIpService(dataFolder, bukkitService, settings, lookupService);
     }
 
-    @Test
-    void shouldGetCountry() throws Exception {
+    @ParameterizedTest(name = "country lookup #{index}")
+    @MethodSource("countryLookups")
+    void shouldLookUpCountry(BiFunction<GeoIpService, String, String> lookup, String ipAddress,
+                             String countryCode, String countryName, String expected) throws Exception {
         // given
-        InetAddress ip = InetAddress.getByName("123.45.67.89");
-        String countryCode = "XX";
-        CountryResponse response = createCountryResponse(countryCode, "Unknown");
-        given(lookupService.country(ip)).willReturn(response);
+        InetAddress ip = InetAddress.getByName(ipAddress);
+        given(lookupService.country(ip)).willReturn(createCountryResponse(countryCode, countryName));
         given(settings.getProperty(ProtectionSettings.ENABLE_GEOIP)).willReturn(true);
 
         // when
-        String result = geoIpService.getCountryCode(ip.getHostAddress());
+        String result = lookup.apply(geoIpService, ip.getHostAddress());
 
         // then
-        assertThat(result, equalTo(countryCode));
+        assertThat(result, equalTo(expected));
         verify(lookupService).country(ip);
+    }
+
+    private static Stream<Arguments> countryLookups() {
+        return Stream.of(
+            Arguments.of((BiFunction<GeoIpService, String, String>) GeoIpService::getCountryCode,
+                "123.45.67.89", "XX", "Unknown", "XX"),
+            Arguments.of((BiFunction<GeoIpService, String, String>) GeoIpService::getCountryName,
+                "24.45.167.89", "EC", "Ecuador", "Ecuador"));
     }
 
     @ParameterizedTest(name = "localhost lookup #{index}")
@@ -91,23 +99,6 @@ class GeoIpServiceTest {
         return Stream.of(
             Arguments.of((BiFunction<GeoIpService, String, String>) GeoIpService::getCountryCode, "LOCALHOST"),
             Arguments.of((BiFunction<GeoIpService, String, String>) GeoIpService::getCountryName, "LocalHost"));
-    }
-
-    @Test
-    void shouldLookUpCountryName() throws Exception {
-        // given
-        InetAddress ip = InetAddress.getByName("24.45.167.89");
-        String countryName = "Ecuador";
-        CountryResponse response = createCountryResponse("EC", countryName);
-        given(lookupService.country(ip)).willReturn(response);
-        given(settings.getProperty(ProtectionSettings.ENABLE_GEOIP)).willReturn(true);
-
-        // when
-        String result = geoIpService.getCountryName(ip.getHostAddress());
-
-        // then
-        assertThat(result, equalTo(countryName));
-        verify(lookupService).country(ip);
     }
 
     @Test

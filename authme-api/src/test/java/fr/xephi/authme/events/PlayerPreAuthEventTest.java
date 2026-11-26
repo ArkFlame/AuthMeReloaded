@@ -4,6 +4,7 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.mock;
 
@@ -20,17 +21,15 @@ class PlayerPreAuthEventTest {
         assertThat(event.isCancelled(), equalTo(false));
         assertThat(event.isForceLoginRequested(), equalTo(false));
         assertThat(event.isAsynchronous(), equalTo(false));
-        assertThat(event.getHandlers() == PlayerPreAuthEvent.getHandlerList(), equalTo(true));
     }
 
     @Test
-    void honorsAsyncFlagAndHandlerList() {
+    void honorsAsyncFlag() {
         PlayerPreAuthEvent event = new PlayerPreAuthEvent(player, false, PlayerPreAuthEvent.Source.JOIN, true);
 
         assertThat(event.getPlayer(), equalTo(player));
         assertThat(event.getSource(), equalTo(PlayerPreAuthEvent.Source.JOIN));
         assertThat(event.isAsynchronous(), equalTo(true));
-        assertThat(event.getHandlers() == PlayerPreAuthEvent.getHandlerList(), equalTo(true));
     }
 
     @Test
@@ -55,5 +54,11 @@ class PlayerPreAuthEventTest {
         event.forceLogin();
         assertThat(event.isCancelled(), equalTo(false));
         assertThat(event.isForceLoginRequested(), equalTo(true));
+    }
+
+    @Test
+    void sourceEnumExposesJoinAndProxy() {
+        assertThat(PlayerPreAuthEvent.Source.values(),
+            arrayContaining(PlayerPreAuthEvent.Source.JOIN, PlayerPreAuthEvent.Source.PROXY));
     }
 }

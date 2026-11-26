@@ -116,12 +116,7 @@ class DistributedFilesPersistenceHandler implements LimboPersistenceHandler {
     }
 
     private File getPlayerSegmentFile(String uuid) {
-        String segment = segmentNameBuilder.createSegmentName(uuid);
-        return getSegmentFile(segment);
-    }
-
-    private File getSegmentFile(String segmentId) {
-        return new File(cacheFolder, segmentId + "-limbo.json");
+        return new File(cacheFolder, segmentNameBuilder.createSegmentName(uuid) + "-limbo.json");
     }
 
     /**
@@ -162,7 +157,7 @@ class DistributedFilesPersistenceHandler implements LimboPersistenceHandler {
         logger.info("Saving " + limbosFromOldSegments.size() + " LimboPlayers from old segments into "
             + limboBySegment.size() + " current segments");
         for (Map.Entry<String, Map<String, LimboPlayer>> entry : limboBySegment.entrySet()) {
-            File file = getSegmentFile(entry.getKey());
+            File file = new File(cacheFolder, entry.getKey() + "-limbo.json");
             Map<String, LimboPlayer> limbosToSave = readLimboPlayers(file);
             if (limbosToSave == null) {
                 limbosToSave = new HashMap<>();

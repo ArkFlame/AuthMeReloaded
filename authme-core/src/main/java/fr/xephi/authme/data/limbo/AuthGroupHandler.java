@@ -60,18 +60,17 @@ class AuthGroupHandler implements Reloadable {
             case UNREGISTERED:
                 permissionsManager.addGroup(player, unregisteredGroup);
                 permissionsManager.removeGroup(player, registeredGroup);
-                removeGroups(player, previousGroups);
+                processGroups(player, previousGroups, group -> permissionsManager.removeGroup(player, group), "remove");
                 break;
 
             case REGISTERED_UNAUTHENTICATED:
                 permissionsManager.addGroup(player, registeredGroup);
                 permissionsManager.removeGroup(player, unregisteredGroup);
-                removeGroups(player, previousGroups);
-
+                processGroups(player, previousGroups, group -> permissionsManager.removeGroup(player, group), "remove");
                 break;
 
             case LOGGED_IN:
-                addGroups(player, previousGroups);
+                processGroups(player, previousGroups, group -> permissionsManager.addGroup(player, group), "restore");
                 permissionsManager.removeGroup(player, unregisteredGroup);
                 permissionsManager.removeGroup(player, registeredGroup);
                 break;
@@ -85,28 +84,15 @@ class AuthGroupHandler implements Reloadable {
     }
 
     /**
-     * Restores the groups recorded in the limbo player one by one. The snapshot may contain
-     * temporary groups (e.g. LuckPerms groups added with a time limit) which can no longer be
-     * applied. Such a group must not prevent the remaining, permanent groups from being restored.
+     * Applies the action to each valid group in the snapshot. A temporary group (e.g. a LuckPerms
+     * group added with a time limit) or a group the permissions system refuses must not prevent
+     * the remaining groups from being processed.
      *
      * @param player the player
      * @param groups the groups from the limbo player
+     * @param action the action to apply to each group
+     * @param actionName the action name used in error messages
      */
-    private void addGroups(Player player, Collection<UserGroup> groups) {
-        processGroups(player, groups, group -> permissionsManager.addGroup(player, group), "restore");
-    }
-
-    /**
-     * Removes the groups recorded in the limbo player one by one, ignoring groups which the
-     * permissions system refuses or is no longer able to handle.
-     *
-     * @param player the player
-     * @param groups the groups from the limbo player
-     */
-    private void removeGroups(Player player, Collection<UserGroup> groups) {
-        processGroups(player, groups, group -> permissionsManager.removeGroup(player, group), "remove");
-    }
-
     private void processGroups(Player player, Collection<UserGroup> groups, Consumer<UserGroup> action,
                                String actionName) {
         for (UserGroup group : groups) {

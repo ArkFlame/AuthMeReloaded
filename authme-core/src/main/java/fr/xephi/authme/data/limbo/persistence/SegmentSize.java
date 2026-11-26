@@ -38,9 +38,6 @@ public enum SegmentSize {
     /** 1. */
     ONE(1, 1),
 
-    // /** 2. */
-    // TWO(2, 1),
-
     /** 4. */
     FOUR(4, 1),
 

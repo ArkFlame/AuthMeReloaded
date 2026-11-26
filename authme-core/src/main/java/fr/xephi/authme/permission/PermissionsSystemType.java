@@ -46,7 +46,7 @@ public enum PermissionsSystemType {
      * @return Plugin name.
      */
     public String getPluginName() {
-        return name;
+        return getDisplayName();
     }
 
     /**

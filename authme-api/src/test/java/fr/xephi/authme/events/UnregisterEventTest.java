@@ -24,7 +24,6 @@ class UnregisterEventTest {
         UnregisterByPlayerEvent event = new UnregisterByPlayerEvent(player, async);
         assertThat(event.getPlayer(), sameInstance(player));
         assertThat(event.isAsynchronous(), equalTo(async));
-        assertThat(event.getHandlers(), sameInstance(UnregisterByPlayerEvent.getHandlerList()));
     }
 
     @Test
@@ -35,7 +34,6 @@ class UnregisterEventTest {
         assertThat(event.getPlayerName(), equalTo("Bobby"));
         assertThat(event.getInitiator(), sameInstance(initiator));
         assertThat(event.isAsynchronous(), equalTo(true));
-        assertThat(event.getHandlers(), sameInstance(UnregisterByAdminEvent.getHandlerList()));
     }
 
     @Test

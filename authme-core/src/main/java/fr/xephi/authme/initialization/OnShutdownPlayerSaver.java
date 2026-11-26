@@ -63,22 +63,18 @@ public class OnShutdownPlayerSaver {
                 limboService.restoreData(player);
             } else {
                 limboService.restorePendingOperator(player);
-                saveLoggedinPlayer(player, name);
+                if (settings.getProperty(RestrictionSettings.SAVE_QUIT_LOCATION)) {
+                    Location loc = spawnLoader.getPlayerLocationOrSpawn(player);
+                    PlayerAuth auth = PlayerAuth.builder()
+                        .name(name)
+                        .realName(player.getName())
+                        .location(loc).build();
+                    dataSource.updateQuitLoc(auth);
+                    // TODO: send an update when a messaging service will be implemented (QUITLOC)
+                }
             }
         } finally {
             playerCache.removePlayer(name);
-        }
-    }
-
-    private void saveLoggedinPlayer(Player player, String name) {
-        if (settings.getProperty(RestrictionSettings.SAVE_QUIT_LOCATION)) {
-            Location loc = spawnLoader.getPlayerLocationOrSpawn(player);
-            PlayerAuth auth = PlayerAuth.builder()
-                .name(name)
-                .realName(player.getName())
-                .location(loc).build();
-            dataSource.updateQuitLoc(auth);
-            // TODO: send an update when a messaging service will be implemented (QUITLOC)
         }
     }
 }

@@ -32,11 +32,8 @@ class SegmentNameBuilder {
      * @return id the uuid belongs to
      */
     String createSegmentName(String uuid) {
-        if (distribution == 16) {
-            return prefix + uuid.substring(0, length);
-        } else {
-            return prefix + buildSegmentName(uuid.substring(0, length));
-        }
+        String uuidPrefix = uuid.substring(0, length);
+        return prefix + (distribution == 16 ? uuidPrefix : buildSegmentName(uuidPrefix));
     }
 
     /**

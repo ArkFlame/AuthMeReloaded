@@ -23,6 +23,7 @@ import com.velocitypowered.api.proxy.server.RegisteredServer;
 import fr.xephi.authme.velocity.events.AuthMeVelocityLoginEvent;
 import fr.xephi.authme.velocity.events.AuthMeVelocityLogoutEvent;
 import fr.xephi.authme.velocity.premium.VelocityPremiumVerificationManager;
+import fr.xephi.authme.proxy.ProxyMessageType;
 import fr.xephi.authme.proxy.ProxyMessages;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;

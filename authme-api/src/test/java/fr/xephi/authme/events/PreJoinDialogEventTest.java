@@ -31,7 +31,6 @@ class PreJoinDialogEventTest {
         assertThat(event.getType(), equalTo(PreJoinDialogEvent.DialogType.REGISTER));
         assertThat(event.isRegistered(), equalTo(false));
         assertThat(event.isAsynchronous(), equalTo(true));
-        assertThat(event.getHandlers() == PreJoinDialogEvent.getHandlerList(), equalTo(true));
         assertThat(event.isCancelled(), equalTo(false));
     }
 

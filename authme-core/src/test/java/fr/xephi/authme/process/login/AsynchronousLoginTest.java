@@ -206,27 +206,21 @@ class AsynchronousLoginTest {
         verify(bukkitService).getOnlinePlayers();
     }
 
-    @Test
-    void shouldSkipIpCheckForZeroThreshold() {
+    @ParameterizedTest(name = "threshold={0}, multiple accounts permission={1}")
+    @CsvSource({"0, false, 2.2.2.2", "1, true, 1.1.1.1"})
+    void shouldSkipIpCheck(int maxLoginPerIp, boolean hasMultipleAccountsPermission, String ip) {
         Player player = mock(Player.class);
-        given(commonService.getProperty(RestrictionSettings.MAX_LOGIN_PER_IP)).willReturn(0);
+        given(commonService.getProperty(RestrictionSettings.MAX_LOGIN_PER_IP)).willReturn(maxLoginPerIp);
+        if (hasMultipleAccountsPermission) {
+            given(commonService.hasPermission(player, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS)).willReturn(true);
+        }
 
-        boolean result = asynchronousLogin.hasReachedMaxLoggedInPlayersForIp(player, "2.2.2.2");
+        boolean result = asynchronousLogin.hasReachedMaxLoggedInPlayersForIp(player, ip);
 
         assertThat(result, equalTo(false));
-        verifyNoInteractions(bukkitService);
-    }
-
-    @Test
-    void shouldSkipIpCheckForPlayerWithMultipleAccountsPermission() {
-        Player player = mock(Player.class);
-        given(commonService.getProperty(RestrictionSettings.MAX_LOGIN_PER_IP)).willReturn(1);
-        given(commonService.hasPermission(player, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS)).willReturn(true);
-
-        boolean result = asynchronousLogin.hasReachedMaxLoggedInPlayersForIp(player, "1.1.1.1");
-
-        assertThat(result, equalTo(false));
-        verify(commonService).hasPermission(player, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS);
+        if (hasMultipleAccountsPermission) {
+            verify(commonService).hasPermission(player, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS);
+        }
         verifyNoInteractions(bukkitService);
     }
 

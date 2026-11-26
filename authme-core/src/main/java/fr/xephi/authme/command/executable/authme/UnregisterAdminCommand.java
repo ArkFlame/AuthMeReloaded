@@ -1,11 +1,8 @@
 package fr.xephi.authme.command.executable.authme;
 
-import fr.xephi.authme.command.ExecutableCommand;
-import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.process.Management;
 import fr.xephi.authme.service.BukkitService;
-import fr.xephi.authme.service.CommonService;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -15,13 +12,7 @@ import java.util.List;
 /**
  * Admin command to unregister a player.
  */
-public class UnregisterAdminCommand implements ExecutableCommand {
-
-    @Inject
-    private DataSource dataSource;
-
-    @Inject
-    private CommonService commonService;
+public class UnregisterAdminCommand extends AbstractPlayerAuthCommand {
 
     @Inject
     private BukkitService bukkitService;
@@ -34,8 +25,8 @@ public class UnregisterAdminCommand implements ExecutableCommand {
         String playerName = arguments.get(0);
 
         // Make sure the user exists
-        if (!dataSource.isAuthAvailable(playerName)) {
-            commonService.send(sender, MessageKey.UNKNOWN_USER);
+        if (!getDataSource().isAuthAvailable(playerName)) {
+            getCommonService().send(sender, MessageKey.UNKNOWN_USER);
             return;
         }
 

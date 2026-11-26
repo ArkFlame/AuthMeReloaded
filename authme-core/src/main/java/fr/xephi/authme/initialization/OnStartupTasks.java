@@ -68,7 +68,9 @@ public class OnStartupTasks {
         // Try to set the log4j filter
         try {
             Class.forName("org.apache.logging.log4j.core.filter.AbstractFilter");
-            setLog4JFilter();
+            org.apache.logging.log4j.core.Logger log4jLogger =
+                (org.apache.logging.log4j.core.Logger) LogManager.getRootLogger();
+            log4jLogger.addFilter(new Log4JFilter());
         } catch (ClassNotFoundException | NoClassDefFoundError e) {
             // log4j is not available
             consoleLogger.info("You're using Minecraft 1.6.x or older, Log4J support will be disabled");
@@ -77,13 +79,6 @@ public class OnStartupTasks {
             Bukkit.getLogger().setFilter(filter);
             Logger.getLogger("Minecraft").setFilter(filter);
         }
-    }
-
-    // Set the console filter to remove the passwords
-    private static void setLog4JFilter() {
-        org.apache.logging.log4j.core.Logger logger =
-            (org.apache.logging.log4j.core.Logger) LogManager.getRootLogger();
-        logger.addFilter(new Log4JFilter());
     }
 
     /**

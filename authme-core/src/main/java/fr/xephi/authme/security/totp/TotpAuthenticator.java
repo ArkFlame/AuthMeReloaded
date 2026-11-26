@@ -26,8 +26,6 @@ import static fr.xephi.authme.util.Utils.MILLIS_PER_MINUTE;
  */
 public class TotpAuthenticator implements HasCleanup {
 
-    private static final int CODE_RETENTION_MINUTES = 5;
-
     private final IGoogleAuthenticator authenticator;
     private final Settings settings;
     private final Table<String, Integer, Long> usedCodes = HashBasedTable.create();
@@ -95,7 +93,7 @@ public class TotpAuthenticator implements HasCleanup {
 
     @Override
     public void performCleanup() {
-        long threshold = System.currentTimeMillis() - CODE_RETENTION_MINUTES * MILLIS_PER_MINUTE;
+        long threshold = System.currentTimeMillis() - 5 * MILLIS_PER_MINUTE;
         usedCodes.values().removeIf(value -> value < threshold);
     }
 

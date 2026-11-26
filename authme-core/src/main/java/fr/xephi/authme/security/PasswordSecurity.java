@@ -60,8 +60,7 @@ public class PasswordSecurity implements Reloadable {
      * @return The password hash
      */
     public HashedPassword computeHash(String password, String playerName) {
-        String playerLowerCase = playerName.toLowerCase(Locale.ROOT);
-        return encryptionMethod.computeHash(password, playerLowerCase);
+        return encryptionMethod.computeHash(password, playerName.toLowerCase(Locale.ROOT));
     }
 
     /**

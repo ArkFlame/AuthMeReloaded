@@ -1,13 +1,13 @@
 package fr.xephi.authme.bungee;
 
 import com.google.common.io.ByteArrayDataInput;
-import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 import fr.xephi.authme.bungee.events.AuthMeBungeeLoginEvent;
 import fr.xephi.authme.bungee.events.AuthMeBungeeLogoutEvent;
 import fr.xephi.authme.bungee.premium.BungeePremiumOnlineModeHandler;
 import fr.xephi.authme.bungee.premium.PremiumVerificationManager;
 import fr.xephi.authme.bungee.premium.PremiumVerificationManagers;
+import fr.xephi.authme.proxy.ProxyMessageType;
 import fr.xephi.authme.proxy.ProxyMessages;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -133,7 +133,7 @@ public final class BungeeProxyBridge implements Listener {
     }
 
     void broadcastProxyStartedHandshake() {
-        byte[] payload = createProxyStartedMessage();
+        byte[] payload = ProxyMessages.proxyStarted(PROXY_IDENTITY);
         int notified = 0;
         int deferred = 0;
         for (ServerInfo server : proxyServer.getServers().values()) {
@@ -156,13 +156,6 @@ public final class BungeeProxyBridge implements Listener {
             logger.info("Proxy startup handshake: " + notified + " auth server(s) notified, "
                 + deferred + " deferred until first connection");
         }
-    }
-
-    private byte[] createProxyStartedMessage() {
-        ByteArrayDataOutput output = ByteStreams.newDataOutput();
-        output.writeUTF(ProxyMessageType.PROXY_STARTED.id());
-        output.writeUTF(PROXY_IDENTITY);
-        return output.toByteArray();
     }
 
     @EventHandler
@@ -393,7 +386,7 @@ public final class BungeeProxyBridge implements Listener {
             return;
         }
         if (!server.getPlayers().isEmpty()) {
-            server.sendData(AUTHME_CHANNEL, createProxyStartedMessage(), false);
+            server.sendData(AUTHME_CHANNEL, ProxyMessages.proxyStarted(PROXY_IDENTITY), false);
             logger.info("Sent deferred proxy.started handshake to auth server '" + serverName + "'");
         } else {
             notifiedAuthServers.remove(serverName);

@@ -129,11 +129,6 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
     }
 
     @Override
-    public boolean isCached() {
-        return true;
-    }
-
-    @Override
     public boolean isAuthAvailable(String user) {
         return getAuth(user) != null;
     }
@@ -328,13 +323,6 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
     @Override
     public void invalidateCache(String playerName) {
         cachedAuths.invalidate(playerName);
-    }
-
-    @Override
-    public void refreshCache(String playerName) {
-        if (cachedAuths.getIfPresent(playerName) != null) {
-            cachedAuths.refresh(playerName);
-        }
     }
 
 }

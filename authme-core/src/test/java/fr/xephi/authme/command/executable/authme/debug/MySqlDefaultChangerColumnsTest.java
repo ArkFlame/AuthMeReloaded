@@ -29,15 +29,9 @@ class MySqlDefaultChangerColumnsTest {
     }
 
     @Test
-    void shouldHaveMatchingNullableAndNotNullDefinition() {
+    void shouldHaveMatchingColumnDefinitions() {
         for (MySqlDefaultChanger.Columns col : MySqlDefaultChanger.Columns.values()) {
             verifyHasCorrespondingColumnDefinitions(col);
-        }
-    }
-
-    @Test
-    void shouldHaveMatchingDefaultValueInNotNullDefinition() {
-        for (MySqlDefaultChanger.Columns col : MySqlDefaultChanger.Columns.values()) {
             verifyHasSameDefaultValueInNotNullDefinition(col);
         }
     }

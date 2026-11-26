@@ -78,8 +78,7 @@ public class VaultHandler implements PermissionHandler {
         for (UserGroup g : getGroups(player)) {
             removeFromGroup(player, g);
         }
-
-        return vaultProvider.playerAddGroup(null, player, group.getGroupName());
+        return addToGroup(player, group);
     }
 
     @Override

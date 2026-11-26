@@ -13,15 +13,13 @@ import java.util.concurrent.TimeUnit;
  */
 public class GenerateTotpService implements HasCleanup {
 
-    private static final int NEW_TOTP_KEY_EXPIRATION_MINUTES = 5;
-
     private final ExpiringMap<String, TotpGenerationResult> totpKeys;
 
     @Inject
     private TotpAuthenticator totpAuthenticator;
 
     GenerateTotpService() {
-        this.totpKeys = new ExpiringMap<>(NEW_TOTP_KEY_EXPIRATION_MINUTES, TimeUnit.MINUTES);
+        this.totpKeys = new ExpiringMap<>(5, TimeUnit.MINUTES);
     }
 
     /**
@@ -32,7 +30,7 @@ public class GenerateTotpService implements HasCleanup {
      */
     public TotpGenerationResult generateTotpKey(Player player) {
         TotpGenerationResult credentials = totpAuthenticator.generateTotpKey(player);
-        totpKeys.put(TotpAuthenticator.normalizePlayerName(player.getName()), credentials);
+        totpKeys.put(normalizeName(player), credentials);
         return credentials;
     }
 
@@ -43,11 +41,11 @@ public class GenerateTotpService implements HasCleanup {
      * @return TOTP generation result
      */
     public TotpGenerationResult getGeneratedTotpKey(Player player) {
-        return totpKeys.get(TotpAuthenticator.normalizePlayerName(player.getName()));
+        return totpKeys.get(normalizeName(player));
     }
 
     public void removeGenerateTotpKey(Player player) {
-        totpKeys.remove(TotpAuthenticator.normalizePlayerName(player.getName()));
+        totpKeys.remove(normalizeName(player));
     }
 
     /**
@@ -58,12 +56,16 @@ public class GenerateTotpService implements HasCleanup {
      * @return true if the input code is correct, false if the code is invalid or no unexpired totp key is available
      */
     public boolean isTotpCodeCorrectForGeneratedTotpKey(Player player, String totpCode) {
-        TotpGenerationResult totpDetails = totpKeys.get(TotpAuthenticator.normalizePlayerName(player.getName()));
+        TotpGenerationResult totpDetails = getGeneratedTotpKey(player);
         return totpDetails != null && totpAuthenticator.checkCode(player.getName(), totpDetails.getTotpKey(), totpCode);
     }
 
     @Override
     public void performCleanup() {
         totpKeys.removeExpiredEntries();
+    }
+
+    private static String normalizeName(Player player) {
+        return TotpAuthenticator.normalizePlayerName(player.getName());
     }
 }
