@@ -1,23 +1,44 @@
 # Building and Development Commands
 
-This page documents the main build, test, and tooling commands used in this repository. For the
-current module layout and the single-jar remaster direction, see [ARCHITECTURE.md](ARCHITECTURE.md)
-and [MODULES.md](MODULES.md).
+This page documents the main build, test, and tooling commands used in this repository. For
+background on the module layout and the single-jar remaster direction, see
+[ARCHITECTURE.md](ARCHITECTURE.md) and [MODULES.md](MODULES.md).
 
-The reactor comprises **nine modules**: five built by default and four added by the
-`java21-modules` profile (listed under Requirements below). The three Spigot modules are not yet
-merged — the merge is blocked by their shared `SpigotPlatformAdapter` service class name and by
-conflicting Java 8 / 17 / 21 bytecode levels — so all three jars continue to be built. See
-[MODULES.md](MODULES.md) for the staged plan.
+The reactor comprises **eight modules**: four built by default and four added by the
+`java21-modules` profile (listed under Requirements below). The former `authme-spigot-legacy` and
+`authme-spigot-1.21` modules have been merged into a single `authme-spigot` module that produces one
+`-Spigot.jar` covering Spigot 1.16 through 1.21.x; those two old module names no longer exist. The
+Java 17 / Java 21 bytecode conflict that kept the Spigot jars apart is resolved by a two-pass
+compile (see [The merged Spigot jar](#the-merged-spigot-jar)). Only `authme-spigot-1.8` remains a
+separate server jar, so the build produces **five plugin jars** — Spigot-1.8, Spigot, Paper, Bungee
+and Velocity — plus the API jar.
 
 ## Requirements
 
-- JDK 17+ for the default reactor modules: `authme-api`, `authme-core`, `authme-tools`,
-  `authme-spigot-1.8` and `authme-spigot-legacy`
-- JDK 21+ for the `java21-modules` profile, which adds `authme-bungee`, `authme-spigot-1.21`,
-  `authme-paper` (the merged Paper/Folia jar) and `authme-velocity`
+- JDK 17+ for the default reactor modules: `authme-api`, `authme-core`, `authme-tools` and
+  `authme-spigot-1.8` (Spigot 1.8.8, shaded libraries, Java 8 bytecode)
+- JDK 21+ for the `java21-modules` profile, which adds `authme-bungee`, `authme-spigot`,
+  `authme-paper` (the merged Paper/Folia jar) and `authme-velocity`. The merged `authme-spigot`
+  module needs JDK 21 at build time to compile its dialog adapter; on a Java 17 server that adapter
+  is skipped at runtime and the legacy adapter is used instead.
 - JDK 25+ to compile `authme-velocity` (Java 25 bytecode), so the full reactor requires JDK 25+
 - Maven 3.8.8+
+
+## The merged Spigot jar
+
+`authme-spigot` produces a single artifact, `AuthMeRemastered-<version>-Spigot.jar`, that supports
+Spigot 1.16 through 1.21.x. It is compiled in two passes into the same jar:
+
+1. Java 17 bytecode for `SpigotLegacyPlatformAdapter`, the baseline loadable on older servers.
+2. Java 21 bytecode for `Spigot121PlatformAdapter`, `SpigotDialogHelper`, `DialogApiAvailability`
+   and `PlayerSignOpenListener`, which provide dialog and sign support.
+
+`META-INF/services/fr.xephi.authme.platform.PlatformAdapter` lists `Spigot121PlatformAdapter`
+first and `SpigotLegacyPlatformAdapter` second. `AuthMe.loadPlatformAdapter()` picks the first
+compatible adapter and skips adapters that fail to load (for example, `UnsupportedClassVersionError`
+on a Java 17 server), so one jar covers the whole supported range.
+`plugin.yml` declares `api-version: 1.16` — a plugin cannot declare a newer `api-version` than the
+server it runs on.
 
 ## Build commands
 
@@ -38,7 +59,9 @@ mvn clean package -DskipLongHashTests
 mvn clean package -pl authme-bungee -am
 mvn clean package -pl authme-velocity -am
 mvn clean package -pl authme-paper -am
-mvn clean package -pl authme-spigot-1.21 -am
+
+# Build the merged Spigot jar (Java 17 baseline + Java 21 dialog adapter)
+mvn clean package -pl authme-spigot -am
 
 # Build without generating Javadoc
 mvn clean package -P skipJavadocGeneration
@@ -63,8 +86,8 @@ mvn test -pl authme-velocity -am
 # Run tests in the merged Paper/Folia module
 mvn test -am -pl authme-paper
 
-# Run tests in 1.21 version modules
-mvn test -am -pl authme-spigot-1.21,authme-paper
+# Run tests in the merged Spigot module and Paper
+mvn test -am -pl authme-spigot,authme-paper
 
 # Run the full test suite
 mvn test -P skipLongHashTests
@@ -104,6 +127,6 @@ mvn -q -pl authme-tools -am -P run-tools process-test-classes "-Dexec.args=gener
 - `authme-core/src/main/resources/commands.yml`
 - `authme-core/src/main/resources/plugin.yml`
 - `authme-core/src/test/resources/plugin.yml`
-- version-module `plugin.yml` files
+- module `plugin.yml` files
 
 If you change a generator or template, commit both the source change and the regenerated output.

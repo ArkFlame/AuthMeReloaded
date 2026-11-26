@@ -29,9 +29,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-public class SpigotPlatformAdapterTest {
+public class Spigot121PlatformAdapterTest {
 
-    private final SpigotPlatformAdapter adapter = new SpigotPlatformAdapter();
+    private final Spigot121PlatformAdapter adapter = new Spigot121PlatformAdapter();
     private final DialogWindowSpec dialog = new DialogWindowSpec("Title",
         List.of(new DialogInputSpec("password", "Password", 100)),
         "Submit",

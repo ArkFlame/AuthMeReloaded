@@ -32,10 +32,8 @@ public class GeneratePluginYml implements AutoToolTask {
     private static final List<Path> PLUGIN_YML_FILES = List.of(
         Paths.get(ToolsConstants.MAIN_RESOURCES_ROOT, "plugin.yml"),
         Paths.get(ToolsConstants.CORE_TEST_RESOURCES_ROOT, "plugin.yml"),
-        Paths.get(ToolsConstants.REPOSITORY_ROOT_PATH, "authme-spigot-legacy", "src", "main", "resources", "plugin.yml"),
-        Paths.get(ToolsConstants.REPOSITORY_ROOT_PATH, "authme-spigot-1.21", "src", "main", "resources", "plugin.yml"),
-        Paths.get(ToolsConstants.REPOSITORY_ROOT_PATH, "authme-paper", "src", "main", "resources", "plugin.yml"),
-        Paths.get(ToolsConstants.REPOSITORY_ROOT_PATH, "authme-folia", "src", "main", "resources", "plugin.yml"));
+        Paths.get(ToolsConstants.REPOSITORY_ROOT_PATH, "authme-spigot", "src", "main", "resources", "plugin.yml"),
+        Paths.get(ToolsConstants.REPOSITORY_ROOT_PATH, "authme-paper", "src", "main", "resources", "plugin.yml"));
 
     private static final Map<String, String> WILDCARD_PERMISSIONS = ImmutableMap.of(
         "authme.player.*", "Gives access to all player commands",

@@ -16,9 +16,9 @@ Every commit to `master` is built and published automatically:
 
 | File | For |
 |------|-----|
-| `AuthMeRemastered-<version>-<sha>-Spigot-1.21.jar` | Spigot 1.20-1.21 |
+| `AuthMeRemastered-<version>-<sha>-Spigot.jar` | Spigot 1.16-1.21.x (one jar, Java 17+; Java 21 enables dialogs) |
+| `AuthMeRemastered-<version>-<sha>-Spigot-1.8.jar` | Spigot 1.8.8-1.15.2 (Java 8) |
 | `AuthMeRemastered-<version>-<sha>-Paper.jar` | Paper and Folia 1.21.11+ (one jar, Folia detected at startup) |
-| `AuthMeRemastered-<version>-<sha>-Spigot-Legacy.jar` / `-Spigot-1.8.jar` | Spigot 1.16-1.19 / 1.8 |
 | `AuthMeRemastered-<version>-<sha>-Bungee.jar` / `-Velocity.jar` | Proxies |
 | `AuthMeRemastered-API-<version>-<sha>.jar` | Developer API (events only), see [docs/API.md](docs/API.md) |
 
@@ -32,29 +32,34 @@ Spigot 1.8+, Paper and Folia through runtime capability detection instead of sep
 builds. `authme-core` stays at Java 8 bytecode, and the BungeeCord/Velocity proxies remain separate
 deliverables because they target different APIs. Paper and Folia are already consolidated:
 `authme-paper` produces a single `-Paper.jar` containing both platform adapters, with the Folia one
-selected at startup when `RegionizedServer` is present. Until the Java 8 single-jar consolidation lands,
-the per-platform jars listed above continue to ship. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-for the target design and [docs/MODULES.md](docs/MODULES.md) for the staged Spigot merge plan.
+selected at startup when `RegionizedServer` is present. Spigot 1.16–1.21.x is now consolidated too:
+`authme-spigot` produces a single `-Spigot.jar` that runs on Java 17+ and enables the dialog adapter
+on Java 21. Until the Java 8 single-jar consolidation lands, the per-platform jars listed above
+continue to ship. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the target design and
+[docs/MODULES.md](docs/MODULES.md) for module details.
 
-**Current status — the Spigot merge is blocked.** Only Paper/Folia has been consolidated; the three
-Spigot jars (`-Spigot-1.8`, `-Spigot-Legacy`, `-Spigot-1.21`) still build and ship separately. They
-cannot share one jar yet because all three register the same service class
-`fr.xephi.authme.platform.SpigotPlatformAdapter` (two classes with the same name cannot coexist in a
-jar) and because their Java 8 / 17 / 21 bytecode levels conflict with keeping Spigot 1.16–1.19
-support. [docs/MODULES.md](docs/MODULES.md) records the staged plan for clearing both blockers.
+**Current status — the Spigot merge is complete.** The old `-Spigot-Legacy` and `-Spigot-1.21` jars
+have been replaced by one `-Spigot.jar` covering Spigot 1.16 through 1.21.x. It is built in two passes
+into a single jar: Java 17 bytecode for `SpigotLegacyPlatformAdapter` and Java 21 bytecode for
+`Spigot121PlatformAdapter`, `SpigotDialogHelper`, `DialogApiAvailability` and `PlayerSignOpenListener`.
+`META-INF/services` lists `Spigot121PlatformAdapter` first and `SpigotLegacyPlatformAdapter` second;
+`AuthMe.loadPlatformAdapter()` picks the first compatible adapter and skips ones that fail to load
+(`UnsupportedClassVersionError` on Java 17). The plugin declares `api-version: 1.16` so it loads on
+all supported servers (a plugin cannot declare a newer api-version than the server).
+[docs/MODULES.md](docs/MODULES.md) records the module layout.
 
 ### Modules
 
-The reactor builds **nine modules**: five by default and four through the `java21-modules` profile.
+The reactor builds **eight modules**: four by default and four through the `java21-modules` profile.
+Together they produce five plugin jars (Spigot-1.8, Spigot, Paper, Bungee, Velocity) plus the API jar.
 
 | Module | Artifact | Target |
 | --- | --- | --- |
 | `authme-api` | `AuthMeRemastered-API-*.jar` | Java 8, public events API |
 | `authme-core` | shaded into every server jar | Java 8, shared authentication logic |
 | `authme-tools` | build/converter tooling (no server jar) | Java 17 (21 on JDK 21+) |
-| `authme-spigot-1.8` | `-Spigot-1.8.jar` | Spigot 1.8.8–1.15.2, Java 8 |
-| `authme-spigot-legacy` | `-Spigot-Legacy.jar` | Spigot 1.16–1.19, JDK 17+ |
-| `authme-spigot-1.21` | `-Spigot-1.21.jar` | Spigot 1.20–1.21, Java 21 |
+| `authme-spigot-1.8` | `-Spigot-1.8.jar` | Spigot 1.8.8–1.15.2, Java 8, shaded libraries |
+| `authme-spigot` | `-Spigot.jar` | merged Spigot 1.16–1.21.x, Java 17+ (Java 21 enables dialogs) |
 | `authme-paper` | `-Paper.jar` | merged Paper/Folia 1.21.11+, Java 21 |
 | `authme-bungee` | `-Bungee.jar` | BungeeCord/Waterfall, Java 21 |
 | `authme-velocity` | `-Velocity.jar` | Velocity 4.x (built against 4.3.1), Java 25 |
@@ -74,7 +79,7 @@ You can also create your own translation file and, if you want, you can share it
 
 #### Features:
 <ul>
-  <li>Dedicated builds for <strong>Spigot 1.8</strong> (1.8.8–1.15.2), <strong>Spigot Legacy</strong> (1.16–1.19), <strong>Spigot 1.21</strong> (1.20–1.21), and one <strong>Paper/Folia 1.21.11+</strong> jar</li>
+  <li>Dedicated builds for <strong>Spigot 1.8</strong> (1.8.8–1.15.2), <strong>Spigot</strong> (1.16–1.21.x, one jar), and one <strong>Paper/Folia 1.21.11+</strong> jar</li>
   <li>Native proxy plugins for <strong>BungeeCord</strong> and <strong>Velocity</strong></li>
   <li><strong>E-Mail Recovery System!</strong></li>
   <li>Username spoofing protection.</li>
@@ -177,8 +182,8 @@ Minecraft login phase — no password prompt is ever shown.
 ## Requirements
 
 ##### Compiling requirements:
->- JDK 17+ for the default modules: `authme-api`, `authme-core`, `authme-tools`, `authme-spigot-1.8` and `authme-spigot-legacy`
->- JDK 21+ for the `java21-modules` profile (`authme-bungee`, `authme-spigot-1.21`, `authme-paper` (Paper and Folia))
+>- JDK 17+ for the default modules: `authme-api`, `authme-core`, `authme-tools` and `authme-spigot-1.8`
+>- JDK 21+ for the `java21-modules` profile (`authme-bungee`, `authme-spigot`, `authme-paper` (Paper and Folia))
 >- JDK 25+ for `authme-velocity` (Java 25 bytecode), so the full reactor requires JDK 25+
 >- Maven (3.8.8+)
 >- Git/GitHub (Optional)
@@ -186,15 +191,15 @@ Minecraft login phase — no password prompt is ever shown.
 ##### How to compile the project:
 >- Clone the project with Git/GitHub
 >- Execute command `mvn clean package`
->- With JDK 17, Maven builds only the five default modules
->- With JDK 21+, Maven also builds the `java21-modules` profile; the full reactor requires JDK 25+ for `authme-velocity`
+>- With JDK 17, Maven builds only the four default modules
+>- With JDK 21+, Maven also builds the `java21-modules` profile; `authme-spigot` compiles in two passes (Java 17 and Java 21 bytecode) into one `-Spigot.jar`
+>- The full reactor requires JDK 25+ for `authme-velocity`
 >- Build and tooling command reference: [docs/build.md](docs/build.md)
 
 ##### Running requirements:
 >- Use the jar matching your server platform/version:
 >  - Java 8+: `AuthMeRemastered-*-Spigot-1.8.jar` — Bukkit/Spigot 1.8.8–1.15.2
->  - Java 17+: `AuthMeRemastered-*-Spigot-Legacy.jar` — Spigot 1.16.x–1.19.x
->  - Java 21+: `AuthMeRemastered-*-Spigot-1.21.jar` — Spigot 1.20.x – 1.21.x
+>  - Java 17+: `AuthMeRemastered-*-Spigot.jar` — one merged jar for Spigot 1.16.x–1.21.x (Java 21 enables the dialog adapter)
 >  - Java 21+: `AuthMeRemastered-*-Paper.jar` — one merged jar for Paper and Folia 1.21.11+ (Folia detected at startup)
 >  - Java 21+: `AuthMeRemastered-*-Bungee.jar` — BungeeCord / Waterfall proxy (built against the 1.21 API)
 >  - Java 25+: `AuthMeRemastered-*-Velocity.jar` — Velocity 4.x proxy (built against 4.3.1)

@@ -14,7 +14,7 @@ import java.util.List;
  * Dialog UI is supported on Spigot 1.21.6+ (BungeeCord dialog API).
  * On older server versions in this range the dialog feature is gracefully disabled.
  */
-public class SpigotPlatformAdapter extends AbstractSpigotPlatformAdapter {
+public class Spigot121PlatformAdapter extends AbstractSpigotPlatformAdapter {
 
     @Override
     public String getPlatformName() {

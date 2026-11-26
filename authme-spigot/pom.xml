@@ -10,16 +10,17 @@
         <version>${revision}</version>
     </parent>
 
-    <artifactId>authme-spigot-1.21</artifactId>
+    <artifactId>authme-spigot</artifactId>
     <packaging>jar</packaging>
-    <name>AuthMe Spigot 1.21</name>
-    <description>AuthMe plugin for Spigot 1.20.x and 1.21.x</description>
+    <name>AuthMe Spigot</name>
+    <description>AuthMe plugin for Spigot 1.16 through 1.21.x (one jar, adapter picked at startup)</description>
 
     <properties>
         <module.java.version>21</module.java.version>
         <spigot.api.version>1.21.11-R0.2-SNAPSHOT</spigot.api.version>
-        <plugin.api-version>1.21.11</plugin.api-version>
-        <module.classifier>Spigot-1.21</module.classifier>
+        <!-- Lowest supported API: a plugin may not declare a newer api-version than the server -->
+        <plugin.api-version>1.16</plugin.api-version>
+        <module.classifier>Spigot</module.classifier>
     </properties>
 
     <dependencies>
@@ -107,6 +108,47 @@
         </resources>
 
         <plugins>
+            <!--
+              Two compiler passes into one output directory:
+              1. default-compile: the Java 17 baseline (legacy adapter), loadable on Spigot 1.16-1.20 / Java 17.
+              2. compile-java21: the Spigot 1.20.5+/1.21 adapter, dialog helper and sign listener (Java 21 bytecode).
+              On a Java 17 server the Java 21 adapter fails to load; AuthMe skips it and uses the legacy adapter.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>default-compile</id>
+                        <configuration>
+                            <release>17</release>
+                            <excludes>
+                                <exclude>**/Spigot121PlatformAdapter.java</exclude>
+                                <exclude>**/SpigotDialogHelper.java</exclude>
+                                <exclude>**/DialogApiAvailability.java</exclude>
+                                <exclude>**/PlayerSignOpenListener.java</exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>compile-java21</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <release>21</release>
+                            <useIncrementalCompilation>false</useIncrementalCompilation>
+                            <includes>
+                                <include>**/Spigot121PlatformAdapter.java</include>
+                                <include>**/SpigotDialogHelper.java</include>
+                                <include>**/DialogApiAvailability.java</include>
+                                <include>**/PlayerSignOpenListener.java</include>
+                            </includes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>

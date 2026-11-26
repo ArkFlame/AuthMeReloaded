@@ -64,6 +64,7 @@ public class AuthMe extends JavaPlugin {
     private static final String PLUGIN_AUTHOR = "ArkFlame Studios";
     private static final String LOG_FILENAME = "authme.log";
     private static final int CLEANUP_INTERVAL = 5 * TICKS_PER_MINUTE;
+    private static final int MAX_SKIPPED_ADAPTERS = 16;
 
     // Version and build number values
     private static String pluginVersion = "N/D";
@@ -274,12 +275,18 @@ public class AuthMe extends JavaPlugin {
         PlatformAdapter first = null;
         Iterator<PlatformAdapter> adapters =
             ServiceLoader.load(PlatformAdapter.class, getClass().getClassLoader()).iterator();
-        while (adapters.hasNext()) {
+        int skipped = 0;
+        while (skipped < MAX_SKIPPED_ADAPTERS) {
             PlatformAdapter adapter;
             try {
+                if (!adapters.hasNext()) {
+                    break;
+                }
                 adapter = adapters.next();
             } catch (ServiceConfigurationError | LinkageError e) {
-                // e.g. an adapter compiled for a newer Java than this server runs: skip it
+                // e.g. an adapter compiled for a newer Java than this server runs (the provider class is
+                // loaded inside hasNext() on newer JDKs): skip it and try the next registered adapter
+                ++skipped;
                 continue;
             }
             if (adapter.getCompatibilityError() == null) {
