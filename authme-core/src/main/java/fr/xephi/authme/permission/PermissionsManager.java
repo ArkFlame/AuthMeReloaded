@@ -25,7 +25,6 @@ import javax.inject.Inject;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.UUID;
-import java.util.function.BiFunction;
 
 /**
  * PermissionsManager.
@@ -215,7 +214,7 @@ public class PermissionsManager implements Reloadable {
 
     /** Add the permission groups of a player, if supported. */
     public boolean addGroups(OfflinePlayer player, Collection<UserGroup> groupNames) {
-        return changeGroups(player, groupNames, (p, g) -> handler.addToGroup(p, g));
+        return changeGroups(player, groupNames, true);
     }
 
     /** Remove the permission group of a player, if supported. */
@@ -225,11 +224,10 @@ public class PermissionsManager implements Reloadable {
 
     /** Remove the permission groups of a player, if supported. */
     public boolean removeGroups(OfflinePlayer player, Collection<UserGroup> groupNames) {
-        return changeGroups(player, groupNames, (p, g) -> handler.removeFromGroup(p, g));
+        return changeGroups(player, groupNames, false);
     }
 
-    private boolean changeGroups(OfflinePlayer player, Collection<UserGroup> groupNames,
-                                 BiFunction<OfflinePlayer, UserGroup, Boolean> action) {
+    private boolean changeGroups(OfflinePlayer player, Collection<UserGroup> groupNames, boolean add) {
         if (!isEnabled() || groupNames == null) {
             return false;
         }
@@ -241,7 +239,7 @@ public class PermissionsManager implements Reloadable {
             }
             String groupName = group.getGroupName();
             if (groupName != null && !groupName.isEmpty()) {
-                result |= action.apply(player, group);
+                result |= add ? handler.addToGroup(player, group) : handler.removeFromGroup(player, group);
             }
         }
         return result;
@@ -258,11 +256,14 @@ public class PermissionsManager implements Reloadable {
      * in its primary group. All the subgroups are removed just fine.
      */
     public boolean removeAllGroups(OfflinePlayer player) {
-        return isEnabled() && removeGroups(player, getGroups(player));
+        return removeGroups(player, getGroups(player));
     }
 
     /** Load the permission data of the given offline player. */
     public boolean loadUserData(OfflinePlayer offlinePlayer) {
+        if (!isEnabled()) {
+            return true;
+        }
         try {
             loadUserData(offlinePlayer.getUniqueId());
         } catch (PermissionLoadUserException e) {

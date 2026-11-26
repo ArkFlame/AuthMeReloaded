@@ -117,14 +117,11 @@ public class VerificationCodeManager implements SettingsDependent, HasCleanup {
     public void codeExistOrGenerateNew(String name) {
         String lowerName = normalize(name);
         if (verificationCodes.get(lowerName) == null && pendingCodeGenerations.add(lowerName)) {
-            boolean scheduled = false;
             try {
                 bukkitService.runTaskAsynchronously(() -> generateCode(name, lowerName));
-                scheduled = true;
-            } finally {
-                if (!scheduled) {
-                    pendingCodeGenerations.remove(lowerName);
-                }
+            } catch (RuntimeException | Error e) {
+                pendingCodeGenerations.remove(lowerName);
+                throw e;
             }
         }
     }

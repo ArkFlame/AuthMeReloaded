@@ -182,6 +182,19 @@ class AsyncAddEmailTest {
     }
 
     @Test
+    void shouldSendUnloggedMessageWhenCacheEntryVanished() {
+        given(player.getName()).willReturn("TestName");
+        given(playerCache.isAuthenticated("testname")).willReturn(true);
+        given(playerCache.getAuth("testname")).willReturn(null);
+        given(dataSource.isAuthAvailable("TestName")).willReturn(true);
+
+        asyncAddEmail.addEmail(player, "player@mail.tld");
+
+        verify(service).send(player, MessageKey.LOGIN_MESSAGE);
+        verify(playerCache, never()).updatePlayerIfPresent(any(PlayerAuth.class));
+    }
+
+    @Test
     void shouldNotAddOnCancelledEvent() {
         String email = "player@mail.tld";
         givenAuthenticatedPlayerWithoutEmail("TestName");

@@ -118,6 +118,16 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
     }
 
     /**
+     * Normalizes a player name to the cache key form used by all lookups.
+     *
+     * @param name the player name
+     * @return the lower-cased name
+     */
+    private static String normalize(String name) {
+        return name.toLowerCase(Locale.ROOT);
+    }
+
+    /**
      * Applies a cache change only when the underlying data source update succeeded.
      *
      * @param succeeded whether the source update succeeded
@@ -143,7 +153,7 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public HashedPassword getPassword(String user) {
-        user = user.toLowerCase(Locale.ROOT);
+        user = normalize(user);
         Optional<PlayerAuth> auth = cachedAuths.getIfPresent(user);
         return auth != null && auth.isPresent()
             ? auth.get().getPassword()
@@ -152,7 +162,7 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public PlayerAuth getAuth(String user) {
-        user = user.toLowerCase(Locale.ROOT);
+        user = normalize(user);
         return cachedAuths.getUnchecked(user).orElse(null);
     }
 
@@ -168,7 +178,7 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public boolean updatePassword(String user, HashedPassword password) {
-        String key = user.toLowerCase(Locale.ROOT);
+        String key = normalize(user);
         return updateCacheOnSuccess(source.updatePassword(key, password), () -> cachedAuths.refresh(key));
     }
 
@@ -189,7 +199,7 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public boolean removeAuth(String name) {
-        String key = name.toLowerCase(Locale.ROOT);
+        String key = normalize(name);
         return updateCacheOnSuccess(source.removeAuth(key), () -> cachedAuths.invalidate(key));
     }
 
@@ -257,12 +267,12 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public void setLogged(final String user) {
-        source.setLogged(user.toLowerCase(Locale.ROOT));
+        source.setLogged(normalize(user));
     }
 
     @Override
     public void setUnlogged(final String user) {
-        source.setUnlogged(user.toLowerCase(Locale.ROOT));
+        source.setUnlogged(normalize(user));
     }
 
     @Override
@@ -300,7 +310,7 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
     public DataSourceValue<String> getEmail(String user) {
         // Use the same normalized key as getAuth/getPassword: otherwise a mixed-case
         // name creates a second cache entry and an extra DB load for the same account.
-        String key = user.toLowerCase(Locale.ROOT);
+        String key = normalize(user);
         Optional<PlayerAuth> auth = cachedAuths.getUnchecked(key);
         if (auth.isPresent()) {
             return DataSourceValueImpl.of(auth.get().getEmail());

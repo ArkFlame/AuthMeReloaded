@@ -111,32 +111,33 @@ final class ProxyPremiumVerificationPacketListener extends PacketListenerAbstrac
         byte[] encryptedSharedSecret = wrapper.getEncryptedSharedSecret().clone();
         event.setCancelled(true);
 
-        byte[] sharedSecret = null;
-        boolean decryptionFailed = false;
+        byte[] sharedSecret;
         try {
             sharedSecret = loginVerifier.decryptData(encryptedSharedSecret);
         } catch (GeneralSecurityException e) {
             warningLogger.accept("Proxy premium RSA decryption failed for '" + username + "': " + e.getMessage());
-            decryptionFailed = true;
-        }
-
-        if (decryptionFailed || !enableChannelEncryption(user.getChannel(), sharedSecret)) {
             loginVerifier.cleanupPending(connectionKey);
             handlePendingVerificationFailure(username, pendingPremiumEnrollment);
             closeConnection(user, username);
             return;
         }
 
-        Optional<byte[]> encryptedVerifyTokenOpt = wrapper.getEncryptedVerifyToken();
-        if (!encryptedVerifyTokenOpt.isPresent()) {
+        if (!enableChannelEncryption(user.getChannel(), sharedSecret)) {
+            loginVerifier.cleanupPending(connectionKey);
+            handlePendingVerificationFailure(username, pendingPremiumEnrollment);
+            closeConnection(user, username);
+            return;
+        }
+
+        byte[] encryptedVerifyToken = wrapper.getEncryptedVerifyToken().orElse(null);
+        if (encryptedVerifyToken == null) {
             warningLogger.accept("Proxy premium verification for '" + username
                 + "' received a signed nonce instead of a verify token; resuming offline login over the encrypted channel");
             handlePendingVerificationFailure(username, pendingPremiumEnrollment);
             resumeLogin(user, username, clientVersion, playerUuid);
             return;
         }
-
-        byte[] encryptedVerifyToken = encryptedVerifyTokenOpt.get().clone();
+        encryptedVerifyToken = encryptedVerifyToken.clone();
 
         loginVerifier.completeVerification(connectionKey, sharedSecret, encryptedVerifyToken)
             .thenAccept(maybeUuid -> {
@@ -175,8 +176,12 @@ final class ProxyPremiumVerificationPacketListener extends PacketListenerAbstrac
             encryptCipher.init(Cipher.ENCRYPT_MODE, key, iv);
 
             ChannelPipeline pipeline = (ChannelPipeline) ChannelHelper.getPipeline(channel);
-            String decoderAnchor = findPipelineAnchor(pipeline, PacketEvents.DECODER_NAME, "splitter");
-            String encoderAnchor = findPipelineAnchor(pipeline, PacketEvents.ENCODER_NAME, "prepender");
+            String decoderAnchor = pipeline.get(PacketEvents.DECODER_NAME) != null
+                ? PacketEvents.DECODER_NAME
+                : pipeline.get("splitter") != null ? "splitter" : null;
+            String encoderAnchor = pipeline.get(PacketEvents.ENCODER_NAME) != null
+                ? PacketEvents.ENCODER_NAME
+                : pipeline.get("prepender") != null ? "prepender" : null;
             if (decoderAnchor == null || encoderAnchor == null) {
                 warningLogger.accept("Failed to install proxy AES cipher handlers: missing pipeline anchors in "
                     + ChannelHelper.pipelineHandlerNamesAsString(channel));
@@ -220,15 +225,6 @@ final class ProxyPremiumVerificationPacketListener extends PacketListenerAbstrac
         if (pendingPremiumEnrollment && username != null) {
             pendingVerificationFailureHandler.accept(ProxyPremiumLoginVerifier.normalize(username));
         }
-    }
-
-    private static String findPipelineAnchor(ChannelPipeline pipeline, String... candidates) {
-        for (String candidate : candidates) {
-            if (candidate != null && pipeline.get(candidate) != null) {
-                return candidate;
-            }
-        }
-        return null;
     }
 
     private static String connectionKey(User user) {

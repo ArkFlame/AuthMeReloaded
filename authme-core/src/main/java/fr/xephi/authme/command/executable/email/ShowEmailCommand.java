@@ -26,7 +26,7 @@ public class ShowEmailCommand extends PlayerCommand {
     @Override
     public void runCommand(Player player, List<String> arguments) {
         PlayerAuth auth = playerCache.getAuth(player.getName());
-        final String email = auth == null ? null : auth.getEmail();
+        String email = auth == null ? null : auth.getEmail();
         if (Utils.isEmailEmpty(email)) {
             commonService.send(player, MessageKey.SHOW_NO_EMAIL);
             return;
@@ -39,12 +39,11 @@ public class ShowEmailCommand extends PlayerCommand {
 
     private String emailMask(String email) {
         String[] parts = email.split("@");
-        // A value stored by the default validator may lack a local part or a domain
-        // (e.g. "user@" or "@example.com"); split() drops trailing empties, so pad.
-        String localPart = parts.length > 0 ? parts[0] : "";
+        // split() drops trailing empties, so a missing domain leaves a single element;
+        // a missing local part yields an empty first element.
+        String localPart = parts[0];
         String domain = parts.length > 1 ? parts[1] : "";
-        int idLength = Math.min(localPart.length(), localPart.length() / 3 + 1); // required length >= 1
-        int domainStart = domain.length() / 3; // required length >= 0
-        return localPart.substring(0, idLength) + "***@***" + domain.substring(domainStart);
+        int idLength = localPart.isEmpty() ? 0 : localPart.length() / 3 + 1;
+        return localPart.substring(0, idLength) + "***@***" + domain.substring(domain.length() / 3);
     }
 }

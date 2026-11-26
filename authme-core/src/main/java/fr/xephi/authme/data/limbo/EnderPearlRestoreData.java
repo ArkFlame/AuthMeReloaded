@@ -50,8 +50,7 @@ public final class EnderPearlRestoreData {
             return false;
         }
         EnderPearlRestoreData that = (EnderPearlRestoreData) o;
-        return Objects.equals(uuid, that.uuid)
-            && Objects.equals(location, that.location)
+        return Objects.equals(uuid, that.uuid) && Objects.equals(location, that.location)
             && Objects.equals(velocity, that.velocity);
     }
 

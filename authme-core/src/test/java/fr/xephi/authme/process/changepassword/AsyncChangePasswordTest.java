@@ -116,6 +116,25 @@ class AsyncChangePasswordTest {
         verify(commonService).send(player, MessageKey.PASSWORD_CHANGED_SUCCESS);
     }
 
+    @Test
+    void shouldRefreshCachedAuthAfterAdminChangeForOnlinePlayer() {
+        CommandSender sender = mock(CommandSender.class);
+        String player = "bobby";
+        String password = "newPass";
+        PlayerAuth auth = mock(PlayerAuth.class);
+        given(playerCache.isAuthenticated(player)).willReturn(true);
+        given(playerCache.getAuth(player)).willReturn(auth);
+        HashedPassword hashedPassword = mock(HashedPassword.class);
+        given(passwordSecurity.computeHash(password, player)).willReturn(hashedPassword);
+        given(dataSource.updatePassword(player, hashedPassword)).willReturn(true);
+
+        asyncChangePassword.changePasswordAsAdmin(sender, player, password);
+
+        verify(auth).setPassword(hashedPassword);
+        verify(playerCache).updatePlayerIfPresent(auth);
+        verify(commonService).send(sender, MessageKey.PASSWORD_CHANGED_SUCCESS);
+    }
+
     @ParameterizedTest(name = "logged in={0}, save successful={1}")
     @MethodSource("changePasswordCases")
     void shouldUpdatePassword(boolean loggedIn, boolean saveSuccessful, MessageKey expectedMessage) {

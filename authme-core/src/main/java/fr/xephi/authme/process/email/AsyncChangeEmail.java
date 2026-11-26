@@ -62,6 +62,11 @@ public class AsyncChangeEmail implements AsynchronousProcess {
         String playerName = player.getName().toLowerCase(Locale.ROOT);
         if (playerCache.isAuthenticated(playerName)) {
             PlayerAuth auth = playerCache.getAuth(playerName);
+            if (auth == null) {
+                // The cache entry may have been removed while this async task was queued.
+                EmailProcessHelper.sendUnloggedMessage(service, dataSource, player);
+                return;
+            }
             String currentEmail = auth.getEmail();
 
             if (currentEmail == null) {

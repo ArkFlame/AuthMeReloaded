@@ -146,9 +146,11 @@ public class AntiBotService implements SettingsDependent {
      * @return if the player should be kicked
      */
     public boolean shouldKick() {
-        if (antiBotStatus == AntiBotStatus.DISABLED) {
+        // Read the volatile status once: this runs on every player login.
+        AntiBotStatus status = antiBotStatus;
+        if (status == AntiBotStatus.DISABLED) {
             return false;
-        } else if (antiBotStatus == AntiBotStatus.ACTIVE) {
+        } else if (status == AntiBotStatus.ACTIVE) {
             return true;
         }
 
@@ -161,7 +163,7 @@ public class AntiBotService implements SettingsDependent {
 
     private void notifyAdmins(MessageKey key, String... args) {
         bukkitService.runOnGlobalRegion(() -> {
-            for (Player player : bukkitService.getOnlinePlayers().toArray(new Player[0])) {
+            for (Player player : bukkitService.getOnlinePlayers()) {
                 bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, () -> {
                     if (permissionsManager.hasPermission(player, AdminPermission.ANTIBOT_MESSAGES)) {
                         messages.send(player, key, args);

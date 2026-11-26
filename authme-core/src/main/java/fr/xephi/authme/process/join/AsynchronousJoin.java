@@ -301,8 +301,11 @@ public class AsynchronousJoin implements AsynchronousProcess {
             }
         }
 
+        // The UUID is stable for the whole join; resolve it once for the Floodgate and premium checks.
+        UUID playerId = player.getUniqueId();
+
         // Bedrock players verified by Floodgate (Xbox account) — same idea as premium below
-        if (floodgateService.canAutoLogin(player.getUniqueId())) {
+        if (floodgateService.canAutoLogin(playerId)) {
             logger.info("The Bedrock player " + player.getName() + " has been automatically logged in (Floodgate).");
             forceLoginAsync(player, false);
             return true;
@@ -310,7 +313,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
 
         // Premium players are always verified by Mojang — skip the session mechanism entirely,
         // which would send a misleading SESSION_RECONNECTION message and run session commands.
-        if (canBypassWithPremium(player, auth)) {
+        if (canBypassWithPremium(player, auth, playerId)) {
             // Behind a proxy the login is quiet and must not trigger a backend-side redirect.
             forceLoginAsync(player, bungeeSender.isEnabled());
             return true;
@@ -626,16 +629,15 @@ public class AsynchronousJoin implements AsynchronousProcess {
         return true;
     }
 
-    private boolean canBypassWithPremium(Player player, PlayerAuth auth) {
+    private boolean canBypassWithPremium(Player player, PlayerAuth auth, UUID playerId) {
         if (!service.getProperty(PremiumSettings.ENABLE_PREMIUM) || auth == null) {
             return false;
         }
         String name = player.getName();
         if (!auth.isPremium()) {
-            return tryFinalizePendingPremium(player, name);
+            return tryFinalizePendingPremium(player, name, playerId);
         }
 
-        UUID playerId = player.getUniqueId();
         if (playerId.version() == 4) {
             // UUID v4 = Mojang online UUID (online-mode server or proxy forwarding): compare directly.
             // Security relies on the backend port being firewalled to only accept proxy connections.
@@ -657,10 +659,10 @@ public class AsynchronousJoin implements AsynchronousProcess {
      *
      * @param player the player whose enrollment may be finalized
      * @param name the player's name, as reported to the proxy
+     * @param playerId the player's UUID, already resolved for this join
      * @return true if the enrollment was finalized and the player can bypass authentication
      */
-    private boolean tryFinalizePendingPremium(Player player, String name) {
-        UUID playerId = player.getUniqueId();
+    private boolean tryFinalizePendingPremium(Player player, String name, UUID playerId) {
         if (playerId.version() == 4) {
             // Atomic gate prevents double-finalization with concurrent validate().
             return finalizeWithProof(player, name, pendingPremiumCache.removePending(name), playerId);

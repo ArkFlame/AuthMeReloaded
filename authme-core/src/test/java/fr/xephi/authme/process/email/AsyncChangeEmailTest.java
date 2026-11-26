@@ -181,6 +181,19 @@ class AsyncChangeEmailTest {
     }
 
     @Test
+    void shouldSendUnloggedMessageWhenCacheEntryVanished() {
+        given(player.getName()).willReturn("Bobby");
+        given(playerCache.isAuthenticated("bobby")).willReturn(true);
+        given(playerCache.getAuth("bobby")).willReturn(null);
+        given(dataSource.isAuthAvailable("Bobby")).willReturn(true);
+
+        process.changeEmail(player, "old@mail.tld", "new@mail.tld");
+
+        verifyEmailNotUpdated();
+        verify(service).send(player, MessageKey.LOGIN_MESSAGE);
+    }
+
+    @Test
     void shouldNotChangeOnCancelledEvent() {
         String newEmail = "new@example.com";
         String oldEmail = "old@example.com";

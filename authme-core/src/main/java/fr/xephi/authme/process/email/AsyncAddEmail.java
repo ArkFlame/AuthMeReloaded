@@ -63,6 +63,11 @@ public class AsyncAddEmail implements AsynchronousProcess {
 
         if (playerCache.isAuthenticated(playerName)) {
             PlayerAuth auth = playerCache.getAuth(playerName);
+            if (auth == null) {
+                // The cache entry may have been removed while this async task was queued.
+                EmailProcessHelper.sendUnloggedMessage(service, dataSource, player);
+                return;
+            }
 
             if (!Utils.isEmailEmpty(auth.getEmail())) {
                 service.send(player, MessageKey.USAGE_CHANGE_EMAIL);

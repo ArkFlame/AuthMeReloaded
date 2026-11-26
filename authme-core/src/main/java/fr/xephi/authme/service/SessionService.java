@@ -61,11 +61,11 @@ public class SessionService implements Reloadable {
                 return false;
             }
             SessionState state = fetchSessionStatus(name, database.getAuth(name), PlayerUtils.getPlayerIp(player));
-            if (state.equals(SessionState.VALID)) {
+            if (state == SessionState.VALID) {
                 RestoreSessionEvent event = bukkitService.createAndCallEvent(
                     isAsync -> new RestoreSessionEvent(player, isAsync));
                 return !event.isCancelled();
-            } else if (state.equals(SessionState.IP_CHANGED)) {
+            } else if (state == SessionState.IP_CHANGED) {
                 service.send(player, MessageKey.SESSION_EXPIRED);
             }
         }
@@ -113,11 +113,7 @@ public class SessionService implements Reloadable {
         // cannot overflow, and treat a session created at the current instant as still valid.
         if (lastLogin >= 0 && lastLogin <= now
             && now - lastLogin < service.getProperty(PluginSettings.SESSIONS_TIMEOUT) * MILLIS_PER_MINUTE) {
-            if (ipAddress.equals(auth.getLastIp())) {
-                return SessionState.VALID;
-            } else {
-                return SessionState.IP_CHANGED;
-            }
+            return ipAddress.equals(auth.getLastIp()) ? SessionState.VALID : SessionState.IP_CHANGED;
         }
         return SessionState.OUTDATED;
     }

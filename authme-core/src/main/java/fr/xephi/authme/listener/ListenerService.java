@@ -75,12 +75,10 @@ public class ListenerService implements SettingsDependent {
             return false;
         }
         String name = player.getName();
-        if (validationService.isUnrestricted(name)
-            || playerCache.isAuthenticated(name)
-            || (!isRegistrationForced && !dataSource.isAuthAvailable(name))) {
-            return false;
-        }
-        return !PlayerUtils.isNpc(player);
+        return !validationService.isUnrestricted(name)
+            && !playerCache.isAuthenticated(name)
+            && (isRegistrationForced || dataSource.isAuthAvailable(name))
+            && !PlayerUtils.isNpc(player);
     }
 
     @Override

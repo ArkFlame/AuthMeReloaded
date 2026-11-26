@@ -90,6 +90,13 @@ public class AsyncChangePassword implements AsynchronousProcess {
 
         HashedPassword hashedPassword = passwordSecurity.computeHash(newPassword, lowerCaseName);
         if (dataSource.updatePassword(lowerCaseName, hashedPassword)) {
+            // Keep the live cache in sync for online players; getAuth() returns the cached auth object.
+            PlayerAuth auth = playerCache.getAuth(lowerCaseName);
+            if (auth != null) {
+                auth.setPassword(hashedPassword);
+                playerCache.updatePlayerIfPresent(auth);
+            }
+
             // TODO: send an update when a messaging service will be implemented (PASSWORD_CHANGED)
 
             if (sender != null) {

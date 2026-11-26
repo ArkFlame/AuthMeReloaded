@@ -51,11 +51,11 @@ public class PaperProxyAutoLoginListener implements Listener, PluginMessageListe
     @Override
     public void reload(Settings settings) {
         this.enabled = settings.getProperty(HooksSettings.BUNGEECORD);
-        Messenger messenger = plugin.getServer().getMessenger();
-        if (messenger == null) {
+        if (enabled == channelRegistered) {
             return;
         }
-        if (enabled == channelRegistered) {
+        Messenger messenger = plugin.getServer().getMessenger();
+        if (messenger == null) {
             return;
         }
         if (enabled) {
@@ -66,12 +66,9 @@ public class PaperProxyAutoLoginListener implements Listener, PluginMessageListe
         channelRegistered = enabled;
     }
 
-    /**
-     * Play-phase messages are handled by {@link BungeeReceiver}; nothing to do here.
-     */
     @Override
     public void onPluginMessageReceived(String channel, Player player, byte[] message) {
-        // no-op
+        // Play-phase messages are handled by BungeeReceiver
     }
 
     /**
@@ -85,9 +82,8 @@ public class PaperProxyAutoLoginListener implements Listener, PluginMessageListe
         }
         String name = bungeeReceiver.handleConfigPhasePerformLogin(message);
         if (name != null) {
-            // If the player is already blocked in the pre-join dialog, dismiss it (force-login on join).
-            // If the dialog has not been shown yet, the queued proxy session makes shouldSkipDialogs()
-            // skip it; PaperDialogFlowListener also re-checks that queue right after registering.
+            // Dismiss an already-shown dialog; otherwise the queued proxy session makes
+            // shouldSkipDialogs() skip it (PaperDialogFlowListener re-checks that queue too).
             preJoinDialogService.approvePreJoinForceLogin(name);
         }
     }

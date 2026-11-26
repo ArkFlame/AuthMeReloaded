@@ -95,11 +95,13 @@ public class ValidationService implements Reloadable {
      * @return true if the email is valid, false otherwise
      */
     public boolean validateEmail(String email) {
-        if (Utils.isEmailEmpty(email) || !isInsideString('@', email)) {
+        if (Utils.isEmailEmpty(email)) {
             return false;
         }
         int atIndex = email.indexOf('@');
-        if (atIndex != email.lastIndexOf('@') || !emailRegex.matcher(email).matches()) {
+        // Equivalent to isInsideString('@', email): the '@' must not be the first or last character
+        if (atIndex <= 0 || atIndex >= email.length() - 1
+            || atIndex != email.lastIndexOf('@') || !emailRegex.matcher(email).matches()) {
             return false;
         }
         final String emailDomain = email.substring(atIndex + 1);
@@ -188,8 +190,12 @@ public class ValidationService implements Reloadable {
     }
 
     private boolean matchesRestrictions(Collection<Pattern> restrictions, String ip, String domain) {
-        return restrictions.stream()
-            .anyMatch(restriction -> restriction.matcher(ip).matches() || restriction.matcher(domain).matches());
+        for (Pattern restriction : restrictions) {
+            if (restriction.matcher(ip).matches() || restriction.matcher(domain).matches()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @VisibleForTesting
@@ -218,7 +224,12 @@ public class ValidationService implements Reloadable {
     }
 
     private static boolean containsIgnoreCase(Collection<String> coll, String needle) {
-        return coll.stream().anyMatch(entry -> entry.equalsIgnoreCase(needle));
+        for (String entry : coll) {
+            if (entry.equalsIgnoreCase(needle)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

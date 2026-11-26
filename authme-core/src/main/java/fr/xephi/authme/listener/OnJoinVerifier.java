@@ -30,6 +30,7 @@ import java.net.InetAddress;
 import java.util.Collection;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -138,8 +139,9 @@ public class OnJoinVerifier implements Reloadable {
      * @throws FailedVerificationException if the verification fails
      */
     public void checkIsValidName(String name, UUID playerId) throws FailedVerificationException {
-        if (name.length() > settings.getProperty(RestrictionSettings.MAX_NICKNAME_LENGTH)
-            || name.length() < settings.getProperty(RestrictionSettings.MIN_NICKNAME_LENGTH)) {
+        int length = name.length();
+        if (length > settings.getProperty(RestrictionSettings.MAX_NICKNAME_LENGTH)
+            || length < settings.getProperty(RestrictionSettings.MIN_NICKNAME_LENGTH)) {
             throw new FailedVerificationException(MessageKey.INVALID_NAME_LENGTH);
         }
         if (!shouldSkipNicknameCharacterCheck(playerId) && !isValidName(name)) {
@@ -166,14 +168,19 @@ public class OnJoinVerifier implements Reloadable {
      * @return true if the name satisfies the configured pattern
      */
     private boolean isValidName(String name) {
-        if (nicknamePattern.matcher(name).matches()) {
+        Matcher matcher = nicknamePattern.matcher(name);
+        if (matcher.matches()) {
             return true;
         }
         if (name.isEmpty()) {
             return false;
         }
-        for (int i = 0; i < name.length(); ++i) {
-            if (!nicknamePattern.matcher(String.valueOf(name.charAt(i))).matches()) {
+        // Reuse the matcher and a small buffer instead of allocating a String and Matcher per character.
+        StringBuilder singleChar = new StringBuilder(1);
+        for (int i = 0, length = name.length(); i < length; ++i) {
+            singleChar.setLength(0);
+            singleChar.append(name.charAt(i));
+            if (!matcher.reset(singleChar).matches()) {
                 return false;
             }
         }

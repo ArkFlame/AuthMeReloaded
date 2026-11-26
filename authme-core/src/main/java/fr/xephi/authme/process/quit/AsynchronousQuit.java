@@ -81,10 +81,14 @@ public class AsynchronousQuit implements AsynchronousProcess {
      * @param player the player who left
      */
     public void processQuit(Player player) {
-        if (player == null || validationService.isUnrestricted(player.getName())) {
+        if (player == null) {
             return;
         }
-        String name = player.getName().toLowerCase(Locale.ROOT);
+        String realName = player.getName();
+        if (validationService.isUnrestricted(realName)) {
+            return;
+        }
+        String name = realName.toLowerCase(Locale.ROOT);
         teleportationService.clearOriginalJoinLocation(name);
         dialogStateService.clearDialogOpen(player);
         proxySessionManager.removeLoginRequest(name);
@@ -93,7 +97,7 @@ public class AsynchronousQuit implements AsynchronousProcess {
 
         try {
             if (wasLoggedIn) {
-                saveQuitState(player, name);
+                saveQuitState(player, realName, name);
             }
         } finally {
             //always unauthenticate the player - use session only for auto logins on the same ip
@@ -120,26 +124,26 @@ public class AsynchronousQuit implements AsynchronousProcess {
     /**
      * Starts a {@link PlayerAuth} with the identity shared by every quit-time database update.
      *
-     * @param player the player who left
+     * @param realName the player's name as reported by Bukkit
      * @param name the player's normalized name
      * @return a builder pre-filled with the name and real name
      */
-    private static PlayerAuth.Builder quitAuthBuilder(Player player, String name) {
-        return PlayerAuth.builder().name(name).realName(player.getName());
+    private static PlayerAuth.Builder quitAuthBuilder(String realName, String name) {
+        return PlayerAuth.builder().name(name).realName(realName);
     }
 
-    private void saveQuitState(Player player, String name) {
+    private void saveQuitState(Player player, String realName, String name) {
         if (service.getProperty(RestrictionSettings.SAVE_QUIT_LOCATION)) {
             try {
                 Location loc = spawnLoader.getPlayerLocationOrSpawn(player);
-                database.updateQuitLoc(quitAuthBuilder(player, name).location(loc).build());
+                database.updateQuitLoc(quitAuthBuilder(realName, name).location(loc).build());
             } catch (RuntimeException e) {
                 logger.warning("Could not save the quit location of '" + name + "': " + e.getMessage());
             }
         }
 
         String ip = PlayerUtils.getPlayerIp(player);
-        PlayerAuth auth = quitAuthBuilder(player, name)
+        PlayerAuth auth = quitAuthBuilder(realName, name)
             .lastIp(ip)
             .lastLogin(System.currentTimeMillis())
             .build();

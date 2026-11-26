@@ -190,13 +190,13 @@ public class LimboService {
      * @param player the auto-logged-in player
      */
     public void restoreSpeedsForAutoLogin(Player player) {
-        String lowerName = player.getName().toLowerCase(Locale.ROOT);
         LimboPlayer diskLimbo = persistence.getLimboPlayer(player);
         restoreSpeedStates(player, diskLimbo);
         if (diskLimbo != null) {
             // Disk limbo captured speeds before revokeLimboStates ran — restore from it
+            String lowerName = player.getName().toLowerCase(Locale.ROOT);
             logger.debug("Restored speeds from disk LimboPlayer for `{0}` during auto-login", lowerName);
-            doRestoreEntities(player, diskLimbo);
+            doRestoreEntities(player, diskLimbo, lowerName);
         }
         // The player is authenticated, so any in-memory limbo left over from the join flow must
         // be dropped as well: otherwise the entry and its scheduled tasks leak for the session.
@@ -378,7 +378,14 @@ public class LimboService {
     }
 
     private void doRestoreEntities(Player player, LimboPlayer limbo) {
-        String name = player.getName().toLowerCase(Locale.ROOT);
+        doRestoreEntities(player, limbo, null);
+    }
+
+    /**
+     * Restores entities using the given already-computed lower-case name, or computes it lazily
+     * when {@code name} is null and only after confirming there is anything to restore.
+     */
+    private void doRestoreEntities(Player player, LimboPlayer limbo, String name) {
         Map<UUID, EnderPearlRestoreData> pendingPearls = limbo.copyEnderPearlsByUuid();
         UUID vehicleUuid = limbo.getVehicleUuid();
         EntityType vehicleType = limbo.getVehicleType();
@@ -386,6 +393,7 @@ public class LimboService {
         if (pendingPearls.isEmpty() && vehicleUuid == null) {
             return;
         }
+        String playerName = name != null ? name : player.getName().toLowerCase(Locale.ROOT);
 
         int pearlTotal = pendingPearls.size();
         int pearlRestored = 0;
@@ -399,9 +407,8 @@ public class LimboService {
                     continue;
                 }
                 if (!pendingPearls.isEmpty() && entity instanceof EnderPearl
-                        && pendingPearls.containsKey(entity.getUniqueId())) {
+                        && pendingPearls.remove(entity.getUniqueId()) != null) {
                     ((EnderPearl) entity).setShooter(player);
-                    pendingPearls.remove(entity.getUniqueId());
                     pearlRestored++;
                 } else if (!vehicleDone
                         && vehicleUuid.equals(entity.getUniqueId())) {
@@ -414,12 +421,12 @@ public class LimboService {
             }
         }
 
-        int pearlRecreated = recreateMissingPearls(player, pendingPearls, name, recreateMissingPearls);
+        int pearlRecreated = recreateMissingPearls(player, pendingPearls, playerName, recreateMissingPearls);
 
         limbo.setEnderPearls(Collections.emptyList());
         limbo.setVehicle(null, null);
 
-        logEntityRestoreResult(name, pearlRestored, pearlTotal, pearlRecreated,
+        logEntityRestoreResult(playerName, pearlRestored, pearlTotal, pearlRecreated,
             vehicleUuid, vehicleType, vehicleDone);
     }
 

@@ -173,10 +173,8 @@ public abstract class AbstractPaperPlatformAdapter extends AbstractSpigotPlatfor
      * @return the compatibility error, or {@code null} when all classes are present
      */
     protected final String getPaperCompatibilityError(String errorMessage, String... platformClasses) {
-        String[] requiredClasses = new String[platformClasses.length + PAPER_API_CLASSES.length];
-        System.arraycopy(platformClasses, 0, requiredClasses, 0, platformClasses.length);
-        System.arraycopy(PAPER_API_CLASSES, 0, requiredClasses, platformClasses.length, PAPER_API_CLASSES.length);
-        return getCompatibilityError(errorMessage, requiredClasses);
+        String platformError = getCompatibilityError(errorMessage, platformClasses);
+        return platformError != null ? platformError : getCompatibilityError(errorMessage, PAPER_API_CLASSES);
     }
 
     @Override

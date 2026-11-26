@@ -29,7 +29,6 @@ public final class RegistrationMethod<P extends RegistrationParameters> {
     public static final RegistrationMethod<ApiPasswordRegisterParams> API_REGISTRATION =
         new RegistrationMethod<>(ApiPasswordRegisterExecutor.class);
 
-
     private final Class<? extends RegistrationExecutor<P>> executorClass;
 
     private RegistrationMethod(Class<? extends RegistrationExecutor<P>> executorClass) {
