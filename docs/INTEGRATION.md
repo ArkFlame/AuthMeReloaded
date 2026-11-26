@@ -48,7 +48,7 @@ permissions are unchanged; only display name/author/jar names are rebranded.
 | 3156 | feature | fixed: opt-in e-mail recovery dialogs (code, then new password) delegating to existing recovery services (expiry, cooldown, privacy, chat fallback kept); EmailRecoveryDialogServiceTest | this batch |
 | 3056 | feature | force e-mail verification: HaHaWTH `unregisterOnEmailVerificationFailure` port covers the sound part | `RegisterCommandTest` |
 | 3142 | invalid | online-count on proxy is a proxy-plugin concern, out of scope | - |
-| 3126 | bug | root cause evidenced by Velocity3126Test: proxy forwards the offline UUID and skin properties correctly; the client identity mismatch comes from forceOnlineMode (Mojang session UUID), which is also the premium proof. Removing it would weaken authentication, so no code change; documented limitation | evidence in test |
+| 3126 | bug (documented limitation; design in docs/triage/3126-design.md, NO-GO: no Velocity hook for offline-mode crypto verification) | root cause evidenced by Velocity3126Test: proxy forwards the offline UUID and skin properties correctly; the client identity mismatch comes from forceOnlineMode (Mojang session UUID), which is also the premium proof. Removing it would weaken authentication, so no code change; documented limitation | evidence in test |
 | 3152 | invalid | concerns the unrelated OutMe plugin | - |
 | 3117 | feature | fixed: opt-in settings.premium.autoRegister, verified identity only, existing accounts untouched (PremiumAutoRegisterServiceTest) | this batch |
 | 3100 | feature | fixed: cancellable PreJoinDialogEvent in authme-api, fired by PaperDialogFlowListener (PreJoinDialogEventTest) | this batch |
