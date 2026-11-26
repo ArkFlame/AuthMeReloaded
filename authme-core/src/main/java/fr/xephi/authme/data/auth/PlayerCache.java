@@ -1,16 +1,23 @@
 package fr.xephi.authme.data.auth;
 
 
+import java.util.Collections;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
- * Used to manage player's Authenticated status
+ * Used to manage player's Authenticated status.
+ *
+ * <p>All access goes through a concurrent map, so reads and updates from async tasks are safe.
+ * The map is never handed out for mutation: callers get a shared read-only view instead.</p>
  */
 public class PlayerCache {
 
-    private final Map<String, PlayerAuth> cache = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, PlayerAuth> cache = new ConcurrentHashMap<>();
+    // One wrapper for the lifetime of the cache rather than a new one (or a full copy) per getCache() call.
+    private final Map<String, PlayerAuth> readOnlyCache = Collections.unmodifiableMap(cache);
 
     PlayerCache() {
     }
@@ -78,12 +85,12 @@ public class PlayerCache {
     }
 
     /**
-     * Returns the player cache data.
+     * Returns the player cache data as a read-only view.
      *
      * @return all player auths inside the player cache
      */
     public Map<String, PlayerAuth> getCache() {
-        return this.cache;
+        return readOnlyCache;
     }
 
 }

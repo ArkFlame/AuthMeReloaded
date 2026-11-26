@@ -7,11 +7,7 @@ import org.bukkit.command.CommandSender;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-
-import static fr.xephi.authme.util.Utils.logAndSendMessage;
 
 /**
  * Base class for converters that read from an external plugin's SQLite database file.
@@ -57,13 +53,6 @@ abstract class AbstractSqlitePluginConverter implements Converter {
      */
     protected void queryAndImport(File dbFile, CommandSender sender, String query, String pluginName,
                                   ConsoleLogger logger, ResultSetImporter importer) {
-        try (Connection conn = openConnection(dbFile);
-             PreparedStatement ps = conn.prepareStatement(query);
-             ResultSet rs = ps.executeQuery()) {
-            importer.importRows(rs);
-        } catch (SQLException e) {
-            logAndSendMessage(sender, pluginName + " conversion failed: " + e.getMessage());
-            logger.logException(pluginName + " conversion error:", e);
-        }
+        ConverterUtils.runQuery(() -> openConnection(dbFile), sender, query, pluginName, logger, importer);
     }
 }

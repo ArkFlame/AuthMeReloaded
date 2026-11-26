@@ -10,7 +10,6 @@ import org.bukkit.command.CommandSender;
 import java.io.File;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Locale;
 
 import static fr.xephi.authme.util.Utils.logAndSendMessage;
 
@@ -70,10 +69,10 @@ abstract class AbstractLibrePremiumConverter implements Converter {
         long skipped = 0;
         while (rs.next()) {
             String realName = rs.getString("last_nickname");
-            if (realName == null || realName.isEmpty()) {
+            String name = ConverterUtils.toLowerCaseOrNull(realName);
+            if (name == null) {
                 continue;
             }
-            String name = realName.toLowerCase(Locale.ROOT);
 
             if (dataSource.isAuthAvailable(name)) {
                 ++skipped;

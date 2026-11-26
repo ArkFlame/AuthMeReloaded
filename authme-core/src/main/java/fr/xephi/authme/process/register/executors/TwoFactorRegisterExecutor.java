@@ -1,14 +1,11 @@
 package fr.xephi.authme.process.register.executors;
 
-import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.security.crypts.TwoFactor;
 import fr.xephi.authme.service.CommonService;
 import org.bukkit.Bukkit;
 
 import javax.inject.Inject;
-
-import static fr.xephi.authme.process.register.executors.PlayerAuthBuilderHelper.createPlayerAuth;
 
 /**
  * Executor for two-factor registration.
@@ -22,11 +19,6 @@ class TwoFactorRegisterExecutor extends AbstractPasswordRegisterExecutor<TwoFact
     public boolean isRegistrationAdmitted(TwoFactorRegisterParams params) {
         // nothing to check
         return true;
-    }
-
-    @Override
-    protected PlayerAuth createPlayerAuthObject(TwoFactorRegisterParams params) {
-        return createPlayerAuth(params.getPlayer(), params.getHashedPassword(), null);
     }
 
     @Override

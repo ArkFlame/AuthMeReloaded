@@ -70,8 +70,7 @@ public class TiAuthConverter extends AbstractYamlPluginConverter {
 
     @Override
     protected String getName(ResultSet rs) throws SQLException {
-        String realName = rs.getString("realName");
-        return realName == null || realName.isEmpty() ? null : realName.toLowerCase(Locale.ROOT);
+        return ConverterUtils.toLowerCaseOrNull(rs.getString("realName"));
     }
 
     @Override

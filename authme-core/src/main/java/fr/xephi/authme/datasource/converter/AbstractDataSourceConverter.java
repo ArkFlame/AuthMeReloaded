@@ -37,6 +37,13 @@ public abstract class AbstractDataSourceConverter<S extends DataSource> implemen
         this.destinationType = destinationType;
     }
 
+    /**
+     * @return the configured destination type
+     */
+    protected DataSourceType getDestinationType() {
+        return destinationType;
+    }
+
     // Implementation note: Because of ForceFlatToSqlite it is possible that the CommandSender is null,
     // which is never the case when a converter is launched from the /authme converter command.
     @Override

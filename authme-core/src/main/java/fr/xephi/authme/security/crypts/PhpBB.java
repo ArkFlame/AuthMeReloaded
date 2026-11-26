@@ -92,10 +92,6 @@ public class PhpBB implements EncryptionMethod {
             return buf.toString();
         }
 
-        private static String _hash_encode64(String input, int count) {
-            return PhpassCodec.encode64(input::charAt, count);
-        }
-
         private static String _hash_crypt_private(String password, String setting) {
             String output = "*";
             if (!setting.substring(0, 3).equals("$H$"))
@@ -113,7 +109,7 @@ public class PhpBB implements EncryptionMethod {
                 hash = pack(md5(hash + password));
             } while (--count > 0);
             output = setting.substring(0, 12);
-            output += _hash_encode64(hash, 16);
+            output += PhpassCodec.encode64(hash::charAt, 16);
             return output;
         }
 

@@ -9,8 +9,8 @@ import tools.utils.InjectorUtils;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
  */
 public class CheckTestMocks implements AutoToolTask {
 
-    private List<String> errors = new ArrayList<>();
+    private final List<String> errors = new ArrayList<>();
 
     @Override
     public String getTaskName() {
@@ -64,13 +64,10 @@ public class CheckTestMocks implements AutoToolTask {
     }
 
     private static Set<Class<?>> getMocks(Class<?> clazz) {
-        Set<Class<?>> result = new HashSet<>();
-        for (Field field : clazz.getDeclaredFields()) {
-            if (field.isAnnotationPresent(Mock.class)) {
-                result.add(field.getType());
-            }
-        }
-        return result;
+        return Arrays.stream(clazz.getDeclaredFields())
+            .filter(field -> field.isAnnotationPresent(Mock.class))
+            .map(Field::getType)
+            .collect(Collectors.toSet());
     }
 
     /**
@@ -96,12 +93,7 @@ public class CheckTestMocks implements AutoToolTask {
     }
 
     private static boolean isTestClassWithMocks(Class<?> clazz) {
-        for (Field field : clazz.getDeclaredFields()) {
-            if (field.isAnnotationPresent(Mock.class)) {
-                return true;
-            }
-        }
-        return false;
+        return Arrays.stream(clazz.getDeclaredFields()).anyMatch(field -> field.isAnnotationPresent(Mock.class));
     }
 
     private static String formatClassList(Collection<Class<?>> coll) {

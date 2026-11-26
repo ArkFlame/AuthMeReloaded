@@ -89,8 +89,7 @@ public class TwoFactor extends UnsaltedMethod {
 
         // Window is used to check codes generated in the near past.
         // You can use this value to tune how far you're willing to go.
-        int window = TIME_PRECISION;
-        for (int i = -window; i <= window; ++i) {
+        for (int i = -TIME_PRECISION; i <= TIME_PRECISION; ++i) {
             long hash = verifyCode(decodedKey, t + i);
 
             if (hash == code) {

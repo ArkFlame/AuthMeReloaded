@@ -56,11 +56,17 @@ public class CommandMapper {
         List<String> remainingParts = parts.subList(1, parts.size());
         CommandDescription childCommand = getSuitableChild(base, remainingParts);
         if (childCommand != null) {
-            FoundCommandResult result = createResult(sender, childCommand,
-                parts.subList(0, 2), parts.subList(2, parts.size()));
-            return transformResultForHelp(result);
+            List<String> labels = parts.subList(0, 2);
+            List<String> arguments = parts.subList(2, parts.size());
+            if (HELP_COMMAND_CLASS == childCommand.getExecutableCommand()) {
+                // For "/authme help register" the arguments are [register], but the help command needs
+                // [authme, register] so that it can use the arguments as the path of the command to explain.
+                arguments = new ArrayList<>(arguments);
+                arguments.add(0, labels.get(0));
+            }
+            return createResult(sender, childCommand, labels, arguments);
         } else if (hasSuitableArgumentCount(base, remainingParts.size())) {
-            return createResult(sender, base, parts.subList(0, 1), parts.subList(1, parts.size()));
+            return createResult(sender, base, parts.subList(0, 1), remainingParts);
         }
 
         return getCommandWithSmallestDifference(base, parts);
@@ -120,16 +126,14 @@ public class CommandMapper {
     }
 
     private CommandDescription getBaseCommand(String label) {
-        String baseLabel = label.toLowerCase(Locale.ROOT);
-        if (baseLabel.startsWith("authme:")) {
-            baseLabel = baseLabel.substring("authme:".length());
-        }
-        for (CommandDescription command : baseCommands) {
-            if (command.hasLabel(baseLabel)) {
-                return command;
-            }
-        }
-        return null;
+        String lowerLabel = label.toLowerCase(Locale.ROOT);
+        final String baseLabel = lowerLabel.startsWith("authme:")
+            ? lowerLabel.substring("authme:".length())
+            : lowerLabel;
+        return baseCommands.stream()
+            .filter(command -> command.hasLabel(baseLabel))
+            .findFirst()
+            .orElse(null);
     }
 
     /**
@@ -150,38 +154,18 @@ public class CommandMapper {
         final String label = parts.get(0).toLowerCase(Locale.ROOT);
         final int argumentCount = parts.size() - 1;
 
-        for (CommandDescription child : baseCommand.getChildren()) {
-            if (child.hasLabel(label) && hasSuitableArgumentCount(child, argumentCount)) {
-                return child;
-            }
-        }
-        return null;
-    }
-
-    private static FoundCommandResult transformResultForHelp(FoundCommandResult result) {
-        if (result.getCommandDescription() != null
-            && HELP_COMMAND_CLASS == result.getCommandDescription().getExecutableCommand()) {
-            // For "/authme help register" we have labels = [authme, help] and arguments = [register]
-            // But for the help command we want labels = [authme, help] and arguments = [authme, register],
-            // so we can use the arguments as the labels to the command to show help for
-            List<String> arguments = new ArrayList<>(result.getArguments());
-            arguments.add(0, result.getLabels().get(0));
-            return new FoundCommandResult(result.getCommandDescription(), result.getLabels(),
-                arguments, result.getDifference(), result.getResultStatus());
-        }
-        return result;
+        return baseCommand.getChildren().stream()
+            .filter(child -> child.hasLabel(label) && hasSuitableArgumentCount(child, argumentCount))
+            .findFirst()
+            .orElse(null);
     }
 
     private FoundCommandResult createResult(CommandSender sender, CommandDescription command,
                                             List<String> labels, List<String> arguments) {
-        return new FoundCommandResult(command, labels, arguments, 0.0, getPermissionAwareStatus(sender, command));
-    }
-
-    private FoundResultStatus getPermissionAwareStatus(CommandSender sender, CommandDescription command) {
-        if (sender != null && !permissionsManager.hasPermission(sender, command.getPermission())) {
-            return FoundResultStatus.NO_PERMISSION;
-        }
-        return FoundResultStatus.SUCCESS;
+        FoundResultStatus status = sender != null && !permissionsManager.hasPermission(sender, command.getPermission())
+            ? FoundResultStatus.NO_PERMISSION
+            : FoundResultStatus.SUCCESS;
+        return new FoundCommandResult(command, labels, arguments, 0.0, status);
     }
 
     private static boolean hasSuitableArgumentCount(CommandDescription command, int argumentCount) {

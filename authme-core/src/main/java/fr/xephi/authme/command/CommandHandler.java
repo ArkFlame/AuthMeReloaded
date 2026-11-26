@@ -127,9 +127,17 @@ public class CommandHandler {
      * @param result The mapped result
      */
     private void executeCommand(CommandSender sender, FoundCommandResult result) {
-        ExecutableCommand executableCommand = commands.get(result.getCommandDescription().getExecutableCommand());
-        List<String> arguments = result.getArguments();
-        executableCommand.executeCommand(sender, arguments);
+        getExecutableCommand(result).executeCommand(sender, result.getArguments());
+    }
+
+    /**
+     * Returns the {@link ExecutableCommand} instance for the command of the given mapping result.
+     *
+     * @param result the command mapping result
+     * @return the executable command
+     */
+    private ExecutableCommand getExecutableCommand(FoundCommandResult result) {
+        return commands.get(result.getCommandDescription().getExecutableCommand());
     }
 
     /**
@@ -170,8 +178,7 @@ public class CommandHandler {
             return;
         }
 
-        ExecutableCommand executableCommand = commands.get(command.getExecutableCommand());
-        MessageKey usageMessage = executableCommand.getArgumentsMismatchMessage();
+        MessageKey usageMessage = getExecutableCommand(result).getArgumentsMismatchMessage();
         if (usageMessage == null) {
             showHelpForCommand(sender, result);
         } else {
@@ -185,7 +192,7 @@ public class CommandHandler {
 
         List<String> labels = result.getLabels();
         String childLabel = labels.size() >= 2 ? labels.get(1) : "";
-        String cmdPath = childLabel.isEmpty() ? labels.get(0) + " help" : labels.get(0) + " help " + childLabel;
+        String cmdPath = labels.get(0) + " help" + (childLabel.isEmpty() ? "" : " " + childLabel);
         messages.send(sender, MessageKey.COMMAND_DETAILED_HELP, cmdPath);
     }
 }

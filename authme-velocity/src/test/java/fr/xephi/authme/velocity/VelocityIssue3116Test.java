@@ -11,7 +11,6 @@ import org.mockito.ArgumentCaptor;
 import org.slf4j.Logger;
 
 import java.util.List;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -41,7 +40,7 @@ class VelocityIssue3116Test {
             .willReturn(false, true);
 
         VelocityProxyBridge bridge = new VelocityProxyBridge(proxyServer, logger,
-            createConfiguration(), new VelocityAuthenticationStore(), null);
+            ProxyTestFixtures.configuration(true, false), new VelocityAuthenticationStore(), null);
         try {
             bridge.registerChannels();
 
@@ -54,11 +53,5 @@ class VelocityIssue3116Test {
         } finally {
             bridge.shutdown();
         }
-    }
-
-    private static VelocityProxyConfiguration createConfiguration() {
-        return new VelocityProxyConfiguration(Set.of("lobby"), false, true,
-            "Authentication required.", true, false, "", true,
-            Set.of("/login"), true, "", "test-secret", false);
     }
 }

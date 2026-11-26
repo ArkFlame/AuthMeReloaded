@@ -77,7 +77,7 @@ public class PreJoinDialogEvent extends AbstractCancellableEvent {
     /**
      * Return the name of the player the dialog is for.
      *
-     * @return the name of the player the dialog is for
+     * @return the name of the player the dialog is for, never {@code null}
      */
     public String getPlayerName() {
         return playerName;
@@ -120,7 +120,9 @@ public class PreJoinDialogEvent extends AbstractCancellableEvent {
     }
 
     /**
-     * @return the dialog AuthMe is about to show
+     * Return which dialog AuthMe is about to show.
+     *
+     * @return the dialog AuthMe is about to show, never {@code null}
      */
     public DialogType getDialogType() {
         return dialogType;
@@ -136,6 +138,8 @@ public class PreJoinDialogEvent extends AbstractCancellableEvent {
     }
 
     /**
+     * Return whether the player has a registered account, which determines the dialog type.
+     *
      * @return {@code true} for a login dialog, {@code false} for a registration dialog
      */
     public boolean isRegistered() {

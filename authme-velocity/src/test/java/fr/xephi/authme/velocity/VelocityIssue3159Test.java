@@ -1,7 +1,5 @@
 package fr.xephi.authme.velocity;
 
-import com.google.common.io.ByteArrayDataOutput;
-import com.google.common.io.ByteStreams;
 import com.velocitypowered.api.event.connection.PluginMessageEvent;
 import com.velocitypowered.api.event.player.PlayerChatEvent;
 import com.velocitypowered.api.proxy.Player;
@@ -13,7 +11,6 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 
 import java.util.Optional;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -41,7 +38,7 @@ class VelocityIssue3159Test {
         given(event.getResult()).willReturn(PluginMessageEvent.ForwardResult.forward());
         given(event.getIdentifier()).willReturn(VelocityProxyBridge.AUTHME_CHANNEL);
         given(event.getSource()).willReturn(source);
-        given(event.getData()).willReturn(createMessage("perform.login.ack", "Alice"));
+        given(event.getData()).willReturn(ProxyTestFixtures.message("perform.login.ack", "Alice"));
         given(source.getServer()).willReturn(authServer);
         given(authServer.getServerInfo()).willReturn(serverInfo);
         given(serverInfo.getName()).willReturn("lobby");
@@ -51,7 +48,7 @@ class VelocityIssue3159Test {
         given(currentServer.getServer()).willReturn(authServer);
 
         VelocityProxyBridge bridge = new VelocityProxyBridge(
-            proxyServer, logger, createConfiguration(true), store, null);
+            proxyServer, logger, ProxyTestFixtures.configuration(true, false), store, null);
         bridge.onPluginMessage(event);
 
         assertTrue(store.isAuthenticated("Alice"), "the ACK must mark the auto-logged-in player authenticated");
@@ -73,28 +70,15 @@ class VelocityIssue3159Test {
         given(event.getResult()).willReturn(PluginMessageEvent.ForwardResult.forward());
         given(event.getIdentifier()).willReturn(VelocityProxyBridge.AUTHME_CHANNEL);
         given(event.getSource()).willReturn(source);
-        given(event.getData()).willReturn(createMessage("perform.login.ack", "Alice"));
+        given(event.getData()).willReturn(ProxyTestFixtures.message("perform.login.ack", "Alice"));
         given(source.getServer()).willReturn(authServer);
         given(authServer.getServerInfo()).willReturn(serverInfo);
         given(serverInfo.getName()).willReturn("lobby");
 
         VelocityProxyBridge bridge = new VelocityProxyBridge(
-            proxyServer, logger, createConfiguration(false), store, null);
+            proxyServer, logger, ProxyTestFixtures.configuration(false, false), store, null);
         bridge.onPluginMessage(event);
 
         assertFalse(store.isAuthenticated("Alice"));
-    }
-
-    private static byte[] createMessage(String typeId, String playerName) {
-        ByteArrayDataOutput output = ByteStreams.newDataOutput();
-        output.writeUTF(typeId);
-        output.writeUTF(playerName);
-        return output.toByteArray();
-    }
-
-    private static VelocityProxyConfiguration createConfiguration(boolean autoLogin) {
-        return new VelocityProxyConfiguration(Set.of("lobby"), false, true,
-            "Authentication required.", autoLogin, false, "", true,
-            Set.of("/login"), true, "", "test-secret", false);
     }
 }

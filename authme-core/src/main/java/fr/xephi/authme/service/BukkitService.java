@@ -450,7 +450,7 @@ public class BukkitService implements SettingsDependent {
      * @param bytes the message
      */
     public void sendBungeeMessage(Player player, byte[] bytes) {
-        player.sendPluginMessage(authMe, "BungeeCord", bytes);
+        sendPluginMessage(player, "BungeeCord", bytes);
     }
 
     /**
@@ -460,7 +460,11 @@ public class BukkitService implements SettingsDependent {
      * @param bytes the message
      */
     public void sendAuthMePluginMessage(Player player, byte[] bytes) {
-        player.sendPluginMessage(authMe, "authme:main", bytes);
+        sendPluginMessage(player, "authme:main", bytes);
+    }
+
+    private void sendPluginMessage(Player player, String channel, byte[] bytes) {
+        player.sendPluginMessage(authMe, channel, bytes);
     }
 
     /**

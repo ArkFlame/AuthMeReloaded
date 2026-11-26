@@ -32,7 +32,7 @@ public abstract class AbstractTeleportEvent extends AbstractCancellableEvent {
     /**
      * Return the player planned to be teleported.
      *
-     * @return The player
+     * @return The player, never {@code null}
      */
     public Player getPlayer() {
         return player;
@@ -42,7 +42,7 @@ public abstract class AbstractTeleportEvent extends AbstractCancellableEvent {
      * Return the location the player is being teleported away from.
      * The location is captured when the event is created; treat it as read-only.
      *
-     * @return The location prior to the teleport
+     * @return The location prior to the teleport, never {@code null}
      */
     public Location getFrom() {
         return from;

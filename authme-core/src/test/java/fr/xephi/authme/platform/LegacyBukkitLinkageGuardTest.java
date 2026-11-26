@@ -217,12 +217,7 @@ class LegacyBukkitLinkageGuardTest {
             if (ref.className != null && ref.className.contains(substring)) {
                 fail("Unexpected Methodref/Fieldref class containing '" + substring + "': " + ref);
             }
-            if (ref.name != null && ref.name.contains(substring)) {
-                // narrow: only fail if class also looks like Bukkit event type
-                // but for generic guard we flag any ref whose class contains the event name
-            }
         }
-        // also check that no className + event substring combo appears as separate pools
     }
 
     private static BytecodeInfo parse(Class<?> clazz) throws IOException {
@@ -253,7 +248,6 @@ class LegacyBukkitLinkageGuardTest {
 
         Map<Integer, String> utf8Map = new HashMap<>();
         Map<Integer, Integer> classNameIndex = new HashMap<>();
-        Map<Integer, Integer> stringIndex = new HashMap<>();
         List<int[]> fieldMethodRefs = new ArrayList<>(); // tag, classIdx, natIdx
         Map<Integer, int[]> nameAndTypeMap = new HashMap<>();
 
@@ -275,12 +269,9 @@ class LegacyBukkitLinkageGuardTest {
                     pos += 2;
                     break;
                 }
-                case 8: { // String
-                    int strIdx = ((b[pos] & 0xFF) << 8) | (b[pos + 1] & 0xFF);
-                    stringIndex.put(i, strIdx);
+                case 8: // String: content is already in the Utf8 pool
                     pos += 2;
                     break;
-                }
                 case 9: // Fieldref
                 case 10: // Methodref
                 case 11: { // InterfaceMethodref
@@ -330,14 +321,6 @@ class LegacyBukkitLinkageGuardTest {
 
         Set<String> utf8Values = new HashSet<>(utf8Map.values());
 
-        Set<String> stringConstants = new HashSet<>();
-        for (Map.Entry<Integer, Integer> e : stringIndex.entrySet()) {
-            String s = utf8Map.get(e.getValue());
-            if (s != null) {
-                stringConstants.add(s);
-            }
-        }
-
         List<MemberRef> memberRefs = new ArrayList<>();
         for (int[] ref : fieldMethodRefs) {
             int classIdx = ref[1];
@@ -354,22 +337,20 @@ class LegacyBukkitLinkageGuardTest {
             memberRefs.add(new MemberRef(className, name, desc, ref[0]));
         }
 
-        return new BytecodeInfo(major, utf8Values, classNames, stringConstants, memberRefs);
+        return new BytecodeInfo(major, utf8Values, classNames, memberRefs);
     }
 
     private static final class BytecodeInfo {
         final int majorVersion;
         final Set<String> utf8Values;
         final Set<String> classNames;
-        final Set<String> stringConstants;
         final List<MemberRef> memberRefs;
 
         BytecodeInfo(int majorVersion, Set<String> utf8Values, Set<String> classNames,
-                     Set<String> stringConstants, List<MemberRef> memberRefs) {
+                     List<MemberRef> memberRefs) {
             this.majorVersion = majorVersion;
             this.utf8Values = utf8Values;
             this.classNames = classNames;
-            this.stringConstants = stringConstants;
             this.memberRefs = memberRefs;
         }
     }

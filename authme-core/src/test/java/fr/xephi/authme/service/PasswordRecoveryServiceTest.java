@@ -197,7 +197,6 @@ class PasswordRecoveryServiceTest {
         // when
         recoveryService.removeFromSuccessfulRecovery(other);
 
-
         // then
         assertThat(recoveryService.canChangePassword(bobby), equalTo(true));
         assertThat(recoveryService.canChangePassword(other), equalTo(false));

@@ -3,8 +3,9 @@ package fr.xephi.authme.listener;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -26,68 +27,36 @@ class BlockListenerTest {
     @Mock
     private ListenerService listenerService;
 
-    @Test
-    void shouldAllowPlaceEvent() {
-        // given
+    @ParameterizedTest(name = "block place, shouldCancel={0}")
+    @ValueSource(booleans = {false, true})
+    void shouldHandlePlaceEvent(boolean shouldCancel) {
         Player player = mock(Player.class);
         BlockPlaceEvent event = mock(BlockPlaceEvent.class);
         given(event.getPlayer()).willReturn(player);
-        given(listenerService.shouldCancelEvent(player)).willReturn(false);
+        given(listenerService.shouldCancelEvent(player)).willReturn(shouldCancel);
 
-        // when
         listener.onBlockPlace(event);
 
-        // then
+        if (shouldCancel) {
+            verify(event).setCancelled(true);
+        }
         verify(event).getPlayer();
         verifyNoMoreInteractions(event);
     }
 
-    @Test
-    void shouldDenyPlaceEvent() {
-        // given
-        Player player = mock(Player.class);
-        BlockPlaceEvent event = mock(BlockPlaceEvent.class);
-        given(event.getPlayer()).willReturn(player);
-        given(listenerService.shouldCancelEvent(player)).willReturn(true);
-
-        // when
-        listener.onBlockPlace(event);
-
-        // then
-        verify(event).setCancelled(true);
-        verify(event).getPlayer();
-        verifyNoMoreInteractions(event);
-    }
-
-    @Test
-    void shouldAllowBreakEvent() {
-        // given
+    @ParameterizedTest(name = "block break, shouldCancel={0}")
+    @ValueSource(booleans = {false, true})
+    void shouldHandleBreakEvent(boolean shouldCancel) {
         Player player = mock(Player.class);
         BlockBreakEvent event = mock(BlockBreakEvent.class);
         given(event.getPlayer()).willReturn(player);
-        given(listenerService.shouldCancelEvent(player)).willReturn(false);
+        given(listenerService.shouldCancelEvent(player)).willReturn(shouldCancel);
 
-        // when
         listener.onBlockBreak(event);
 
-        // then
-        verify(event).getPlayer();
-        verifyNoMoreInteractions(event);
-    }
-
-    @Test
-    void shouldDenyBreakEvent() {
-        // given
-        Player player = mock(Player.class);
-        BlockBreakEvent event = mock(BlockBreakEvent.class);
-        given(event.getPlayer()).willReturn(player);
-        given(listenerService.shouldCancelEvent(player)).willReturn(true);
-
-        // when
-        listener.onBlockBreak(event);
-
-        // then
-        verify(event).setCancelled(true);
+        if (shouldCancel) {
+            verify(event).setCancelled(true);
+        }
         verify(event).getPlayer();
         verifyNoMoreInteractions(event);
     }

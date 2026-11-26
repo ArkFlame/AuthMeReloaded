@@ -22,26 +22,26 @@ public class EntityListener extends AbstractCancelListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onDamage(EntityDamageEvent event) {
-        if (getListenerService().shouldCancelEvent(event)) {
+        boolean shouldCancel = getListenerService().shouldCancelEvent(event);
+        if (shouldCancel) {
             event.getEntity().setFireTicks(0);
             event.setDamage(0);
-            event.setCancelled(true);
         }
+        cancelEvent(shouldCancel, event);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onAttack(EntityDamageByEntityEvent event) {
-        if (getListenerService().shouldCancelEvent(event.getDamager())) {
-            event.setCancelled(true);
-        }
+        cancelIfUnauthorized(event.getDamager(), event);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onEntityTarget(EntityTargetEvent event) {
-        if (getListenerService().shouldCancelEvent(event.getTarget())) {
+        boolean shouldCancel = getListenerService().shouldCancelEvent(event.getTarget());
+        if (shouldCancel) {
             event.setTarget(null);
-            event.setCancelled(true);
         }
+        cancelEvent(shouldCancel, event);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
@@ -51,10 +51,11 @@ public class EntityListener extends AbstractCancelListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void entityRegainHealthEvent(EntityRegainHealthEvent event) {
-        if (getListenerService().shouldCancelEvent(event)) {
+        boolean shouldCancel = getListenerService().shouldCancelEvent(event);
+        if (shouldCancel) {
             event.setAmount(0);
-            event.setCancelled(true);
         }
+        cancelEvent(shouldCancel, event);
     }
 
     // Both priorities are needed: the LOWEST handler blocks early, the HIGHEST one
@@ -74,8 +75,8 @@ public class EntityListener extends AbstractCancelListener implements Listener {
         final Projectile projectile = event.getEntity();
 
         ProjectileSource shooter = projectile.getShooter();
-        if (shooter instanceof Player && getListenerService().shouldCancelEvent((Player) shooter)) {
-            event.setCancelled(true);
+        if (shooter instanceof Player) {
+            cancelIfUnauthorized((Player) shooter, event);
         }
     }
 
@@ -86,22 +87,16 @@ public class EntityListener extends AbstractCancelListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onHangingBreakByEntity(HangingBreakByEntityEvent event) {
-        if (getListenerService().shouldCancelEvent(event.getRemover())) {
-            event.setCancelled(true);
-        }
+        cancelIfUnauthorized(event.getRemover(), event);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onVehicleDamage(VehicleDamageEvent event) {
-        if (getListenerService().shouldCancelEvent(event.getAttacker())) {
-            event.setCancelled(true);
-        }
+        cancelIfUnauthorized(event.getAttacker(), event);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onVehicleDestroy(VehicleDestroyEvent event) {
-        if (getListenerService().shouldCancelEvent(event.getAttacker())) {
-            event.setCancelled(true);
-        }
+        cancelIfUnauthorized(event.getAttacker(), event);
     }
 }

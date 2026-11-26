@@ -11,7 +11,6 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import javax.inject.Inject;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Locale;
 import java.util.UUID;
 
 /**
@@ -55,8 +54,7 @@ public class NLoginConverter extends AbstractYamlPluginConverter {
 
     @Override
     protected String getName(ResultSet rs) throws SQLException {
-        String realName = rs.getString("last_name");
-        return realName == null || realName.isEmpty() ? null : realName.toLowerCase(Locale.ROOT);
+        return ConverterUtils.toLowerCaseOrNull(rs.getString("last_name"));
     }
 
     @Override

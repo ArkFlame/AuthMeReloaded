@@ -6,11 +6,7 @@ import fr.xephi.authme.datasource.SqlConnectionSource;
 import org.bukkit.command.CommandSender;
 
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-
-import static fr.xephi.authme.util.Utils.logAndSendMessage;
 
 /**
  * Base class for converters that read from an external plugin's MySQL/MariaDB table.
@@ -55,13 +51,6 @@ abstract class AbstractSqlPluginConverter implements Converter {
      */
     protected void queryAndImport(CommandSender sender, String query, String pluginName,
                                   ConsoleLogger logger, ResultSetImporter importer) {
-        try (Connection conn = openConnection();
-             PreparedStatement ps = conn.prepareStatement(query);
-             ResultSet rs = ps.executeQuery()) {
-            importer.importRows(rs);
-        } catch (SQLException e) {
-            logAndSendMessage(sender, pluginName + " conversion failed: " + e.getMessage());
-            logger.logException(pluginName + " conversion error:", e);
-        }
+        ConverterUtils.runQuery(this::openConnection, sender, query, pluginName, logger, importer);
     }
 }

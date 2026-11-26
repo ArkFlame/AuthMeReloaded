@@ -126,7 +126,7 @@ public class AsynchronousLogin implements AsynchronousProcess {
             }
             limboService.resetMessageTask(player, LimboMessageType.TOTP_CODE);
             limbo.setState(LimboPlayerState.TOTP_REQUIRED);
-            showTotpDialogIfEnabled(player);
+            showTotpDialogIfEnabled(player, lowerCaseName);
             // TODO #1141: Check if we should check limbo state before processing password
         } else {
             doPerformLogin(player, name, ip, auth, false);
@@ -139,15 +139,7 @@ public class AsynchronousLogin implements AsynchronousProcess {
      * @param player the player to log in
      */
     public void forceLogin(Player player) {
-        String name = player.getName();
-        String lowerCaseName = name.toLowerCase(Locale.ROOT);
-        PlayerAuth auth = getPlayerAuth(player, lowerCaseName, false);
-        if (auth != null) {
-            String ip = PlayerUtils.getPlayerIp(player);
-            if (canLogin(player, ip, false)) {
-                doPerformLogin(player, name, ip, auth, false);
-            }
-        }
+        forceLogin(player, false);
     }
 
     /**
@@ -158,14 +150,26 @@ public class AsynchronousLogin implements AsynchronousProcess {
      * @param player the player to log in
      */
     public void forceLoginFromProxy(Player player) {
+        forceLogin(player, true);
+    }
+
+    /**
+     * Shared force-login implementation for locally and proxy initiated logins.
+     *
+     * @param player the player to log in
+     * @param proxyInitiated true when the proxy initiated the login; suppresses
+     *                       pre-condition messages and skips the BungeeCord redirect
+     */
+    private void forceLogin(Player player, boolean proxyInitiated) {
         String name = player.getName();
         String lowerCaseName = name.toLowerCase(Locale.ROOT);
-        PlayerAuth auth = getPlayerAuth(player, lowerCaseName, true);
-        if (auth != null) {
-            String ip = PlayerUtils.getPlayerIp(player);
-            if (canLogin(player, ip, true)) {
-                doPerformLogin(player, name, ip, auth, true);
-            }
+        PlayerAuth auth = getPlayerAuth(player, lowerCaseName, proxyInitiated);
+        if (auth == null) {
+            return;
+        }
+        String ip = PlayerUtils.getPlayerIp(player);
+        if (canLogin(player, ip, proxyInitiated)) {
+            doPerformLogin(player, name, ip, auth, proxyInitiated);
         }
     }
 
@@ -292,7 +296,7 @@ public class AsynchronousLogin implements AsynchronousProcess {
         }
     }
 
-    private void showTotpDialogIfEnabled(Player player) {
+    private void showTotpDialogIfEnabled(Player player, String lowerCaseName) {
         boolean dialogEnabled = service.getProperty(RegistrationSettings.USE_DIALOG_UI)
             || service.getProperty(RegistrationSettings.USE_PREJOIN_DIALOG_UI);
         if (!dialogEnabled || !dialogAdapter.isDialogSupported()) {
@@ -300,7 +304,7 @@ public class AsynchronousLogin implements AsynchronousProcess {
         }
 
         bukkitService.runTaskLater(player, () -> {
-            if (!player.isOnline() || playerCache.isAuthenticated(player.getName())) {
+            if (!player.isOnline() || playerCache.isAuthenticated(lowerCaseName)) {
                 return;
             }
             dialogAdapter.showTotpDialog(player, dialogWindowService.createTotpDialog(player));
@@ -341,7 +345,7 @@ public class AsynchronousLogin implements AsynchronousProcess {
             service.send(player, MessageKey.LOGIN_SUCCESS);
 
             // Other auths
-            List<String> auths = dataSource.getAllAuthsByIp(auth.getLastIp());
+            List<String> auths = dataSource.getAllAuthsByIp(ip);
             displayOtherAccounts(auths, player, name);
 
             String email = auth.getEmail();

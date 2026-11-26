@@ -12,5 +12,9 @@
  *
  * <p>The abstract base classes hold state shared by the concrete events. Listeners may use them as a common
  * type, but their fields are implementation details: read and write event state through the accessors only.
+ *
+ * <p>Unless an accessor's documentation explicitly says otherwise, its parameters and return values are
+ * non-null. Where a value can be absent, the documentation states this with {@code null} so callers can
+ * handle that case without relying on implementation details.
  */
 package fr.xephi.authme.events;

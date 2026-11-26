@@ -20,19 +20,17 @@ public class SqliteToSql extends AbstractDataSourceConverter<SQLite> {
 
     private final Settings settings;
     private final File dataFolder;
-    private final DataSourceType destinationType;
 
     @Inject
     SqliteToSql(Settings settings, DataSource dataSource, @DataFolder File dataFolder) {
         super(dataSource, dataSource.getType());
         this.settings = settings;
         this.dataFolder = dataFolder;
-        this.destinationType = dataSource.getType();
     }
 
     @Override
     public void execute(CommandSender sender) {
-        if (destinationType == DataSourceType.SQLITE) {
+        if (getDestinationType() == DataSourceType.SQLITE) {
             logAndSendMessage(sender,
                 "sqlitetosql requires a MySQL, MariaDB, or PostgreSQL destination — configure the connection in AuthMe's config.yml first.");
             return;

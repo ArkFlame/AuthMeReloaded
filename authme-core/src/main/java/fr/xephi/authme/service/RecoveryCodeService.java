@@ -72,7 +72,7 @@ public class RecoveryCodeService implements SettingsDependent, HasCleanup {
      * @return True if the player has tries left.
      */
     public boolean hasTriesLeft(String player) {
-        return playerTries.get(player) > 0;
+        return getTriesLeft(player) > 0;
     }
 
     /**

@@ -7,6 +7,7 @@ import fr.xephi.authme.security.crypts.description.Usage;
 import fr.xephi.authme.settings.Settings;
 
 import javax.inject.Inject;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 /**
@@ -30,7 +31,7 @@ public class Pbkdf2Base64 extends AbstractPbkdf2 {
     @Override
     public String computeHash(String password, String salt, String name) {
         byte[] saltBytes = Base64.getDecoder().decode(salt);
-        byte[] hash = deriveKey(password, saltBytes, numberOfRounds, HASH_BYTES);
+        byte[] hash = deriveKey(password, saltBytes, numberOfRounds, HASH_BYTES, StandardCharsets.UTF_8);
         return hashPrefix("pbkdf2", numberOfRounds, salt) + Base64.getEncoder().encodeToString(hash);
     }
 
@@ -40,9 +41,9 @@ public class Pbkdf2Base64 extends AbstractPbkdf2 {
         if (parts == null) {
             return false;
         }
-        byte[] saltBytes = Base64.getDecoder().decode(parts.salt);
-        byte[] expectedKey = Base64.getDecoder().decode(parts.hash);
-        return verifyKey(password, saltBytes, parts.iterations, expectedKey);
+        byte[] saltBytes = Base64.getDecoder().decode(parts.getSalt());
+        byte[] expectedKey = Base64.getDecoder().decode(parts.getHash());
+        return verifyKey(password, saltBytes, parts.getIterations(), expectedKey, StandardCharsets.UTF_8);
     }
 
     @Override

@@ -2,6 +2,7 @@ package fr.xephi.authme.datasource.converter;
 
 import fr.xephi.authme.ConsoleLogger;
 import fr.xephi.authme.security.crypts.HashedPassword;
+import org.bukkit.command.CommandSender;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -9,9 +10,16 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Base64;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static fr.xephi.authme.util.Utils.logAndSendMessage;
 
 /**
  * Helpers shared by the SQLite/HOCON-based plugin converters.
@@ -127,5 +135,33 @@ final class ConverterUtils {
             // fall through to default
         }
         return defaultValue;
+    }
+
+    /**
+     * @return the given name in lowercase, or {@code null} if it is null or empty
+     */
+    static String toLowerCaseOrNull(String name) {
+        return name == null || name.isEmpty() ? null : name.toLowerCase(Locale.ROOT);
+    }
+
+    /** Opens the JDBC connection used by a converter query. */
+    @FunctionalInterface
+    interface SqlConnectionSupplier {
+        Connection get() throws SQLException;
+    }
+
+    /**
+     * Runs a query and passes its rows to the importer, reporting SQL errors to the sender and log.
+     */
+    static void runQuery(SqlConnectionSupplier connectionSupplier, CommandSender sender, String query,
+                         String pluginName, ConsoleLogger logger, ResultSetImporter importer) {
+        try (Connection conn = connectionSupplier.get();
+             PreparedStatement ps = conn.prepareStatement(query);
+             ResultSet rs = ps.executeQuery()) {
+            importer.importRows(rs);
+        } catch (SQLException e) {
+            logAndSendMessage(sender, pluginName + " conversion failed: " + e.getMessage());
+            logger.logException(pluginName + " conversion error:", e);
+        }
     }
 }

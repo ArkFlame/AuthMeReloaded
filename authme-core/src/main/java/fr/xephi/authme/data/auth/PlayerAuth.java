@@ -264,7 +264,7 @@ public class PlayerAuth {
             auth.email = DB_EMAIL_DEFAULT.equals(email) ? null : email;
             auth.lastIp = lastIp; // Don't check against default value 127.0.0.1 as it may be a legit value
             auth.groupId = groupId;
-            auth.lastLogin = lastLogin != null && lastLogin == DB_LAST_LOGIN_DEFAULT ? null : lastLogin;
+            auth.lastLogin = Long.valueOf(DB_LAST_LOGIN_DEFAULT).equals(lastLogin) ? null : lastLogin;
             auth.registrationIp = registrationIp;
             auth.registrationDate = registrationDate == null ? System.currentTimeMillis() : registrationDate;
 

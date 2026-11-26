@@ -33,7 +33,7 @@ public class ProtectInventoryEvent extends AbstractCancellableEvent {
      * Return the inventory of the player as it was when the event was created.
      * Treat the array as read-only: it is a snapshot shared with other listeners.
      *
-     * @return A snapshot of the player's inventory
+     * @return A snapshot of the player's inventory, never {@code null}
      */
     public ItemStack[] getStoredInventory() {
         return storedInventory;
@@ -43,7 +43,7 @@ public class ProtectInventoryEvent extends AbstractCancellableEvent {
      * Return the armor of the player as it was when the event was created.
      * Treat the array as read-only: it is a snapshot shared with other listeners.
      *
-     * @return A snapshot of the player's armor
+     * @return A snapshot of the player's armor, never {@code null}
      */
     public ItemStack[] getStoredArmor() {
         return storedArmor;

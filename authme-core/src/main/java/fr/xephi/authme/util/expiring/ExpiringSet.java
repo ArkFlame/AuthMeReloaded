@@ -16,10 +16,9 @@ import java.util.concurrent.TimeUnit;
  *
  * @param <E> the type of the entries
  */
-public class ExpiringSet<E> {
+public class ExpiringSet<E> extends AbstractExpiring {
 
     private final Map<E, Long> entries = new ConcurrentHashMap<>();
-    private long expirationMillis;
 
     /**
      * Constructor.
@@ -28,7 +27,7 @@ public class ExpiringSet<E> {
      * @param unit the time unit in which {@code duration} is expressed
      */
     public ExpiringSet(long duration, TimeUnit unit) {
-        setExpiration(duration, unit);
+        super(duration, unit);
     }
 
     /**
@@ -37,7 +36,7 @@ public class ExpiringSet<E> {
      * @param entry the entry to add
      */
     public void add(E entry) {
-        entries.put(entry, System.currentTimeMillis() + expirationMillis);
+        entries.put(entry, System.currentTimeMillis() + getExpirationMillis());
     }
 
     /**
@@ -99,17 +98,6 @@ public class ExpiringSet<E> {
             return new Duration(-1, TimeUnit.SECONDS);
         }
         return Duration.createWithSuitableUnit(stillPresentMillis, TimeUnit.MILLISECONDS);
-    }
-
-    /**
-     * Sets a new expiration duration. Note that already present entries
-     * will still make use of the old expiration.
-     *
-     * @param duration the duration of time after which entries expire
-     * @param unit the time unit in which {@code duration} is expressed
-     */
-    public void setExpiration(long duration, TimeUnit unit) {
-        this.expirationMillis = unit.toMillis(duration);
     }
 
     /**

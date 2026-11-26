@@ -7,6 +7,8 @@ import org.bukkit.block.Block;
 import org.bukkit.event.block.BlockDispenseEvent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -30,60 +32,22 @@ class AdvancedShulkerFixListenerTest {
     @Mock
     private CommonService commonService;
 
-    @Test
-    void shouldCancelDispenseAtWorldFloor() {
+    @ParameterizedTest(name = "cancel dispense at y={0}")
+    @ValueSource(ints = {0, -1, 255, 256})
+    void shouldCancelDispenseOutsideValidHeightRange(int y) {
         givenFixEnabled();
-        BlockDispenseEvent event = eventAtHeight(0, 256);
+        BlockDispenseEvent event = eventAtHeight(y, 256);
 
         listener.onDispenserActivate(event);
 
         verify(event).setCancelled(true);
     }
 
-    @Test
-    void shouldCancelDispenseBelowWorldFloor() {
+    @ParameterizedTest(name = "allow dispense at y={0}")
+    @ValueSource(ints = {1, 254})
+    void shouldKeepDispenseInsideValidHeightRange(int y) {
         givenFixEnabled();
-        BlockDispenseEvent event = eventAtHeight(-1, 256);
-
-        listener.onDispenserActivate(event);
-
-        verify(event).setCancelled(true);
-    }
-
-    @Test
-    void shouldCancelDispenseAtTopBoundary() {
-        givenFixEnabled();
-        BlockDispenseEvent event = eventAtHeight(255, 256);
-
-        listener.onDispenserActivate(event);
-
-        verify(event).setCancelled(true);
-    }
-
-    @Test
-    void shouldCancelDispenseAboveTopBoundary() {
-        givenFixEnabled();
-        BlockDispenseEvent event = eventAtHeight(256, 256);
-
-        listener.onDispenserActivate(event);
-
-        verify(event).setCancelled(true);
-    }
-
-    @Test
-    void shouldKeepDispenseJustAboveFloor() {
-        givenFixEnabled();
-        BlockDispenseEvent event = eventAtHeight(1, 256);
-
-        listener.onDispenserActivate(event);
-
-        verify(event, never()).setCancelled(anyBoolean());
-    }
-
-    @Test
-    void shouldKeepDispenseJustBelowTopBoundary() {
-        givenFixEnabled();
-        BlockDispenseEvent event = eventAtHeight(254, 256);
+        BlockDispenseEvent event = eventAtHeight(y, 256);
 
         listener.onDispenserActivate(event);
 

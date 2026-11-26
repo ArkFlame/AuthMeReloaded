@@ -21,16 +21,6 @@ public class Wordpress extends UnsaltedMethod {
 
     private final SecureRandom randomGen = new SecureRandom();
 
-    private String encode64(byte[] src, int count) {
-        if (src.length < count) {
-            byte[] t = new byte[count];
-            System.arraycopy(src, 0, t, 0, src.length);
-            src = t;
-        }
-        final byte[] bytes = src;
-        return PhpassCodec.encode64(i -> bytes[i] & 0xFF, count);
-    }
-
     private String crypt(String password, String setting) {
         String output = "*0";
         if (((setting.length() < 2) ? setting : setting.substring(0, 2)).equalsIgnoreCase(output)) {
@@ -59,7 +49,7 @@ public class Wordpress extends UnsaltedMethod {
             hash = md.digest(t);
         } while (--count > 0);
         output = setting.substring(0, 12);
-        output += encode64(hash, 16);
+        output += PhpassCodec.encode64(hash, 16);
         return output;
     }
 
@@ -67,7 +57,7 @@ public class Wordpress extends UnsaltedMethod {
         String output = "$P$";
         int iterationCountLog2 = 8;
         output += PhpassCodec.ITOA64.charAt(Math.min(iterationCountLog2 + 5, 30));
-        output += encode64(input, 6);
+        output += PhpassCodec.encode64(input, 6);
         return output;
     }
 

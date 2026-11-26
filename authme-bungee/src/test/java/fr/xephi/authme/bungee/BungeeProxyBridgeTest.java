@@ -1,6 +1,5 @@
 package fr.xephi.authme.bungee;
 
-import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 import fr.xephi.authme.bungee.events.AuthMeBungeeLoginEvent;
 import fr.xephi.authme.bungee.events.AuthMeBungeeLogoutEvent;
@@ -112,10 +111,8 @@ class BungeeProxyBridgeTest {
 
     @Test
     void shouldTrackAuthenticatedPlayerAndForwardPerformLoginOnServerSwitch() {
-        given(pluginMessageEvent.isCancelled()).willReturn(false);
-        given(pluginMessageEvent.getTag()).willReturn(BungeeProxyBridge.AUTHME_CHANNEL);
-        given(pluginMessageEvent.getSender()).willReturn(sourceServer);
-        given(pluginMessageEvent.getData()).willReturn(createAuthMePayload("login", "Alice"));
+        stubIncomingPluginMessage();
+        given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.message("login", "Alice"));
         given(sourceServer.getInfo()).willReturn(authServerInfo);
         given(serverSwitchEvent.getPlayer()).willReturn(player);
         given(player.getName()).willReturn("Alice");
@@ -123,7 +120,7 @@ class BungeeProxyBridgeTest {
         given(currentServer.getInfo()).willReturn(authServerInfo);
         given(authServerInfo.getName()).willReturn("lobby");
 
-        BungeeProxyBridge bridge = new BungeeProxyBridge(proxyServer, logger, createConfiguration(), new BungeeAuthenticationStore(), null);
+        BungeeProxyBridge bridge = newBridge();
         bridge.onPluginMessage(pluginMessageEvent);
         bridge.onServerSwitch(serverSwitchEvent);
 
@@ -134,12 +131,10 @@ class BungeeProxyBridgeTest {
 
     @Test
     void shouldNotForwardBackendPremiumListToClient() {
-        given(pluginMessageEvent.isCancelled()).willReturn(false);
-        given(pluginMessageEvent.getTag()).willReturn(BungeeProxyBridge.AUTHME_CHANNEL);
-        given(pluginMessageEvent.getSender()).willReturn(sourceServer);
-        given(pluginMessageEvent.getData()).willReturn(createAuthMePayload("premium.list.chunk", "0:1:notch,jeb_"));
+        stubIncomingPluginMessage();
+        given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.message("premium.list.chunk", "0:1:notch,jeb_"));
 
-        BungeeProxyBridge bridge = new BungeeProxyBridge(proxyServer, logger, createConfiguration(), new BungeeAuthenticationStore(), null);
+        BungeeProxyBridge bridge = newBridge();
         bridge.onPluginMessage(pluginMessageEvent);
 
         verify(pluginMessageEvent).setCancelled(true);
@@ -147,10 +142,8 @@ class BungeeProxyBridgeTest {
 
     @Test
     void shouldIgnoreUnrelatedPluginMessages() {
-        given(pluginMessageEvent.isCancelled()).willReturn(false);
-        given(pluginMessageEvent.getTag()).willReturn(BungeeProxyBridge.AUTHME_CHANNEL);
-        given(pluginMessageEvent.getSender()).willReturn(sourceServer);
-        given(pluginMessageEvent.getData()).willReturn(createAuthMePayload("unknown-type", "hub"));
+        stubIncomingPluginMessage();
+        given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.message("unknown-type", "hub"));
         given(serverSwitchEvent.getPlayer()).willReturn(player);
         given(player.getName()).willReturn("Alice");
         given(player.getServer()).willReturn(currentServer);
@@ -158,7 +151,7 @@ class BungeeProxyBridgeTest {
         given(authServerInfo.getName()).willReturn("lobby");
         given(serverSwitchEvent.getFrom()).willReturn(authServerInfo);
 
-        BungeeProxyBridge bridge = new BungeeProxyBridge(proxyServer, logger, createConfiguration(), new BungeeAuthenticationStore(), null);
+        BungeeProxyBridge bridge = newBridge();
         bridge.onPluginMessage(pluginMessageEvent);
         bridge.onServerSwitch(serverSwitchEvent);
 
@@ -167,10 +160,8 @@ class BungeeProxyBridgeTest {
 
     @Test
     void shouldDropSessionWhenPlayerDisconnects() {
-        given(pluginMessageEvent.isCancelled()).willReturn(false);
-        given(pluginMessageEvent.getTag()).willReturn(BungeeProxyBridge.AUTHME_CHANNEL);
-        given(pluginMessageEvent.getSender()).willReturn(sourceServer);
-        given(pluginMessageEvent.getData()).willReturn(createAuthMePayload("login", "Alice"));
+        stubIncomingPluginMessage();
+        given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.message("login", "Alice"));
         given(sourceServer.getInfo()).willReturn(authServerInfo);
         given(playerDisconnectEvent.getPlayer()).willReturn(player);
         given(serverSwitchEvent.getPlayer()).willReturn(player);
@@ -179,7 +170,7 @@ class BungeeProxyBridgeTest {
         given(currentServer.getInfo()).willReturn(authServerInfo);
         given(authServerInfo.getName()).willReturn("lobby");
 
-        BungeeProxyBridge bridge = new BungeeProxyBridge(proxyServer, logger, createConfiguration(), new BungeeAuthenticationStore(), null);
+        BungeeProxyBridge bridge = newBridge();
         bridge.onPluginMessage(pluginMessageEvent);
         bridge.onPlayerDisconnect(playerDisconnectEvent);
         bridge.onServerSwitch(serverSwitchEvent);
@@ -189,10 +180,8 @@ class BungeeProxyBridgeTest {
 
     @Test
     void shouldRedirectPlayerOnLogoutWhenConfigured() {
-        given(pluginMessageEvent.isCancelled()).willReturn(false);
-        given(pluginMessageEvent.getTag()).willReturn(BungeeProxyBridge.AUTHME_CHANNEL);
-        given(pluginMessageEvent.getSender()).willReturn(sourceServer);
-        given(pluginMessageEvent.getData()).willReturn(createAuthMePayload("logout", "Alice"));
+        stubIncomingPluginMessage();
+        given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.message("logout", "Alice"));
         given(proxyServer.getPlayer("alice")).willReturn(player);
         given(proxyServer.getServerInfo("limbo")).willReturn(nonAuthServerInfo);
 
@@ -213,7 +202,7 @@ class BungeeProxyBridgeTest {
         given(pluginMessageEvent.getTag()).willReturn(BungeeProxyBridge.AUTHME_CHANNEL);
         given(pluginMessageEvent.getSender()).willReturn(player);
 
-        BungeeProxyBridge bridge = new BungeeProxyBridge(proxyServer, logger, createConfiguration(), new BungeeAuthenticationStore(), null);
+        BungeeProxyBridge bridge = newBridge();
         bridge.onPluginMessage(pluginMessageEvent);
 
         verify(pluginMessageEvent).setCancelled(true);
@@ -221,10 +210,8 @@ class BungeeProxyBridgeTest {
 
     @Test
     void shouldCancelPendingLoginOnExplicitAck() {
-        given(pluginMessageEvent.isCancelled()).willReturn(false);
-        given(pluginMessageEvent.getTag()).willReturn(BungeeProxyBridge.AUTHME_CHANNEL);
-        given(pluginMessageEvent.getSender()).willReturn(sourceServer);
-        given(pluginMessageEvent.getData()).willReturn(createAuthMePayload("login", "Alice"));
+        stubIncomingPluginMessage();
+        given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.message("login", "Alice"));
         given(sourceServer.getInfo()).willReturn(authServerInfo);
         given(authServerInfo.getName()).willReturn("lobby");
         given(serverSwitchEvent.getPlayer()).willReturn(player);
@@ -233,12 +220,12 @@ class BungeeProxyBridgeTest {
         given(currentServer.getInfo()).willReturn(authServerInfo);
         given(serverSwitchEvent.getFrom()).willReturn(null);
 
-        BungeeProxyBridge bridge = new BungeeProxyBridge(proxyServer, logger, createConfiguration(), new BungeeAuthenticationStore(), null);
+        BungeeProxyBridge bridge = newBridge();
         bridge.onPluginMessage(pluginMessageEvent);
         bridge.onServerSwitch(serverSwitchEvent);
 
         // Backend sends explicit ACK
-        given(pluginMessageEvent.getData()).willReturn(createAuthMePayload("perform.login.ack", "Alice"));
+        given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.message("perform.login.ack", "Alice"));
         bridge.onPluginMessage(pluginMessageEvent);
 
         // getPlayer called twice: once by login event lookup, once by sendAutoLoginIfAlreadySwitched — not by any retry
@@ -247,9 +234,7 @@ class BungeeProxyBridgeTest {
 
     @Test
     void shouldCancelPendingLoginOnImplicitAckFromNonAuthServer() {
-        given(pluginMessageEvent.isCancelled()).willReturn(false);
-        given(pluginMessageEvent.getTag()).willReturn(BungeeProxyBridge.AUTHME_CHANNEL);
-        given(pluginMessageEvent.getSender()).willReturn(sourceServer);
+        stubIncomingPluginMessage();
         given(authServerInfo.getName()).willReturn("lobby");
         given(nonAuthServerInfo.getName()).willReturn("survival");
         given(serverSwitchEvent.getPlayer()).willReturn(player);
@@ -257,16 +242,16 @@ class BungeeProxyBridgeTest {
         given(player.getServer()).willReturn(currentServer);
         given(currentServer.getInfo()).willReturn(authServerInfo);
 
-        BungeeProxyBridge bridge = new BungeeProxyBridge(proxyServer, logger, createConfiguration(), new BungeeAuthenticationStore(), null);
+        BungeeProxyBridge bridge = newBridge();
 
         // Mark authenticated via auth server login
-        given(pluginMessageEvent.getData()).willReturn(createAuthMePayload("login", "Alice"));
+        given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.message("login", "Alice"));
         given(sourceServer.getInfo()).willReturn(authServerInfo);
         bridge.onPluginMessage(pluginMessageEvent);
         bridge.onServerSwitch(serverSwitchEvent);
 
         // Backend confirms auto-login with login from non-auth server
-        given(pluginMessageEvent.getData()).willReturn(createAuthMePayload("login", "Alice"));
+        given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.message("login", "Alice"));
         given(sourceServer.getInfo()).willReturn(nonAuthServerInfo);
         bridge.onPluginMessage(pluginMessageEvent);
 
@@ -276,10 +261,8 @@ class BungeeProxyBridgeTest {
 
     @Test
     void shouldNotMarkPlayerAuthenticatedIfLoginComesFromNonAuthServer() {
-        given(pluginMessageEvent.isCancelled()).willReturn(false);
-        given(pluginMessageEvent.getTag()).willReturn(BungeeProxyBridge.AUTHME_CHANNEL);
-        given(pluginMessageEvent.getSender()).willReturn(sourceServer);
-        given(pluginMessageEvent.getData()).willReturn(createAuthMePayload("login", "Alice"));
+        stubIncomingPluginMessage();
+        given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.message("login", "Alice"));
         given(sourceServer.getInfo()).willReturn(nonAuthServerInfo);
         given(nonAuthServerInfo.getName()).willReturn("survival");
         given(serverSwitchEvent.getPlayer()).willReturn(player);
@@ -288,7 +271,7 @@ class BungeeProxyBridgeTest {
         given(currentServer.getInfo()).willReturn(authServerInfo);
         given(authServerInfo.getName()).willReturn("lobby");
 
-        BungeeProxyBridge bridge = new BungeeProxyBridge(proxyServer, logger, createConfiguration(), new BungeeAuthenticationStore(), null);
+        BungeeProxyBridge bridge = newBridge();
         bridge.onPluginMessage(pluginMessageEvent);
         bridge.onServerSwitch(serverSwitchEvent);
 
@@ -306,7 +289,7 @@ class BungeeProxyBridgeTest {
         given(currentServer.getInfo()).willReturn(authServerInfo);
         given(authServerInfo.getName()).willReturn("lobby");
 
-        BungeeProxyBridge bridge = new BungeeProxyBridge(proxyServer, logger, createConfiguration(), new BungeeAuthenticationStore(), null);
+        BungeeProxyBridge bridge = newBridge();
         bridge.onCommand(commandEvent);
 
         verify(commandEvent).setCancelled(true);
@@ -323,7 +306,7 @@ class BungeeProxyBridgeTest {
         given(currentServer.getInfo()).willReturn(authServerInfo);
         given(authServerInfo.getName()).willReturn("lobby");
 
-        BungeeProxyBridge bridge = new BungeeProxyBridge(proxyServer, logger, createConfiguration(), new BungeeAuthenticationStore(), null);
+        BungeeProxyBridge bridge = newBridge();
         bridge.onCommand(commandEvent);
 
         verify(commandEvent, never()).setCancelled(true);
@@ -339,7 +322,7 @@ class BungeeProxyBridgeTest {
         given(currentServer.getInfo()).willReturn(authServerInfo);
         given(authServerInfo.getName()).willReturn("lobby");
 
-        BungeeProxyBridge bridge = new BungeeProxyBridge(proxyServer, logger, createConfiguration(), new BungeeAuthenticationStore(), null);
+        BungeeProxyBridge bridge = newBridge();
         bridge.onPlayerChat(chatEvent);
 
         verify(chatEvent).setCancelled(true);
@@ -354,7 +337,7 @@ class BungeeProxyBridgeTest {
         given(player.getName()).willReturn("Alice");
         given(player.getServer()).willReturn(currentServer);
 
-        BungeeProxyBridge bridge = new BungeeProxyBridge(proxyServer, logger, createConfiguration(), new BungeeAuthenticationStore(), null);
+        BungeeProxyBridge bridge = newBridge();
         bridge.onPlayerConnectingToServer(serverConnectEvent);
 
         verify(serverConnectEvent).setCancelled(true);
@@ -370,7 +353,7 @@ class BungeeProxyBridgeTest {
         given(player.getName()).willReturn("Alice");
         given(player.getServer()).willReturn(null);
 
-        BungeeProxyBridge bridge = new BungeeProxyBridge(proxyServer, logger, createConfiguration(), new BungeeAuthenticationStore(), null);
+        BungeeProxyBridge bridge = newBridge();
         bridge.onPlayerConnectingToServer(serverConnectEvent);
 
         verify(serverConnectEvent).setCancelled(true);
@@ -379,10 +362,8 @@ class BungeeProxyBridgeTest {
 
     @Test
     void shouldNotForwardPerformLoginToNonAuthServers() {
-        given(pluginMessageEvent.isCancelled()).willReturn(false);
-        given(pluginMessageEvent.getTag()).willReturn(BungeeProxyBridge.AUTHME_CHANNEL);
-        given(pluginMessageEvent.getSender()).willReturn(sourceServer);
-        given(pluginMessageEvent.getData()).willReturn(createAuthMePayload("login", "Alice"));
+        stubIncomingPluginMessage();
+        given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.message("login", "Alice"));
         given(sourceServer.getInfo()).willReturn(authServerInfo);
         given(authServerInfo.getName()).willReturn("lobby");
         given(serverSwitchEvent.getPlayer()).willReturn(player);
@@ -390,7 +371,7 @@ class BungeeProxyBridgeTest {
         given(currentServer.getInfo()).willReturn(nonAuthServerInfo);
         given(nonAuthServerInfo.getName()).willReturn("survival");
 
-        BungeeProxyBridge bridge = new BungeeProxyBridge(proxyServer, logger, createConfiguration(), new BungeeAuthenticationStore(), null);
+        BungeeProxyBridge bridge = newBridge();
         bridge.onPluginMessage(pluginMessageEvent);
         bridge.onServerSwitch(serverSwitchEvent);
 
@@ -399,10 +380,8 @@ class BungeeProxyBridgeTest {
 
     @Test
     void shouldForwardPerformLoginWhenLeavingAuthServer() {
-        given(pluginMessageEvent.isCancelled()).willReturn(false);
-        given(pluginMessageEvent.getTag()).willReturn(BungeeProxyBridge.AUTHME_CHANNEL);
-        given(pluginMessageEvent.getSender()).willReturn(sourceServer);
-        given(pluginMessageEvent.getData()).willReturn(createAuthMePayload("login", "Alice"));
+        stubIncomingPluginMessage();
+        given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.message("login", "Alice"));
         given(sourceServer.getInfo()).willReturn(authServerInfo);
         given(serverSwitchEvent.getPlayer()).willReturn(player);
         given(player.getName()).willReturn("Alice");
@@ -412,7 +391,7 @@ class BungeeProxyBridgeTest {
         given(serverSwitchEvent.getFrom()).willReturn(authServerInfo);
         given(authServerInfo.getName()).willReturn("lobby");
 
-        BungeeProxyBridge bridge = new BungeeProxyBridge(proxyServer, logger, createConfiguration(), new BungeeAuthenticationStore(), null);
+        BungeeProxyBridge bridge = newBridge();
         bridge.onPluginMessage(pluginMessageEvent);
         bridge.onServerSwitch(serverSwitchEvent);
 
@@ -426,7 +405,7 @@ class BungeeProxyBridgeTest {
         given(authServerInfo.getName()).willReturn("lobby");
         given(authServerInfo.getPlayers()).willReturn(List.of(player));
 
-        BungeeProxyBridge bridge = new BungeeProxyBridge(proxyServer, logger, createConfiguration(), new BungeeAuthenticationStore(), null);
+        BungeeProxyBridge bridge = newBridge();
         bridge.broadcastProxyStartedHandshake();
 
         verify(authServerInfo).sendData(eq(BungeeProxyBridge.AUTHME_CHANNEL), payloadCaptor.capture(), eq(false));
@@ -445,7 +424,7 @@ class BungeeProxyBridgeTest {
         given(player.getServer()).willReturn(currentServer);
         given(currentServer.getInfo()).willReturn(authServerInfo);
 
-        BungeeProxyBridge bridge = new BungeeProxyBridge(proxyServer, logger, createConfiguration(), new BungeeAuthenticationStore(), null);
+        BungeeProxyBridge bridge = newBridge();
         bridge.broadcastProxyStartedHandshake();
 
         // No handshake sent yet (no players at startup)
@@ -463,10 +442,8 @@ class BungeeProxyBridgeTest {
 
     @Test
     void shouldSendAutoLoginImmediatelyWhenPlayerAlreadySwitchedBeforeLoginMessage() {
-        given(pluginMessageEvent.isCancelled()).willReturn(false);
-        given(pluginMessageEvent.getTag()).willReturn(BungeeProxyBridge.AUTHME_CHANNEL);
-        given(pluginMessageEvent.getSender()).willReturn(sourceServer);
-        given(pluginMessageEvent.getData()).willReturn(createAuthMePayload("login", "Alice"));
+        stubIncomingPluginMessage();
+        given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.message("login", "Alice"));
         given(sourceServer.getInfo()).willReturn(authServerInfo);
         given(authServerInfo.getName()).willReturn("lobby");
         // Player is already on a non-auth server when the login message arrives
@@ -476,7 +453,7 @@ class BungeeProxyBridgeTest {
         given(nonAuthServerInfo.getName()).willReturn("survival");
 
         stubEventsAllowed();
-        BungeeProxyBridge bridge = new BungeeProxyBridge(proxyServer, logger, createConfiguration(), new BungeeAuthenticationStore(), null);
+        BungeeProxyBridge bridge = newBridge();
         bridge.onPluginMessage(pluginMessageEvent);
 
         verify(nonAuthServerInfo).sendData(eq(BungeeProxyBridge.AUTHME_CHANNEL), payloadCaptor.capture(), eq(false));
@@ -485,15 +462,13 @@ class BungeeProxyBridgeTest {
 
     @Test
     void shouldForceOnlineModeForPremiumHandshakeWhenOfflineCompatibilityDisabled() {
-        given(pluginMessageEvent.isCancelled()).willReturn(false);
-        given(pluginMessageEvent.getTag()).willReturn(BungeeProxyBridge.AUTHME_CHANNEL);
-        given(pluginMessageEvent.getSender()).willReturn(sourceServer);
-        given(pluginMessageEvent.getData()).willReturn(createAuthMePayload("premium.set", "Alice"));
+        stubIncomingPluginMessage();
+        given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.message("premium.set", "Alice"));
         given(preLoginEvent.getConnection()).willReturn(pendingConnection);
         given(pendingConnection.getName()).willReturn("Alice");
         given(pendingConnection.isOnlineMode()).willReturn(false);
 
-        BungeeProxyBridge bridge = new BungeeProxyBridge(proxyServer, logger, createConfiguration(), new BungeeAuthenticationStore(), null);
+        BungeeProxyBridge bridge = newBridge();
         bridge.onPluginMessage(pluginMessageEvent);
         bridge.onPreLogin(preLoginEvent);
 
@@ -502,15 +477,13 @@ class BungeeProxyBridgeTest {
 
     @Test
     void shouldForceOnlineModeForPendingPremiumEnrollmentAtPreLogin() {
-        given(pluginMessageEvent.isCancelled()).willReturn(false);
-        given(pluginMessageEvent.getTag()).willReturn(BungeeProxyBridge.AUTHME_CHANNEL);
-        given(pluginMessageEvent.getSender()).willReturn(sourceServer);
-        given(pluginMessageEvent.getData()).willReturn(createAuthMePayload("premium.pending.set", "Alice"));
+        stubIncomingPluginMessage();
+        given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.message("premium.pending.set", "Alice"));
         given(preLoginEvent.getConnection()).willReturn(pendingConnection);
         given(pendingConnection.getName()).willReturn("Alice");
         given(pendingConnection.isOnlineMode()).willReturn(false);
 
-        BungeeProxyBridge bridge = new BungeeProxyBridge(proxyServer, logger, createConfiguration(), new BungeeAuthenticationStore(), null);
+        BungeeProxyBridge bridge = newBridge();
         bridge.onPluginMessage(pluginMessageEvent);
         bridge.onPreLogin(preLoginEvent);
 
@@ -519,15 +492,13 @@ class BungeeProxyBridgeTest {
 
     @Test
     void shouldForceOnlineModeForPremiumHandshakeAfterChunkedPremiumListResync() {
-        given(pluginMessageEvent.isCancelled()).willReturn(false);
-        given(pluginMessageEvent.getTag()).willReturn(BungeeProxyBridge.AUTHME_CHANNEL);
-        given(pluginMessageEvent.getSender()).willReturn(sourceServer);
-        given(pluginMessageEvent.getData()).willReturn(createChunkPayload(0, true, "Alice"));
+        stubIncomingPluginMessage();
+        given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.chunkPayload(0, true, "Alice"));
         given(preLoginEvent.getConnection()).willReturn(pendingConnection);
         given(pendingConnection.getName()).willReturn("Alice");
         given(pendingConnection.isOnlineMode()).willReturn(false);
 
-        BungeeProxyBridge bridge = new BungeeProxyBridge(proxyServer, logger, createConfiguration(), new BungeeAuthenticationStore(), null);
+        BungeeProxyBridge bridge = newBridge();
         bridge.onPluginMessage(pluginMessageEvent);
         bridge.onPreLogin(preLoginEvent);
 
@@ -536,17 +507,15 @@ class BungeeProxyBridgeTest {
 
     @Test
     void shouldDiscardPremiumListWithMissingChunk() {
-        given(pluginMessageEvent.isCancelled()).willReturn(false);
-        given(pluginMessageEvent.getTag()).willReturn(BungeeProxyBridge.AUTHME_CHANNEL);
-        given(pluginMessageEvent.getSender()).willReturn(sourceServer);
+        stubIncomingPluginMessage();
         given(pluginMessageEvent.getData())
-            .willReturn(createChunkPayload(0, true, "Alice"), createChunkPayload(0, false, "Bob"),
-                createChunkPayload(2, true, "Carol"));
+            .willReturn(ProxyTestFixtures.chunkPayload(0, true, "Alice"), ProxyTestFixtures.chunkPayload(0, false, "Bob"),
+                ProxyTestFixtures.chunkPayload(2, true, "Carol"));
         given(preLoginEvent.getConnection()).willReturn(pendingConnection);
         given(pendingConnection.getName()).willReturn("Alice");
         given(pendingConnection.isOnlineMode()).willReturn(false);
 
-        BungeeProxyBridge bridge = new BungeeProxyBridge(proxyServer, logger, createConfiguration(), new BungeeAuthenticationStore(), null);
+        BungeeProxyBridge bridge = newBridge();
         bridge.onPluginMessage(pluginMessageEvent);
         bridge.onPluginMessage(pluginMessageEvent);
         bridge.onPluginMessage(pluginMessageEvent);
@@ -557,10 +526,8 @@ class BungeeProxyBridgeTest {
 
     @Test
     void shouldFireLoginEventWhenPlayerAuthenticatesOnAuthServer() {
-        given(pluginMessageEvent.isCancelled()).willReturn(false);
-        given(pluginMessageEvent.getTag()).willReturn(BungeeProxyBridge.AUTHME_CHANNEL);
-        given(pluginMessageEvent.getSender()).willReturn(sourceServer);
-        given(pluginMessageEvent.getData()).willReturn(createAuthMePayload("login", "Alice"));
+        stubIncomingPluginMessage();
+        given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.message("login", "Alice"));
         given(sourceServer.getInfo()).willReturn(authServerInfo);
         given(authServerInfo.getName()).willReturn("lobby");
         given(proxyServer.getPlayer("alice")).willReturn(player);
@@ -569,7 +536,7 @@ class BungeeProxyBridgeTest {
 
         stubEventsAllowed();
 
-        BungeeProxyBridge bridge = new BungeeProxyBridge(proxyServer, logger, createConfiguration(), new BungeeAuthenticationStore(), null);
+        BungeeProxyBridge bridge = newBridge();
         bridge.onPluginMessage(pluginMessageEvent);
 
         ArgumentCaptor<AuthMeBungeeLoginEvent> eventCaptor = ArgumentCaptor.forClass(AuthMeBungeeLoginEvent.class);
@@ -580,12 +547,10 @@ class BungeeProxyBridgeTest {
 
     @Test
     void shouldFirePremiumLoginEventWhenPremiumPlayerAuthenticatesOnAuthServer() {
-        given(pluginMessageEvent.isCancelled()).willReturn(false);
-        given(pluginMessageEvent.getTag()).willReturn(BungeeProxyBridge.AUTHME_CHANNEL);
-        given(pluginMessageEvent.getSender()).willReturn(sourceServer);
+        stubIncomingPluginMessage();
         given(pluginMessageEvent.getData()).willReturn(
-            createAuthMePayload("premium.set", "Alice"),
-            createAuthMePayload("login", "Alice"));
+            ProxyTestFixtures.message("premium.set", "Alice"),
+            ProxyTestFixtures.message("login", "Alice"));
         given(sourceServer.getInfo()).willReturn(authServerInfo);
         given(authServerInfo.getName()).willReturn("lobby");
         given(proxyServer.getPlayer("alice")).willReturn(player);
@@ -594,7 +559,7 @@ class BungeeProxyBridgeTest {
 
         stubEventsAllowed();
 
-        BungeeProxyBridge bridge = new BungeeProxyBridge(proxyServer, logger, createConfiguration(), new BungeeAuthenticationStore(), null);
+        BungeeProxyBridge bridge = newBridge();
         bridge.onPluginMessage(pluginMessageEvent);
         bridge.onPluginMessage(pluginMessageEvent);
 
@@ -606,15 +571,13 @@ class BungeeProxyBridgeTest {
 
     @Test
     void shouldFireLogoutEventWhenPlayerLogsOut() {
-        given(pluginMessageEvent.isCancelled()).willReturn(false);
-        given(pluginMessageEvent.getTag()).willReturn(BungeeProxyBridge.AUTHME_CHANNEL);
-        given(pluginMessageEvent.getSender()).willReturn(sourceServer);
-        given(pluginMessageEvent.getData()).willReturn(createAuthMePayload("logout", "Alice"));
+        stubIncomingPluginMessage();
+        given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.message("logout", "Alice"));
         given(proxyServer.getPlayer("alice")).willReturn(player);
 
         stubEventsAllowed();
 
-        BungeeProxyBridge bridge = new BungeeProxyBridge(proxyServer, logger, createConfiguration(), new BungeeAuthenticationStore(), null);
+        BungeeProxyBridge bridge = newBridge();
         bridge.onPluginMessage(pluginMessageEvent);
 
         ArgumentCaptor<AuthMeBungeeLogoutEvent> eventCaptor = ArgumentCaptor.forClass(AuthMeBungeeLogoutEvent.class);
@@ -622,21 +585,12 @@ class BungeeProxyBridgeTest {
         assertSame(player, eventCaptor.getValue().getPlayer());
     }
 
-    private static byte[] createChunkPayload(int seq, boolean last, String csv) {
-        ByteArrayDataOutput output = ByteStreams.newDataOutput();
-        output.writeUTF("premium.list.chunk");
-        output.writeUTF(seq + ":" + (last ? "1" : "0") + ":" + csv);
-        return output.toByteArray();
-    }
-
     @Test
     void shouldPersistNonChunkedPremiumListToCache(@TempDir Path tempDir) throws Exception {
-        given(pluginMessageEvent.isCancelled()).willReturn(false);
-        given(pluginMessageEvent.getTag()).willReturn(BungeeProxyBridge.AUTHME_CHANNEL);
-        given(pluginMessageEvent.getSender()).willReturn(sourceServer);
-        given(pluginMessageEvent.getData()).willReturn(createListPayload("Alice"));
+        stubIncomingPluginMessage();
+        given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.listPayload("Alice"));
 
-        BungeeProxyBridge bridge = new BungeeProxyBridge(proxyServer, logger, createConfiguration(), new BungeeAuthenticationStore(), tempDir);
+        BungeeProxyBridge bridge = new BungeeProxyBridge(proxyServer, logger, ProxyTestFixtures.configuration(), new BungeeAuthenticationStore(), tempDir);
         bridge.onPluginMessage(pluginMessageEvent);
 
         Path cacheFile = tempDir.resolve("premium_names.cache");
@@ -650,7 +604,7 @@ class BungeeProxyBridgeTest {
         assertTrue(Files.exists(cacheFile), "premium cache file should be written");
         bridge.shutdown();
 
-        BungeeProxyBridge restarted = new BungeeProxyBridge(proxyServer, logger, createConfiguration(), new BungeeAuthenticationStore(), tempDir);
+        BungeeProxyBridge restarted = new BungeeProxyBridge(proxyServer, logger, ProxyTestFixtures.configuration(), new BungeeAuthenticationStore(), tempDir);
         given(preLoginEvent.getConnection()).willReturn(pendingConnection);
         given(pendingConnection.getName()).willReturn("Alice");
         given(pendingConnection.isOnlineMode()).willReturn(false);
@@ -660,29 +614,20 @@ class BungeeProxyBridgeTest {
         verify(pendingConnection).setOnlineMode(true);
     }
 
-    private static byte[] createListPayload(String csv) {
-        ByteArrayDataOutput output = ByteStreams.newDataOutput();
-        output.writeUTF("premium.list");
-        output.writeUTF(csv);
-        return output.toByteArray();
-    }
-
     private void stubEventsAllowed() {
         given(proxyServer.getPluginManager()).willReturn(pluginManager);
         given(pluginManager.callEvent(any())).willAnswer(inv -> inv.getArgument(0));
     }
 
-    private static BungeeProxyConfiguration createConfiguration() {
-        return new BungeeProxyConfiguration(
-            Set.of("lobby"), false, true, Set.of("/login", "/register", "/l", "/reg", "/email", "/captcha", "/2fa", "/totp", "/log"),
-            true, true, "Authentication required.", true, false, "", "", "test-secret", false);
+    private BungeeProxyBridge newBridge() {
+        return new BungeeProxyBridge(proxyServer, logger,
+            ProxyTestFixtures.configuration(), new BungeeAuthenticationStore(), null);
     }
 
-    private static byte[] createAuthMePayload(String typeId, String playerName) {
-        ByteArrayDataOutput output = ByteStreams.newDataOutput();
-        output.writeUTF(typeId);
-        output.writeUTF(playerName);
-        return output.toByteArray();
+    private void stubIncomingPluginMessage() {
+        given(pluginMessageEvent.isCancelled()).willReturn(false);
+        given(pluginMessageEvent.getTag()).willReturn(BungeeProxyBridge.AUTHME_CHANNEL);
+        given(pluginMessageEvent.getSender()).willReturn(sourceServer);
     }
 
     private static void assertPerformLoginPayload(byte[] payload, String expectedPlayerName, String sharedSecret) {

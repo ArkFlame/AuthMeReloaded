@@ -28,9 +28,9 @@ public class Pbkdf2Django extends HexSaltedMethod {
         if (parts == null) {
             return false;
         }
-        byte[] expected = Base64.getDecoder().decode(parts.hash);
-        return AbstractPbkdf2.verifyKey(password, parts.salt.getBytes(StandardCharsets.US_ASCII),
-            parts.iterations, expected, StandardCharsets.US_ASCII);
+        byte[] expected = Base64.getDecoder().decode(parts.getHash());
+        return AbstractPbkdf2.verifyKey(password, parts.getSalt().getBytes(StandardCharsets.US_ASCII),
+            parts.getIterations(), expected, StandardCharsets.US_ASCII);
     }
 
     @Override

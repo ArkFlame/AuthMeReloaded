@@ -17,7 +17,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Arrays;
 
 import static fr.xephi.authme.listener.TestPlayerUtils.mockPlayerWithName;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -41,10 +44,7 @@ class DoubleLoginFixListenerTest {
         given(commonService.getProperty(SecuritySettings.ANTI_GHOST_PLAYERS)).willReturn(false);
         Player player = mock(Player.class);
 
-        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
-            bukkit.when(Bukkit::getServer).thenReturn(mock(Server.class));
-            listener.onDuplicateNameJoin(mock(PlayerJoinEvent.class));
-        }
+        withBukkitServer(mock(Server.class), () -> listener.onDuplicateNameJoin(mock(PlayerJoinEvent.class)));
 
         verify(commonService).getProperty(SecuritySettings.ANTI_GHOST_PLAYERS);
         verifyNoInteractions(player);
@@ -58,11 +58,8 @@ class DoubleLoginFixListenerTest {
         given(commonService.retrieveSingleMessage(duplicate, MessageKey.DOUBLE_LOGIN_FIX))
             .willReturn("Doubled login");
 
-        Server server = serverWithPlayers(first, duplicate);
-        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
-            bukkit.when(Bukkit::getServer).thenReturn(server);
-            listener.onDuplicateNameJoin(mock(PlayerJoinEvent.class));
-        }
+        withBukkitServer(serverWithPlayers(first, duplicate),
+            () -> listener.onDuplicateNameJoin(mock(PlayerJoinEvent.class)));
 
         verify(first, never()).kickPlayer("Doubled login");
         verify(duplicate).kickPlayer("Doubled login");
@@ -74,21 +71,24 @@ class DoubleLoginFixListenerTest {
         Player first = mockPlayerWithName("Alice");
         Player second = mockPlayerWithName("Bob");
 
-        Server server = serverWithPlayers(first, second);
+        withBukkitServer(serverWithPlayers(first, second),
+            () -> listener.onDuplicateNameJoin(mock(PlayerJoinEvent.class)));
+
+        verify(first, never()).kickPlayer(anyString());
+        verify(second, never()).kickPlayer(anyString());
+        verify(commonService, never()).retrieveSingleMessage(any(), any(MessageKey.class));
+    }
+
+    private void withBukkitServer(Server server, Runnable action) {
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
             bukkit.when(Bukkit::getServer).thenReturn(server);
-            listener.onDuplicateNameJoin(mock(PlayerJoinEvent.class));
+            action.run();
         }
-
-        verify(first, never()).kickPlayer(org.mockito.ArgumentMatchers.anyString());
-        verify(second, never()).kickPlayer(org.mockito.ArgumentMatchers.anyString());
-        verify(commonService, never()).retrieveSingleMessage(org.mockito.ArgumentMatchers.any(),
-            org.mockito.ArgumentMatchers.any(MessageKey.class));
     }
 
     private static Server serverWithPlayers(Player... players) {
         Server server = mock(Server.class);
-        org.mockito.Mockito.doReturn(Arrays.asList(players)).when(server).getOnlinePlayers();
+        doReturn(Arrays.asList(players)).when(server).getOnlinePlayers();
         return server;
     }
 }

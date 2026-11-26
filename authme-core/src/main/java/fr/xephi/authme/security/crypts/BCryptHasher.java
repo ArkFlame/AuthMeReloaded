@@ -5,6 +5,8 @@ import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 
 import java.util.Arrays;
 
+import static fr.xephi.authme.security.HashUtils.isValidBcryptHash;
+
 /**
  * Wraps BouncyCastle's {@link OpenBSDBCrypt} and provides methods suitable for use in AuthMe.
  */
@@ -30,9 +32,7 @@ public class BCryptHasher {
     }
 
     public HashedPassword hash(String password) {
-        byte[] salt = SaltBytes.random(BYTES_IN_SALT);
-        String hash = OpenBSDBCrypt.generate(version, password.toCharArray(), salt, costFactor);
-        return new HashedPassword(hash);
+        return new HashedPassword(hashWithRawSalt(password, SaltBytes.random(BYTES_IN_SALT)));
     }
 
     public String hashWithRawSalt(String password, byte[] rawSalt) {
@@ -47,7 +47,7 @@ public class BCryptHasher {
      * @return true if the password matches the hash, false otherwise
      */
     public static boolean comparePassword(String password, String hash) {
-        if (fr.xephi.authme.security.HashUtils.isValidBcryptHash(hash)) {
+        if (isValidBcryptHash(hash)) {
             return OpenBSDBCrypt.checkPassword(hash, password.toCharArray());
         }
         return false;

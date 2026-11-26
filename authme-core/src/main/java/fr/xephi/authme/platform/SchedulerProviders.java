@@ -31,7 +31,7 @@ public final class SchedulerProviders {
      * @return a Folia provider on region-threaded servers, otherwise a Bukkit provider
      */
     public static SchedulerProvider create() {
-        return isFolia() ? new FoliaSchedulerProvider() : new BukkitSchedulerProvider();
+        return isFolia() ? folia() : bukkit();
     }
 
     /**

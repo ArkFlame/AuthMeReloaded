@@ -80,6 +80,7 @@ on_join_validation:
     not_owner_error: 'Цей акаунт вам не належить! Будь ласка, оберіть інакший нікнейм!'
     invalid_name_case: 'Регістр у вашому нікнеймі відрізняється від регістру при реєстрації.%nl%Поточний регістр: &c%invalid&f.  Валідний регістр: &a%valid&f.%nl%Будь ласка, перезайдіть з валідним регістром!'
     quick_command: 'Ви занадто швидко використовували команду! Будь ласка, приєднайтесь знову до сервера і почекайте, перш ніж використовувати будь-яку команду.'
+    # TODO double_login_fix: '&cYou have been disconnected due to doubled login.'
 
 # Email
 email:
@@ -171,6 +172,16 @@ dialog:
 
   button:
     cancel: '&cСкасувати'
+  recovery_code:
+      # TODO title: '&6Enter Recovery Code'
+      # TODO body: '&7Enter the recovery code we sent to your email address.'
+      # TODO code: '&fRecovery Code'
+      # TODO button: '&aVerify Code'
+  new_password:
+      # TODO title: '&6Choose New Password'
+      # TODO body: '&7Choose a new password for your account.'
+      # TODO password: '&fNew Password'
+      # TODO button: '&aChange Password'
 
 time:
     second: 'секунда'
@@ -232,6 +243,12 @@ admin:
         first_set_fail: '&cSetFirstSpawn не вдався, спробуйте ще раз.'
         not_defined: '&cСпавн не вдався, спробуйте визначити точку спавну.'
         first_not_defined: '&cПерший спавн не вдався, спробуйте визначити першу точку спавну.'
+    uuid:
+        # TODO offline: '&2Offline UUID of %name: %uuid'
+        # TODO mojang: '&2Mojang UUID of %name: %uuid'
+        # TODO mojang_unknown: '&eNo known Mojang UUID for %name.'
+        # TODO floodgate: '&2Floodgate UUID of %name: %uuid'
+        # TODO floodgate_unknown: '&eNo known Floodgate UUID for %name.'
 
 # Режим Premium
 premium:
@@ -254,3 +271,9 @@ premium:
     pending: '&eПеревірка Premium очікується для %name. Вони повинні повторно підключитися, щоб підтвердити право власності на акаунт Mojang.'
   pending_kick: '&eЗапитано перевірку Premium. Будь ласка, повторно підключіться, щоб підтвердити право власності на ваш акаунт Mojang.'
   pending_fail: '&cПеревірка Premium не вдалася. Будь ласка, увійдіть за допомогою пароля.'
+
+# 3rd party features: Login Location Fix (ported from HaHaWTH/AuthMeReReloaded)
+login_location_fix:
+  # TODO fix_portal: '&aYou are stuck in portal during login.'
+  # TODO fix_underground: '&aYou are stuck underground during login.'
+  # TODO cannot_fix_underground: '&aYou are stuck underground during login, but we cant fix it.'

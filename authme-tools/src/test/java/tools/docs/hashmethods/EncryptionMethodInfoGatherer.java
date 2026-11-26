@@ -31,13 +31,12 @@ public class EncryptionMethodInfoGatherer {
     private static final Set<Class<? extends Annotation>> RELEVANT_ANNOTATIONS =
         ImmutableSet.of(HasSalt.class, Recommendation.class, AsciiRestricted.class);
 
-    private static Injector injector = createInitializer();
+    private static final Injector INJECTOR = createInitializer();
 
-    private Map<HashAlgorithm, MethodDescription> descriptions;
+    private final Map<HashAlgorithm, MethodDescription> descriptions = new LinkedHashMap<>();
 
     public EncryptionMethodInfoGatherer() {
         ConsoleLogger.initialize(Logger.getAnonymousLogger(), null);
-        descriptions = new LinkedHashMap<>();
         constructDescriptions();
     }
 
@@ -81,7 +80,7 @@ public class EncryptionMethodInfoGatherer {
     }
 
     private static EncryptionMethod createEncryptionMethod(Class<? extends EncryptionMethod> clazz) {
-        EncryptionMethod method = injector.createIfHasDependencies(clazz);
+        EncryptionMethod method = INJECTOR.createIfHasDependencies(clazz);
         if (method == null) {
             throw new NullPointerException("Failed to instantiate '" + clazz + "'. Is a dependency missing?");
         }
@@ -89,26 +88,18 @@ public class EncryptionMethodInfoGatherer {
     }
 
     private static Map<Class<?>, Annotation> gatherAnnotations(Class<?> methodClass) {
-        // Note ljacqu 20151231: The map could be Map<Class<? extends Annotation>, Annotation> and it has the constraint
-        // that for a key Class<T>, the value is of type T. We write a simple "Class<?>" for brevity.
+        // A fully typed map (Class<? extends Annotation> -> Annotation) would add no technical value,
+        // so a plain Class<?> key is used throughout.
         Map<Class<?>, Annotation> collection = new HashMap<>();
-        Class<?> currentMethodClass = methodClass;
-        while (currentMethodClass != null) {
-            getRelevantAnnotations(currentMethodClass, collection);
-            currentMethodClass = getSuperClass(currentMethodClass);
-        }
-        return collection;
-    }
-
-    // Parameters could be Class<? extends EncryptionMethod>; Map<Class<? extends Annotation>, Annotation>
-    // but the constraint doesn't have any technical relevance, so just clutters the code
-    private static void getRelevantAnnotations(Class<?> methodClass, Map<Class<?>, Annotation> collection) {
-        for (Annotation annotation : methodClass.getAnnotations()) {
-            if (RELEVANT_ANNOTATIONS.contains(annotation.annotationType())
-                && !collection.containsKey(annotation.annotationType())) {
-                collection.put(annotation.annotationType(), annotation);
+        for (Class<?> current = methodClass; current != null; current = getSuperClass(current)) {
+            for (Annotation annotation : current.getAnnotations()) {
+                if (RELEVANT_ANNOTATIONS.contains(annotation.annotationType())
+                    && !collection.containsKey(annotation.annotationType())) {
+                    collection.put(annotation.annotationType(), annotation);
+                }
             }
         }
+        return collection;
     }
 
     /**
@@ -119,11 +110,8 @@ public class EncryptionMethodInfoGatherer {
      * @return the super class of the given class if it is also an EncryptionMethod type, otherwise null
      */
     private static Class<?> getSuperClass(Class<?> methodClass) {
-        Class<?> zuper = methodClass.getSuperclass();
-        if (EncryptionMethod.class.isAssignableFrom(zuper)) {
-            return zuper;
-        }
-        return null;
+        Class<?> parent = methodClass.getSuperclass();
+        return EncryptionMethod.class.isAssignableFrom(parent) ? parent : null;
     }
 
     /**

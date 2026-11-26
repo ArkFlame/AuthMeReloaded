@@ -1,5 +1,6 @@
 package fr.xephi.authme.listener;
 
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.entity.EntityEvent;
@@ -34,6 +35,11 @@ abstract class AbstractCancelListener {
     /** Cancels an event for the given player when that player is not allowed to act. */
     protected final void cancelIfUnauthorized(Player player, Cancellable event) {
         cancelEvent(listenerService.shouldCancelEvent(player), event);
+    }
+
+    /** Cancels an event for the given entity when it is a player who is not allowed to act. */
+    protected final void cancelIfUnauthorized(Entity entity, Cancellable event) {
+        cancelEvent(listenerService.shouldCancelEvent(entity), event);
     }
 
     protected final void cancelEvent(boolean shouldCancel, Cancellable event) {

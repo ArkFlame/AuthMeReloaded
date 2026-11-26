@@ -120,7 +120,6 @@ class RecoveryCodeServiceTest {
         assertThat(getTriesCounter().get(player), equalTo(0));
     }
 
-
     private ExpiringMap<String, String> getCodeMap() {
         return ReflectionTestUtils.getFieldValue(RecoveryCodeService.class, recoveryCodeService, "recoveryCodes");
     }

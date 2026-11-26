@@ -24,7 +24,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -96,7 +96,7 @@ class AbstractSpigotPlatformAdapterTest {
     @Test
     void shouldReturnLegacyOnlyListenersFor18Capabilities() {
         // 1.8: no optional API classes available
-        AbstractSpigotPlatformAdapter adapter = new CapabilityControlledAdapter(Collections.emptySet());
+        AbstractSpigotPlatformAdapter adapter = new CapabilityControlledAdapter(capsFor());
         List<Class<? extends Listener>> listeners = adapter.getListeners();
 
         assertThat(listeners, containsInAnyOrder(
@@ -120,9 +120,8 @@ class AbstractSpigotPlatformAdapterTest {
     @Test
     void shouldNotIncludeAdvancedShulkerFixWhenPlayerCommandSendIsAvailable() {
         // 1.13+: the 1.8-only shulker fix must not register
-        Set<String> caps = new HashSet<>();
-        caps.add("org.bukkit.event.player.PlayerCommandSendEvent");
-        AbstractSpigotPlatformAdapter adapter = new CapabilityControlledAdapter(caps);
+        AbstractSpigotPlatformAdapter adapter = new CapabilityControlledAdapter(
+            capsFor("org.bukkit.event.player.PlayerCommandSendEvent"));
 
         assertThat(adapter.getListeners(), not(hasItem(AdvancedShulkerFixListener.class)));
     }
@@ -130,10 +129,9 @@ class AbstractSpigotPlatformAdapterTest {
     @Test
     void shouldIncludeSpawnLocationAndSwapHandFor19Capabilities() {
         // 1.9-1.10: spawn-location + swap-hand available, but not air-change or modern pickup
-        Set<String> caps = new HashSet<>();
-        caps.add("org.spigotmc.event.player.PlayerSpawnLocationEvent");
-        caps.add("org.bukkit.event.player.PlayerSwapHandItemsEvent");
-        AbstractSpigotPlatformAdapter adapter = new CapabilityControlledAdapter(caps);
+        AbstractSpigotPlatformAdapter adapter = new CapabilityControlledAdapter(capsFor(
+            "org.spigotmc.event.player.PlayerSpawnLocationEvent",
+            "org.bukkit.event.player.PlayerSwapHandItemsEvent"));
         List<Class<? extends Listener>> listeners = adapter.getListeners();
 
         assertThat(listeners, containsInAnyOrder(
@@ -156,11 +154,10 @@ class AbstractSpigotPlatformAdapterTest {
     @Test
     void shouldIncludeAirChangeFor111Capabilities() {
         // 1.11: adds air-change on top of 1.9 set
-        Set<String> caps = new HashSet<>();
-        caps.add("org.spigotmc.event.player.PlayerSpawnLocationEvent");
-        caps.add("org.bukkit.event.player.PlayerSwapHandItemsEvent");
-        caps.add("org.bukkit.event.entity.EntityAirChangeEvent");
-        AbstractSpigotPlatformAdapter adapter = new CapabilityControlledAdapter(caps);
+        AbstractSpigotPlatformAdapter adapter = new CapabilityControlledAdapter(capsFor(
+            "org.spigotmc.event.player.PlayerSpawnLocationEvent",
+            "org.bukkit.event.player.PlayerSwapHandItemsEvent",
+            "org.bukkit.event.entity.EntityAirChangeEvent"));
         List<Class<? extends Listener>> listeners = adapter.getListeners();
 
         assertThat(listeners, containsInAnyOrder(
@@ -183,12 +180,11 @@ class AbstractSpigotPlatformAdapterTest {
     @Test
     void shouldUseModernPickupInsteadOfLegacyFor112Plus() {
         // 1.12+: all optional APIs available -> modern pickup replaces legacy
-        Set<String> caps = new HashSet<>();
-        caps.add("org.spigotmc.event.player.PlayerSpawnLocationEvent");
-        caps.add("org.bukkit.event.player.PlayerSwapHandItemsEvent");
-        caps.add("org.bukkit.event.entity.EntityAirChangeEvent");
-        caps.add("org.bukkit.event.entity.EntityPickupItemEvent");
-        AbstractSpigotPlatformAdapter adapter = new CapabilityControlledAdapter(caps);
+        AbstractSpigotPlatformAdapter adapter = new CapabilityControlledAdapter(capsFor(
+            "org.spigotmc.event.player.PlayerSpawnLocationEvent",
+            "org.bukkit.event.player.PlayerSwapHandItemsEvent",
+            "org.bukkit.event.entity.EntityAirChangeEvent",
+            "org.bukkit.event.entity.EntityPickupItemEvent"));
         List<Class<? extends Listener>> listeners = adapter.getListeners();
 
         assertThat(listeners, containsInAnyOrder(
@@ -211,13 +207,16 @@ class AbstractSpigotPlatformAdapterTest {
     @Test
     void shouldNotIncludeLegacyPickupWhenModernPickupAvailable() {
         // Edge: only modern pickup available, no other optional APIs
-        Set<String> caps = new HashSet<>();
-        caps.add("org.bukkit.event.entity.EntityPickupItemEvent");
-        AbstractSpigotPlatformAdapter adapter = new CapabilityControlledAdapter(caps);
+        AbstractSpigotPlatformAdapter adapter = new CapabilityControlledAdapter(
+            capsFor("org.bukkit.event.entity.EntityPickupItemEvent"));
         List<Class<? extends Listener>> listeners = adapter.getListeners();
 
         assertThat(listeners, hasItem(EntityPickupItemListener.class));
         assertThat(listeners, not(hasItem(LegacyPlayerPickupItemListener.class)));
+    }
+
+    private static Set<String> capsFor(String... classNames) {
+        return new HashSet<>(Arrays.asList(classNames));
     }
 
     private static final class CapabilityControlledAdapter extends AbstractSpigotPlatformAdapter {

@@ -20,6 +20,8 @@ import org.bukkit.scheduler.BukkitTask;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -334,10 +336,11 @@ class BukkitServiceTest {
         verify(server).broadcastMessage(message);
     }
 
-    @Test
-    void shouldCreateAndEmitSyncEvent() {
+    @ParameterizedTest(name = "async={0}")
+    @ValueSource(booleans = {false, true})
+    void shouldCreateAndEmitEvent(boolean async) {
         // given
-        given(settings.getProperty(PluginSettings.USE_ASYNC_TASKS)).willReturn(false);
+        given(settings.getProperty(PluginSettings.USE_ASYNC_TASKS)).willReturn(async);
         bukkitService.reload(settings);
         Player player = mock(Player.class);
         given(server.getPluginManager()).willReturn(pluginManager);
@@ -347,22 +350,7 @@ class BukkitServiceTest {
 
         // then
         verify(pluginManager).callEvent(event);
-        assertThat(event.isAsynchronous(), equalTo(false));
-        assertThat(event.getPlayer(), equalTo(player));
-    }
-
-    @Test
-    void shouldCreateAndEmitAsyncEvent() {
-        // given
-        Player player = mock(Player.class);
-        given(server.getPluginManager()).willReturn(pluginManager);
-
-        // when
-        FailedLoginEvent event = bukkitService.createAndCallEvent(isAsync -> new FailedLoginEvent(player, isAsync));
-
-        // then
-        verify(pluginManager).callEvent(event);
-        assertThat(event.isAsynchronous(), equalTo(true));
+        assertThat(event.isAsynchronous(), equalTo(async));
         assertThat(event.getPlayer(), equalTo(player));
     }
 

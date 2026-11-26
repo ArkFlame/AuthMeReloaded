@@ -78,12 +78,7 @@ public final class AuthMeColumnsHandler {
      * @return true upon success, false otherwise
      */
     public <T> boolean update(String name, DataSourceColumn<T> column, T value) {
-        try {
-            return internalHandler.update(name.toLowerCase(Locale.ROOT), column, value);
-        } catch (SQLException e) {
-            logSqlException(e);
-            return false;
-        }
+        return executeSql(() -> internalHandler.update(name.toLowerCase(Locale.ROOT), column, value), false);
     }
 
     /**
@@ -94,12 +89,7 @@ public final class AuthMeColumnsHandler {
      * @return true upon success, false otherwise
      */
     public boolean update(PlayerAuth auth, PlayerAuthColumn<?>... columns) {
-        try {
-            return internalHandler.update(auth.getNickname(), auth, columns);
-        } catch (SQLException e) {
-            logSqlException(e);
-            return false;
-        }
+        return executeSql(() -> internalHandler.update(auth.getNickname(), auth, columns), false);
     }
 
     /**
@@ -110,12 +100,7 @@ public final class AuthMeColumnsHandler {
      * @return true upon success, false otherwise
      */
     public boolean update(String name, UpdateValues<ColumnContext> updateValues) {
-        try {
-            return internalHandler.update(name.toLowerCase(Locale.ROOT), updateValues);
-        } catch (SQLException e) {
-            logSqlException(e);
-            return false;
-        }
+        return executeSql(() -> internalHandler.update(name.toLowerCase(Locale.ROOT), updateValues), false);
     }
 
     /**
@@ -128,12 +113,7 @@ public final class AuthMeColumnsHandler {
      * @return number of modified rows
      */
     public <T> int update(Predicate<ColumnContext> predicate, DataSourceColumn<T> column, T value) {
-        try {
-            return internalHandler.update(predicate, column, value);
-        } catch (SQLException e) {
-            logSqlException(e);
-            return 0;
-        }
+        return executeSql(() -> internalHandler.update(predicate, column, value), 0);
     }
 
     /**
@@ -182,12 +162,7 @@ public final class AuthMeColumnsHandler {
      * @return true upon success, false otherwise
      */
     public boolean insert(PlayerAuth auth, PlayerAuthColumn<?>... columns) {
-        try {
-            return internalHandler.insert(auth, columns);
-        } catch (SQLException e) {
-            logSqlException(e);
-            return false;
-        }
+        return executeSql(() -> internalHandler.insert(auth, columns), false);
     }
 
     /**
@@ -197,11 +172,21 @@ public final class AuthMeColumnsHandler {
      * @return number of rows fulfilling the predicate
      */
     public int count(Predicate<ColumnContext> predicate) {
+        return executeSql(() -> internalHandler.count(predicate), 0);
+    }
+
+    private <T> T executeSql(SqlAction<T> action, T fallback) {
         try {
-            return internalHandler.count(predicate);
+            return action.execute();
         } catch (SQLException e) {
             logSqlException(e);
-            return 0;
+            return fallback;
         }
+    }
+
+    @FunctionalInterface
+    private interface SqlAction<T> {
+
+        T execute() throws SQLException;
     }
 }

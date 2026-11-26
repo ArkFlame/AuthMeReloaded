@@ -21,7 +21,7 @@ import javax.inject.Inject;
  */
 public class ProcessSyncPasswordRegister implements SynchronousProcess {
 
-    private final ConsoleLogger logger = ConsoleLoggerFactory.get(ProcessSyncPasswordRegister.class);
+    private static final ConsoleLogger LOGGER = ConsoleLoggerFactory.get(ProcessSyncPasswordRegister.class);
 
     @Inject
     private BungeeSender bungeeSender;
@@ -54,7 +54,7 @@ public class ProcessSyncPasswordRegister implements SynchronousProcess {
         }
 
         bukkitService.callEvent(new RegisterEvent(player));
-        RegisterLogHelper.logRegistration(logger, player);
+        RegisterLogHelper.logRegistration(LOGGER, player);
 
         // Kick Player after Registration is enabled, kick the player
         if (service.getProperty(RegistrationSettings.FORCE_KICK_AFTER_REGISTER)) {

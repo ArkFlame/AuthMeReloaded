@@ -22,10 +22,9 @@ import java.util.concurrent.TimeUnit;
  * @param <K> the key type
  * @param <V> the value type
  */
-public class ExpiringMap<K, V> {
+public class ExpiringMap<K, V> extends AbstractExpiring {
 
     private final Map<K, ExpiringEntry<V>> entries = new ConcurrentHashMap<>();
-    private long expirationMillis;
 
     /**
      * Constructor.
@@ -34,7 +33,7 @@ public class ExpiringMap<K, V> {
      * @param unit the time unit in which {@code duration} is expressed
      */
     public ExpiringMap(long duration, TimeUnit unit) {
-        setExpiration(duration, unit);
+        super(duration, unit);
     }
 
     /**
@@ -63,7 +62,7 @@ public class ExpiringMap<K, V> {
      * @param value the value to insert
      */
     public void put(K key, V value) {
-        long expiration = System.currentTimeMillis() + expirationMillis;
+        long expiration = System.currentTimeMillis() + getExpirationMillis();
         entries.put(key, new ExpiringEntry<>(value, expiration));
     }
 
@@ -89,17 +88,6 @@ public class ExpiringMap<K, V> {
     }
 
     /**
-     * Sets a new expiration duration. Note that already present entries
-     * will still make use of the old expiration.
-     *
-     * @param duration the duration of time after which entries expire
-     * @param unit the time unit in which {@code duration} is expressed
-     */
-    public void setExpiration(long duration, TimeUnit unit) {
-        this.expirationMillis = unit.toMillis(duration);
-    }
-
-    /**
      * Returns whether this map is empty. This reflects the state of the
      * internal map, which may contain expired entries only. The result
      * may change after running {@link #removeExpiredEntries()}.
@@ -115,15 +103,6 @@ public class ExpiringMap<K, V> {
      */
     protected Map<K, ExpiringEntry<V>> getEntries() {
         return entries;
-    }
-
-    /**
-     * Returns the configured expiration duration in milliseconds.
-     *
-     * @return the expiration in milliseconds
-     */
-    protected long getExpirationMillis() {
-        return expirationMillis;
     }
 
     /**

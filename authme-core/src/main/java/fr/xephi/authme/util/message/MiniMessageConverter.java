@@ -28,6 +28,12 @@ public final class MiniMessageConverter {
     private static final Pattern MINIMESSAGE_TAG = Pattern.compile(
         "</?(?:" + TAG_NAMES + "|#[0-9a-fA-F]{6})(?::[^>]*)?>");
 
+    private static final String[] ADVENTURE_CLASSES = {
+        "net.kyori.adventure.text.Component",
+        "net.kyori.adventure.text.minimessage.MiniMessage",
+        "net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer"
+    };
+
     private static final boolean ADVENTURE_AVAILABLE = detectAdventure();
 
     private MiniMessageConverter() {
@@ -76,9 +82,9 @@ public final class MiniMessageConverter {
 
     private static boolean detectAdventure() {
         try {
-            Class.forName("net.kyori.adventure.text.Component");
-            Class.forName("net.kyori.adventure.text.minimessage.MiniMessage");
-            Class.forName("net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer");
+            for (String className : ADVENTURE_CLASSES) {
+                Class.forName(className);
+            }
             return true;
         } catch (ClassNotFoundException | LinkageError e) {
             return false;

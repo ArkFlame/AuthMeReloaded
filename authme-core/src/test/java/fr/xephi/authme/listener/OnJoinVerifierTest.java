@@ -55,6 +55,8 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 @ExtendWith(MockitoExtension.class)
 class OnJoinVerifierTest {
 
+    private static final UUID BEDROCK_PLAYER_ID = UUID.fromString("753493c9-33ba-4a4a-bf61-1bce9d3c9a71");
+
     @InjectMocks
     private OnJoinVerifier onJoinVerifier;
 
@@ -211,10 +213,7 @@ class OnJoinVerifierTest {
     @Test
     void shouldAllowValidName() throws FailedVerificationException {
         // given
-        given(settings.getProperty(RestrictionSettings.MIN_NICKNAME_LENGTH)).willReturn(4);
-        given(settings.getProperty(RestrictionSettings.MAX_NICKNAME_LENGTH)).willReturn(8);
-        given(settings.getProperty(RestrictionSettings.ALLOWED_NICKNAME_CHARACTERS)).willReturn("[a-zA-Z0-9]+");
-        onJoinVerifier.reload(); // @PostConstruct method
+        configureNicknameCharacterCheck(8);
 
         // when
         onJoinVerifier.checkIsValidName("Bobby5");
@@ -235,10 +234,7 @@ class OnJoinVerifierTest {
     @Test
     void shouldRejectTooShortName() {
         // given
-        given(settings.getProperty(RestrictionSettings.MIN_NICKNAME_LENGTH)).willReturn(4);
-        given(settings.getProperty(RestrictionSettings.MAX_NICKNAME_LENGTH)).willReturn(8);
-        given(settings.getProperty(RestrictionSettings.ALLOWED_NICKNAME_CHARACTERS)).willReturn("[a-zA-Z0-9]+");
-        onJoinVerifier.reload(); // @PostConstruct method
+        configureNicknameCharacterCheck(8);
 
         // when / then
         expectValidationExceptionWith(() -> onJoinVerifier.checkIsValidName("abc"),
@@ -248,10 +244,7 @@ class OnJoinVerifierTest {
     @Test
     void shouldRejectNameWithInvalidCharacters() {
         // given
-        given(settings.getProperty(RestrictionSettings.MIN_NICKNAME_LENGTH)).willReturn(4);
-        given(settings.getProperty(RestrictionSettings.MAX_NICKNAME_LENGTH)).willReturn(8);
-        given(settings.getProperty(RestrictionSettings.ALLOWED_NICKNAME_CHARACTERS)).willReturn("[a-zA-Z0-9]+");
-        onJoinVerifier.reload(); // @PostConstruct method
+        configureNicknameCharacterCheck(8);
 
         // when / then
         expectValidationExceptionWith(() -> onJoinVerifier.checkIsValidName("Tester!"),
@@ -261,7 +254,7 @@ class OnJoinVerifierTest {
     @Test
     void shouldSkipNameCharacterCheckForVerifiedBedrockPlayer() {
         // given
-        UUID playerId = UUID.fromString("753493c9-33ba-4a4a-bf61-1bce9d3c9a71");
+        UUID playerId = BEDROCK_PLAYER_ID;
         configureNicknameCharacterCheck(16);
         given(settings.getProperty(HooksSettings.IGNORE_BEDROCK_NAME_CHECK)).willReturn(true);
         given(floodgateService.isFloodgatePlayer(playerId)).willReturn(true);
@@ -274,7 +267,7 @@ class OnJoinVerifierTest {
     @Test
     void shouldStillCheckNameOfNonBedrockPlayer() {
         // given
-        UUID playerId = UUID.fromString("753493c9-33ba-4a4a-bf61-1bce9d3c9a71");
+        UUID playerId = BEDROCK_PLAYER_ID;
         configureNicknameCharacterCheck(16);
         given(settings.getProperty(HooksSettings.IGNORE_BEDROCK_NAME_CHECK)).willReturn(true);
         given(floodgateService.isFloodgatePlayer(playerId)).willReturn(false);
@@ -287,7 +280,7 @@ class OnJoinVerifierTest {
     @Test
     void shouldStillCheckNameWhenBedrockBypassIsDisabled() {
         // given
-        UUID playerId = UUID.fromString("753493c9-33ba-4a4a-bf61-1bce9d3c9a71");
+        UUID playerId = BEDROCK_PLAYER_ID;
         configureNicknameCharacterCheck(16);
         given(settings.getProperty(HooksSettings.IGNORE_BEDROCK_NAME_CHECK)).willReturn(false);
 
@@ -300,7 +293,7 @@ class OnJoinVerifierTest {
     @Test
     void shouldNotTreatBedrockLookingNameAsBedrockPlayer() {
         // given
-        UUID playerId = UUID.fromString("753493c9-33ba-4a4a-bf61-1bce9d3c9a71");
+        UUID playerId = BEDROCK_PLAYER_ID;
         configureNicknameCharacterCheck(16);
         given(settings.getProperty(HooksSettings.IGNORE_BEDROCK_NAME_CHECK)).willReturn(true);
         given(floodgateService.isFloodgatePlayer(playerId)).willReturn(false);

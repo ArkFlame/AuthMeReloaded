@@ -61,9 +61,7 @@ class TeleportationServiceFirstSpawnTest {
     @Test
     void shouldSendNewPlayerToFirstSpawnOnJoin() {
         // given
-        given(settings.getProperty(RestrictionSettings.SPAWN_PRIORITY)).willReturn("authme,essentials,default");
-        given(settings.getProperty(RestrictionSettings.TELEPORT_UNAUTHED_TO_SPAWN)).willReturn(true);
-        given(settings.getProperty(RegistrationSettings.FORCE)).willReturn(true);
+        givenSpawnSettings("authme,essentials,default");
         Player player = mock(Player.class);
         given(player.hasPlayedBefore()).willReturn(false);
         given(player.isOnline()).willReturn(true);
@@ -81,9 +79,7 @@ class TeleportationServiceFirstSpawnTest {
     @Test
     void shouldUseFirstSpawnForNewPlayerInAsyncJoinHook() {
         // given
-        given(settings.getProperty(RestrictionSettings.SPAWN_PRIORITY)).willReturn("authme,essentials,default");
-        given(settings.getProperty(RestrictionSettings.TELEPORT_UNAUTHED_TO_SPAWN)).willReturn(true);
-        given(settings.getProperty(RegistrationSettings.FORCE)).willReturn(true);
+        givenSpawnSettings("authme,essentials,default");
         World world = mock(World.class);
         Location firstSpawn = new Location(world, 10.0, 64.0, -20.0);
         given(spawnLoader.getFirstSpawn()).willReturn(firstSpawn);
@@ -99,9 +95,7 @@ class TeleportationServiceFirstSpawnTest {
     @Test
     void shouldKeepRegularSpawnForReturningPlayerWhenAuthmeHasPriority() {
         // given
-        given(settings.getProperty(RestrictionSettings.SPAWN_PRIORITY)).willReturn("authme,essentials,default");
-        given(settings.getProperty(RestrictionSettings.TELEPORT_UNAUTHED_TO_SPAWN)).willReturn(true);
-        given(settings.getProperty(RegistrationSettings.FORCE)).willReturn(true);
+        givenSpawnSettings("authme,essentials,default");
         World world = mock(World.class);
         Location regularSpawn = new Location(world, 1.0, 2.0, 3.0);
         given(dataSource.isAuthAvailable("Veteran")).willReturn(true);
@@ -118,9 +112,7 @@ class TeleportationServiceFirstSpawnTest {
     @Test
     void shouldNotOverrideSpawnPriorityWhenAuthmeIsNotFirst() {
         // given
-        given(settings.getProperty(RestrictionSettings.SPAWN_PRIORITY)).willReturn("essentials,authme,default");
-        given(settings.getProperty(RestrictionSettings.TELEPORT_UNAUTHED_TO_SPAWN)).willReturn(true);
-        given(settings.getProperty(RegistrationSettings.FORCE)).willReturn(true);
+        givenSpawnSettings("essentials,authme,default");
         World world = mock(World.class);
         Location regularSpawn = new Location(world, 1.0, 2.0, 3.0);
         given(spawnLoader.getSpawnLocation(world)).willReturn(regularSpawn);
@@ -131,5 +123,11 @@ class TeleportationServiceFirstSpawnTest {
         // then
         assertThat(result, equalTo(regularSpawn));
         verify(spawnLoader, never()).getFirstSpawn();
+    }
+
+    private void givenSpawnSettings(String spawnPriority) {
+        given(settings.getProperty(RestrictionSettings.SPAWN_PRIORITY)).willReturn(spawnPriority);
+        given(settings.getProperty(RestrictionSettings.TELEPORT_UNAUTHED_TO_SPAWN)).willReturn(true);
+        given(settings.getProperty(RegistrationSettings.FORCE)).willReturn(true);
     }
 }

@@ -17,27 +17,23 @@ public class Log4JFilter extends AbstractFilter {
     private static final long serialVersionUID = -5594073755007974254L;
 
     /**
-     * Validates a Message instance and returns the {@link Result} value
-     * depending on whether the message contains sensitive AuthMe data.
+     * Validates a log message and returns the {@link Result} value depending on whether
+     * it contains sensitive AuthMe data. Log4j hands the text over as a {@link Message},
+     * a plain String or an arbitrary object, so all filter methods funnel through here.
      *
-     * @param message The Message object to verify
-     *
-     * @return The Result value
+     * @param message the message to verify, may be null
+     * @return the Result value
      */
-    private static Result validateMessage(Message message) {
-        return validateMessage(message == null ? null : message.getFormattedMessage());
-    }
-
-    /**
-     * Validates a message and returns the {@link Result} value depending
-     * on whether the message contains sensitive AuthMe data.
-     *
-     * @param message The message to verify
-     *
-     * @return The Result value
-     */
-    private static Result validateMessage(String message) {
-        return LogFilterHelper.isSensitiveAuthMeCommand(message)
+    private static Result validateMessage(Object message) {
+        String text;
+        if (message == null) {
+            text = null;
+        } else if (message instanceof Message) {
+            text = ((Message) message).getFormattedMessage();
+        } else {
+            text = message.toString();
+        }
+        return LogFilterHelper.isSensitiveAuthMeCommand(text)
             ? Result.DENY
             : Result.NEUTRAL;
     }

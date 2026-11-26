@@ -1,7 +1,6 @@
 package fr.xephi.authme.velocity;
 
 import com.google.common.io.ByteArrayDataInput;
-import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 import com.velocitypowered.api.event.connection.PluginMessageEvent;
 import com.velocitypowered.api.event.connection.PreLoginEvent;
@@ -21,7 +20,6 @@ import org.slf4j.Logger;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -69,7 +67,7 @@ class Velocity3126Test {
         input.readLong();
         assertEquals(PREMIUM_UUID.toString(), input.readUTF());
         assertEquals(ProxyMessageSecurity.computeHmac("test-secret", "alice",
-            readTimestamp(payload.getValue()), PREMIUM_UUID), input.readUTF());
+            ProxyTestFixtures.timestamp(payload.getValue()), PREMIUM_UUID), input.readUTF());
     }
 
     /** Control case: without offline compatibility the premium UUID is forwarded, so online mode is required. */
@@ -83,26 +81,6 @@ class Velocity3126Test {
 
         assertEquals(PreLoginEvent.PreLoginComponentResult.forceOnlineMode().toString(),
             event.getResult().toString());
-    }
-
-    private static long readTimestamp(byte[] payload) {
-        ByteArrayDataInput input = ByteStreams.newDataInput(payload);
-        input.readUTF();
-        input.readUTF();
-        return input.readLong();
-    }
-
-    private static VelocityProxyConfiguration createConfiguration(boolean keepOfflineUuid) {
-        return new VelocityProxyConfiguration(Set.of("lobby"), false, true,
-            "Authentication required.", true, false, "", true,
-            Set.of("/login"), true, "", "test-secret", keepOfflineUuid);
-    }
-
-    private static byte[] createMessage(String typeId, String playerName) {
-        ByteArrayDataOutput output = ByteStreams.newDataOutput();
-        output.writeUTF(typeId);
-        output.writeUTF(playerName);
-        return output.toByteArray();
     }
 
     private static final class Fixture {
@@ -131,15 +109,15 @@ class Velocity3126Test {
             given(currentServer.getServer()).willReturn(gameServer);
             given(currentServer.sendPluginMessage(eq(VelocityProxyBridge.AUTHME_CHANNEL), any(byte[].class)))
                 .willReturn(true);
-            bridge = new VelocityProxyBridge(proxyServer, logger, createConfiguration(keepOfflineUuid),
-                new VelocityAuthenticationStore(), null);
+            bridge = new VelocityProxyBridge(proxyServer, logger,
+                ProxyTestFixtures.configuration(true, keepOfflineUuid), new VelocityAuthenticationStore(), null);
         }
 
         private void recordPremiumName() {
             given(pluginMessageEvent.getResult()).willReturn(PluginMessageEvent.ForwardResult.forward());
             given(pluginMessageEvent.getIdentifier()).willReturn(VelocityProxyBridge.AUTHME_CHANNEL);
             given(pluginMessageEvent.getSource()).willReturn(source);
-            given(pluginMessageEvent.getData()).willReturn(createMessage("premium.set", "Alice"));
+            given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.message("premium.set", "Alice"));
             given(source.getServer()).willReturn(authServer);
             bridge.onPluginMessage(pluginMessageEvent);
         }

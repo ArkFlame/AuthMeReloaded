@@ -11,7 +11,6 @@ import javax.inject.Inject;
 import java.io.File;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Locale;
 
 import static fr.xephi.authme.util.Utils.logAndSendMessage;
 
@@ -52,11 +51,10 @@ public class OpeNLoginConverter extends AbstractSqlitePluginConverter {
         long imported = 0;
         long skipped = 0;
         while (rs.next()) {
-            String name = rs.getString("name");
-            if (name == null || name.isEmpty()) {
+            String name = ConverterUtils.toLowerCaseOrNull(rs.getString("name"));
+            if (name == null) {
                 continue;
             }
-            name = name.toLowerCase(Locale.ROOT);
 
             if (getDataSource().isAuthAvailable(name)) {
                 ++skipped;

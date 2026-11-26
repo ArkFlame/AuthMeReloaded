@@ -49,8 +49,8 @@ public class EmailChangedEvent extends AbstractCancellableEvent {
     /**
      * Gets the new email.
      *
-     * @return The email the user is trying to set; when the user adds an email and never had one before,
-     *         this is where that email can be found
+     * @return The email the user is trying to set, never {@code null}; when the user adds an email and
+     *         never had one before, this is where that email can be found
      */
     public String getNewEmail() {
         return this.newEmail;

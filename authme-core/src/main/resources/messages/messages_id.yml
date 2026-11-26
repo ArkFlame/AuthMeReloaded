@@ -80,6 +80,7 @@ on_join_validation:
     not_owner_error: 'Kamu bukan pemilik dari akun ini. Tolong pilih nama lain!'
     invalid_name_case: 'Kamu seharusnya masuk menggunakan username %valid, bukan %invalid.'
     quick_command: 'Kamu menggunakan perintah terlalu cepat! Tolong masuk kembali ke server dan tunggu sebentar sebelum menggunakan perintah lagi.'
+    # TODO double_login_fix: '&cYou have been disconnected due to doubled login.'
 
 # Email
 email:
@@ -171,6 +172,16 @@ dialog:
 
   button:
     cancel: '&cBatal'
+  recovery_code:
+      # TODO title: '&6Enter Recovery Code'
+      # TODO body: '&7Enter the recovery code we sent to your email address.'
+      # TODO code: '&fRecovery Code'
+      # TODO button: '&aVerify Code'
+  new_password:
+      # TODO title: '&6Choose New Password'
+      # TODO body: '&7Choose a new password for your account.'
+      # TODO password: '&fNew Password'
+      # TODO button: '&aChange Password'
 
 time:
     second: 'detik'
@@ -232,6 +243,12 @@ admin:
         first_set_fail: '&cSetFirstSpawn gagal, coba lagi.'
         not_defined: '&cSpawn gagal, coba tentukan titik spawn.'
         first_not_defined: '&cSpawn pertama gagal, coba tentukan titik spawn pertama.'
+    uuid:
+        # TODO offline: '&2Offline UUID of %name: %uuid'
+        # TODO mojang: '&2Mojang UUID of %name: %uuid'
+        # TODO mojang_unknown: '&eNo known Mojang UUID for %name.'
+        # TODO floodgate: '&2Floodgate UUID of %name: %uuid'
+        # TODO floodgate_unknown: '&eNo known Floodgate UUID for %name.'
 
 # Mode premium
 premium:
@@ -254,3 +271,9 @@ premium:
     pending: '&eVerifikasi premium sedang menunggu untuk %name. Mereka harus terhubung kembali untuk mengonfirmasi kepemilikan akun Mojang.'
   pending_kick: '&eVerifikasi premium diminta. Silakan terhubung kembali untuk mengonfirmasi kepemilikan akun Mojang Anda.'
   pending_fail: '&cVerifikasi premium gagal. Silakan login dengan kata sandi Anda.'
+
+# 3rd party features: Login Location Fix (ported from HaHaWTH/AuthMeReReloaded)
+login_location_fix:
+  # TODO fix_portal: '&aYou are stuck in portal during login.'
+  # TODO fix_underground: '&aYou are stuck underground during login.'
+  # TODO cannot_fix_underground: '&aYou are stuck underground during login, but we cant fix it.'

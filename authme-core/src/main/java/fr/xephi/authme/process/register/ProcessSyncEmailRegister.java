@@ -17,7 +17,7 @@ import javax.inject.Inject;
  */
 public class ProcessSyncEmailRegister implements SynchronousProcess {
 
-    private final ConsoleLogger logger = ConsoleLoggerFactory.get(ProcessSyncEmailRegister.class);
+    private static final ConsoleLogger LOGGER = ConsoleLoggerFactory.get(ProcessSyncEmailRegister.class);
 
     @Inject
     private BukkitService bukkitService;
@@ -41,7 +41,7 @@ public class ProcessSyncEmailRegister implements SynchronousProcess {
         limboService.replaceTasksAfterRegistration(player);
 
         bukkitService.callEvent(new RegisterEvent(player));
-        RegisterLogHelper.logRegistration(logger, player);
+        RegisterLogHelper.logRegistration(LOGGER, player);
     }
 
 }

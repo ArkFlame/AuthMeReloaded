@@ -19,11 +19,9 @@ public class AddJavaDocToMessageEnumTask implements AutoToolTask {
     private static final String MESSAGES_FILE =
         ToolsConstants.MAIN_RESOURCES_ROOT + MessagePathHelper.DEFAULT_MESSAGES_FILE;
 
-    private FileConfiguration configuration;
-
     @Override
     public void executeDefault() {
-        configuration = YamlConfiguration.loadConfiguration(new File(MESSAGES_FILE));
+        FileConfiguration configuration = YamlConfiguration.loadConfiguration(new File(MESSAGES_FILE));
 
         List<String> entries = new ArrayList<>();
         for (MessageKey entry : MessageKey.values()) {
@@ -31,7 +29,7 @@ public class AddJavaDocToMessageEnumTask implements AutoToolTask {
                 ? ""
                 : ", \"" + String.join("\", \"", entry.getTags()) + "\"";
 
-            entries.add("/** " + getMessageForJavaDoc(entry) + " */"
+            entries.add("/** " + getMessageForJavaDoc(configuration, entry) + " */"
                 + "\n\t" + entry.name() + "(\"" + entry.getKey() + "\"" + tags + ")");
         }
 
@@ -43,7 +41,7 @@ public class AddJavaDocToMessageEnumTask implements AutoToolTask {
         return "addJavaDocToMessageEnum";
     }
 
-    private String getMessageForJavaDoc(MessageKey key) {
+    private static String getMessageForJavaDoc(FileConfiguration configuration, MessageKey key) {
         return configuration.getString(key.getKey())
             .replaceAll("&[0-9a-f]", "")
             .replace("&", "&amp;")

@@ -23,10 +23,8 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
 
     private static final CancellableTask NO_OP_TASK = () -> { };
 
-    private volatile Object globalScheduler;
-    private boolean globalSchedulerResolved;
-    private volatile Object asyncScheduler;
-    private boolean asyncSchedulerResolved;
+    private final LazyScheduler globalScheduler = new LazyScheduler("getGlobalRegionScheduler");
+    private final LazyScheduler asyncScheduler = new LazyScheduler("getAsyncScheduler");
 
     @Override
     public boolean isFolia() {
@@ -42,7 +40,7 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
 
     @Override
     public void runOnGlobalThread(Plugin plugin, Runnable task) {
-        Object scheduler = getGlobalScheduler();
+        Object scheduler = globalScheduler.get();
         Method run = findMethod(scheduler, "run", Plugin.class, Consumer.class);
         if (run == null) {
             warnUnavailable(plugin, "global region scheduler");
@@ -53,7 +51,7 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
 
     @Override
     public CancellableTask runDelayedOnGlobalThread(Plugin plugin, Runnable task, long delayTicks) {
-        Object scheduler = getGlobalScheduler();
+        Object scheduler = globalScheduler.get();
         return schedule(plugin, scheduler,
             findMethod(scheduler, "runDelayed", Plugin.class, Consumer.class, long.class),
             "global region scheduler", plugin, toConsumer(task), delayTicks);
@@ -62,7 +60,7 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
     @Override
     public CancellableTask runAtFixedRateOnGlobalThread(Plugin plugin, Runnable task,
                                                         long delayTicks, long periodTicks) {
-        Object scheduler = getGlobalScheduler();
+        Object scheduler = globalScheduler.get();
         return schedule(plugin, scheduler,
             findMethod(scheduler, "runAtFixedRate", Plugin.class, Consumer.class,
                 long.class, long.class, TimeUnit.class),
@@ -72,7 +70,7 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
 
     @Override
     public CancellableTask runAsync(Plugin plugin, Runnable task) {
-        Object scheduler = getAsyncScheduler();
+        Object scheduler = asyncScheduler.get();
         return schedule(plugin, scheduler,
             findMethod(scheduler, "runNow", Plugin.class, Consumer.class),
             "async scheduler", plugin, toConsumer(task));
@@ -80,7 +78,7 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
 
     @Override
     public CancellableTask runAsyncTimer(Plugin plugin, Runnable task, long delayTicks, long periodTicks) {
-        Object scheduler = getAsyncScheduler();
+        Object scheduler = asyncScheduler.get();
         return schedule(plugin, scheduler,
             findMethod(scheduler, "runAtFixedRate", Plugin.class, Consumer.class,
                 long.class, long.class, TimeUnit.class),
@@ -88,28 +86,28 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
             delayTicks * MILLIS_PER_TICK, periodTicks * MILLIS_PER_TICK, TimeUnit.MILLISECONDS);
     }
 
-    private Object getGlobalScheduler() {
-        if (!globalSchedulerResolved) {
-            synchronized (this) {
-                if (!globalSchedulerResolved) {
-                    globalScheduler = getBukkitScheduler("getGlobalRegionScheduler");
-                    globalSchedulerResolved = true;
-                }
-            }
-        }
-        return globalScheduler;
-    }
+    /** Resolves a Folia scheduler from Bukkit on first use and caches the result. */
+    private static final class LazyScheduler {
 
-    private Object getAsyncScheduler() {
-        if (!asyncSchedulerResolved) {
-            synchronized (this) {
-                if (!asyncSchedulerResolved) {
-                    asyncScheduler = getBukkitScheduler("getAsyncScheduler");
-                    asyncSchedulerResolved = true;
+        private final String getterName;
+        private volatile Object value;
+        private boolean resolved;
+
+        private LazyScheduler(String getterName) {
+            this.getterName = getterName;
+        }
+
+        Object get() {
+            if (!resolved) {
+                synchronized (this) {
+                    if (!resolved) {
+                        value = getBukkitScheduler(getterName);
+                        resolved = true;
+                    }
                 }
             }
+            return value;
         }
-        return asyncScheduler;
     }
 
     private static Object getBukkitScheduler(String getterName) {

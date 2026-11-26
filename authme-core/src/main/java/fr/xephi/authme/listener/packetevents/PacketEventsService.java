@@ -88,9 +88,8 @@ public class PacketEventsService implements SettingsDependent {
                     }
                 }
             }
-        } else if (inventoryProtectionRegistered) {
-            packetInterceptionAdapter.unregisterInventoryProtection();
-            inventoryProtectionRegistered = false;
+        } else {
+            unregisterInventoryProtection();
         }
 
         if (denyTabCompleteBeforeLogin) {
@@ -98,9 +97,8 @@ public class PacketEventsService implements SettingsDependent {
                 packetInterceptionAdapter.registerTabCompleteBlock(playerCache);
                 tabCompleteBlockRegistered = true;
             }
-        } else if (tabCompleteBlockRegistered) {
-            packetInterceptionAdapter.unregisterTabCompleteBlock();
-            tabCompleteBlockRegistered = false;
+        } else {
+            unregisterTabCompleteBlock();
         }
 
         if (needsPremiumPacketVerification) {
@@ -109,9 +107,8 @@ public class PacketEventsService implements SettingsDependent {
                     pendingPremiumCache, bukkitService);
                 premiumVerificationRegistered = true;
             }
-        } else if (premiumVerificationRegistered) {
-            packetInterceptionAdapter.unregisterPremiumVerification();
-            premiumVerificationRegistered = false;
+        } else {
+            unregisterPremiumVerification();
         }
     }
 
@@ -119,14 +116,26 @@ public class PacketEventsService implements SettingsDependent {
      * Stops all PacketEvents-based features.
      */
     public void disable() {
+        unregisterInventoryProtection();
+        unregisterTabCompleteBlock();
+        unregisterPremiumVerification();
+    }
+
+    private void unregisterInventoryProtection() {
         if (inventoryProtectionRegistered) {
             packetInterceptionAdapter.unregisterInventoryProtection();
             inventoryProtectionRegistered = false;
         }
+    }
+
+    private void unregisterTabCompleteBlock() {
         if (tabCompleteBlockRegistered) {
             packetInterceptionAdapter.unregisterTabCompleteBlock();
             tabCompleteBlockRegistered = false;
         }
+    }
+
+    private void unregisterPremiumVerification() {
         if (premiumVerificationRegistered) {
             packetInterceptionAdapter.unregisterPremiumVerification();
             premiumVerificationRegistered = false;
@@ -155,8 +164,7 @@ public class PacketEventsService implements SettingsDependent {
 
         // If inventory protection was on and is now disabled, restore inventories for online players
         if (oldProtectInventory && !protectInvBeforeLogin && inventoryProtectionRegistered) {
-            packetInterceptionAdapter.unregisterInventoryProtection();
-            inventoryProtectionRegistered = false;
+            unregisterInventoryProtection();
             for (Player onlinePlayer : bukkitService.getOnlinePlayers()) {
                 if (!playerCache.isAuthenticated(onlinePlayer.getName())) {
                     onlinePlayer.updateInventory();

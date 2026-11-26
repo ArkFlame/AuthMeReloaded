@@ -41,10 +41,7 @@ class StrictInventoryWhitelistTest {
     @Test
     void shouldBlockSimilarTitleWhenStrictCheckIsEnabled() {
         // given
-        given(settings.getProperty(RestrictionSettings.UNRESTRICTED_INVENTORIES))
-            .willReturn(Collections.singleton("/l"));
-        given(settings.getProperty(RestrictionSettings.STRICT_UNRESTRICTED_INVENTORIES_CHECK)).willReturn(true);
-        given(listenerService.shouldCancelEvent(any(HumanEntity.class))).willReturn(true);
+        givenWhitelistWithStrictCheck(true);
         InventoryOpenEvent event = inventoryOpenEvent("/lx");
 
         // when
@@ -57,10 +54,7 @@ class StrictInventoryWhitelistTest {
     @Test
     void shouldAllowExactTitleWhenStrictCheckIsEnabled() {
         // given
-        given(settings.getProperty(RestrictionSettings.UNRESTRICTED_INVENTORIES))
-            .willReturn(Collections.singleton("/l"));
-        given(settings.getProperty(RestrictionSettings.STRICT_UNRESTRICTED_INVENTORIES_CHECK)).willReturn(true);
-        given(listenerService.shouldCancelEvent(any(HumanEntity.class))).willReturn(true);
+        givenWhitelistWithStrictCheck(true);
         InventoryOpenEvent event = inventoryOpenEvent("/L");
 
         // when
@@ -74,10 +68,7 @@ class StrictInventoryWhitelistTest {
     @Test
     void shouldAllowSimilarTitleWhenStrictCheckIsDisabled() {
         // given
-        given(settings.getProperty(RestrictionSettings.UNRESTRICTED_INVENTORIES))
-            .willReturn(Collections.singleton("/l"));
-        given(settings.getProperty(RestrictionSettings.STRICT_UNRESTRICTED_INVENTORIES_CHECK)).willReturn(false);
-        given(listenerService.shouldCancelEvent(any(HumanEntity.class))).willReturn(true);
+        givenWhitelistWithStrictCheck(false);
         InventoryOpenEvent event = inventoryOpenEvent("/lx");
 
         // when
@@ -86,6 +77,13 @@ class StrictInventoryWhitelistTest {
         // then
         assertThat(event.isCancelled(), equalTo(false));
         verifyNoInteractions(bukkitService);
+    }
+
+    private void givenWhitelistWithStrictCheck(boolean strict) {
+        given(settings.getProperty(RestrictionSettings.UNRESTRICTED_INVENTORIES))
+            .willReturn(Collections.singleton("/l"));
+        given(settings.getProperty(RestrictionSettings.STRICT_UNRESTRICTED_INVENTORIES_CHECK)).willReturn(strict);
+        given(listenerService.shouldCancelEvent(any(HumanEntity.class))).willReturn(true);
     }
 
     private static InventoryOpenEvent inventoryOpenEvent(String title) {

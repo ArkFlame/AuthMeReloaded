@@ -1,5 +1,6 @@
 package fr.xephi.authme.security.crypts;
 
+import java.util.Arrays;
 import java.util.function.IntUnaryOperator;
 
 /**
@@ -43,5 +44,17 @@ final class PhpassCodec {
             output.append(ITOA64.charAt((value >> 18) & 0x3f));
         } while (i < count);
         return output.toString();
+    }
+
+    /**
+     * Encodes bytes into the itoa64 alphabet, padding the input with zeroes up to {@code count} values.
+     *
+     * @param values the values to encode
+     * @param count the number of values to encode
+     * @return the encoded string
+     */
+    static String encode64(byte[] values, int count) {
+        byte[] padded = values.length < count ? Arrays.copyOf(values, count) : values;
+        return encode64(i -> padded[i] & 0xFF, count);
     }
 }

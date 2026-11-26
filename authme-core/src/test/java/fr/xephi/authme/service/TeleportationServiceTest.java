@@ -17,12 +17,18 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Arrays;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import static fr.xephi.authme.service.BukkitServiceTestHelper.setBukkitServiceToScheduleSyncEntityTaskFromOptionallyAsyncTask;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -146,11 +152,12 @@ class TeleportationServiceTest {
         verifyNoInteractions(bukkitService);
     }
 
-    @Test
-    void shouldNotTeleportPlayerToFirstSpawnIfNoTeleportEnabled() {
+    @ParameterizedTest(name = "NO_TELEPORT={0}")
+    @ValueSource(booleans = {true, false})
+    void shouldNotTeleportPlayerToFirstSpawn(boolean noTeleport) {
         // given
         Player player = mock(Player.class);
-        given(settings.getProperty(RestrictionSettings.NO_TELEPORT)).willReturn(true);
+        given(settings.getProperty(RestrictionSettings.NO_TELEPORT)).willReturn(noTeleport);
 
         // when
         teleportationService.teleportNewPlayerToFirstSpawn(player);
@@ -160,22 +167,9 @@ class TeleportationServiceTest {
         verifyNoInteractions(bukkitService);
     }
 
-    @Test
-    void shouldNotTeleportNotNewPlayerToFirstSpawn() {
-        // given
-        Player player = mock(Player.class);
-        given(settings.getProperty(RestrictionSettings.NO_TELEPORT)).willReturn(false);
-
-        // when
-        teleportationService.teleportNewPlayerToFirstSpawn(player);
-
-        // then
-        verify(platformAdapter, never()).teleportPlayer(eq(player), any(Location.class));
-        verifyNoInteractions(bukkitService);
-    }
-
-    @Test
-    void shouldNotTeleportPlayerForRemovedLocationInEvent() {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("vetoedSpawnEvents")
+    void shouldNotTeleportPlayerForVetoedEvent(String description, Consumer<SpawnTeleportEvent> veto) {
         // given
         final Player player = mock(Player.class);
         Location spawn = mockLocation();
@@ -185,7 +179,7 @@ class TeleportationServiceTest {
         doAnswer(invocation -> {
             SpawnTeleportEvent event = (SpawnTeleportEvent) invocation.getArguments()[0];
             assertThat(event.getPlayer(), equalTo(player));
-            event.setTo(null);
+            veto.accept(event);
             return null;
         }).when(bukkitService).callEvent(any(SpawnTeleportEvent.class));
         setBukkitServiceToScheduleSyncEntityTaskFromOptionallyAsyncTask(bukkitService);
@@ -198,28 +192,10 @@ class TeleportationServiceTest {
         verify(platformAdapter, never()).teleportPlayer(eq(player), any(Location.class));
     }
 
-    @Test
-    void shouldNotTeleportPlayerForCanceledEvent() {
-        // given
-        final Player player = mock(Player.class);
-        Location spawn = mockLocation();
-        given(spawnLoader.getSpawnLocation(player)).willReturn(spawn);
-        given(settings.getProperty(RestrictionSettings.TELEPORT_UNAUTHED_TO_SPAWN)).willReturn(true);
-        given(settings.getProperty(RegistrationSettings.FORCE)).willReturn(true);
-        doAnswer(invocation -> {
-            SpawnTeleportEvent event = (SpawnTeleportEvent) invocation.getArguments()[0];
-            assertThat(event.getPlayer(), equalTo(player));
-            event.setCancelled(true);
-            return null;
-        }).when(bukkitService).callEvent(any(SpawnTeleportEvent.class));
-        setBukkitServiceToScheduleSyncEntityTaskFromOptionallyAsyncTask(bukkitService);
-
-        // when
-        teleportationService.teleportOnJoin(player);
-
-        // then
-        verify(bukkitService).callEvent(any(SpawnTeleportEvent.class));
-        verify(platformAdapter, never()).teleportPlayer(eq(player), any(Location.class));
+    private static Stream<Arguments> vetoedSpawnEvents() {
+        return Stream.of(
+            Arguments.of("removed location", (Consumer<SpawnTeleportEvent>) event -> event.setTo(null)),
+            Arguments.of("cancelled", (Consumer<SpawnTeleportEvent>) event -> event.setCancelled(true)));
     }
 
     @Test

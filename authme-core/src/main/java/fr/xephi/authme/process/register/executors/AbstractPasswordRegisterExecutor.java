@@ -14,6 +14,8 @@ import org.bukkit.entity.Player;
 
 import javax.inject.Inject;
 
+import static fr.xephi.authme.process.register.executors.PlayerAuthBuilderHelper.createPlayerAuth;
+
 /**
  * Registration executor for registration methods where the password
  * is supplied by the user.
@@ -68,11 +70,15 @@ abstract class AbstractPasswordRegisterExecutor<P extends AbstractPasswordRegist
 
     /**
      * Creates the PlayerAuth object to store into the database, based on the registration parameters.
+     * The default implementation registers the account without an email address; executors which
+     * do have an email may override it.
      *
      * @param params the parameters
      * @return the PlayerAuth representing the new account to register
      */
-    protected abstract PlayerAuth createPlayerAuthObject(P params);
+    protected PlayerAuth createPlayerAuthObject(P params) {
+        return createPlayerAuth(params.getPlayer(), params.getHashedPassword(), null);
+    }
 
     /**
      * Returns whether the player should be automatically logged in after registration.

@@ -43,8 +43,6 @@ public class GeneratePluginYml implements AutoToolTask {
         "authme.admin.*", "Gives access to all admin commands",
         "authme.debug", "Gives access to /authme debug and all its sections");
 
-    private List<PermissionNode> permissionNodes;
-
     @Override
     public void executeDefault() {
         Map<String, Object> commands = generateCommands();
@@ -104,7 +102,7 @@ public class GeneratePluginYml implements AutoToolTask {
         PermissionNodesGatherer gatherer = new PermissionNodesGatherer();
         Map<String, String> permissionDescriptions = gatherer.gatherNodesWithJavaDoc();
 
-        permissionNodes = gatherer.getPermissionClasses().stream()
+        List<PermissionNode> permissionNodes = gatherer.getPermissionClasses().stream()
             // Note ljacqu 20161023: The compiler fails if we use method references below
             .map(clz -> clz.getEnumConstants())
             .flatMap((PermissionNode[] nodes) -> Arrays.stream(nodes))
@@ -114,18 +112,18 @@ public class GeneratePluginYml implements AutoToolTask {
         for (PermissionNode node : permissionNodes) {
             descriptions.put(node.getNode(), buildPermissionEntry(node, permissionDescriptions.get(node.getNode())));
         }
-        addWildcardPermissions(descriptions);
+        addWildcardPermissions(descriptions, permissionNodes);
         return descriptions;
     }
 
-    private void addWildcardPermissions(Map<String, Object> permissions) {
+    private static void addWildcardPermissions(Map<String, Object> permissions, List<PermissionNode> permissionNodes) {
         for (Map.Entry<String, String> entry : WILDCARD_PERMISSIONS.entrySet()) {
             permissions.put(entry.getKey(),
-                buildWildcardPermissionEntry(entry.getValue(), gatherChildren(entry.getKey())));
+                buildWildcardPermissionEntry(entry.getValue(), gatherChildren(entry.getKey(), permissionNodes)));
         }
     }
 
-    private Map<String, Boolean> gatherChildren(String parentNode) {
+    private static Map<String, Boolean> gatherChildren(String parentNode, List<PermissionNode> permissionNodes) {
         String parentPath = parentNode.replaceAll("\\.\\*$", "");
 
         Map<String, Boolean> children = new TreeMap<>();

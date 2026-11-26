@@ -9,6 +9,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -108,11 +109,6 @@ public class MessageFileVerifier {
     }
 
     private static boolean messageKeyExists(String key) {
-        for (MessageKey messageKey : MessageKey.values()) {
-            if (messageKey.getKey().equals(key)) {
-                return true;
-            }
-        }
-        return false;
+        return Arrays.stream(MessageKey.values()).anyMatch(messageKey -> messageKey.getKey().equals(key));
     }
 }

@@ -1,12 +1,9 @@
 package fr.xephi.authme.command.executable.authme;
 
-import fr.xephi.authme.command.ExecutableCommand;
 import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.data.auth.PlayerCache;
-import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.service.BukkitService;
-import fr.xephi.authme.service.CommonService;
 import fr.xephi.authme.service.ValidationService;
 import org.bukkit.command.CommandSender;
 
@@ -16,13 +13,7 @@ import java.util.List;
 /**
  * Admin command for setting an email to an account.
  */
-public class SetEmailCommand implements ExecutableCommand {
-
-    @Inject
-    private DataSource dataSource;
-
-    @Inject
-    private CommonService commonService;
+public class SetEmailCommand extends AbstractPlayerAuthCommand {
 
     @Inject
     private PlayerCache playerCache;
@@ -41,25 +32,24 @@ public class SetEmailCommand implements ExecutableCommand {
 
         // Validate the email address
         if (!validationService.validateEmail(playerEmail)) {
-            commonService.send(sender, MessageKey.INVALID_EMAIL);
+            getCommonService().send(sender, MessageKey.INVALID_EMAIL);
             return;
         }
 
         bukkitService.runTaskOptionallyAsync(() -> {
             // Validate the user
-            PlayerAuth auth = dataSource.getAuth(playerName);
+            PlayerAuth auth = getAuthOrReportUnknown(sender, playerName);
             if (auth == null) {
-                commonService.send(sender, MessageKey.UNKNOWN_USER);
                 return;
             } else if (!validationService.isEmailFreeForRegistration(playerEmail, sender)) {
-                commonService.send(sender, MessageKey.EMAIL_ALREADY_USED_ERROR);
+                getCommonService().send(sender, MessageKey.EMAIL_ALREADY_USED_ERROR);
                 return;
             }
 
             // Set the email address
             auth.setEmail(playerEmail);
-            if (!dataSource.updateEmail(auth)) {
-                commonService.send(sender, MessageKey.ERROR);
+            if (!getDataSource().updateEmail(auth)) {
+                getCommonService().send(sender, MessageKey.ERROR);
                 return;
             }
 
@@ -67,7 +57,7 @@ public class SetEmailCommand implements ExecutableCommand {
             playerCache.updatePlayerIfPresent(auth);
 
             // Show a status message
-            commonService.send(sender, MessageKey.EMAIL_CHANGED_SUCCESS);
+            getCommonService().send(sender, MessageKey.EMAIL_CHANGED_SUCCESS);
         });
     }
 }

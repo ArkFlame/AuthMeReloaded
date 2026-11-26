@@ -35,6 +35,7 @@ import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.inventory.InventoryInteractEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
@@ -468,8 +469,8 @@ public class PlayerListener extends AbstractCancelListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onPlayerTeleport(PlayerTeleportEvent event) {
-        if (isBlockedTeleportCause(event.getCause()) && getListenerService().shouldCancelEvent(event)) {
-            event.setCancelled(true);
+        if (isBlockedTeleportCause(event.getCause())) {
+            cancelIfUnauthorized(event);
         }
     }
 
@@ -599,12 +600,16 @@ public class PlayerListener extends AbstractCancelListener implements Listener {
         return false;
     }
 
+    private boolean isUnauthorizedInventoryAccess(InventoryInteractEvent event) {
+        return getListenerService().shouldCancelEvent(event.getWhoClicked())
+            && !isInventoryWhitelisted(event.getView());
+    }
+
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onPlayerInventoryOpen(InventoryOpenEvent event) {
         final HumanEntity player = event.getPlayer();
 
-        if (getListenerService().shouldCancelEvent(player)
-            && !isInventoryWhitelisted(event.getView())) {
+        if (getListenerService().shouldCancelEvent(player) && !isInventoryWhitelisted(event.getView())) {
             event.setCancelled(true);
 
             /*
@@ -617,18 +622,12 @@ public class PlayerListener extends AbstractCancelListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onPlayerInventoryClick(InventoryClickEvent event) {
-        if (getListenerService().shouldCancelEvent(event.getWhoClicked())
-            && !isInventoryWhitelisted(event.getView())) {
-            event.setCancelled(true);
-        }
+        cancelEvent(isUnauthorizedInventoryAccess(event), event);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onPlayerInventoryDrag(InventoryDragEvent event) {
-        if (getListenerService().shouldCancelEvent(event.getWhoClicked())
-            && !isInventoryWhitelisted(event.getView())) {
-            event.setCancelled(true);
-        }
+        cancelEvent(isUnauthorizedInventoryAccess(event), event);
     }
 
 }

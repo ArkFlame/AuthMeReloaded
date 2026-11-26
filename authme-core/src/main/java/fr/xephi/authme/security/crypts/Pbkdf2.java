@@ -8,6 +8,7 @@ import fr.xephi.authme.settings.Settings;
 import org.bouncycastle.util.encoders.Hex;
 
 import javax.inject.Inject;
+import java.nio.charset.StandardCharsets;
 
 @Recommendation(Usage.RECOMMENDED)
 public class Pbkdf2 extends AbstractPbkdf2 {
@@ -23,7 +24,8 @@ public class Pbkdf2 extends AbstractPbkdf2 {
     @Override
     public String computeHash(String password, String salt, String name) {
         return hashPrefix("pbkdf2_sha256", numberOfRounds, salt)
-            + Hex.toHexString(deriveKey(password, salt.getBytes(), numberOfRounds, 64)).toUpperCase();
+            + Hex.toHexString(deriveKey(password, salt.getBytes(), numberOfRounds, 64,
+                StandardCharsets.UTF_8)).toUpperCase();
     }
 
     @Override
@@ -32,7 +34,8 @@ public class Pbkdf2 extends AbstractPbkdf2 {
         if (parts == null) {
             return false;
         }
-        return verifyKey(password, parts.salt.getBytes(), parts.iterations, Hex.decode(parts.hash));
+        return verifyKey(password, parts.getSalt().getBytes(), parts.getIterations(),
+            Hex.decode(parts.getHash()), StandardCharsets.UTF_8);
     }
 
     @Override

@@ -37,20 +37,13 @@ public class DialogWindowService {
     }
 
     public DialogWindowSpec createLoginDialog(Player player) {
-        boolean showRecovery = commonService.getProperty(RegistrationSettings.DIALOG_SHOW_FORGOT_PASSWORD_BUTTON)
-            && emailService.hasAllInformation();
-        boolean showBody = commonService.getProperty(RegistrationSettings.DIALOG_SHOW_BODY);
-        return createLoginDialogSpec(
-            key -> getPostJoinMessage(player, key),
-            showRecovery,
-            showBody);
+        return createLoginDialogSpec(textResolver(player), showRecovery(), showBody());
     }
 
     public DialogWindowSpec createPreJoinLoginDialog(String playerName) {
-        boolean showRecovery = commonService.getProperty(RegistrationSettings.DIALOG_SHOW_FORGOT_PASSWORD_BUTTON)
-            && emailService.hasAllInformation();
-        boolean showBody = commonService.getProperty(RegistrationSettings.DIALOG_SHOW_BODY);
-        Function<MessageKey, String> text = key -> messages.retrieveSingle(playerName, key);
+        boolean showRecovery = showRecovery();
+        boolean showBody = showBody();
+        Function<MessageKey, String> text = preJoinTextResolver(playerName);
 
         // When recovery is shown it occupies the secondary button slot, so cancel button is suppressed.
         // Escape is also disabled: the player must either submit, use recovery, or disconnect.
@@ -67,12 +60,12 @@ public class DialogWindowService {
             canCloseWithEscape,
             showRecovery ? "forgot_password" : null,
             showBody ? text.apply(MessageKey.DIALOG_LOGIN_BODY) : null,
-            commonService.getProperty(RegistrationSettings.DIALOG_STACK_BUTTONS_VERTICALLY));
+            stackButtonsVertically());
     }
 
     public DialogWindowSpec createPreJoinRecoveryDialog(String playerName) {
-        boolean showBody = commonService.getProperty(RegistrationSettings.DIALOG_SHOW_BODY);
-        Function<MessageKey, String> text = key -> messages.retrieveSingle(playerName, key);
+        boolean showBody = showBody();
+        Function<MessageKey, String> text = preJoinTextResolver(playerName);
 
         return new DialogWindowSpec(
             text.apply(MessageKey.DIALOG_RECOVERY_TITLE),
@@ -83,12 +76,12 @@ public class DialogWindowService {
             false,
             null,
             showBody ? text.apply(MessageKey.DIALOG_RECOVERY_BODY) : null,
-            commonService.getProperty(RegistrationSettings.DIALOG_STACK_BUTTONS_VERTICALLY));
+            stackButtonsVertically());
     }
 
     public DialogWindowSpec createTotpDialog(Player player) {
-        boolean showBody = commonService.getProperty(RegistrationSettings.DIALOG_SHOW_BODY);
-        Function<MessageKey, String> text = key -> getPostJoinMessage(player, key);
+        boolean showBody = showBody();
+        Function<MessageKey, String> text = textResolver(player);
 
         return new DialogWindowSpec(
             text.apply(MessageKey.DIALOG_TWO_FACTOR_TITLE),
@@ -101,19 +94,19 @@ public class DialogWindowService {
             false,
             null,
             showBody ? text.apply(MessageKey.DIALOG_TWO_FACTOR_BODY) : null,
-            commonService.getProperty(RegistrationSettings.DIALOG_STACK_BUTTONS_VERTICALLY));
+            stackButtonsVertically());
     }
 
     public DialogWindowSpec createRegisterDialog(Player player,
                                                  RegistrationType type,
                                                  RegisterSecondaryArgument secondArg) {
-        return createRegisterDialogSpec(type, secondArg, key -> getPostJoinMessage(player, key), false, false);
+        return createRegisterDialogSpec(type, secondArg, textResolver(player), false, false);
     }
 
     public DialogWindowSpec createPreJoinRegisterDialog(String playerName,
                                                         RegistrationType type,
                                                         RegisterSecondaryArgument secondArg) {
-        return createRegisterDialogSpec(type, secondArg, key -> messages.retrieveSingle(playerName, key),
+        return createRegisterDialogSpec(type, secondArg, preJoinTextResolver(playerName),
             commonService.getProperty(RegistrationSettings.PRE_JOIN_DIALOG_SHOW_CANCEL_BUTTON),
             commonService.getProperty(RegistrationSettings.PRE_JOIN_DIALOG_ALLOW_CLOSE_WITH_ESCAPE));
     }
@@ -144,7 +137,7 @@ public class DialogWindowService {
             false,
             showRecovery ? "email recover $(email)" : null,
             showBody ? textResolver.apply(MessageKey.DIALOG_LOGIN_BODY) : null,
-            commonService.getProperty(RegistrationSettings.DIALOG_STACK_BUTTONS_VERTICALLY));
+            stackButtonsVertically());
     }
 
     private DialogWindowSpec createRegisterDialogSpec(RegistrationType type,
@@ -152,7 +145,7 @@ public class DialogWindowService {
                                                       Function<MessageKey, String> textResolver,
                                                       boolean showSecondaryButton,
                                                       boolean canCloseWithEscape) {
-        boolean showBody = commonService.getProperty(RegistrationSettings.DIALOG_SHOW_BODY);
+        boolean showBody = showBody();
         List<DialogInputSpec> inputs = new ArrayList<>();
 
         if (type == RegistrationType.EMAIL) {
@@ -195,10 +188,27 @@ public class DialogWindowService {
             canCloseWithEscape,
             null,
             showBody ? textResolver.apply(MessageKey.DIALOG_REGISTER_BODY) : null,
-            commonService.getProperty(RegistrationSettings.DIALOG_STACK_BUTTONS_VERTICALLY));
+            stackButtonsVertically());
     }
 
-    private String getPostJoinMessage(Player player, MessageKey key) {
-        return commonService.retrieveSingleMessage(player, key);
+    private Function<MessageKey, String> textResolver(Player player) {
+        return key -> commonService.retrieveSingleMessage(player, key);
+    }
+
+    private Function<MessageKey, String> preJoinTextResolver(String playerName) {
+        return key -> messages.retrieveSingle(playerName, key);
+    }
+
+    private boolean showRecovery() {
+        return commonService.getProperty(RegistrationSettings.DIALOG_SHOW_FORGOT_PASSWORD_BUTTON)
+            && emailService.hasAllInformation();
+    }
+
+    private boolean showBody() {
+        return commonService.getProperty(RegistrationSettings.DIALOG_SHOW_BODY);
+    }
+
+    private boolean stackButtonsVertically() {
+        return commonService.getProperty(RegistrationSettings.DIALOG_STACK_BUTTONS_VERTICALLY);
     }
 }

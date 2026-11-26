@@ -230,20 +230,15 @@ public class AsynchronousJoin implements AsynchronousProcess {
             // Bedrock players verified by Floodgate (Xbox account) — same idea as premium below
             if (floodgateService.canAutoLogin(player.getUniqueId())) {
                 logger.info("The Bedrock player " + player.getName() + " has been automatically logged in (Floodgate).");
-                forceLoginAsync(player);
+                forceLoginAsync(player, false);
                 return;
             }
 
             // Premium players are always verified by Mojang — skip the session mechanism entirely,
             // which would send a misleading SESSION_RECONNECTION message and run session commands.
             if (canBypassWithPremium(player, auth)) {
-                // Premium bypass: player has a verified Mojang UUID matching the connecting player's UUID
-                if (bungeeSender.isEnabled()) {
-                    // Proxy handles routing; do not attempt backend-side BungeeCord redirect
-                    forceLoginFromProxyAsync(player);
-                } else {
-                    forceLoginAsync(player);
-                }
+                // Behind a proxy the login is quiet and must not trigger a backend-side redirect.
+                forceLoginAsync(player, bungeeSender.isEnabled());
                 return;
             } else {
                 ProxySessionManager.ProxyLoginRequest proxyLoginRequest = proxySessionManager.consumeLoginRequest(name);
@@ -419,18 +414,16 @@ public class AsynchronousJoin implements AsynchronousProcess {
      * helper so they schedule exactly one continuation task.
      *
      * @param player the player to log in
+     * @param fromProxy whether the login was initiated through the proxy (quiet, no redirect)
      */
-    private void forceLoginAsync(Player player) {
-        bukkitService.runTaskOptionallyAsync(() -> asynchronousLogin.forceLogin(player));
-    }
-
-    /**
-     * Runs a proxy-initiated passwordless login off the calling thread (quiet, no redirect).
-     *
-     * @param player the player to log in
-     */
-    private void forceLoginFromProxyAsync(Player player) {
-        bukkitService.runTaskOptionallyAsync(() -> asynchronousLogin.forceLoginFromProxy(player));
+    private void forceLoginAsync(Player player, boolean fromProxy) {
+        bukkitService.runTaskOptionallyAsync(() -> {
+            if (fromProxy) {
+                asynchronousLogin.forceLoginFromProxy(player);
+            } else {
+                asynchronousLogin.forceLogin(player);
+            }
+        });
     }
 
     /**
@@ -442,23 +435,9 @@ public class AsynchronousJoin implements AsynchronousProcess {
      */
     private void resumeSession(Player player, boolean proxyInitiated) {
         service.send(player, MessageKey.SESSION_RECONNECTION);
-        runSessionLoginCommands(player);
-        if (proxyInitiated) {
-            forceLoginFromProxyAsync(player);
-        } else {
-            forceLoginAsync(player);
-        }
-    }
-
-    /**
-     * Runs the session-login commands on the player's owning thread. Shared by the proxy and the
-     * regular session branch so both schedule the same single task.
-     *
-     * @param player the player resuming a session
-     */
-    private void runSessionLoginCommands(Player player) {
         bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player,
             () -> commandManager.runCommandsOnSessionLogin(player));
+        forceLoginAsync(player, proxyInitiated);
     }
 
     private Runnable pickPendingAction(Player player, String name, String pendingLoginPassword, String pendingRecoveryEmail,
@@ -643,67 +622,8 @@ public class AsynchronousJoin implements AsynchronousProcess {
             return false;
         }
         String name = player.getName();
-
         if (!auth.isPremium()) {
-            UUID playerId = player.getUniqueId();
-            if (playerId.version() == 4) {
-                // Proxy path: atomic gate prevents double-finalization with concurrent validate().
-                UUID pendingUuid = pendingPremiumCache.removePending(name);
-                if (pendingUuid == null) {
-                    return false;
-                }
-                if (playerId.equals(pendingUuid)) {
-                    premiumService.finalizePendingPremium(player, pendingUuid);
-                    return true;
-                }
-                failPendingPremium(player, name);
-                return false;
-            } else if (bungeeSender.isEnabled()) {
-                // Behind a proxy we intentionally keep the backend UUID on the offline v3 value, so
-                // player.getUniqueId() is not proof of identity. If the signed perform.login is already
-                // queued and carries the proxy-verified Mojang UUID, finalize the pending enrollment
-                // in-join (mirrors the v4 path); otherwise defer to the perform.login message.
-                ProxySessionManager.ProxyLoginRequest queued = proxySessionManager.getLoginRequest(name);
-                UUID verified = queued == null ? null : queued.verifiedPremiumUuid();
-                if (verified == null) {
-                    logger.debug("canBypassWithPremium[v3/proxy]: " + name
-                        + " has a pending premium enrollment but no queued verified UUID yet; deferring to perform.login");
-                    return false;
-                }
-                // removePending is the atomic one-shot gate shared with ProxyLoginRequestValidator:
-                // if a concurrent perform.login already consumed it, stay silent and let that path win.
-                UUID pendingUuid = pendingPremiumCache.removePending(name);
-                if (pendingUuid == null) {
-                    logger.debug("canBypassWithPremium[v3/proxy]: pending entry for " + name
-                        + " already consumed (concurrent perform.login); deferring");
-                    return false;
-                }
-                if (verified.equals(pendingUuid)) {
-                    logger.info("canBypassWithPremium[v3/proxy]: finalizing pending premium for " + name
-                        + " from queued perform.login (verified=" + verified + ")");
-                    premiumService.finalizePendingPremium(player, verified);
-                    return true;
-                }
-                logger.warning("canBypassWithPremium[v3/proxy]: verified UUID " + verified
-                    + " does not match pending UUID " + pendingUuid + " for " + name + "; failing enrollment");
-                failPendingPremium(player, name);
-                return false;
-            } else {
-                // No proxy: require cryptographic session verification via PacketEvents.
-                UUID pendingUuid = pendingPremiumCache.getPendingUuid(name);
-                if (pendingUuid == null) {
-                    return false;
-                }
-                UUID verified = premiumLoginVerifier.consumeVerifiedUuid(name);
-                UUID confirmedUuid = (verified != null && verified.equals(pendingUuid)) ? verified : null;
-                pendingPremiumCache.removePending(name);
-                if (confirmedUuid != null) {
-                    premiumService.finalizePendingPremium(player, confirmedUuid);
-                    return true;
-                }
-                failPendingPremium(player, name);
-                return false;
-            }
+            return tryFinalizePendingPremium(player, name);
         }
 
         UUID playerId = player.getUniqueId();
@@ -719,6 +639,76 @@ public class AsynchronousJoin implements AsynchronousProcess {
         // UUID v3 = Bukkit offline UUID: require cryptographic session verification via PacketEvents.
         UUID verifiedUuid = premiumLoginVerifier.consumeVerifiedUuid(name);
         return verifiedUuid != null && verifiedUuid.equals(auth.getPremiumUuid());
+    }
+
+    /**
+     * Completes a pending premium enrollment, if there is one, using the proof available on this
+     * server: the connecting UUID for v4, a queued signed proxy login behind a proxy, or a verified
+     * session UUID otherwise.
+     *
+     * @param player the player whose enrollment may be finalized
+     * @param name the player's name, as reported to the proxy
+     * @return true if the enrollment was finalized and the player can bypass authentication
+     */
+    private boolean tryFinalizePendingPremium(Player player, String name) {
+        UUID playerId = player.getUniqueId();
+        if (playerId.version() == 4) {
+            // Proxy path: atomic gate prevents double-finalization with concurrent validate().
+            UUID pendingUuid = pendingPremiumCache.removePending(name);
+            if (pendingUuid == null) {
+                return false;
+            }
+            if (playerId.equals(pendingUuid)) {
+                premiumService.finalizePendingPremium(player, pendingUuid);
+                return true;
+            }
+            failPendingPremium(player, name);
+            return false;
+        } else if (bungeeSender.isEnabled()) {
+            // Behind a proxy we intentionally keep the backend UUID on the offline v3 value, so
+            // player.getUniqueId() is not proof of identity. If the signed perform.login is already
+            // queued and carries the proxy-verified Mojang UUID, finalize the pending enrollment
+            // in-join (mirrors the v4 path); otherwise defer to the perform.login message.
+            ProxySessionManager.ProxyLoginRequest queued = proxySessionManager.getLoginRequest(name);
+            UUID verified = queued == null ? null : queued.verifiedPremiumUuid();
+            if (verified == null) {
+                logger.debug("canBypassWithPremium[v3/proxy]: " + name
+                    + " has a pending premium enrollment but no queued verified UUID yet; deferring to perform.login");
+                return false;
+            }
+            // removePending is the atomic one-shot gate shared with ProxyLoginRequestValidator:
+            // if a concurrent perform.login already consumed it, stay silent and let that path win.
+            UUID pendingUuid = pendingPremiumCache.removePending(name);
+            if (pendingUuid == null) {
+                logger.debug("canBypassWithPremium[v3/proxy]: pending entry for " + name
+                    + " already consumed (concurrent perform.login); deferring");
+                return false;
+            }
+            if (verified.equals(pendingUuid)) {
+                logger.info("canBypassWithPremium[v3/proxy]: finalizing pending premium for " + name
+                    + " from queued perform.login (verified=" + verified + ")");
+                premiumService.finalizePendingPremium(player, verified);
+                return true;
+            }
+            logger.warning("canBypassWithPremium[v3/proxy]: verified UUID " + verified
+                + " does not match pending UUID " + pendingUuid + " for " + name + "; failing enrollment");
+            failPendingPremium(player, name);
+            return false;
+        }
+        // No proxy: require cryptographic session verification via PacketEvents.
+        UUID pendingUuid = pendingPremiumCache.getPendingUuid(name);
+        if (pendingUuid == null) {
+            return false;
+        }
+        UUID verified = premiumLoginVerifier.consumeVerifiedUuid(name);
+        UUID confirmedUuid = (verified != null && verified.equals(pendingUuid)) ? verified : null;
+        pendingPremiumCache.removePending(name);
+        if (confirmedUuid != null) {
+            premiumService.finalizePendingPremium(player, confirmedUuid);
+            return true;
+        }
+        failPendingPremium(player, name);
+        return false;
     }
 
     /**
@@ -740,10 +730,8 @@ public class AsynchronousJoin implements AsynchronousProcess {
     private boolean exceedsMaxPlayersPerIp(String ip, int maxPerIp) {
         int count = 0;
         for (Player player : bukkitService.getOnlinePlayers()) {
-            if (ip.equalsIgnoreCase(PlayerUtils.getPlayerIp(player))) {
-                if (++count > maxPerIp) {
-                    return true;
-                }
+            if (ip.equalsIgnoreCase(PlayerUtils.getPlayerIp(player)) && ++count > maxPerIp) {
+                return true;
             }
         }
         return false;

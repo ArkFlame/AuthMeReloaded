@@ -180,12 +180,12 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
 
     @Override
     public boolean isOwnedByCurrentThread(Entity entity) {
-        return scheduler.isGlobalThread();
+        return isGlobalThread();
     }
 
     @Override
     public boolean isOwnedByCurrentThread(Location location) {
-        return scheduler.isGlobalThread();
+        return isGlobalThread();
     }
 
     @Override
@@ -195,12 +195,12 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
 
     @Override
     public void runOnEntityThread(AuthMe plugin, Entity entity, Runnable task) {
-        scheduler.runOnGlobalThread(plugin, task);
+        runOnGlobalThread(plugin, task);
     }
 
     @Override
     public CancellableTask runDelayedOnEntityThread(AuthMe plugin, Entity entity, Runnable task, long delay) {
-        return scheduler.runDelayedOnGlobalThread(plugin, task, delay);
+        return runDelayedOnGlobalThread(plugin, task, delay);
     }
 
     @Override

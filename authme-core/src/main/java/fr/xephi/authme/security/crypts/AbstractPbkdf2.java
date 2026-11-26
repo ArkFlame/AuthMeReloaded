@@ -9,7 +9,6 @@ import org.bouncycastle.crypto.generators.PKCS5S2ParametersGenerator;
 import org.bouncycastle.crypto.params.KeyParameter;
 
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 
 import static fr.xephi.authme.security.HashUtils.isEqual;
 
@@ -26,14 +25,26 @@ public abstract class AbstractPbkdf2 extends HexSaltedMethod {
      * The four parts of a {@code scheme$iterations$salt$hash} line.
      */
     static final class HashParts {
-        final int iterations;
-        final String salt;
-        final String hash;
+        private final int iterations;
+        private final String salt;
+        private final String hash;
 
         HashParts(int iterations, String salt, String hash) {
             this.iterations = iterations;
             this.salt = salt;
             this.hash = hash;
+        }
+
+        protected int getIterations() {
+            return iterations;
+        }
+
+        protected String getSalt() {
+            return salt;
+        }
+
+        protected String getHash() {
+            return hash;
         }
     }
 
@@ -85,32 +96,6 @@ public abstract class AbstractPbkdf2 extends HexSaltedMethod {
         PKCS5S2ParametersGenerator gen = new PKCS5S2ParametersGenerator(new SHA256Digest());
         gen.init(password.getBytes(charset), saltBytes, iterations);
         return ((KeyParameter) gen.generateDerivedMacParameters(keyLength * 8)).getKey();
-    }
-
-    /**
-     * Derives a key with the password encoded as UTF-8.
-     *
-     * @param password the clear-text password
-     * @param saltBytes the salt bytes
-     * @param iterations the number of PBKDF2 iterations
-     * @param keyLength the desired key length in bytes
-     * @return the derived key
-     */
-    protected byte[] deriveKey(String password, byte[] saltBytes, int iterations, int keyLength) {
-        return deriveKey(password, saltBytes, iterations, keyLength, StandardCharsets.UTF_8);
-    }
-
-    /**
-     * Verifies a key with the password encoded as UTF-8.
-     *
-     * @param password the clear-text password
-     * @param saltBytes the salt bytes
-     * @param iterations the number of PBKDF2 iterations
-     * @param expectedKey the expected derived key
-     * @return true if the derived key matches the expected key
-     */
-    protected boolean verifyKey(String password, byte[] saltBytes, int iterations, byte[] expectedKey) {
-        return verifyKey(password, saltBytes, iterations, expectedKey, StandardCharsets.UTF_8);
     }
 
     /**

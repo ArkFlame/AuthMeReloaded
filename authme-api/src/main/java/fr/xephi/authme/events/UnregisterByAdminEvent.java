@@ -38,14 +38,19 @@ public class UnregisterByAdminEvent extends AbstractUnregisterEvent {
     }
 
     /**
-     * @return the name of the player that was unregistered
+     * Return the name of the player that was unregistered.
+     *
+     * @return the name of the player that was unregistered, never {@code null}
      */
     public String getPlayerName() {
         return playerName;
     }
 
     /**
-     * @return the user who requested to unregister the name, or null if not applicable
+     * Return the user who requested the unregister, if there was one.
+     *
+     * @return the user who requested to unregister the name, or {@code null} when the unregister came
+     *         from the API rather than from a command
      */
     public CommandSender getInitiator() {
         return initiator;

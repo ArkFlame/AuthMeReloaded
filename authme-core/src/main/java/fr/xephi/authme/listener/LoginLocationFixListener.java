@@ -57,8 +57,7 @@ public class LoginLocationFixListener implements Listener {
         for (BlockFace face : NEIGHBOR_FACES) {
             Block adjacent = joinBlock.getRelative(face);
             if (adjacent.getType() == Material.AIR && adjacent.getRelative(BlockFace.UP).getType() == Material.AIR) {
-                TeleportUtils.teleport(player, adjacent.getLocation().add(0.5, 0.1, 0.5));
-                commonService.send(player, MessageKey.LOCATION_FIX_PORTAL);
+                teleportAndNotify(player, adjacent, 0.1, MessageKey.LOCATION_FIX_PORTAL);
                 return;
             }
         }
@@ -87,15 +86,18 @@ public class LoginLocationFixListener implements Listener {
                 if (below.getType() == Material.LAVA) {
                     below.setType(Material.DIRT);
                 }
-                TeleportUtils.teleport(player, block.getLocation().add(0.5, 0.1, 0.5));
-                commonService.send(player, MessageKey.LOCATION_FIX_UNDERGROUND);
+                teleportAndNotify(player, block, 0.1, MessageKey.LOCATION_FIX_UNDERGROUND);
                 return;
             }
             if (y == maxHeight) {
-                TeleportUtils.teleport(player, block.getLocation().add(0.5, 1.1, 0.5));
-                commonService.send(player, MessageKey.LOCATION_FIX_UNDERGROUND_CANT_FIX);
+                teleportAndNotify(player, block, 1.1, MessageKey.LOCATION_FIX_UNDERGROUND_CANT_FIX);
             }
         }
+    }
+
+    private void teleportAndNotify(Player player, Block block, double yOffset, MessageKey message) {
+        TeleportUtils.teleport(player, block.getLocation().add(0.5, yOffset, 0.5));
+        commonService.send(player, message);
     }
 
     private static int getMinHeight(World world) {
