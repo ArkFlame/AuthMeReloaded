@@ -33,28 +33,19 @@ class SegmentNameBuilderTest {
     void shouldCreatePromisedSizeOfSegments() {
         for (SegmentSize part : SegmentSize.values()) {
             // Perform this check only for `length` <= 5 because the test creates all hex numbers with `length` digits.
-            if (part.getLength() <= 5) {
-                checkTotalSegmentsProduced(part);
+            if (part.getLength() > 5) {
+                continue;
             }
+            SegmentNameBuilder nameBuilder = new SegmentNameBuilder(part);
+            Set<String> encounteredSegments = new HashSet<>();
+            int shift = part.getLength() * 4;
+            // e.g. (1 << 16) - 1 = 0xFFFF. (Number of digits = shift/4, since 16 = 2^4)
+            int max = (1 << shift) - 1;
+            for (int i = 0; i <= max; ++i) {
+                encounteredSegments.add(nameBuilder.createSegmentName(toPaddedHex(i, part.getLength())));
+            }
+            assertThat(encounteredSegments, hasSize(part.getTotalSegments()));
         }
-    }
-
-    private void checkTotalSegmentsProduced(SegmentSize part) {
-        // given
-        SegmentNameBuilder nameBuilder = new SegmentNameBuilder(part);
-        Set<String> encounteredSegments = new HashSet<>();
-        int shift = part.getLength() * 4;
-        // e.g. (1 << 16) - 1 = 0xFFFF. (Number of digits = shift/4, since 16 = 2^4)
-        int max = (1 << shift) - 1;
-
-        // when
-        for (int i = 0; i <= max; ++i) {
-            String uuid = toPaddedHex(i, part.getLength());
-            encounteredSegments.add(nameBuilder.createSegmentName(uuid));
-        }
-
-        // then
-        assertThat(encounteredSegments, hasSize(part.getTotalSegments()));
     }
 
     private static String toPaddedHex(int dec, int padLength) {
@@ -68,7 +59,11 @@ class SegmentNameBuilderTest {
     @ParameterizedTest(name = "{0}")
     @MethodSource("segmentCases")
     void shouldCreateExpectedSegments(SegmentSize size, String[] uuidAndExpectedSegment) {
-        assertSegments(size, uuidAndExpectedSegment);
+        SegmentNameBuilder nameBuilder = new SegmentNameBuilder(size);
+        for (int i = 0; i < uuidAndExpectedSegment.length; i += 2) {
+            assertThat(nameBuilder.createSegmentName(uuidAndExpectedSegment[i]),
+                equalTo(uuidAndExpectedSegment[i + 1]));
+        }
     }
 
     private static Stream<Arguments> segmentCases() {
@@ -80,13 +75,5 @@ class SegmentNameBuilderTest {
             Arguments.of(THIRTY_TWO, new String[] {"f890c9", "seg32-11101", "49c39a", "seg32-01101", "b75d09", "seg32-10010"}),
             Arguments.of(SIXTY_FOUR, new String[] {"82f", "seg64-203", "9b4", "seg64-221", "068", "seg64-012"}),
             Arguments.of(TWO_FIFTY, new String[] {"a813c", "seg256-a8", "b4d01", "seg256-b4", "7122f", "seg256-71"}));
-    }
-
-    private static void assertSegments(SegmentSize size, String... uuidAndExpectedSegment) {
-        SegmentNameBuilder nameBuilder = new SegmentNameBuilder(size);
-        for (int i = 0; i < uuidAndExpectedSegment.length; i += 2) {
-            assertThat(nameBuilder.createSegmentName(uuidAndExpectedSegment[i]),
-                equalTo(uuidAndExpectedSegment[i + 1]));
-        }
     }
 }

@@ -21,14 +21,13 @@ import java.nio.charset.StandardCharsets;
 class IndividualFilesPersistenceHandler implements LimboPersistenceHandler {
 
     private final ConsoleLogger logger = ConsoleLoggerFactory.get(IndividualFilesPersistenceHandler.class);
-
     private final Gson gson;
     private final File cacheDir;
 
     @Inject
     IndividualFilesPersistenceHandler(@DataFolder File dataFolder, BukkitService bukkitService) {
         cacheDir = new File(dataFolder, "playerdata");
-        if (!cacheDir.exists() && !cacheDir.isDirectory() && !cacheDir.mkdir()) {
+        if (!cacheDir.exists() && !cacheDir.mkdir()) {
             logger.warning("Failed to create playerdata directory '" + cacheDir + "'");
         }
         gson = LimboPersistenceHandler.createGson(bukkitService);
@@ -36,11 +35,10 @@ class IndividualFilesPersistenceHandler implements LimboPersistenceHandler {
 
     @Override
     public LimboPlayer getLimboPlayer(Player player) {
-        File file = new File(cacheDir, player.getUniqueId() + File.separator + "data.json");
+        File file = new File(getPlayerFolder(player), "data.json");
         if (!file.exists()) {
             return null;
         }
-
         try {
             String str = Files.asCharSource(file, StandardCharsets.UTF_8).read();
             return gson.fromJson(str, LimboPlayer.class);
@@ -53,9 +51,8 @@ class IndividualFilesPersistenceHandler implements LimboPersistenceHandler {
     @Override
     public void saveLimboPlayer(Player player, LimboPlayer limboPlayer) {
         try {
-            File file = new File(cacheDir, player.getUniqueId() + File.separator + "data.json");
+            File file = new File(getPlayerFolder(player), "data.json");
             Files.createParentDirs(file);
-            Files.touch(file);
             Files.write(gson.toJson(limboPlayer), file, StandardCharsets.UTF_8);
         } catch (IOException e) {
             logger.logException("Failed to write " + player.getName() + " data:", e);
@@ -63,14 +60,12 @@ class IndividualFilesPersistenceHandler implements LimboPersistenceHandler {
     }
 
     /**
-     * Removes the LimboPlayer. This will delete the
-     * "playerdata/&lt;uuid or name&gt;/" folder from disk.
-     *
+     * Removes the player's "playerdata/&lt;uuid&gt;/" folder from disk.
      * @param player player to remove
      */
     @Override
     public void removeLimboPlayer(Player player) {
-        File file = new File(cacheDir, player.getUniqueId().toString());
+        File file = getPlayerFolder(player);
         if (file.exists()) {
             FileUtils.purgeDirectory(file);
             FileUtils.delete(file);
@@ -80,5 +75,9 @@ class IndividualFilesPersistenceHandler implements LimboPersistenceHandler {
     @Override
     public LimboPersistenceType getType() {
         return LimboPersistenceType.INDIVIDUAL_FILES;
+    }
+
+    private File getPlayerFolder(Player player) {
+        return new File(cacheDir, player.getUniqueId().toString());
     }
 }

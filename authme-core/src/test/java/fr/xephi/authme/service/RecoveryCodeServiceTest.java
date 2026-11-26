@@ -10,6 +10,8 @@ import fr.xephi.authme.util.expiring.ExpiringMap;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -43,81 +45,46 @@ class RecoveryCodeServiceTest {
     void shouldBeDisabledForNonPositiveLength() {
         assertThat(recoveryCodeService.isRecoveryCodeNeeded(), equalTo(true));
 
-        // given
         given(settings.getProperty(SecuritySettings.RECOVERY_CODE_LENGTH)).willReturn(0);
-
-        // when
         recoveryCodeService.reload(settings);
 
-        // then
         assertThat(recoveryCodeService.isRecoveryCodeNeeded(), equalTo(false));
     }
 
     @Test
     void shouldGenerateAndStoreCode() {
-        // given
-        String name = "Bobbers";
+        recoveryCodeService.generateCode("Bobbers");
 
-        // when
-        recoveryCodeService.generateCode(name);
-
-        // then
-        String code = getCodeMap().get(name);
-        assertThat(code, stringWithLength(5));
+        assertThat(getCodeMap().get("Bobbers"), stringWithLength(5));
     }
 
-    @Test
-    void playerHasTriesLeft() {
-        // given
+    @ParameterizedTest
+    @ValueSource(ints = {0, 3})
+    void playerTriesLeft(int invalidAttempts) {
         String player = "Dusty";
         recoveryCodeService.generateCode(player);
+        for (int i = 0; i < invalidAttempts; ++i) {
+            recoveryCodeService.isCodeValid(player, i + "th try");
+        }
 
-        // when
-        boolean result = recoveryCodeService.hasTriesLeft(player);
-
-        // then
-        assertThat(result, equalTo(true));
-    }
-
-    @Test
-    void playerHasNoTriesLeft() {
-        // given
-        String player = "Dusty";
-        recoveryCodeService.generateCode(player);
-        recoveryCodeService.isCodeValid(player, "1st try");
-        recoveryCodeService.isCodeValid(player, "2nd try");
-        recoveryCodeService.isCodeValid(player, "3rd try");
-
-        // when
-        boolean result = recoveryCodeService.hasTriesLeft(player);
-
-        // then
-        assertThat(result, equalTo(false));
+        assertThat(recoveryCodeService.hasTriesLeft(player), equalTo(invalidAttempts == 0));
     }
 
     @Test
     void shouldRecognizeCorrectCode() {
-        // given
         String player = "dragon";
         String code = recoveryCodeService.generateCode(player);
 
-        // when
-        boolean result = recoveryCodeService.isCodeValid(player, code);
-
-        // then
-        assertThat(result, equalTo(true));
+        assertThat(recoveryCodeService.isCodeValid(player, code), equalTo(true));
     }
 
     @Test
     void shouldRemoveCode() {
-        // given
         String player = "Tester";
         String code = recoveryCodeService.generateCode(player);
 
-        // when
         recoveryCodeService.removeCode(player);
 
-        // then
         assertThat(recoveryCodeService.isCodeValid(player, code), equalTo(false));
         assertThat(getCodeMap().get(player), nullValue());
         assertThat(getTriesCounter().get(player), equalTo(0));
@@ -125,15 +92,12 @@ class RecoveryCodeServiceTest {
 
     @Test
     void shouldUpdateBothCodeAndTryExpirationsUponReload() {
-        // given: the initial expiration is 4 hours for both structures
         assertThat(expirationMillis(getCodeMap()), equalTo(TimeUnit.HOURS.toMillis(4)));
         assertThat(expirationMillis(getTriesCounter()), equalTo(TimeUnit.HOURS.toMillis(4)));
 
-        // when: the expiration is changed to 24 hours and the service is reloaded
         given(settings.getProperty(SecuritySettings.RECOVERY_CODE_HOURS_VALID)).willReturn(24);
         recoveryCodeService.reload(settings);
 
-        // then: both the code map and the try counter must use the new expiration
         assertThat(expirationMillis(getCodeMap()), equalTo(TimeUnit.HOURS.toMillis(24)));
         assertThat(expirationMillis(getTriesCounter()), equalTo(TimeUnit.HOURS.toMillis(24)));
     }

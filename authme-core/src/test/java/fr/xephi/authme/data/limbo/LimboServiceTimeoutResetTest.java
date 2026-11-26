@@ -49,7 +49,8 @@ class LimboServiceTimeoutResetTest {
         LimboPlayer limbo = new LimboPlayer(null, false, Collections.emptyList(), false, 0.2f, 0.1f);
         CancellableTask registerTimeoutTask = mock(CancellableTask.class);
         limbo.setTimeoutTask(registerTimeoutTask);
-        getLimboMap().put(uuid, limbo);
+        Map<UUID, LimboPlayer> limboMap = ReflectionTestUtils.getFieldValue(LimboService.class, limboService, "entries");
+        limboMap.put(uuid, limbo);
 
         // when
         limboService.replaceTasksAfterRegistration(player);
@@ -57,9 +58,5 @@ class LimboServiceTimeoutResetTest {
         // then
         verify(registerTimeoutTask).cancel();
         verify(taskManager).registerTimeoutTask(player, limbo, LimboMessageType.LOG_IN);
-    }
-
-    private Map<UUID, LimboPlayer> getLimboMap() {
-        return ReflectionTestUtils.getFieldValue(LimboService.class, limboService, "entries");
     }
 }

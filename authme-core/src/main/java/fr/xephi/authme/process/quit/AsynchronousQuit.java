@@ -116,35 +116,24 @@ public class AsynchronousQuit implements AsynchronousProcess {
                 syncProcessManager.processSyncPlayerQuit(player, wasLoggedIn);
             }
 
-            // remove player from cache
             database.invalidateCache(name);
         }
-    }
-
-    /**
-     * Starts a {@link PlayerAuth} with the identity shared by every quit-time database update.
-     *
-     * @param realName the player's name as reported by Bukkit
-     * @param name the player's normalized name
-     * @return a builder pre-filled with the name and real name
-     */
-    private static PlayerAuth.Builder quitAuthBuilder(String realName, String name) {
-        return PlayerAuth.builder().name(name).realName(realName);
     }
 
     private void saveQuitState(Player player, String realName, String name) {
         if (service.getProperty(RestrictionSettings.SAVE_QUIT_LOCATION)) {
             try {
                 Location loc = spawnLoader.getPlayerLocationOrSpawn(player);
-                database.updateQuitLoc(quitAuthBuilder(realName, name).location(loc).build());
+                database.updateQuitLoc(PlayerAuth.builder().name(name).realName(realName).location(loc).build());
             } catch (RuntimeException e) {
                 logger.warning("Could not save the quit location of '" + name + "': " + e.getMessage());
             }
         }
 
-        String ip = PlayerUtils.getPlayerIp(player);
-        PlayerAuth auth = quitAuthBuilder(realName, name)
-            .lastIp(ip)
+        PlayerAuth auth = PlayerAuth.builder()
+            .name(name)
+            .realName(realName)
+            .lastIp(PlayerUtils.getPlayerIp(player))
             .lastLogin(System.currentTimeMillis())
             .build();
         database.updateSession(auth);

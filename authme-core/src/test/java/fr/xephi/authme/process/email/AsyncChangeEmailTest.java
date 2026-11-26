@@ -27,6 +27,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -54,7 +55,6 @@ class AsyncChangeEmailTest {
     @Mock
     private ValidationService validationService;
 
-
     @Mock
     private BukkitService bukkitService;
 
@@ -67,56 +67,32 @@ class AsyncChangeEmailTest {
     }
 
     @ParameterizedTest(name = "save successful={0}")
-    @CsvSource({"true, EMAIL_CHANGED_SUCCESS", "false, ERROR"})
-    void shouldChangeEmail(boolean saveSuccessful, MessageKey expectedMessage) {
+    @CsvSource({
+        "true, EMAIL_CHANGED_SUCCESS, old@mail.tld, old@mail.tld, Bobby",
+        "false, ERROR, old@mail.tld, old@mail.tld, Bobby",
+        "true, EMAIL_CHANGED_SUCCESS, OLD-mail@example.org, old-mail@example.org, Debra"
+    })
+    void shouldChangeEmail(boolean saveSuccessful, MessageKey expectedMessage,
+                           String storedEmail, String providedOldEmail, String playerName) {
         String newEmail = "new@mail.tld";
-        PlayerAuth auth = givenAuthenticatedPlayerWithEmail("Bobby", "old@mail.tld");
+        PlayerAuth auth = givenAuthenticatedPlayerWithEmail(playerName, storedEmail);
         given(dataSource.updateEmail(auth)).willReturn(saveSuccessful);
         given(validationService.validateEmail(newEmail)).willReturn(true);
         given(validationService.isEmailFreeForRegistration(newEmail, player)).willReturn(true);
         given(emailService.hasAllInformation()).willReturn(false);
-        EmailChangedEvent event = spy(new EmailChangedEvent(player, "old@mail.tld", newEmail, false));
+        EmailChangedEvent event = spy(new EmailChangedEvent(player, storedEmail, newEmail, false));
         given(bukkitService.createAndCallEvent(any(Function.class))).willReturn(event);
 
-        process.changeEmail(player, "old@mail.tld", newEmail);
+        process.changeEmail(player, providedOldEmail, newEmail);
 
         verify(dataSource).updateEmail(auth);
-        if (saveSuccessful) {
-            verify(playerCache).updatePlayerIfPresent(auth);
-        } else {
-            verify(playerCache, never()).updatePlayerIfPresent(auth);
-        }
+        verify(playerCache, saveSuccessful ? times(1) : never()).updatePlayerIfPresent(auth);
         verify(service).send(player, expectedMessage);
     }
 
     @Test
-    void shouldNotBeCaseSensitiveWhenComparingEmails() {
-        String newEmail = "newmail@example.com";
-        given(player.getName()).willReturn("Debra");
-        given(playerCache.isAuthenticated("debra")).willReturn(true);
-        String oldEmail = "OLD-mail@example.org";
-        PlayerAuth auth = authWithMail(oldEmail);
-        given(playerCache.getAuth("debra")).willReturn(auth);
-        given(dataSource.updateEmail(auth)).willReturn(true);
-        given(validationService.validateEmail(newEmail)).willReturn(true);
-        given(validationService.isEmailFreeForRegistration(newEmail, player)).willReturn(true);
-        given(emailService.hasAllInformation()).willReturn(false);
-        EmailChangedEvent event = spy(new EmailChangedEvent(player, oldEmail, newEmail, false));
-        given(bukkitService.createAndCallEvent(any(Function.class))).willReturn(event);
-
-        process.changeEmail(player, "old-mail@example.org", newEmail);
-
-        verify(dataSource).updateEmail(auth);
-        verify(playerCache).updatePlayerIfPresent(auth);
-        verify(service).send(player, MessageKey.EMAIL_CHANGED_SUCCESS);
-    }
-
-    @Test
     void shouldShowAddEmailUsage() {
-        given(player.getName()).willReturn("Bobby");
-        given(playerCache.isAuthenticated("bobby")).willReturn(true);
-        PlayerAuth auth = authWithMail(null);
-        given(playerCache.getAuth("bobby")).willReturn(auth);
+        givenAuthenticatedPlayerWithEmail("Bobby", null);
 
         process.changeEmail(player, "old@mail.tld", "new@mailt.tld");
 
@@ -127,7 +103,7 @@ class AsyncChangeEmailTest {
     @Test
     void shouldRejectInvalidNewMail() {
         String newEmail = "bogus";
-        PlayerAuth auth = givenAuthenticatedPlayerWithEmail("Bobby", "old@mail.tld");
+        givenAuthenticatedPlayerWithEmail("Bobby", "old@mail.tld");
         given(validationService.validateEmail(newEmail)).willReturn(false);
 
         process.changeEmail(player, "old@mail.tld", newEmail);
@@ -139,10 +115,7 @@ class AsyncChangeEmailTest {
     @Test
     void shouldRejectInvalidOldEmail() {
         String newEmail = "new@mail.tld";
-        given(player.getName()).willReturn("Bobby");
-        given(playerCache.isAuthenticated("bobby")).willReturn(true);
-        PlayerAuth auth = authWithMail("other@address.email");
-        given(playerCache.getAuth("bobby")).willReturn(auth);
+        givenAuthenticatedPlayerWithEmail("Bobby", "other@address.email");
         given(validationService.validateEmail(newEmail)).willReturn(true);
 
         process.changeEmail(player, "old@mail.tld", newEmail);
@@ -154,10 +127,7 @@ class AsyncChangeEmailTest {
     @Test
     void shouldRejectAlreadyUsedEmail() {
         String newEmail = "new@example.com";
-        given(player.getName()).willReturn("Username");
-        given(playerCache.isAuthenticated("username")).willReturn(true);
-        PlayerAuth auth = authWithMail("old@example.com");
-        given(playerCache.getAuth("username")).willReturn(auth);
+        givenAuthenticatedPlayerWithEmail("Username", "old@example.com");
         given(validationService.validateEmail(newEmail)).willReturn(true);
         given(validationService.isEmailFreeForRegistration(newEmail, player)).willReturn(false);
 
@@ -197,10 +167,7 @@ class AsyncChangeEmailTest {
     void shouldNotChangeOnCancelledEvent() {
         String newEmail = "new@example.com";
         String oldEmail = "old@example.com";
-        given(player.getName()).willReturn("Username");
-        given(playerCache.isAuthenticated("username")).willReturn(true);
-        PlayerAuth auth = authWithMail(oldEmail);
-        given(playerCache.getAuth("username")).willReturn(auth);
+        givenAuthenticatedPlayerWithEmail("Username", oldEmail);
         given(validationService.validateEmail(newEmail)).willReturn(true);
         given(validationService.isEmailFreeForRegistration(newEmail, player)).willReturn(true);
         EmailChangedEvent event = spy(new EmailChangedEvent(player, oldEmail, newEmail, false));

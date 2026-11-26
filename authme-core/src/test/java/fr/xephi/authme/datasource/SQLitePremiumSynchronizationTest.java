@@ -1,10 +1,12 @@
 package fr.xephi.authme.datasource;
 
 import fr.xephi.authme.data.auth.PlayerAuth;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -15,18 +17,15 @@ import static org.hamcrest.Matchers.is;
  */
 class SQLitePremiumSynchronizationTest {
 
-    @Test
-    void shouldSynchronizeUpdatePremiumUuid() throws Exception {
-        assertThat(isSynchronized("updatePremiumUuid", PlayerAuth.class), is(true));
+    @ParameterizedTest
+    @MethodSource("premiumMethods")
+    void shouldSynchronizePremiumMethods(Method method) {
+        assertThat(Modifier.isSynchronized(method.getModifiers()), is(true));
     }
 
-    @Test
-    void shouldSynchronizeGetPremiumUsernames() throws Exception {
-        assertThat(isSynchronized("getPremiumUsernames"), is(true));
-    }
-
-    private static boolean isSynchronized(String name, Class<?>... parameterTypes) throws Exception {
-        Method method = SQLite.class.getMethod(name, parameterTypes);
-        return Modifier.isSynchronized(method.getModifiers());
+    private static Stream<Method> premiumMethods() throws NoSuchMethodException {
+        return Stream.of(
+            SQLite.class.getMethod("updatePremiumUuid", PlayerAuth.class),
+            SQLite.class.getMethod("getPremiumUsernames"));
     }
 }

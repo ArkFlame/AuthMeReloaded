@@ -68,7 +68,9 @@ public final class Utils {
      */
     public static void logAndSendMessage(CommandSender sender, String message) {
         logger.info(message);
-        sendToNonConsole(sender, message);
+        if (sender != null && !(sender instanceof ConsoleCommandSender)) {
+            sender.sendMessage(message);
+        }
     }
 
     /**
@@ -81,19 +83,8 @@ public final class Utils {
      */
     public static void logAndSendWarning(CommandSender sender, String message) {
         logger.warning(message);
-        sendToNonConsole(sender, ChatColor.RED + message);
-    }
-
-    /**
-     * Sends the message to the sender unless it is the console, which already
-     * sees everything written by {@link #logger}.
-     *
-     * @param sender the sender to inform, may be null
-     * @param message the message to send
-     */
-    private static void sendToNonConsole(CommandSender sender, String message) {
         if (sender != null && !(sender instanceof ConsoleCommandSender)) {
-            sender.sendMessage(message);
+            sender.sendMessage(ChatColor.RED + message);
         }
     }
 

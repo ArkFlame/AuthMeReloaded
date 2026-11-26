@@ -32,9 +32,8 @@ public class ShowEmailCommand extends PlayerCommand {
             return;
         }
 
-        String emailToShow = commonService.getProperty(SecuritySettings.USE_EMAIL_MASKING)
-            ? emailMask(email) : email;
-        commonService.send(player, MessageKey.EMAIL_SHOW, emailToShow);
+        commonService.send(player, MessageKey.EMAIL_SHOW,
+            commonService.getProperty(SecuritySettings.USE_EMAIL_MASKING) ? emailMask(email) : email);
     }
 
     private String emailMask(String email) {

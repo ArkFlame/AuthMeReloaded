@@ -2,7 +2,6 @@ package fr.xephi.authme.listener;
 
 import fr.xephi.authme.message.Messages;
 import fr.xephi.authme.service.ValidationService;
-import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -24,8 +23,7 @@ public class LegacyPlayerLoginListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOW)
     public void onPlayerLogin(PlayerLoginEvent event) {
-        final Player player = event.getPlayer();
-        final String name = player.getName();
+        final String name = event.getPlayer().getName();
 
         try {
             onJoinVerifier.checkSingleSession(name);

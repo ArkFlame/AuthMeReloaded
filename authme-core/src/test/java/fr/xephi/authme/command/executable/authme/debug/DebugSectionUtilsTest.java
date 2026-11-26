@@ -33,93 +33,48 @@ class DebugSectionUtilsTest {
 
     @Test
     void shouldFormatLocation() {
-        // given / when
-        String result = DebugSectionUtils.formatLocation(0.0, 10.248592, -18934.2349023, "Main");
-
-        // then
-        assertThat(result, equalTo("(0, 10.25, -18934.23) in 'Main'"));
-    }
-
-    @Test
-    void shouldHandleNullWorld() {
-        // given
+        assertThat(DebugSectionUtils.formatLocation(0.0, 10.248592, -18934.2349023, "Main"),
+            equalTo("(0, 10.25, -18934.23) in 'Main'"));
         Location location = new Location(null, 3.7777, 2.14156, 1);
-
-        // when
-        String result = DebugSectionUtils.formatLocation(location);
-
-        // then
-        assertThat(result, equalTo("(3.78, 2.14, 1) in 'null'"));
-    }
-
-    @Test
-    void shouldHandleNullLocation() {
-        // given / when / then
+        assertThat(DebugSectionUtils.formatLocation(location), equalTo("(3.78, 2.14, 1) in 'null'"));
         assertThat(DebugSectionUtils.formatLocation(null), equalTo("null"));
     }
 
     @Test
     void shouldFetchMapInLimboService() {
-        // given
         LimboService limboService = mock(LimboService.class);
-        Map<String, LimboPlayer> limboMap = new HashMap<>();
-        ReflectionTestUtils.setField(LimboService.class, limboService, "entries", limboMap);
+        Map<String, LimboPlayer> limboMap = createLimboServiceWithEntries(limboService);
 
-        // when
         Map map = DebugSectionUtils.applyToLimboPlayersMap(limboService, Function.identity());
-
-        // then
         assertThat(map, sameInstance(limboMap));
-    }
 
-    @Test
-    void shouldHandleErrorGracefully() {
-        // given
-        LimboService limboService = mock(LimboService.class);
-        Map<String, LimboPlayer> limboMap = new HashMap<>();
-        ReflectionTestUtils.setField(LimboService.class, limboService, "entries", limboMap);
-
-        // when
-        Object result = DebugSectionUtils.applyToLimboPlayersMap(limboService, map -> {
+        Object result = DebugSectionUtils.applyToLimboPlayersMap(limboService, m -> {
             throw new IllegalStateException();
         });
-
-        // then
         assertThat(result, nullValue());
     }
 
     @Test
-    void shouldReturnSameDataSourceInstance() {
-        // given
+    void shouldUnwrapSourceFromCacheDataSource() {
         DataSource dataSource = mock(DataSource.class);
+        assertThat(DebugSectionUtils.unwrapSourceFromCacheDataSource(dataSource), equalTo(dataSource));
 
-        // when
-        DataSource result = DebugSectionUtils.unwrapSourceFromCacheDataSource(dataSource);
-
-        // then
-        assertThat(result, equalTo(dataSource));
-    }
-
-    @Test
-    void shouldUnwrapCacheDataSource() {
-        // given
         DataSource source = mock(DataSource.class);
-        PlayerCache playerCache = mock(PlayerCache.class);
-        CacheDataSource cacheDataSource = new CacheDataSource(source, playerCache);
-
-        // when
-        DataSource result = DebugSectionUtils.unwrapSourceFromCacheDataSource(cacheDataSource);
-
-        // then
-        assertThat(result, equalTo(source));
+        CacheDataSource cacheDataSource = new CacheDataSource(source, mock(PlayerCache.class));
+        assertThat(DebugSectionUtils.unwrapSourceFromCacheDataSource(cacheDataSource), equalTo(source));
     }
 
     @Test
     void shouldCastOrReturnNull() {
-        // given / when / then
         assertThat(DebugSectionUtils.castToTypeOrNull("test", String.class), equalTo("test"));
         assertThat(DebugSectionUtils.castToTypeOrNull("test", Integer.class), nullValue());
         assertThat(DebugSectionUtils.castToTypeOrNull(5, String.class), nullValue());
         assertThat(DebugSectionUtils.castToTypeOrNull(5, Integer.class), equalTo(5));
+    }
+
+    private static Map<String, LimboPlayer> createLimboServiceWithEntries(LimboService limboService) {
+        Map<String, LimboPlayer> limboMap = new HashMap<>();
+        ReflectionTestUtils.setField(LimboService.class, limboService, "entries", limboMap);
+        return limboMap;
     }
 }
