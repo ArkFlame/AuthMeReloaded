@@ -6,7 +6,6 @@ import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.settings.Settings;
 import fr.xephi.authme.settings.SpawnLoader;
 import fr.xephi.authme.settings.properties.RestrictionSettings;
-import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -76,10 +75,10 @@ class SpawnLocationViewer implements DebugSection {
         Player player = bukkitService.getPlayerExact(playerName);
         if (player == null) {
             sender.sendMessage("Player '" + playerName + "' is not online!");
-        } else {
-            Location spawn = spawnLoader.getSpawnLocation(player);
-            sender.sendMessage("Player '" + playerName + "' has spawn location: " + formatLocation(spawn));
-            sender.sendMessage("Note: this check excludes the AuthMe firstspawn.");
+            return;
         }
+        sender.sendMessage("Player '" + playerName + "' has spawn location: "
+            + formatLocation(spawnLoader.getSpawnLocation(player)));
+        sender.sendMessage("Note: this check excludes the AuthMe firstspawn.");
     }
 }

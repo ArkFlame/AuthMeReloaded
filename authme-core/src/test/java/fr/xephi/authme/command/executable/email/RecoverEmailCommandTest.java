@@ -24,7 +24,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Collections;
-import java.util.Locale;
 import java.util.stream.Stream;
 
 import static fr.xephi.authme.service.BukkitServiceTestHelper.setBukkitServiceToRunTaskAsynchronously;
@@ -157,40 +156,32 @@ class RecoverEmailCommandTest {
             Arguments.of("wrong-email@example.com", "raptor@example.org"));
     }
 
-    @Test
-    void shouldGenerateRecoveryCode() {
+    @ParameterizedTest(name = "stored {0}, requested {1}, recovery code {2}")
+    @MethodSource("recoveryCases")
+    void shouldSendRecoveryMail(String email, String requestedEmail, boolean recoveryCodeNeeded) {
         // given
         String name = "Vultur3";
         Player sender = initSender(name);
-        String email = "v@example.com";
-        given(validationService.validateEmail("V@EXAMPLE.COM")).willReturn(true);
+        given(validationService.validateEmail(requestedEmail)).willReturn(true);
         given(dataSource.getEmail(name)).willReturn(DataSourceValueImpl.of(email));
-        given(recoveryCodeService.isRecoveryCodeNeeded()).willReturn(true);
+        given(recoveryCodeService.isRecoveryCodeNeeded()).willReturn(recoveryCodeNeeded);
         setBukkitServiceToRunTaskAsynchronously(bukkitService);
 
         // when
-        command.executeCommand(sender, Collections.singletonList(email.toUpperCase(Locale.ROOT)));
+        command.executeCommand(sender, Collections.singletonList(requestedEmail));
 
         // then
-        verify(recoveryService, only()).createAndSendRecoveryCode(sender, email);
+        if (recoveryCodeNeeded) {
+            verify(recoveryService, only()).createAndSendRecoveryCode(sender, email);
+        } else {
+            verify(recoveryService, only()).generateAndSendNewPassword(sender, email);
+        }
     }
 
-    @Test
-    void shouldGenerateNewPasswordWithoutRecoveryCode() {
-        // given
-        String name = "Vultur3";
-        Player sender = initSender(name);
-        String email = "vulture@example.com";
-        given(validationService.validateEmail(email)).willReturn(true);
-        given(dataSource.getEmail(name)).willReturn(DataSourceValueImpl.of(email));
-        given(recoveryCodeService.isRecoveryCodeNeeded()).willReturn(false);
-        setBukkitServiceToRunTaskAsynchronously(bukkitService);
-
-        // when
-        command.executeCommand(sender, Collections.singletonList(email));
-
-        // then
-        verify(recoveryService, only()).generateAndSendNewPassword(sender, email);
+    private static Stream<Arguments> recoveryCases() {
+        return Stream.of(
+            Arguments.of("v@example.com", "V@EXAMPLE.COM", true),
+            Arguments.of("vulture@example.com", "vulture@example.com", false));
     }
 
     @Test

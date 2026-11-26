@@ -38,14 +38,11 @@ public class VaultHandler implements PermissionHandler {
      */
     @VisibleForTesting
     Permission getVaultPermission(Server server) throws PermissionHandlerException {
-        // Get the permissions provider service
         RegisteredServiceProvider<Permission> permissionProvider = server
             .getServicesManager().getRegistration(Permission.class);
         if (permissionProvider == null) {
             throw new PermissionHandlerException("Could not load permissions provider service");
         }
-
-        // Get the Vault provider and make sure it's valid
         Permission vaultPerms = permissionProvider.getProvider();
         if (vaultPerms == null) {
             throw new PermissionHandlerException("Could not load Vault permissions provider");

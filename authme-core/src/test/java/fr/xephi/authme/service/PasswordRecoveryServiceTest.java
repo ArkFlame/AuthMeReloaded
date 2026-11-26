@@ -94,11 +94,8 @@ class PasswordRecoveryServiceTest {
     @Test
     void shouldSendNewPasswordAndThenSaveIt() {
         // given
-        Player player = mockPlayer();
-        given(commonService.getProperty(EmailSettings.RECOVERY_PASSWORD_LENGTH)).willReturn(12);
         HashedPassword hash = new HashedPassword("new-hash");
-        given(passwordSecurity.computeHash(anyString(), eq(NAME))).willReturn(hash);
-        given(emailService.sendPasswordMail(eq(NAME), eq(EMAIL), anyString())).willReturn(true);
+        Player player = givenNewPasswordSetup(true, hash);
         given(dataSource.updatePassword(NAME, hash)).willReturn(true);
 
         // when
@@ -116,10 +113,7 @@ class PasswordRecoveryServiceTest {
     @Test
     void shouldNotChangePasswordIfNewPasswordMailCannotBeSent() {
         // given
-        Player player = mockPlayer();
-        given(commonService.getProperty(EmailSettings.RECOVERY_PASSWORD_LENGTH)).willReturn(12);
-        given(passwordSecurity.computeHash(anyString(), eq(NAME))).willReturn(new HashedPassword("new-hash"));
-        given(emailService.sendPasswordMail(eq(NAME), eq(EMAIL), anyString())).willReturn(false);
+        Player player = givenNewPasswordSetup(false, new HashedPassword("new-hash"));
 
         // when
         recoveryService.generateAndSendNewPassword(player, EMAIL);
@@ -133,11 +127,8 @@ class PasswordRecoveryServiceTest {
     @Test
     void shouldReportErrorIfNewPasswordCannotBeSaved() {
         // given
-        Player player = mockPlayer();
-        given(commonService.getProperty(EmailSettings.RECOVERY_PASSWORD_LENGTH)).willReturn(12);
         HashedPassword hash = new HashedPassword("new-hash");
-        given(passwordSecurity.computeHash(anyString(), eq(NAME))).willReturn(hash);
-        given(emailService.sendPasswordMail(eq(NAME), eq(EMAIL), anyString())).willReturn(true);
+        Player player = givenNewPasswordSetup(true, hash);
         given(dataSource.updatePassword(NAME, hash)).willReturn(false);
 
         // when
@@ -179,6 +170,14 @@ class PasswordRecoveryServiceTest {
         // then
         assertThat(recoveryService.canChangePassword(bobby), equalTo(true));
         assertThat(recoveryService.canChangePassword(other), equalTo(false));
+    }
+
+    private Player givenNewPasswordSetup(boolean mailSent, HashedPassword hash) {
+        Player player = mockPlayer();
+        given(commonService.getProperty(EmailSettings.RECOVERY_PASSWORD_LENGTH)).willReturn(12);
+        given(passwordSecurity.computeHash(anyString(), eq(NAME))).willReturn(hash);
+        given(emailService.sendPasswordMail(eq(NAME), eq(EMAIL), anyString())).willReturn(mailSent);
+        return player;
     }
 
     private Player mockPlayer() {

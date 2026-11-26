@@ -63,8 +63,7 @@ public final class ConsoleLogger {
      * @param settings the settings to read from
      */
     public static void initializeSharedSettings(Settings settings) {
-        boolean useLogging = settings.getProperty(SecuritySettings.USE_LOGGING);
-        if (useLogging) {
+        if (settings.getProperty(SecuritySettings.USE_LOGGING)) {
             initializeFileWriter();
         } else {
             closeFileWriter();
@@ -220,10 +219,9 @@ public final class ConsoleLogger {
             try {
                 fileWriter.flush();
             } catch (IOException ignored) {
-            } finally {
-                closeSafely(fileWriter);
-                fileWriter = null;
             }
+            closeSafely(fileWriter);
+            fileWriter = null;
         }
     }
 
@@ -236,10 +234,7 @@ public final class ConsoleLogger {
         if (fileWriter != null) {
             String dateTime = DATE_FORMAT.format(LocalDateTime.now());
             try {
-                fileWriter.write(dateTime);
-                fileWriter.write(": ");
-                fileWriter.write(message);
-                fileWriter.write(NEW_LINE);
+                fileWriter.write(dateTime + ": " + message + NEW_LINE);
                 fileWriter.flush();
             } catch (IOException ignored) {
             }

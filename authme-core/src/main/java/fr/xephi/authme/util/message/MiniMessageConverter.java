@@ -55,16 +55,15 @@ public final class MiniMessageConverter {
 
     /**
      * Converts {@code message} from MiniMessage into a legacy section-sign string when
-     * conversion is enabled, Adventure is available and a MiniMessage tag is present.
-     * In every other case the original string is returned unchanged, preserving the
-     * legacy {@code '&'} color-code handling.
+     * conversion is enabled, Adventure is available and a MiniMessage tag is present;
+     * otherwise the original string is returned, preserving legacy {@code '&'} codes.
      *
      * @param message the message to convert (may be null)
      * @param enabled whether MiniMessage support is enabled in the settings
      * @return the converted message, or the original message when conversion does not apply
      */
     public static String convert(String message, boolean enabled) {
-        if (message == null || !enabled || !ADVENTURE_AVAILABLE || !containsMiniMessageTags(message)) {
+        if (!enabled || !ADVENTURE_AVAILABLE || !containsMiniMessageTags(message)) {
             return message;
         }
         try {

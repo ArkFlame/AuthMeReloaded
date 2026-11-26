@@ -30,11 +30,7 @@ abstract class AbstractExpiring<E, V> {
         this.expirationMillis = unit.toMillis(duration);
     }
 
-    /**
-     * Returns the configured expiration duration in milliseconds.
-     *
-     * @return the expiration in milliseconds
-     */
+    /** @return the configured expiration duration in milliseconds */
     protected final long getExpirationMillis() {
         return expirationMillis;
     }

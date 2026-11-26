@@ -1,7 +1,6 @@
 package fr.xephi.authme.process.register;
 
 import ch.jalu.injector.factory.SingletonStore;
-import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.data.auth.PlayerCache;
 import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.events.AuthMeAsyncPreRegisterEvent;
@@ -52,8 +51,7 @@ public class AsyncRegister implements AsynchronousProcess {
             return;
         }
 
-        PlayerAuth auth = executor.buildPlayerAuth(parameters);
-        if (database.saveAuth(auth)) {
+        if (database.saveAuth(executor.buildPlayerAuth(parameters))) {
             executor.executePostPersistAction(parameters);
         } else {
             service.send(player, MessageKey.ERROR);

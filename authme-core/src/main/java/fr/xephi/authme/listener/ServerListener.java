@@ -38,9 +38,7 @@ public class ServerListener implements Listener {
         final String pluginName = event.getPlugin().getName();
         // Hook changes must happen on the global region thread for Folia safety
         bukkitService.runOnGlobalRegion(() -> {
-            // Call the onPluginDisable method in the permissions manager
             permissionsManager.onPluginDisable(pluginName);
-
             if ("Essentials".equalsIgnoreCase(pluginName)) {
                 pluginHookService.unhookEssentials();
                 logger.info("Essentials has been disabled: unhooking");
@@ -66,9 +64,7 @@ public class ServerListener implements Listener {
         final String pluginName = event.getPlugin().getName();
         // Hook changes must happen on the global region thread for Folia safety
         bukkitService.runOnGlobalRegion(() -> {
-            // Call the onPluginEnable method in the permissions manager
             permissionsManager.onPluginEnable(pluginName);
-
             if ("Essentials".equalsIgnoreCase(pluginName)) {
                 pluginHookService.tryHookToEssentials();
             } else if ("Multiverse-Core".equalsIgnoreCase(pluginName)) {

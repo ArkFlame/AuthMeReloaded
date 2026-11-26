@@ -87,9 +87,11 @@ class TotpCodeCommandTest {
     }
 
     @Test
-    void shouldCountWrongCodeAndKeepPlayerBeforeThirdAttempt() {
+    void shouldCountWrongCodeAndKickPlayerAfterThirdAttempt() {
         // given
         givenInvalidTotpCode();
+        given(messages.retrieveSingle(player, MessageKey.TWO_FACTOR_INVALID_CODE)).willReturn("Invalid code!");
+        setBukkitServiceToScheduleSyncEntityTaskFromOptionallyAsyncTask(bukkitService);
 
         // when
         command.executeCommand(player, singletonList("000000"));
@@ -100,19 +102,9 @@ class TotpCodeCommandTest {
         verify(messages, times(2)).send(player, MessageKey.TWO_FACTOR_INVALID_CODE);
         verify(player, never()).kickPlayer(anyString());
         verify(asynchronousLogin, never()).performLogin(player, auth);
-    }
-
-    @Test
-    void shouldKickPlayerAfterThirdWrongCode() {
-        // given
-        givenInvalidTotpCode();
-        given(messages.retrieveSingle(player, MessageKey.TWO_FACTOR_INVALID_CODE)).willReturn("Invalid code!");
-        setBukkitServiceToScheduleSyncEntityTaskFromOptionallyAsyncTask(bukkitService);
 
         // when
-        for (int i = 0; i < 3; ++i) {
-            command.executeCommand(player, singletonList("000000"));
-        }
+        command.executeCommand(player, singletonList("000000"));
 
         // then
         verify(player).kickPlayer("Invalid code!");
