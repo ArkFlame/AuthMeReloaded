@@ -95,9 +95,8 @@ public class PremiumVerificationPacketListener extends PacketListenerAbstract {
             boolean isPremium = auth != null && auth.isPremium();
             if (isPremium || pendingPremiumCache.isPending(username)) {
                 byte[] verifyToken = loginVerifier.startVerification(connectionKey, username, playerUUID);
-                WrapperLoginServerEncryptionRequest encReq = new WrapperLoginServerEncryptionRequest(
-                    "", loginVerifier.getPublicKey(), verifyToken, true);
-                user.sendPacket(encReq);
+                user.sendPacket(new WrapperLoginServerEncryptionRequest(
+                    "", loginVerifier.getPublicKey(), verifyToken, true));
             } else {
                 // Not premium (and not pending) — resume normal login without verification
                 resumeLogin(user, username, clientVersion, playerUUID);
@@ -122,29 +121,25 @@ public class PremiumVerificationPacketListener extends PacketListenerAbstract {
         event.setCancelled(true);
 
         Optional<byte[]> encVerifyTokenOpt = wrapper.getEncryptedVerifyToken();
-        if (!encVerifyTokenOpt.isPresent()) {
+        byte[] sharedSecret = null;
+        if (encVerifyTokenOpt.isPresent()) {
+            // Step 1: RSA-decrypt the shared secret synchronously (fast; we're on the event loop).
+            // We must do this here — not inside the async task — so we can set up Netty encryption
+            // immediately before returning. The client is already in AES-encrypted mode after
+            // sending ENCRYPTION_RESPONSE; without decryption on our side every subsequent packet
+            // arrives as garbled bytes and Netty throws "length wider than 21-bit".
+            try {
+                sharedSecret = loginVerifier.decryptData(wrapper.getEncryptedSharedSecret().clone());
+            } catch (GeneralSecurityException e) {
+                logger.warning("RSA decryption failed for '" + username + "': " + e.getMessage());
+            }
+        } else {
             // Client responded with a signed nonce (1.19.1+ chat signing). We sent a plain verify
             // token so this should not happen; fall through to password auth without verifying.
             logger.warning("Player '" + username + "' returned a signed nonce during premium "
                 + "verification (expected plain verify token). Resuming without premium bypass.");
-            loginVerifier.cleanupPending(connectionKey);
-            resumeLogin(user, username, clientVersion, playerUUID);
-            return;
         }
-
-        byte[] encSharedSecret = wrapper.getEncryptedSharedSecret().clone();
-        byte[] encVerifyToken = encVerifyTokenOpt.get().clone();
-
-        // Step 1: RSA-decrypt the shared secret synchronously (fast; we're on the event loop).
-        // We must do this here — not inside the async task — so we can set up Netty encryption
-        // immediately before returning. The client is already in AES-encrypted mode after
-        // sending ENCRYPTION_RESPONSE; without decryption on our side every subsequent packet
-        // arrives as garbled bytes and Netty throws "length wider than 21-bit".
-        byte[] sharedSecret;
-        try {
-            sharedSecret = loginVerifier.decryptData(encSharedSecret);
-        } catch (GeneralSecurityException e) {
-            logger.warning("RSA decryption failed for '" + username + "': " + e.getMessage());
+        if (sharedSecret == null) {
             loginVerifier.cleanupPending(connectionKey);
             resumeLogin(user, username, clientVersion, playerUUID);
             return;
@@ -154,6 +149,7 @@ public class PremiumVerificationPacketListener extends PacketListenerAbstract {
         enableChannelEncryption(user.getChannel(), sharedSecret);
 
         // Step 3: Async — verify the token and call Mojang's hasJoined endpoint.
+        byte[] encVerifyToken = encVerifyTokenOpt.get().clone();
         loginVerifier.completeVerification(connectionKey, sharedSecret, encVerifyToken)
             .thenAccept(maybeUuid -> {
                 maybeUuid.ifPresent(uuid -> loginVerifier.storeVerified(username, uuid));

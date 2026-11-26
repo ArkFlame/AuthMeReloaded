@@ -33,6 +33,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.withSettings;
 
@@ -57,7 +58,7 @@ class PluginHookServiceTest {
     @BeforeAll
     static void setUpOnce() {
         TestHelper.setupLogger();
-        world = mock(World.class, withSettings().mockMaker(MockMakers.INLINE));
+        world = mock(World.class);
     }
 
     @Test
@@ -139,7 +140,7 @@ class PluginHookServiceTest {
     @Test
     void shouldSetSocialSpyStatus() {
         // given
-        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
+        Player player = mock(Player.class);
 
         Essentials ess = mock(Essentials.class, withSettings().mockMaker(MockMakers.INLINE));
         User user = mock(User.class, withSettings().mockMaker(MockMakers.INLINE));
@@ -162,7 +163,7 @@ class PluginHookServiceTest {
         PluginHookService pluginHookService = new PluginHookService(pluginManager);
 
         // when/then
-        pluginHookService.setEssentialsSocialSpyStatus(mock(Player.class, withSettings().mockMaker(MockMakers.INLINE)), false);
+        pluginHookService.setEssentialsSocialSpyStatus(mock(Player.class), false);
     }
 
     @Test
@@ -196,15 +197,16 @@ class PluginHookServiceTest {
         assertThat(pluginHookService.isMultiverseAvailable(), equalTo(false));
     }
 
-    @Test
-    void shouldGetMultiverseSpawn() {
+    @ParameterizedTest(name = "multiverse spawn lookup for MV world: {0}")
+    @MethodSource("mvWorldSpawnCases")
+    void shouldGetMultiverseSpawn(boolean isMvWorld) {
         // given
-        Location location = mock(Location.class, withSettings().mockMaker(MockMakers.INLINE));
-        MultiverseWorld multiverseWorld = mock(MultiverseWorld.class, withSettings().mockMaker(MockMakers.INLINE));
+        Location location = mock(Location.class);
+        MultiverseWorld multiverseWorld = mock(MultiverseWorld.class);
         given(multiverseWorld.getSpawnLocation()).willReturn(location);
 
-        MVWorldManager mvWorldManager = mock(MVWorldManager.class, withSettings().mockMaker(MockMakers.INLINE));
-        given(mvWorldManager.isMVWorld(world)).willReturn(true);
+        MVWorldManager mvWorldManager = mock(MVWorldManager.class);
+        given(mvWorldManager.isMVWorld(world)).willReturn(isMvWorld);
         given(mvWorldManager.getMVWorld(world)).willReturn(multiverseWorld);
         MultiverseCore multiverse = mock(MultiverseCore.class, withSettings().mockMaker(MockMakers.INLINE));
         given(multiverse.getMVWorldManager()).willReturn(mvWorldManager);
@@ -216,30 +218,16 @@ class PluginHookServiceTest {
         Location spawn = pluginHookService.getMultiverseSpawn(world);
 
         // then
-        assertThat(spawn, equalTo(location));
+        assertThat(spawn, isMvWorld ? equalTo(location) : nullValue());
         verify(mvWorldManager).isMVWorld(world);
-        verify(mvWorldManager).getMVWorld(world);
-        verify(multiverseWorld).getSpawnLocation();
+        verify(mvWorldManager, isMvWorld ? times(1) : never()).getMVWorld(world);
+        if (isMvWorld) {
+            verify(multiverseWorld).getSpawnLocation();
+        }
     }
 
-    @Test
-    void shouldReturnNullForNonMvWorld() {
-        // given
-        MVWorldManager mvWorldManager = mock(MVWorldManager.class, withSettings().mockMaker(MockMakers.INLINE));
-        given(mvWorldManager.isMVWorld(world)).willReturn(false);
-
-        MultiverseCore multiverse = mock(MultiverseCore.class, withSettings().mockMaker(MockMakers.INLINE));
-        setPluginAvailable(pluginManager, MULTIVERSE, multiverse);
-        given(multiverse.getMVWorldManager()).willReturn(mvWorldManager);
-        PluginHookService pluginHookService = new PluginHookService(pluginManager);
-
-        // when
-        Location spawn = pluginHookService.getMultiverseSpawn(world);
-
-        // then
-        assertThat(spawn, nullValue());
-        verify(mvWorldManager).isMVWorld(world);
-        verify(mvWorldManager, never()).getMVWorld(world);
+    private static Stream<Arguments> mvWorldSpawnCases() {
+        return Stream.of(Arguments.of(true), Arguments.of(false));
     }
 
     private static void setPluginAvailable(PluginManager managerMock, String pluginName,

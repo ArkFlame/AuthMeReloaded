@@ -11,6 +11,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -26,6 +28,8 @@ import static org.mockito.Mockito.verify;
  */
 @ExtendWith(MockitoExtension.class)
 class CommonServiceTest {
+
+    private static final MessageKey TEST_KEY = MessageKey.ACCOUNT_NOT_ACTIVATED;
 
     @InjectMocks
     private CommonService commonService;
@@ -52,47 +56,41 @@ class CommonServiceTest {
         assertThat(result, equalTo(8));
     }
 
-    @Test
-    void shouldSendMessageToPlayer() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void shouldSendMessage(boolean withReplacements) {
         // given
         CommandSender sender = mock(CommandSender.class);
-        MessageKey key = MessageKey.ACCOUNT_NOT_ACTIVATED;
+        String[] replacements = {"test", "toast"};
 
         // when
-        commonService.send(sender, key);
+        if (withReplacements) {
+            commonService.send(sender, TEST_KEY, replacements);
+        } else {
+            commonService.send(sender, TEST_KEY);
+        }
 
         // then
-        verify(messages).send(sender, key);
-    }
-
-    @Test
-    void shouldSendMessageWithReplacements() {
-        // given
-        CommandSender sender = mock(CommandSender.class);
-        MessageKey key = MessageKey.ACCOUNT_NOT_ACTIVATED;
-        String[] replacements = new String[]{"test", "toast"};
-
-        // when
-        commonService.send(sender, key, replacements);
-
-        // then
-        verify(messages).send(sender, key, replacements);
+        if (withReplacements) {
+            verify(messages).send(sender, TEST_KEY, replacements);
+        } else {
+            verify(messages).send(sender, TEST_KEY);
+        }
     }
 
     @Test
     void shouldRetrieveSingleMessage() {
         // given
-        MessageKey key = MessageKey.ACCOUNT_NOT_ACTIVATED;
-        Player player = mock(Player.class);
+        CommandSender sender = mock(CommandSender.class);
         String text = "Test text";
-        given(messages.retrieveSingle(player, key)).willReturn(text);
+        given(messages.retrieveSingle(sender, TEST_KEY)).willReturn(text);
 
         // when
-        String result = commonService.retrieveSingleMessage(player, key);
+        String result = commonService.retrieveSingleMessage(sender, TEST_KEY);
 
         // then
         assertThat(result, equalTo(text));
-        verify(messages).retrieveSingle(player, key);
+        verify(messages).retrieveSingle(sender, TEST_KEY);
     }
 
     @Test

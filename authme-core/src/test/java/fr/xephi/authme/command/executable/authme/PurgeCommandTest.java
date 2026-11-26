@@ -15,19 +15,16 @@ import java.util.Calendar;
 import java.util.Collections;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
-/**
- * Test for {@link PurgeCommand}.
- */
+/** Test for {@link PurgeCommand}. */
 @ExtendWith(MockitoExtension.class)
 class PurgeCommandTest {
 
@@ -37,34 +34,28 @@ class PurgeCommandTest {
     @Mock
     private PurgeService purgeService;
 
+    @Mock
+    private CommandSender sender;
+
     @ParameterizedTest
     @CsvSource(value = {
         "invalid, The value you've entered is invalid",
         "29,      You can only purge data older than 30 days"
     }, quoteCharacter = '"')
     void shouldRejectInvalidInterval(String interval, String expectedMessage) {
-        // given
-        CommandSender sender = mock(CommandSender.class);
-
-        // when
         command.executeCommand(sender, Collections.singletonList(interval));
 
-        // then
         verify(sender).sendMessage(argThat(containsString(expectedMessage)));
         verifyNoInteractions(purgeService);
     }
 
     @Test
     void shouldForwardToService() {
-        // given
-        CommandSender sender = mock(CommandSender.class);
-
-        // when
         long before = daysAgo(45);
         command.executeCommand(sender, Collections.singletonList("45"));
         long after = daysAgo(45);
 
-        // then: the timestamp lies between the two reference points, independent of machine load
+        // timestamp lies between the two reference points, independent of machine load
         ArgumentCaptor<Long> captor = ArgumentCaptor.forClass(Long.class);
         verify(purgeService).runPurge(eq(sender), captor.capture());
         assertThat(captor.getValue(), allOf(greaterThanOrEqualTo(before), lessThanOrEqualTo(after)));
@@ -75,5 +66,4 @@ class PurgeCommandTest {
         calendar.add(Calendar.DATE, -days);
         return calendar.getTimeInMillis();
     }
-
 }

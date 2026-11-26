@@ -11,6 +11,8 @@ import fr.xephi.authme.service.CommonService;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 
@@ -67,40 +69,29 @@ public class UnregisterCommandTest {
         verifyNoInteractions(management);
     }
 
-    @Test
-    public void shouldStopForMissingVerificationCode() {
-        // given
-        String name = "asldjf";
-        given(player.getName()).willReturn(name);
-        given(playerCache.isAuthenticated(name)).willReturn(true);
-        given(codeManager.isVerificationRequired(player)).willReturn(true);
-
-        // when
-        command.executeCommand(player, Collections.singletonList("blergh"));
-
-        // then
-        verify(playerCache).isAuthenticated(name);
-        verify(codeManager).codeExistOrGenerateNew(name);
-        verify(commonService).send(player, MessageKey.VERIFICATION_CODE_REQUIRED);
-        verifyNoInteractions(management);
-    }
-
-    @Test
-    public void shouldForwardDataToAsyncTask() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void shouldStopForMissingVerificationCodeOrForwardToAsyncTask(boolean verificationRequired) {
         // given
         String password = "p@ssw0rD";
-        String name = "jas0n_";
+        String name = "player77";
         given(player.getName()).willReturn(name);
         given(playerCache.isAuthenticated(name)).willReturn(true);
-        given(codeManager.isVerificationRequired(player)).willReturn(false);
+        given(codeManager.isVerificationRequired(player)).willReturn(verificationRequired);
 
         // when
         command.executeCommand(player, Collections.singletonList(password));
 
         // then
         verify(playerCache).isAuthenticated(name);
-        verify(management).performUnregister(player, password);
         verify(codeManager).isVerificationRequired(player);
+        if (verificationRequired) {
+            verify(codeManager).codeExistOrGenerateNew(name);
+            verify(commonService).send(player, MessageKey.VERIFICATION_CODE_REQUIRED);
+            verifyNoInteractions(management);
+        } else {
+            verify(management).performUnregister(player, password);
+        }
     }
 
     @Test
@@ -122,5 +113,4 @@ public class UnregisterCommandTest {
         assertThat(command.getArgumentsMismatchMessage(), equalTo(MessageKey.USAGE_UNREGISTER));
     }
 }
-
 

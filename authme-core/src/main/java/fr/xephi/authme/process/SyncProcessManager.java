@@ -35,7 +35,6 @@ public class SyncProcessManager {
     @Inject
     private ProcessSyncPlayerQuit processSyncPlayerQuit;
 
-
     public void processSyncEmailRegister(Player player) {
         runTask(player, () -> processSyncEmailRegister.processEmailRegister(player));
     }

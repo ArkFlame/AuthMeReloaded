@@ -37,19 +37,16 @@ public class ProcessCodeCommand extends PlayerCommand {
         }
 
         String name = player.getName();
-
-        if (codeService.hasTriesLeft(name)) {
-            if (codeService.isCodeValid(name, code)) {
-                commonService.send(player, MessageKey.RECOVERY_CODE_CORRECT);
-                recoveryService.addSuccessfulRecovery(player);
-                codeService.removeCode(name);
-            } else {
-                commonService.send(player, MessageKey.INCORRECT_RECOVERY_CODE,
-                    Integer.toString(codeService.getTriesLeft(name)));
-            }
-        } else {
+        if (!codeService.hasTriesLeft(name)) {
             codeService.removeCode(name);
             commonService.send(player, MessageKey.RECOVERY_TRIES_EXCEEDED);
+        } else if (codeService.isCodeValid(name, code)) {
+            commonService.send(player, MessageKey.RECOVERY_CODE_CORRECT);
+            recoveryService.addSuccessfulRecovery(player);
+            codeService.removeCode(name);
+        } else {
+            commonService.send(player, MessageKey.INCORRECT_RECOVERY_CODE,
+                Integer.toString(codeService.getTriesLeft(name)));
         }
     }
 }

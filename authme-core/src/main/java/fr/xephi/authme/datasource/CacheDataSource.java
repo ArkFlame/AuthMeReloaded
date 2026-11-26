@@ -117,12 +117,6 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
         return cachedAuths;
     }
 
-    /**
-     * Normalizes a player name to the cache key form used by all lookups.
-     *
-     * @param name the player name
-     * @return the lower-cased name
-     */
     private static String normalize(String name) {
         return name.toLowerCase(Locale.ROOT);
     }
@@ -130,11 +124,6 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
     /**
      * Applies a cache change only when the underlying data source update succeeded. On failure the
      * entry is dropped instead, because the cache may no longer reflect the database state.
-     *
-     * @param succeeded whether the source update succeeded
-     * @param name the affected player name, or null if no cache entry depends on the update
-     * @param cacheChange the cache change to perform on success
-     * @return the value of {@code succeeded}
      */
     private boolean updateCacheOnSuccess(boolean succeeded, String name, Runnable cacheChange) {
         if (succeeded) {
@@ -145,17 +134,13 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
         return succeeded;
     }
 
-    /**
-     * Reloads a single entry from the underlying data source, using its normalized cache key.
-     *
-     * @param name the player name
-     */
     private void refreshCache(String name) {
         cachedAuths.refresh(normalize(name));
     }
 
     private boolean updateCacheOnSuccess(boolean succeeded, PlayerAuth auth) {
-        return updateCacheOnSuccess(succeeded, auth.getNickname(), () -> refreshCache(auth.getNickname()));
+        String name = auth.getNickname();
+        return updateCacheOnSuccess(succeeded, name, () -> cachedAuths.refresh(normalize(name)));
     }
 
     @Override
@@ -195,8 +180,9 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public boolean updatePassword(String user, HashedPassword password) {
-        return updateCacheOnSuccess(source.updatePassword(normalize(user), password), user,
-            () -> refreshCache(user));
+        String key = normalize(user);
+        return updateCacheOnSuccess(source.updatePassword(key, password), user,
+            () -> cachedAuths.refresh(key));
     }
 
     @Override
@@ -325,12 +311,10 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public DataSourceValue<String> getEmail(String user) {
-        // Use the same normalized key as getAuth/getPassword: otherwise a mixed-case
-        // name creates a second cache entry and an extra DB load for the same account.
-        String key = normalize(user);
-        Optional<PlayerAuth> auth = cachedAuths.getUnchecked(key);
-        return auth.isPresent()
-            ? DataSourceValueImpl.of(auth.get().getEmail())
+        // Normalized like getAuth: a mixed-case name must not create a second cache entry.
+        PlayerAuth auth = getAuth(user);
+        return auth != null
+            ? DataSourceValueImpl.of(auth.getEmail())
             : DataSourceValueImpl.unknownRow();
     }
 
