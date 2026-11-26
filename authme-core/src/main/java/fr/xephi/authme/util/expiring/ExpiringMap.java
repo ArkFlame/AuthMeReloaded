@@ -41,13 +41,11 @@ public class ExpiringMap<K, V> extends AbstractExpiring<K, ExpiringMap.ExpiringE
      */
     public V get(K key) {
         ExpiringEntry<V> value = getEntries().get(key);
-        if (value == null) {
-            return null;
-        } else if (isExpired(value.getExpiration(), System.currentTimeMillis())) {
+        if (value != null && isExpired(value.getExpiration(), System.currentTimeMillis())) {
             getEntries().remove(key);
             return null;
         }
-        return value.getValue();
+        return value == null ? null : value.getValue();
     }
 
     /**
@@ -58,8 +56,8 @@ public class ExpiringMap<K, V> extends AbstractExpiring<K, ExpiringMap.ExpiringE
      * @param value the value to insert
      */
     public void put(K key, V value) {
-        long expiration = System.currentTimeMillis() + getExpirationMillis();
-        getEntries().put(key, new ExpiringEntry<>(value, expiration));
+        getEntries().put(key,
+            new ExpiringEntry<>(value, System.currentTimeMillis() + getExpirationMillis()));
     }
 
     /**
@@ -70,10 +68,8 @@ public class ExpiringMap<K, V> extends AbstractExpiring<K, ExpiringMap.ExpiringE
      */
     public V remove(K key) {
         ExpiringEntry<V> value = getEntries().remove(key);
-        if (value == null || isExpired(value.getExpiration(), System.currentTimeMillis())) {
-            return null;
-        }
-        return value.getValue();
+        return value == null || isExpired(value.getExpiration(), System.currentTimeMillis())
+            ? null : value.getValue();
     }
 
     /**

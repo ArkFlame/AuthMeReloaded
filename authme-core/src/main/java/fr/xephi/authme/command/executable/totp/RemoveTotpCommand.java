@@ -20,7 +20,6 @@ public class RemoveTotpCommand extends AbstractTotpPlayerCommand {
 
     @Inject
     private DataSource dataSource;
-
     @Inject
     private TotpAuthenticator totpAuthenticator;
 

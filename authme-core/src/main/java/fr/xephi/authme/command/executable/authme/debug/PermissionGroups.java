@@ -41,11 +41,10 @@ class PermissionGroups implements DebugSection {
             sender.sendMessage("Player " + name + " could not be found");
             return;
         }
-        String groupNames = permissionsManager.getGroups(player).stream()
-            .map(UserGroup::getGroupName)
-            .collect(joining(", "));
-
-        sender.sendMessage("Player " + name + " has permission groups: " + groupNames);
+        sender.sendMessage("Player " + name + " has permission groups: "
+            + permissionsManager.getGroups(player).stream()
+                .map(UserGroup::getGroupName)
+                .collect(joining(", ")));
         UserGroup primaryGroup = permissionsManager.hasGroupSupport()
             ? permissionsManager.getPrimaryGroup(player) : null;
         sender.sendMessage("Primary group is: " + (primaryGroup == null ? "N/A" : primaryGroup.getGroupName()));

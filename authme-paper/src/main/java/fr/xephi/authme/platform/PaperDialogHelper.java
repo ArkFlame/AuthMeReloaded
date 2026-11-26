@@ -14,7 +14,6 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.entity.Player;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -86,14 +85,11 @@ public final class PaperDialogHelper {
             .afterAction(DialogBase.DialogAfterAction.WAIT_FOR_RESPONSE)
             .build();
 
-        ActionButton submitButton = ActionButton.builder(legacyComponent(dialog.primaryButtonLabel()))
-            .action(DialogAction.customClick(submitKey, null))
-            .build();
+        ActionButton submitButton = createButton(dialog.primaryButtonLabel(),
+            DialogAction.customClick(submitKey, null));
 
-        List<ActionButton> buttons = createButtons(dialog, submitButton, () -> ActionButton.builder(
-            legacyComponent(dialog.secondaryButtonLabel()))
-            .action(DialogAction.customClick(cancelKey, null))
-            .build());
+        List<ActionButton> buttons = createButtons(dialog, submitButton, () -> createButton(
+            dialog.secondaryButtonLabel(), DialogAction.customClick(cancelKey, null)));
         return createButtonDialog(dialog, base, buttons);
     }
 
@@ -104,15 +100,13 @@ public final class PaperDialogHelper {
             .afterAction(DialogBase.DialogAfterAction.CLOSE)
             .build();
 
-        ActionButton primaryButton = ActionButton.builder(legacyComponent(dialog.primaryButtonLabel()))
-            .action(DialogAction.commandTemplate(commandTemplate))
-            .build();
+        ActionButton primaryButton = createButton(dialog.primaryButtonLabel(),
+            DialogAction.commandTemplate(commandTemplate));
 
         List<ActionButton> buttons = createButtons(dialog, primaryButton, () -> {
             String command = dialog.secondaryButtonCommand();
-            return command == null ? null : ActionButton.builder(legacyComponent(dialog.secondaryButtonLabel()))
-                .action(DialogAction.commandTemplate(command))
-                .build();
+            return command == null ? null : createButton(dialog.secondaryButtonLabel(),
+                DialogAction.commandTemplate(command));
         });
 
         return createButtonDialog(dialog, base, buttons);
@@ -130,15 +124,14 @@ public final class PaperDialogHelper {
      */
     private static List<ActionButton> createButtons(DialogWindowSpec dialog, ActionButton primaryButton,
                                                     Supplier<ActionButton> secondaryButton) {
-        List<ActionButton> buttons = new ArrayList<>(2);
-        buttons.add(primaryButton);
-        if (dialog.showSecondaryButton()) {
-            ActionButton extra = secondaryButton.get();
-            if (extra != null) {
-                buttons.add(extra);
-            }
-        }
-        return buttons;
+        ActionButton extra = dialog.showSecondaryButton() ? secondaryButton.get() : null;
+        return extra == null ? List.of(primaryButton) : List.of(primaryButton, extra);
+    }
+
+    private static ActionButton createButton(String label, DialogAction action) {
+        return ActionButton.builder(legacyComponent(label))
+            .action(action)
+            .build();
     }
 
     private static List<DialogInput> createInputs(DialogWindowSpec dialog) {

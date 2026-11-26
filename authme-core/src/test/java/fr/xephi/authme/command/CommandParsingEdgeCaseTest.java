@@ -17,6 +17,7 @@ import static java.util.Arrays.asList;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 /**
@@ -78,20 +79,12 @@ class CommandParsingEdgeCaseTest {
     }
 
     @Test
-    void shouldTreatNullBukkitArgsAsNoArguments() {
+    void shouldTreatNullOrEmptyBukkitArgsAsNoArguments() {
         // when
         handler.processCommand(sender, "authme", null);
-
-        // then
-        verify(commandMapper).mapPartsToCommand(sender, asList("authme"));
-    }
-
-    @Test
-    void shouldHandleEmptyBukkitArgs() {
-        // when
         handler.processCommand(sender, "authme", new String[0]);
 
         // then
-        verify(commandMapper).mapPartsToCommand(sender, asList("authme"));
+        verify(commandMapper, times(2)).mapPartsToCommand(sender, asList("authme"));
     }
 }

@@ -69,15 +69,13 @@ public class AsynchronousUnregister implements AsynchronousProcess {
         if (cachedAuth == null) return;
         if (!passwordSecurity.comparePassword(password, cachedAuth.getPassword(), name)) {
             service.send(player, MessageKey.WRONG_PASSWORD);
-            return;
-        }
-        if (!dataSource.removeAuth(name)) {
+        } else if (!dataSource.removeAuth(name)) {
             service.send(player, MessageKey.ERROR);
-            return;
+        } else {
+            performPostUnregisterActions(name, player);
+            logger.info(name + " unregistered himself");
+            bukkitService.createAndCallEvent(isAsync -> new UnregisterByPlayerEvent(player, isAsync));
         }
-        performPostUnregisterActions(name, player);
-        logger.info(name + " unregistered himself");
-        bukkitService.createAndCallEvent(isAsync -> new UnregisterByPlayerEvent(player, isAsync));
     }
 
     /**

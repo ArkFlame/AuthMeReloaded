@@ -203,16 +203,12 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
 
     @Override
     public void unregisterInventoryProtection() {
-        if (packetInterceptionAdapter != null) {
-            packetInterceptionAdapter.unregisterInventoryProtection();
-        }
+        runIfAdapterPresent(() -> packetInterceptionAdapter.unregisterInventoryProtection());
     }
 
     @Override
     public void sendBlankInventoryPacket(Player player) {
-        if (packetInterceptionAdapter != null) {
-            packetInterceptionAdapter.sendBlankInventoryPacket(player);
-        }
+        runIfAdapterPresent(() -> packetInterceptionAdapter.sendBlankInventoryPacket(player));
     }
 
     @Override
@@ -222,9 +218,7 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
 
     @Override
     public void unregisterTabCompleteBlock() {
-        if (packetInterceptionAdapter != null) {
-            packetInterceptionAdapter.unregisterTabCompleteBlock();
-        }
+        runIfAdapterPresent(() -> packetInterceptionAdapter.unregisterTabCompleteBlock());
     }
 
     @Override
@@ -236,9 +230,7 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
 
     @Override
     public void unregisterPremiumVerification() {
-        if (packetInterceptionAdapter != null) {
-            packetInterceptionAdapter.unregisterPremiumVerification();
-        }
+        runIfAdapterPresent(() -> packetInterceptionAdapter.unregisterPremiumVerification());
     }
 
     @Override
@@ -264,5 +256,11 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
             packetInterceptionAdapter = createPacketInterceptionAdapter();
         }
         return packetInterceptionAdapter;
+    }
+
+    private void runIfAdapterPresent(Runnable action) {
+        if (packetInterceptionAdapter != null) {
+            action.run();
+        }
     }
 }

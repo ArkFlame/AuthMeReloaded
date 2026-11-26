@@ -69,9 +69,8 @@ class HasPermissionCheckerTest {
         // then
         ArgumentCaptor<String> msgCaptor = ArgumentCaptor.forClass(String.class);
         verify(sender, atLeast(2)).sendMessage(msgCaptor.capture());
-        assertThat(
-            msgCaptor.getAllValues().stream().anyMatch(msg -> msg.contains("/authme debug perm bobby my.perm.node")),
-            equalTo(true));
+        assertThat(msgCaptor.getAllValues().stream()
+            .anyMatch(msg -> msg.contains("/authme debug perm bobby my.perm.node")), equalTo(true));
     }
 
     @Test

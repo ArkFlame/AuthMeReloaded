@@ -16,9 +16,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.only;
 import static org.mockito.Mockito.verify;
 
-/**
- * Shared tests for admin commands that look up a user's two-factor authentication status.
- */
+/** Shared tests for admin commands that look up a user's two-factor authentication status. */
 abstract class AbstractTotpAdminCommandTest {
 
     @Mock

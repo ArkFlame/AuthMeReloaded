@@ -27,19 +27,18 @@ import static org.mockito.Mockito.verify;
  */
 class VaultHandlerTest {
 
-    private VaultHandlerTestImpl vaultHandlerTest = VaultHandlerTestImpl.create();
+    private final VaultHandlerTestImpl vaultHandlerTest = VaultHandlerTestImpl.create();
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("createParameters")
     void shouldGetGroups(String description, String[] vaultGroups, List<String> expectedGroups) {
-        Permission permissionMock = vaultHandlerTest.permissionMock;
         Player player = mock(Player.class);
-        given(permissionMock.getPlayerGroups(null, player)).willReturn(vaultGroups);
+        given(vaultHandlerTest.permissionMock.getPlayerGroups(null, player)).willReturn(vaultGroups);
 
         List<UserGroup> result = vaultHandlerTest.getGroups(player);
 
         assertThat(result.stream().map(UserGroup::getGroupName).collect(toList()), equalTo(expectedGroups));
-        verify(permissionMock).getPlayerGroups(null, player);
+        verify(vaultHandlerTest.permissionMock).getPlayerGroups(null, player);
     }
 
     private static Stream<Arguments> createParameters() {
@@ -50,14 +49,13 @@ class VaultHandlerTest {
 
     @Test
     void shouldReturnNullForMissingPrimaryGroup() {
-        Permission permissionMock = vaultHandlerTest.permissionMock;
         Player player = mock(Player.class);
-        given(permissionMock.getPrimaryGroup(null, player)).willReturn(null);
+        given(vaultHandlerTest.permissionMock.getPrimaryGroup(null, player)).willReturn(null);
 
         UserGroup result = vaultHandlerTest.getPrimaryGroup(player);
 
         assertThat(result, nullValue());
-        verify(permissionMock).getPrimaryGroup(null, player);
+        verify(vaultHandlerTest.permissionMock).getPrimaryGroup(null, player);
     }
 
     /** Test implementation using a mock Vault Permission instance. */
