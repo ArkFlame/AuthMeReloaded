@@ -31,7 +31,6 @@ public class VerificationCodeManager implements SettingsDependent, HasCleanup {
     private final ExpiringMap<String, String> verificationCodes;
     private final Set<String> pendingCodeGenerations;
     private final Set<String> verifiedPlayers;
-
     private boolean canSendMail;
 
     @Inject
@@ -167,8 +166,8 @@ public class VerificationCodeManager implements SettingsDependent, HasCleanup {
     @Override
     public void reload(Settings settings) {
         canSendMail = emailService.hasAllInformation();
-        long countTimeout = settings.getProperty(SecuritySettings.VERIFICATION_CODE_EXPIRATION_MINUTES);
-        verificationCodes.setExpiration(countTimeout, TimeUnit.MINUTES);
+        verificationCodes.setExpiration(
+            settings.getProperty(SecuritySettings.VERIFICATION_CODE_EXPIRATION_MINUTES), TimeUnit.MINUTES);
     }
 
     @Override

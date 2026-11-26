@@ -43,15 +43,11 @@ final class SpigotDialogHelper {
     }
 
     static void showRecoveryCodeDialog(Player player, DialogWindowSpec dialog) {
-        showCommandDialog(player, dialog, "email code $(code)");
+        player.showDialog(newSingleActionDialog(dialog, "email code $(code)").columns(dialog.buttonColumns()));
     }
 
     static void showNewPasswordDialog(Player player, DialogWindowSpec dialog) {
-        showCommandDialog(player, dialog, "email setpassword $(password)");
-    }
-
-    private static void showCommandDialog(Player player, DialogWindowSpec dialog, String commandTemplate) {
-        player.showDialog(newSingleActionDialog(dialog, commandTemplate).columns(dialog.buttonColumns()));
+        player.showDialog(newSingleActionDialog(dialog, "email setpassword $(password)").columns(dialog.buttonColumns()));
     }
 
     static void showRegisterDialog(Player player, RegistrationType type, RegisterSecondaryArgument secondArg,

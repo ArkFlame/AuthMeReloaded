@@ -14,7 +14,7 @@ import java.sql.Types;
  */
 final class MySqlMigrater {
 
-    private static ConsoleLogger logger = ConsoleLoggerFactory.get(MySqlMigrater.class);
+    private static final ConsoleLogger logger = ConsoleLoggerFactory.get(MySqlMigrater.class);
 
     private MySqlMigrater() {
     }
@@ -35,9 +35,8 @@ final class MySqlMigrater {
             && SqlDataSourceUtils.getColumnDefaultValue(metaData, tableName, col.LAST_IP) == null;
 
         if (isNotNullWithoutDefault) {
-            String sql = String.format("ALTER TABLE %s MODIFY %s VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin",
-                tableName, col.LAST_IP);
-            st.execute(sql);
+            st.execute(String.format(
+                "ALTER TABLE %s MODIFY %s VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin", tableName, col.LAST_IP));
             logger.info("Changed last login column to allow NULL values. Please verify the registration feature "
                 + "if you are hooking into a forum.");
         }
@@ -79,15 +78,14 @@ final class MySqlMigrater {
     private static void migrateLastLoginColumnFromInt(Statement st, String tableName, Columns col) throws SQLException {
         // Change from int to bigint
         logger.info("Migrating lastlogin column from int to bigint");
-        String sql = String.format("ALTER TABLE %s MODIFY %s BIGINT;", tableName, col.LAST_LOGIN);
-        st.execute(sql);
+        st.execute(String.format("ALTER TABLE %s MODIFY %s BIGINT;", tableName, col.LAST_LOGIN));
 
         // Migrate timestamps in seconds format to milliseconds format if they are plausible
         int rangeStart = 1262304000; // timestamp for 2010-01-01
         int rangeEnd = 1514678400;   // timestamp for 2017-12-31
-        sql = String.format("UPDATE %s SET %s = %s * 1000 WHERE %s > %d AND %s < %d;",
-            tableName, col.LAST_LOGIN, col.LAST_LOGIN, col.LAST_LOGIN, rangeStart, col.LAST_LOGIN, rangeEnd);
-        int changedRows = st.executeUpdate(sql);
+        int changedRows = st.executeUpdate(String.format(
+            "UPDATE %s SET %s = %s * 1000 WHERE %s > %d AND %s < %d;",
+            tableName, col.LAST_LOGIN, col.LAST_LOGIN, col.LAST_LOGIN, rangeStart, col.LAST_LOGIN, rangeEnd));
 
         logger.warning("You may have entries with invalid timestamps. Please check your data "
             + "before purging. " + changedRows + " rows were migrated from seconds to milliseconds.");

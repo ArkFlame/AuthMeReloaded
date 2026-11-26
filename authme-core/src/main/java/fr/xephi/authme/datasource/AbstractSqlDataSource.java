@@ -219,18 +219,23 @@ public abstract class AbstractSqlDataSource implements DataSource {
         }
     }
 
-    /** Reads the names of all records to purge; the caller keeps ownership of the connection. */
-    protected Set<String> findRecordsToPurge(Connection con, String sql, long until) throws SQLException {
-        Set<String> names = new HashSet<>();
+    /** Reads the first column of the given query; the caller keeps ownership of the connection. */
+    private List<String> readStringColumn(Connection con, String sql, Long parameter) throws SQLException {
+        List<String> values = new ArrayList<>();
         try (PreparedStatement pst = con.prepareStatement(sql)) {
-            pst.setLong(1, until);
+            if (parameter != null) pst.setLong(1, parameter);
             try (ResultSet rs = pst.executeQuery()) {
                 while (rs.next()) {
-                    names.add(rs.getString(col.NAME));
+                    values.add(rs.getString(1));
                 }
             }
         }
-        return names;
+        return values;
+    }
+
+    /** Reads the names of all records to purge; the caller keeps ownership of the connection. */
+    protected Set<String> findRecordsToPurge(Connection con, String sql, long until) throws SQLException {
+        return new HashSet<>(readStringColumn(con, sql, until));
     }
 
     /** Deletes all records whose names are in the given collection; the caller keeps ownership of the connection. */
@@ -249,13 +254,7 @@ public abstract class AbstractSqlDataSource implements DataSource {
 
     /** Reads the real names of logged-in players with an empty email address. */
     protected List<String> findLoggedWithEmptyMail(Connection con, String sql) throws SQLException {
-        List<String> players = new ArrayList<>();
-        try (PreparedStatement pst = con.prepareStatement(sql); ResultSet rs = pst.executeQuery()) {
-            while (rs.next()) {
-                players.add(rs.getString(1));
-            }
-        }
-        return players;
+        return readStringColumn(con, sql, null);
     }
 
     /** Updates the TOTP key of the given user. */

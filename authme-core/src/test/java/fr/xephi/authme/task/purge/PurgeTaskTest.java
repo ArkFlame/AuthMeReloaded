@@ -23,10 +23,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -111,9 +110,8 @@ class PurgeTaskTest {
         // given (3)
         // Third round: no more OfflinePlayer objects, but some names remain
         reset(purgeService, permissionsManager);
-        // TODO LJ given(permissionsManager.hasPermissionOffline(anyString(), eq(BYPASS_NODE))).willReturn(false);
         given(permissionsManager.hasPermissionOffline("india", BYPASS_NODE)).willReturn(true);
-        given(permissionsManager.hasPermissionOffline("foxtrot", BYPASS_NODE)).willReturn(false); // TODO LJ ^ instead of above possible?
+        given(permissionsManager.hasPermissionOffline("foxtrot", BYPASS_NODE)).willReturn(false);
 
         // when (3)
         task.run();
@@ -195,12 +193,9 @@ class PurgeTaskTest {
     }
 
     private void assertRanPurgeWithPlayers(OfflinePlayer... players) {
-        List<String> names = new ArrayList<>(players.length);
-        for (OfflinePlayer player : players) {
-            names.add(player.getName());
-        }
+        String[] names = Arrays.stream(players).map(OfflinePlayer::getName).toArray(String[]::new);
         verify(purgeService).executePurge(playerCaptor.capture(), namesCaptor.capture());
-        assertThat(namesCaptor.getValue(), containsInAnyOrder(names.toArray()));
+        assertThat(namesCaptor.getValue(), containsInAnyOrder(names));
         assertThat(playerCaptor.getValue(), containsInAnyOrder(players));
     }
 

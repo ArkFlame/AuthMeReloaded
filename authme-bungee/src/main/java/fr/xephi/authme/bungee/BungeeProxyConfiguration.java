@@ -130,10 +130,7 @@ final class BungeeProxyConfiguration {
         }
         int firstWhitespace = trimmedCommand.indexOf(' ');
         String commandAlias = firstWhitespace >= 0 ? trimmedCommand.substring(0, firstWhitespace) : trimmedCommand;
-        if (!commandAlias.startsWith("/")) {
-            commandAlias = "/" + commandAlias;
-        }
-        return commandAlias.toLowerCase(Locale.ROOT);
+        return (commandAlias.startsWith("/") ? commandAlias : "/" + commandAlias).toLowerCase(Locale.ROOT);
     }
 
     /** Normalizes a collection of values, dropping empty results while preserving input order. */

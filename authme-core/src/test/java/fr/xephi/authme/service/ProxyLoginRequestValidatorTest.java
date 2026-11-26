@@ -79,15 +79,23 @@ class ProxyLoginRequestValidatorTest {
         verify(premiumService, never()).finalizePendingPremium(player, forwardedUuid);
     }
 
-    @Test
-    void shouldFinalizeMatchingPendingPremiumUuid() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldHandlePendingPremiumUuid(boolean matching) {
         UUID pendingUuid = UUID.randomUUID();
+        UUID forwardedUuid = matching ? pendingUuid : UUID.randomUUID();
         PlayerAuth auth = PlayerAuth.builder().name("bobby").build();
         givenPremiumPlayerWithAuth(auth);
         given(pendingPremiumCache.removePending("Bobby")).willReturn(pendingUuid);
 
-        assertTrue(validator.validate(player, pendingUuid));
-        verify(premiumService).finalizePendingPremium(player, pendingUuid);
+        assertEquals(matching, validator.validate(player, forwardedUuid));
+        if (matching) {
+            verify(premiumService).finalizePendingPremium(player, forwardedUuid);
+        } else {
+            verify(bungeeSender).sendPremiumUnset("Bobby");
+            verify(messages).send(player, MessageKey.PREMIUM_PENDING_FAIL);
+            verify(premiumService, never()).finalizePendingPremium(player, forwardedUuid);
+        }
     }
 
     @Test
@@ -102,20 +110,6 @@ class ProxyLoginRequestValidatorTest {
         assertFalse(validator.validate(player, forwardedUuid));
         verify(bungeeSender, never()).sendPremiumUnset("Bobby");
         verify(messages, never()).send(player, MessageKey.PREMIUM_PENDING_FAIL);
-        verify(premiumService, never()).finalizePendingPremium(player, forwardedUuid);
-    }
-
-    @Test
-    void shouldRejectPendingPremiumUuidMismatchAndNotifyPlayer() {
-        UUID pendingUuid = UUID.randomUUID();
-        UUID forwardedUuid = UUID.randomUUID();
-        PlayerAuth auth = PlayerAuth.builder().name("bobby").build();
-        givenPremiumPlayerWithAuth(auth);
-        given(pendingPremiumCache.removePending("Bobby")).willReturn(pendingUuid);
-
-        assertFalse(validator.validate(player, forwardedUuid));
-        verify(bungeeSender).sendPremiumUnset("Bobby");
-        verify(messages).send(player, MessageKey.PREMIUM_PENDING_FAIL);
         verify(premiumService, never()).finalizePendingPremium(player, forwardedUuid);
     }
 

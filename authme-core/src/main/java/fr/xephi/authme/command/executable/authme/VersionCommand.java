@@ -37,19 +37,16 @@ public class VersionCommand implements ExecutableCommand {
         printDeveloper(sender, "Gnat008", "gnat008", "Developer, Retired", onlinePlayers);
         printDeveloper(sender, "DNx5", "DNx5", "Developer, Retired", onlinePlayers);
         printDeveloper(sender, "Tim Visee", "timvisee", "Developer, Retired", onlinePlayers);
-        sender.sendMessage(ChatColor.GOLD + "Website: " + ChatColor.WHITE
-            + "https://github.com/ArkFlame/AuthMeReloaded");
+        sender.sendMessage(ChatColor.GOLD + "Website: " + ChatColor.WHITE + "https://github.com/ArkFlame/AuthMeReloaded");
         sender.sendMessage(ChatColor.GOLD + "License: " + ChatColor.WHITE + "GNU GPL v3.0"
             + ChatColor.GRAY + ChatColor.ITALIC + " (See LICENSE file)");
-        sender.sendMessage(ChatColor.GOLD + "Copyright: " + ChatColor.WHITE
-            + "Copyright (c) AuthMe-Team " + new SimpleDateFormat("yyyy").format(new Date())
-            + ". Released under GPL v3 License.");
+        sender.sendMessage(ChatColor.GOLD + "Copyright: " + ChatColor.WHITE + "Copyright (c) AuthMe-Team "
+            + new SimpleDateFormat("yyyy").format(new Date()) + ". Released under GPL v3 License.");
     }
 
     private static void printDeveloper(CommandSender sender, String name, String minecraftName, String function,
                                        Collection<Player> onlinePlayers) {
-        String msg = " " + ChatColor.WHITE + name
-            + ChatColor.GRAY + " // " + ChatColor.WHITE + minecraftName
+        String msg = " " + ChatColor.WHITE + name + ChatColor.GRAY + " // " + ChatColor.WHITE + minecraftName
             + ChatColor.GRAY + ChatColor.ITALIC + " (" + function + ")";
         if (onlinePlayers.stream().anyMatch(player -> player.getName().equalsIgnoreCase(minecraftName))) {
             msg += ChatColor.GREEN.toString() + ChatColor.ITALIC + " (In-Game)";

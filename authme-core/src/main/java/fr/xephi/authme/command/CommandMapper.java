@@ -182,17 +182,12 @@ public class CommandMapper {
     }
 
     private static double getLabelDifference(CommandDescription command, String givenLabel) {
-        boolean hasLabel = false;
-        double minDifference = 0.0;
-        for (String label : command.getLabels()) {
-            double difference = StringUtils.getDifference(label, givenLabel);
-            if (!hasLabel || Double.compare(difference, minDifference) < 0) {
-                minDifference = difference;
-                hasLabel = true;
-            }
-        }
-        if (!hasLabel) {
+        if (command.getLabels().isEmpty()) {
             throw new IllegalStateException("Command does not have any labels set");
+        }
+        double minDifference = Double.MAX_VALUE;
+        for (String label : command.getLabels()) {
+            minDifference = Math.min(minDifference, StringUtils.getDifference(label, givenLabel));
         }
         return minDifference;
     }

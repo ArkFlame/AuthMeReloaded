@@ -24,10 +24,8 @@ public class RegisterAdminCommand extends AbstractPlayerAuthCommand {
 
     @Inject
     private PasswordSecurity passwordSecurity;
-
     @Inject
     private BukkitService bukkitService;
-
     @Inject
     private ValidationService validationService;
 

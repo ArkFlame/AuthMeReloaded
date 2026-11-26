@@ -76,14 +76,11 @@ public class CrazyLoginConverter implements Converter {
             return;
         }
         String playerName = args[0];
-        String password = args[1];
-        if (password != null) {
-            PlayerAuth auth = PlayerAuth.builder()
-                .name(playerName.toLowerCase(Locale.ROOT))
-                .realName(playerName)
-                .password(password, null)
-                .build();
-            database.saveAuth(auth);
-        }
+        PlayerAuth auth = PlayerAuth.builder()
+            .name(playerName.toLowerCase(Locale.ROOT))
+            .realName(playerName)
+            .password(args[1], null)
+            .build();
+        database.saveAuth(auth);
     }
 }

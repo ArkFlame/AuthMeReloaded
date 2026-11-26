@@ -31,22 +31,17 @@ class LegacyBukkitLinkageGuardTest {
 
     private static final Map<Class<?>, BytecodeInfo> PARSED = new ConcurrentHashMap<>();
 
-    // --- PlayerListener ---
-
     @ParameterizedTest
     @ValueSource(strings = {"PlayerSwapHandItemsEvent", "EntityAirChangeEvent", "EntityPickupItemEvent"})
     void playerListenerMustNotLinkToOptionalEvents(String eventName) throws IOException {
         BytecodeInfo info = parse(PlayerListener.class);
 
+        // PlayerListener must be clean: no Class/Methodref/Utf8 trace of the optional events.
         assertNoClassName(info, eventName,
             "PlayerListener must not have direct class reference to " + eventName);
         assertNoMethodRef(info, eventName);
-        // Also ensure raw Utf8 pool does not contain those event names at all
-        // (PlayerListener should be clean; even String constants would be wrong here)
         assertNoUtf8(info, eventName);
     }
-
-    // --- SpawnLoader ---
 
     @Test
     void spawnLoaderUsesCompatibilityAdapterWithoutDirectGameRuleOrIsPassableLinkage() throws IOException {
@@ -72,8 +67,6 @@ class LegacyBukkitLinkageGuardTest {
             "SpawnLoader should call BukkitCompatibilityAdapter.getSpawnRadius");
     }
 
-    // --- PlayerLocaleResolver ---
-
     @Test
     void playerLocaleResolverMustNotDirectlyCallGetLocale() throws IOException {
         BytecodeInfo info = parse(PlayerLocaleResolver.class);
@@ -91,27 +84,22 @@ class LegacyBukkitLinkageGuardTest {
             "PlayerLocaleResolver should call BukkitCompatibilityAdapter.getPlayerLocale");
     }
 
-    // --- AbstractSpigotPlatformAdapter ---
-
     @Test
     void abstractSpigotPlatformAdapterMayContainStringConstantsButNotDirectClassDescriptors() throws IOException {
         BytecodeInfo info = parse(AbstractSpigotPlatformAdapter.class);
 
-        // May contain modern API names as String constants (Utf8/String pool)
-        for (String expected : new String[]{
+        // Modern API names may appear as String constants, but never as direct Class entries.
+        for (String name : new String[]{
             "org.bukkit.event.player.PlayerSwapHandItemsEvent",
             "org.bukkit.event.entity.EntityAirChangeEvent",
             "org.bukkit.event.entity.EntityPickupItemEvent",
             "org.spigotmc.event.player.PlayerSpawnLocationEvent"}) {
-            assertHasUtf8(info, expected);
+            assertHasUtf8(info, name);
+            String descriptor = name.replace('.', '/');
+            assertNoClassName(info, descriptor,
+                "AbstractSpigotPlatformAdapter must not have direct Class for " + descriptor);
         }
-
-        // Must NOT have direct Class entries; use String + Class.forName indirection instead.
         for (String name : new String[]{
-            "org/bukkit/event/player/PlayerSwapHandItemsEvent",
-            "org/bukkit/event/entity/EntityAirChangeEvent",
-            "org/bukkit/event/entity/EntityPickupItemEvent",
-            "org/spigotmc/event/player/PlayerSpawnLocationEvent",
             "fr/xephi/authme/listener/PlayerSwapHandItemsListener",
             "fr/xephi/authme/listener/EntityAirChangeListener",
             "fr/xephi/authme/listener/EntityPickupItemListener",
@@ -126,8 +114,6 @@ class LegacyBukkitLinkageGuardTest {
         // EntityPickupItemEvent appears as a string constant only; already verified above.
     }
 
-    // --- Java 8 bytecode version ---
-
     @Test
     void coreBytecodeMustBeJava8() throws IOException {
         // Core main classes that must remain Java 8 (major version 52)
@@ -140,8 +126,6 @@ class LegacyBukkitLinkageGuardTest {
                 clazz.getName() + " must be compiled to Java 8 (major <=52) but was " + info.majorVersion);
         }
     }
-
-    // --- Helpers ---
 
     private static void assertNoClassName(BytecodeInfo info, String substring, String message) {
         info.classNames.stream().filter(cn -> cn.contains(substring)).findFirst()
