@@ -120,7 +120,7 @@ public class SendMailSsl {
             mc.addMailcap("text/xml;; x-java-content-handler=com.sun.mail.handlers.text_xml");
             mc.addMailcap("text/plain;; x-java-content-handler=com.sun.mail.handlers.text_plain");
             mc.addMailcap("multipart/*;; x-java-content-handler=com.sun.mail.handlers.multipart_mixed");
-            mc.addMailcap("message/rfc822;; x-java-content- handler=com.sun.mail.handlers.message_rfc822");
+            mc.addMailcap("message/rfc822;; x-java-content-handler=com.sun.mail.handlers.message_rfc822");
         }
     }
 
@@ -144,6 +144,7 @@ public class SendMailSsl {
             case 25:
                 if (settings.getProperty(EmailSettings.PORT25_USE_TLS)) {
                     email.setStartTLSEnabled(true);
+                    email.setStartTLSRequired(true);
                     email.setSSLCheckServerIdentity(checkServerIdentity);
                 }
                 break;

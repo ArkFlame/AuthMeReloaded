@@ -32,7 +32,7 @@ public class OAuth2SaslClientFactory implements SaslClientFactory {
 
     private static final Logger logger = Logger.getLogger(OAuth2SaslClientFactory.class.getName());
 
-    public static final String OAUTH_TOKEN_PROP = "mail.smpt.sasl.mechanisms.oauth2.oauthToken";
+    public static final String OAUTH_TOKEN_PROP = "mail.smtp.sasl.mechanisms.oauth2.oauthToken";
 
     public SaslClient createSaslClient(String[] mechanisms,
             String authorizationId, String protocol, String serverName,

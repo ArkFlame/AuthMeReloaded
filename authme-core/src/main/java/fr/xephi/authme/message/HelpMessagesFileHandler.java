@@ -10,6 +10,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 
 import javax.inject.Inject;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
@@ -55,8 +56,19 @@ public class HelpMessagesFileHandler extends AbstractMessageFileHandler {
      */
     private String getDefault(String key) {
         if (defaultConfiguration == null) {
-            InputStream stream = FileUtils.getResourceFromJar(createFilePath(DEFAULT_LANGUAGE));
-            defaultConfiguration = YamlConfiguration.loadConfiguration(new InputStreamReader(stream));
+            String defaultPath = createFilePath(DEFAULT_LANGUAGE);
+            InputStream stream = FileUtils.getResourceFromJar(defaultPath);
+            if (stream == null) {
+                logger.warning("Could not load default help messages file '" + defaultPath + "' from JAR");
+                defaultConfiguration = new YamlConfiguration();
+            } else {
+                try (InputStreamReader reader = new InputStreamReader(stream)) {
+                    defaultConfiguration = YamlConfiguration.loadConfiguration(reader);
+                } catch (IOException e) {
+                    logger.logException("Could not read default help messages file '" + defaultPath + "'", e);
+                    defaultConfiguration = new YamlConfiguration();
+                }
+            }
         }
         String message = defaultConfiguration.getString(key);
         return message == null

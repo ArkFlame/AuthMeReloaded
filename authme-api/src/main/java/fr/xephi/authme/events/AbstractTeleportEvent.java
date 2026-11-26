@@ -8,6 +8,10 @@ import org.bukkit.entity.Player;
  * <p>
  * The player and the origin of the teleport are fixed when the event is created. Listeners may change the
  * destination with {@link #setTo(Location)}; a {@code null} destination aborts the teleport.
+ * <p>
+ * The destination is written by listeners on the thread that fires the event. Integrations that retain the
+ * event must read {@link #getTo()} on that same thread: the event gives no cross-thread visibility guarantee
+ * for state changed by listeners.
  */
 public abstract class AbstractTeleportEvent extends AbstractCancellableEvent {
 
@@ -56,7 +60,8 @@ public abstract class AbstractTeleportEvent extends AbstractCancellableEvent {
     }
 
     /**
-     * Return the destination the player is being teleported to.
+     * Return the destination the player is being teleported to. Listeners set this value on the firing thread;
+     * read it on that thread, as no cross-thread visibility guarantee is provided.
      *
      * @return The teleport destination, or {@code null} if a listener cleared it
      */

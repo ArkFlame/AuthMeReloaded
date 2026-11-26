@@ -37,8 +37,23 @@ final class LogFilterHelper {
         if (message == null) {
             return false;
         }
+        // Most log lines are not command lines, so look for the (ASCII) marker without
+        // allocating a lowercased copy of the whole message first.
+        if (!containsIgnoreCase(message, ISSUED_COMMAND_TEXT)) {
+            return false;
+        }
         String lowerMessage = message.toLowerCase(Locale.ROOT);
-        return lowerMessage.contains(ISSUED_COMMAND_TEXT) && StringUtils.containsAny(lowerMessage, COMMANDS_TO_SKIP);
+        return StringUtils.containsAny(lowerMessage, COMMANDS_TO_SKIP);
+    }
+
+    private static boolean containsIgnoreCase(String text, String search) {
+        int lastStart = text.length() - search.length();
+        for (int i = 0; i <= lastStart; ++i) {
+            if (text.regionMatches(true, i, search, 0, search.length())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static List<String> withAndWithoutAuthMePrefix(String... commands) {

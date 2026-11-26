@@ -162,7 +162,9 @@ public class LoginSecurityConverter implements Converter {
                 sender.sendMessage("The file '" + sqliteDatabase.getPath() + "' does not exist");
                 return null;
             }
-            connection = createSqliteConnection("plugins/LoginSecurity/LoginSecurity.db");
+            // Open the file we just checked so a different working directory cannot make JDBC create
+            // an empty database at a different path and report a successful but empty conversion.
+            connection = createSqliteConnection(sqliteDatabase.getAbsolutePath());
         } else if (mySqlDatabase.isEmpty() || mySqlUser.isEmpty()) {
             sender.sendMessage("The LoginSecurity database or username is not configured in AuthMe's config.yml");
             return null;

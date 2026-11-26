@@ -7,6 +7,11 @@ import org.bukkit.inventory.ItemStack;
 /**
  * This event is called before the inventory data of a player is suppressed,
  * i.e. the inventory of the player is not displayed until he has authenticated.
+ * <p>
+ * The inventory arrays are captured when the event is created and handed out as-is, without copying. They are
+ * shared with every listener and with the restore logic: mutating an array changes what later readers observe.
+ * Listeners should read the arrays on the thread that fires the event; the event provides no cross-thread
+ * visibility guarantee for their contents.
  */
 public class ProtectInventoryEvent extends AbstractCancellableEvent {
 

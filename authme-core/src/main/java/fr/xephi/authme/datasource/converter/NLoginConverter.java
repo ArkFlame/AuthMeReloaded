@@ -12,6 +12,7 @@ import javax.inject.Inject;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 /**
  * Converts data from nLogin to AuthMe. Reads {@code plugins/nLogin/config.yml}:
@@ -25,6 +26,7 @@ public class NLoginConverter extends AbstractYamlPluginConverter {
     private static final String CONFIG_PATH = "plugins/nLogin/config.yml";
     private static final String SQLITE_DB_PATH = "plugins/nLogin/nlogin.db";
     private static final String DEFAULT_TABLE = "nlogin";
+    private static final Pattern SAFE_TABLE_NAME = Pattern.compile("[A-Za-z_][A-Za-z0-9_]*");
 
     private static final ConsoleLogger logger = ConsoleLoggerFactory.get(NLoginConverter.class);
 
@@ -43,6 +45,11 @@ public class NLoginConverter extends AbstractYamlPluginConverter {
     @Override
     protected String getQuery(YamlConfiguration config) {
         String table = config.getString("database.table.account.table-name", DEFAULT_TABLE);
+        // Identifiers cannot be bound as statement parameters, so never interpolate an unvalidated
+        // value read from the foreign plugin's configuration into the SQL query.
+        if (table == null || !SAFE_TABLE_NAME.matcher(table).matches()) {
+            table = DEFAULT_TABLE;
+        }
         return "SELECT last_name, password, last_ip, email, creation_date, last_seen, unique_id FROM " + table;
     }
 

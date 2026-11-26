@@ -120,7 +120,13 @@ public class MessageUpdater {
         for (Property<String> property : configurationData.getAllMessageProperties()) {
             final String key = property.getPath();
             if (configurationData.getValue(property) == null) {
-                configurationData.setValue(property, jarMessageSource.getMessageFromJar(property));
+                String message = jarMessageSource.getMessageFromJar(property);
+                // A key missing from both the local and the default JAR file must stay unset:
+                // storing null would make every reload re-detect it as missing and rewrite the file.
+                if (message == null) {
+                    continue;
+                }
+                configurationData.setValue(property, message);
                 addedKeys.add(key);
             }
         }

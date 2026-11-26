@@ -30,8 +30,8 @@ public abstract class AbstractMessageFileHandler implements Reloadable {
     private final File dataFolder;
     private final Settings settings;
 
-    private String filename;
-    private FileConfiguration configuration;
+    private volatile String filename;
+    private volatile FileConfiguration configuration;
     private final String defaultFile;
     private final ConcurrentHashMap<String, FileConfiguration> languageCache = new ConcurrentHashMap<>();
     // Reused for every per-player language lookup so no loader instance is allocated per message.
@@ -48,7 +48,12 @@ public abstract class AbstractMessageFileHandler implements Reloadable {
     public void reload() {
         filename = createFilePath(getLanguage());
         File messagesFile = initializeFile(filename);
-        configuration = YamlConfiguration.loadConfiguration(messagesFile);
+        // initializeFile returns null when neither the local nor the JAR default file exists.
+        // Use an empty configuration so lookups fall back to the normal missing-key message
+        // instead of throwing from YamlConfiguration.loadConfiguration(null).
+        configuration = messagesFile == null
+            ? new YamlConfiguration()
+            : YamlConfiguration.loadConfiguration(messagesFile);
         languageCache.clear();
     }
 

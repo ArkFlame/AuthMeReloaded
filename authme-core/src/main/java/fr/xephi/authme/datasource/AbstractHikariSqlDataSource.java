@@ -168,7 +168,11 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
 
     @Override
     public boolean saveAuth(PlayerAuth auth) {
-        super.saveAuth(auth);
+        // The primary INSERT runs on a separate connection through the columns handler. If it failed,
+        // there is no account to extend, and reporting success would hide the failed registration.
+        if (!super.saveAuth(auth)) {
+            return false;
+        }
 
         try (Connection con = getConnection()) {
             if (updateOtherUsernamesSql != null) {

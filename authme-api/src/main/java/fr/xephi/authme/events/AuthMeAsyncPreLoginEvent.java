@@ -7,6 +7,10 @@ import org.bukkit.event.HandlerList;
  * This event is called when a player uses the login command.
  * It is fired even when the player supplies an invalid password.
  * {@link #setCanLogin(boolean) event.setCanLogin(false)} prevents the player from logging in.
+ * <p>
+ * The class name describes the event's purpose, not its dispatch thread: the actual thread is determined by
+ * {@link #isAsynchronous()} and the {@code USE_ASYNC_TASKS} setting. When that setting is off the event is
+ * synchronous, so listeners must not assume the name implies an asynchronous dispatch.
  */
 public class AuthMeAsyncPreLoginEvent extends CustomEvent {
 
