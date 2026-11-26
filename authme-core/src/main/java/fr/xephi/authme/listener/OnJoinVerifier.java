@@ -68,8 +68,8 @@ public class OnJoinVerifier implements Reloadable {
     @PostConstruct
     @Override
     public void reload() {
-        String nickRegEx = settings.getProperty(RestrictionSettings.ALLOWED_NICKNAME_CHARACTERS);
-        nicknamePattern = Utils.safePatternCompile(nickRegEx);
+        nicknamePattern = Utils.safePatternCompile(
+            settings.getProperty(RestrictionSettings.ALLOWED_NICKNAME_CHARACTERS));
     }
 
     /**

@@ -29,12 +29,6 @@ public final class MiniMessageConverter {
     private static final Pattern MINIMESSAGE_TAG = Pattern.compile(
         "</?(?:" + TAG_NAMES + "|#[0-9a-fA-F]{6})(?::[^>]*)?>");
 
-    private static final String[] ADVENTURE_CLASSES = {
-        "net.kyori.adventure.text.Component",
-        "net.kyori.adventure.text.minimessage.MiniMessage",
-        "net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer"
-    };
-
     private static final boolean ADVENTURE_AVAILABLE = detectAdventure();
 
     private MiniMessageConverter() {
@@ -83,12 +77,9 @@ public final class MiniMessageConverter {
 
     private static boolean detectAdventure() {
         try {
-            for (String className : ADVENTURE_CLASSES) {
-                if (!Utils.isClassLoaded(className)) {
-                    return false;
-                }
-            }
-            return true;
+            return Utils.isClassLoaded("net.kyori.adventure.text.Component")
+                && Utils.isClassLoaded("net.kyori.adventure.text.minimessage.MiniMessage")
+                && Utils.isClassLoaded("net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer");
         } catch (LinkageError e) {
             return false;
         }
@@ -96,12 +87,15 @@ public final class MiniMessageConverter {
 
     /** Holder whose class is only loaded once Adventure is known to be available. */
     private static final class AdventureConverter {
+        private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
+        private static final LegacyComponentSerializer SERIALIZER = LegacyComponentSerializer.legacySection();
+
         private AdventureConverter() {
         }
 
         static String convert(String message) {
-            Component component = MiniMessage.miniMessage().deserialize(message);
-            return LegacyComponentSerializer.legacySection().serialize(component);
+            Component component = MINI_MESSAGE.deserialize(message);
+            return SERIALIZER.serialize(component);
         }
     }
 }

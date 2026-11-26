@@ -130,10 +130,7 @@ class VelocityProxyBridgeTest {
         stubIncomingPluginMessage();
         given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.message("login", "Alice"));
         given(sourceConnection.getServer()).willReturn(authServer);
-        given(player.getUsername()).willReturn("Alice");
-        given(player.getCurrentServer()).willReturn(Optional.of(currentServer));
-        stubAuthServer();
-        given(currentServer.getServer()).willReturn(authServer);
+        stubPlayerOnAuthServer("Alice");
         given(currentServer.sendPluginMessage(eq(VelocityProxyBridge.AUTHME_CHANNEL), any(byte[].class)))
             .willReturn(true);
 
@@ -203,10 +200,7 @@ class VelocityProxyBridgeTest {
         stubIncomingPluginMessage();
         given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.message("login", "Alice"));
         given(sourceConnection.getServer()).willReturn(authServer);
-        given(player.getUsername()).willReturn("Alice");
-        given(player.getCurrentServer()).willReturn(Optional.of(currentServer));
-        stubAuthServer();
-        given(currentServer.getServer()).willReturn(authServer);
+        stubPlayerOnAuthServer("Alice");
         given(currentServer.sendPluginMessage(eq(VelocityProxyBridge.AUTHME_CHANNEL), any(byte[].class)))
             .willReturn(true);
         Player duplicate = mock(Player.class);
@@ -277,10 +271,7 @@ class VelocityProxyBridgeTest {
         stubIncomingPluginMessage();
         given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.message("login", "Alice"));
         given(sourceConnection.getServer()).willReturn(authServer);
-        stubAuthServer();
-        given(player.getUsername()).willReturn("Alice");
-        given(player.getCurrentServer()).willReturn(Optional.of(currentServer));
-        given(currentServer.getServer()).willReturn(authServer);
+        stubPlayerOnAuthServer("Alice");
         given(currentServer.sendPluginMessage(eq(VelocityProxyBridge.AUTHME_CHANNEL), any(byte[].class)))
             .willReturn(true);
         given(proxyServer.getPlayer("alice")).willReturn(Optional.of(player));
@@ -297,18 +288,15 @@ class VelocityProxyBridgeTest {
         // After ACK, proxyServer.getPlayer should have been called twice
         // (one for the AuthMeVelocityLoginEvent and the other by sendAutoLoginIfAlreadySwitched,
         // not by any retry) — the pending login was cancelled before any retry could fire.
-        verify(proxyServer, org.mockito.Mockito.times(2)).getPlayer("alice");
+        verify(proxyServer, times(2)).getPlayer("alice");
         verify(eventManager).fireAndForget(any(AuthMeVelocityLoginEvent.class));
     }
 
     @Test
     void shouldCancelPendingLoginOnImplicitAckFromNonAuthServer() {
         stubIncomingPluginMessage();
-        given(player.getUsername()).willReturn("Alice");
-        given(player.getCurrentServer()).willReturn(Optional.of(currentServer));
-        stubAuthServer();
+        stubPlayerOnAuthServer("Alice");
         stubNonAuthServer();
-        given(currentServer.getServer()).willReturn(authServer);
         given(currentServer.sendPluginMessage(eq(VelocityProxyBridge.AUTHME_CHANNEL), any(byte[].class)))
             .willReturn(true);
         given(proxyServer.getPlayer("alice")).willReturn(Optional.of(player));
@@ -330,7 +318,7 @@ class VelocityProxyBridgeTest {
         // Pending is now cancelled; proxyServer.getPlayer was called twice
         // (one for the AuthMeVelocityLoginEvent calling and the other by sendAutoLoginIfAlreadySwitched),
         // not again by any retry.
-        verify(proxyServer, org.mockito.Mockito.times(2)).getPlayer("alice");
+        verify(proxyServer, times(2)).getPlayer("alice");
     }
 
     @Test
@@ -538,10 +526,7 @@ class VelocityProxyBridgeTest {
     void shouldBlockNonWhitelistedCommandForUnauthenticatedPlayer() {
         given(commandEvent.getCommandSource()).willReturn(player);
         given(commandEvent.getCommand()).willReturn("spawn");
-        given(player.getUsername()).willReturn("alice");
-        given(player.getCurrentServer()).willReturn(Optional.of(currentServer));
-        given(currentServer.getServer()).willReturn(authServer);
-        stubAuthServer();
+        stubPlayerOnAuthServer("alice");
 
         VelocityProxyBridge bridge = newBridge();
         bridge.onCommandExecute(commandEvent);
@@ -614,10 +599,7 @@ class VelocityProxyBridgeTest {
     @Test
     void shouldBlockChatForUnauthenticatedPlayer() {
         given(chatEvent.getPlayer()).willReturn(player);
-        given(player.getUsername()).willReturn("alice");
-        given(player.getCurrentServer()).willReturn(Optional.of(currentServer));
-        given(currentServer.getServer()).willReturn(authServer);
-        stubAuthServer();
+        stubPlayerOnAuthServer("alice");
 
         VelocityProxyBridge bridge = newBridge();
         bridge.onPlayerChat(chatEvent);
@@ -764,6 +746,12 @@ class VelocityProxyBridgeTest {
     private void stubAuthServer() {
         given(authServer.getServerInfo()).willReturn(authServerInfo);
         given(authServerInfo.getName()).willReturn("lobby");
+    }
+    private void stubPlayerOnAuthServer(String username) {
+        given(player.getUsername()).willReturn(username);
+        given(player.getCurrentServer()).willReturn(Optional.of(currentServer));
+        given(currentServer.getServer()).willReturn(authServer);
+        stubAuthServer();
     }
 
     private void stubNonAuthServer() {

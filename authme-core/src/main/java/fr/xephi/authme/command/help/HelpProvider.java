@@ -52,8 +52,8 @@ public class HelpProvider implements Reloadable {
     private final HelpMessagesService helpMessagesService;
     private final Settings settings;
     private final BukkitCompatibilityAdapter compatibilityAdapter;
-    /** int with bit flags set corresponding to the above constants for enabled sections. */
-    private Integer enabledSections;
+    /** int with bit flags set corresponding to the above constants for enabled sections; -1 if not yet computed. */
+    private int enabledSections = -1;
 
     @Inject
     HelpProvider(PermissionsManager permissionsManager, HelpMessagesService helpMessagesService, Settings settings,
@@ -133,17 +133,14 @@ public class HelpProvider implements Reloadable {
      * @param options output options
      */
     public void outputHelp(CommandSender sender, FoundCommandResult result, int options) {
-        List<String> lines = buildHelpOutput(sender, result, options);
-        for (String line : lines) {
-            sender.sendMessage(line);
-        }
+        buildHelpOutput(sender, result, options).forEach(sender::sendMessage);
     }
 
     @Override
     public void reload() {
         // We don't know about the reloading order of the classes, i.e. we cannot assume that HelpMessagesService
-        // has already been reloaded. So set the enabledSections flag to null and redefine it first time needed.
-        enabledSections = null;
+        // has already been reloaded. So reset the enabledSections flags and redefine them first time needed.
+        enabledSections = -1;
     }
 
     /**
@@ -155,7 +152,7 @@ public class HelpProvider implements Reloadable {
      */
     @SuppressWarnings("checkstyle:BooleanExpressionComplexity")
     private int filterDisabledSections(int options) {
-        if (enabledSections == null) {
+        if (enabledSections == -1) {
             enabledSections = flagFor(HelpSection.COMMAND, SHOW_COMMAND)
                 | flagFor(HelpSection.SHORT_DESCRIPTION, SHOW_DESCRIPTION)
                 | flagFor(HelpSection.DETAILED_DESCRIPTION, SHOW_LONG_DESCRIPTION)
@@ -182,13 +179,14 @@ public class HelpProvider implements Reloadable {
      * @param lines the output collection to add the info to
      */
     private void addArgumentsInfo(CommandDescription command, List<String> lines, String language) {
-        if (command.getArguments().isEmpty()) {
+        List<CommandArgumentDescription> arguments = command.getArguments();
+        if (arguments.isEmpty()) {
             return;
         }
 
         addSectionHeader(lines, HelpSection.ARGUMENTS, language);
         String optionalText = " (" + helpMessagesService.getMessage(HelpMessage.OPTIONAL, language) + ")";
-        for (CommandArgumentDescription argument : command.getArguments()) {
+        for (CommandArgumentDescription argument : arguments) {
             StringBuilder argumentLine = new StringBuilder()
                 .append(" ").append(ChatColor.YELLOW).append(ChatColor.ITALIC).append(argument.getName())
                 .append(": ").append(ChatColor.WHITE).append(argument.getDescription());
@@ -266,10 +264,8 @@ public class HelpProvider implements Reloadable {
     }
 
     private String getLocalPermissionText(boolean hasPermission, String language) {
-        if (hasPermission) {
-            return helpMessagesService.getMessage(HelpMessage.HAS_PERMISSION, language);
-        }
-        return helpMessagesService.getMessage(HelpMessage.NO_PERMISSION, language);
+        return helpMessagesService.getMessage(
+            hasPermission ? HelpMessage.HAS_PERMISSION : HelpMessage.NO_PERMISSION, language);
     }
 
     /**
@@ -281,13 +277,14 @@ public class HelpProvider implements Reloadable {
      */
     private void addChildrenInfo(CommandDescription command, List<String> correctLabels, List<String> lines,
                                  String language) {
-        if (command.getChildren().isEmpty()) {
+        List<CommandDescription> children = command.getChildren();
+        if (children.isEmpty()) {
             return;
         }
 
         addSectionHeader(lines, HelpSection.CHILDREN, language);
         String parentCommandPath = String.join(" ", correctLabels);
-        for (CommandDescription child : command.getChildren()) {
+        for (CommandDescription child : children) {
             lines.add(" /" + parentCommandPath + " " + child.getLabels().get(0)
                 + ChatColor.GRAY + ChatColor.ITALIC + ": " + helpMessagesService.getDescription(child, language));
         }

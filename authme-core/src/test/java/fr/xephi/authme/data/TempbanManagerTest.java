@@ -11,6 +11,9 @@ import fr.xephi.authme.util.expiring.TimedCounter;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -23,6 +26,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import static fr.xephi.authme.service.BukkitServiceTestHelper.setBukkitServiceToRunOnGlobalRegion;
 import static fr.xephi.authme.service.BukkitServiceTestHelper.setBukkitServiceToScheduleSyncEntityTaskFromOptionallyAsyncTask;
@@ -54,8 +58,7 @@ class TempbanManagerTest {
     @Test
     void shouldAddCounts() {
         // given
-        Settings settings = mockSettings(3, 60, "");
-        TempbanManager manager = new TempbanManager(bukkitService, messages, settings);
+        TempbanManager manager = newManager(3, 60, "");
         String address = "192.168.1.1";
 
         // when
@@ -75,8 +78,7 @@ class TempbanManagerTest {
     void shouldIncreaseAndResetCount() {
         // given
         String address = "192.168.1.2";
-        Settings settings = mockSettings(3, 60, "");
-        TempbanManager manager = new TempbanManager(bukkitService, messages, settings);
+        TempbanManager manager = newManager(3, 60, "");
 
         // when
         manager.increaseCount(address, "test");
@@ -99,8 +101,7 @@ class TempbanManagerTest {
     void shouldResetCountRegardlessOfNameCase() {
         // given
         String address = "192.168.1.4";
-        Settings settings = mockSettings(3, 60, "");
-        TempbanManager manager = new TempbanManager(bukkitService, messages, settings);
+        TempbanManager manager = newManager(3, 60, "");
         manager.increaseCount(address, "bobby");
         manager.increaseCount(address, "bobby");
 
@@ -163,51 +164,45 @@ class TempbanManagerTest {
         verifyNoInteractions(player, bukkitService);
     }
 
-    @Test
-    void shouldBanPlayerIp() {
-        // given
-        Player player = mock(Player.class);
-        String ip = "123.45.67.89";
-        TestHelper.mockIpAddressToPlayer(player, ip);
-        String banReason = "IP ban too many logins";
-        given(messages.retrieveSingle(player, MessageKey.TEMPBAN_MAX_LOGINS)).willReturn(banReason);
-        Settings settings = mockSettings(2, 100, "");
-        TempbanManager manager = new TempbanManager(bukkitService, messages, settings);
-        setBukkitServiceToRunOnGlobalRegion(bukkitService);
-        setBukkitServiceToScheduleSyncEntityTaskFromOptionallyAsyncTask(bukkitService);
-
-        // when
-        manager.tempbanPlayer(player);
-
-        // then
-        verify(player).kickPlayer(banReason);
-        ArgumentCaptor<Date> captor = ArgumentCaptor.forClass(Date.class);
-        verify(bukkitService).banIp(eq(ip), eq(banReason), captor.capture(), eq("AuthMe"));
-
-        // Compute the expected expiration date and check that the actual date is within the difference tolerance
-        Calendar cal = Calendar.getInstance();
-        cal.add(Calendar.MINUTE, 100);
-        long expectedExpiration = cal.getTime().getTime();
-        assertThat(Math.abs(captor.getValue().getTime() - expectedExpiration), lessThan(DATE_TOLERANCE_MILLISECONDS));
-    }
-
-    @Test
-    void shouldBanPlayerIpCustom() {
+    @ParameterizedTest
+    @MethodSource("banPlayerCases")
+    void shouldBanPlayerIp(String ip, String customCommand, boolean performsIpBan) {
         // given
         Player player = mock(Player.class);
         given(player.getName()).willReturn("Bob");
-        String ip = "143.45.77.89";
         TestHelper.mockIpAddressToPlayer(player, ip);
-        String banCommand = "banip %ip% 15d IP ban too many logins";
-        Settings settings = mockSettings(2, 100, banCommand);
-        TempbanManager manager = new TempbanManager(bukkitService, messages, settings);
+        String banReason = "IP ban too many logins";
+        given(messages.retrieveSingle(player, MessageKey.TEMPBAN_MAX_LOGINS)).willReturn(banReason);
+        TempbanManager manager = newManager(2, 100, customCommand);
         setBukkitServiceToRunOnGlobalRegion(bukkitService);
+        if (performsIpBan) {
+            setBukkitServiceToScheduleSyncEntityTaskFromOptionallyAsyncTask(bukkitService);
+        }
 
         // when
         manager.tempbanPlayer(player);
 
         // then
-        verify(bukkitService).dispatchConsoleCommand(banCommand.replace("%ip%", ip));
+        if (performsIpBan) {
+            verify(player).kickPlayer(banReason);
+            ArgumentCaptor<Date> captor = ArgumentCaptor.forClass(Date.class);
+            verify(bukkitService).banIp(eq(ip), eq(banReason), captor.capture(), eq("AuthMe"));
+
+            // Compute the expected expiration date and check that the actual date is within the difference tolerance
+            Calendar cal = Calendar.getInstance();
+            cal.add(Calendar.MINUTE, 100);
+            long expectedExpiration = cal.getTime().getTime();
+            assertThat(Math.abs(captor.getValue().getTime() - expectedExpiration),
+                lessThan(DATE_TOLERANCE_MILLISECONDS));
+        } else {
+            verify(bukkitService).dispatchConsoleCommand(customCommand.replace("%ip%", ip));
+        }
+    }
+
+    private static Stream<Arguments> banPlayerCases() {
+        return Stream.of(
+            Arguments.of("123.45.67.89", "", true),
+            Arguments.of("143.45.77.89", "banip %ip% 15d IP ban too many logins", false));
     }
 
     @Test
@@ -218,8 +213,7 @@ class TempbanManagerTest {
         TestHelper.mockIpAddressToPlayer(player, ip);
         String banReason = "kick msg";
         given(messages.retrieveSingle(player, MessageKey.TEMPBAN_MAX_LOGINS)).willReturn(banReason);
-        Settings settings = mockSettings(10, 60, "");
-        TempbanManager manager = new TempbanManager(bukkitService, messages, settings);
+        TempbanManager manager = newManager(10, 60, "");
         manager.increaseCount(ip, "user");
         manager.increaseCount(ip, "name2");
         manager.increaseCount(ip, "user");
@@ -243,7 +237,7 @@ class TempbanManagerTest {
         nonEmptyCounter.increment("user");
         counts.put("33.33.33.33", nonEmptyCounter);
 
-        TempbanManager manager = new TempbanManager(bukkitService, messages, mockSettings(3, 10, ""));
+        TempbanManager manager = newManager(3, 10, "");
         ReflectionTestUtils.setField(TempbanManager.class, manager, "ipLoginFailureCounts", counts);
 
         // when
@@ -261,6 +255,10 @@ class TempbanManagerTest {
             assertThat(name + " must be volatile for cross-thread visibility",
                 Modifier.isVolatile(field.getModifiers()), equalTo(true));
         }
+    }
+
+    private TempbanManager newManager(int maxTries, int tempbanLength, String customCommand) {
+        return new TempbanManager(bukkitService, messages, mockSettings(maxTries, tempbanLength, customCommand));
     }
 
     private static Settings mockSettings(int maxTries, int tempbanLength, String customCommand) {

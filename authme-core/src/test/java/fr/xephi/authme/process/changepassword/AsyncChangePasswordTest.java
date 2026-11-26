@@ -60,8 +60,6 @@ class AsyncChangePasswordTest {
     void shouldRejectCommandForUnknownUser() {
         CommandSender sender = mock(CommandSender.class);
         String player = "player";
-        given(playerCache.isAuthenticated(player)).willReturn(false);
-        given(dataSource.isAuthAvailable(player)).willReturn(false);
 
         asyncChangePassword.changePasswordAsAdmin(sender, player, "password");
 

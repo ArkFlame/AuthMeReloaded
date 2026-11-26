@@ -54,13 +54,11 @@ public class RemoveTotpCommandTest {
     public void shouldRemoveTotpKey() {
         // given
         String name = "aws";
-        PlayerAuth auth = PlayerAuth.builder().name(name).totpKey("some-totp-key").build();
-        given(playerCache.getAuth(name)).willReturn(auth);
+        PlayerAuth auth = mockAuth(name, "some-totp-key");
         String inputCode = "93847";
         given(totpAuthenticator.checkCode(auth, inputCode)).willReturn(true);
         given(dataSource.removeTotpKey(name)).willReturn(true);
-        Player player = mock(Player.class);
-        given(player.getName()).willReturn(name);
+        Player player = mockPlayer(name);
 
         // when
         command.runCommand(player, singletonList(inputCode));
@@ -76,13 +74,11 @@ public class RemoveTotpCommandTest {
     public void shouldHandleDatabaseError() {
         // given
         String name = "aws";
-        PlayerAuth auth = PlayerAuth.builder().name(name).totpKey("some-totp-key").build();
-        given(playerCache.getAuth(name)).willReturn(auth);
+        PlayerAuth auth = mockAuth(name, "some-totp-key");
         String inputCode = "93847";
         given(totpAuthenticator.checkCode(auth, inputCode)).willReturn(true);
         given(dataSource.removeTotpKey(name)).willReturn(false);
-        Player player = mock(Player.class);
-        given(player.getName()).willReturn(name);
+        Player player = mockPlayer(name);
 
         // when
         command.runCommand(player, singletonList(inputCode));
@@ -97,12 +93,10 @@ public class RemoveTotpCommandTest {
     public void shouldHandleInvalidCode() {
         // given
         String name = "cesar";
-        PlayerAuth auth = PlayerAuth.builder().name(name).totpKey("some-totp-key").build();
-        given(playerCache.getAuth(name)).willReturn(auth);
+        PlayerAuth auth = mockAuth(name, "some-totp-key");
         String inputCode = "93847";
         given(totpAuthenticator.checkCode(auth, inputCode)).willReturn(false);
-        Player player = mock(Player.class);
-        given(player.getName()).willReturn(name);
+        Player player = mockPlayer(name);
 
         // when
         command.runCommand(player, singletonList(inputCode));
@@ -117,14 +111,11 @@ public class RemoveTotpCommandTest {
     public void shouldHandleUserWithoutTotpKey() {
         // given
         String name = "cesar";
-        PlayerAuth auth = PlayerAuth.builder().name(name).build();
-        given(playerCache.getAuth(name)).willReturn(auth);
-        String inputCode = "654684";
-        Player player = mock(Player.class);
-        given(player.getName()).willReturn(name);
+        PlayerAuth auth = mockAuth(name, null);
+        Player player = mockPlayer(name);
 
         // when
-        command.runCommand(player, singletonList(inputCode));
+        command.runCommand(player, singletonList("654684"));
 
         // then
         verifyNoInteractions(dataSource, totpAuthenticator);
@@ -137,18 +128,26 @@ public class RemoveTotpCommandTest {
         // given
         String name = "cesar";
         given(playerCache.getAuth(name)).willReturn(null);
-        String inputCode = "654684";
-        Player player = mock(Player.class);
-        given(player.getName()).willReturn(name);
+        Player player = mockPlayer(name);
 
         // when
-        command.runCommand(player, singletonList(inputCode));
+        command.runCommand(player, singletonList("654684"));
 
         // then
         verifyNoInteractions(dataSource, totpAuthenticator);
         verify(messages, only()).send(player, MessageKey.NOT_LOGGED_IN);
         verify(playerCache, only()).getAuth(name);
     }
+
+    private PlayerAuth mockAuth(String name, String totpKey) {
+        PlayerAuth auth = PlayerAuth.builder().name(name).totpKey(totpKey).build();
+        given(playerCache.getAuth(name)).willReturn(auth);
+        return auth;
+    }
+
+    private static Player mockPlayer(String name) {
+        Player player = mock(Player.class);
+        given(player.getName()).willReturn(name);
+        return player;
+    }
 }
-
-

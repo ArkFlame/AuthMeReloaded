@@ -56,12 +56,12 @@ public class RecoverEmailCommand extends PlayerCommand {
 
     @Override
     protected void runCommand(Player player, List<String> arguments) {
+        final String playerMail = arguments.get(0);
         if (dialogRecoveryService.isDialogFlowEnabled()) {
-            dialogRecoveryService.requestRecovery(player, arguments.get(0));
+            dialogRecoveryService.requestRecovery(player, playerMail);
             return;
         }
 
-        final String playerMail = arguments.get(0);
         final String playerName = player.getName();
 
         if (!emailService.hasAllInformation()) {

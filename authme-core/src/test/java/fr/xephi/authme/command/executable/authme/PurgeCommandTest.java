@@ -57,13 +57,12 @@ class PurgeCommandTest {
     @Test
     void shouldForwardToService() {
         // given
-        String interval = "45";
         CommandSender sender = mock(CommandSender.class);
 
         // when
-        long before = daysAgo(Integer.parseInt(interval));
-        command.executeCommand(sender, Collections.singletonList(interval));
-        long after = daysAgo(Integer.parseInt(interval));
+        long before = daysAgo(45);
+        command.executeCommand(sender, Collections.singletonList("45"));
+        long after = daysAgo(45);
 
         // then: the timestamp lies between the two reference points, independent of machine load
         ArgumentCaptor<Long> captor = ArgumentCaptor.forClass(Long.class);
