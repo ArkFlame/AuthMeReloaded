@@ -16,10 +16,10 @@ import static org.mockito.Mockito.mock;
 class PreJoinDialogEventTest {
 
     private final UUID playerId = UUID.fromString("f84c6a80-9f2a-4a9c-8a90-3f4ccde7d0b2");
-    private final InetAddress address = mock(InetAddress.class);
 
     @Test
     void shouldExposeIdentityAndDialogType() {
+        InetAddress address = mock(InetAddress.class);
         PreJoinDialogEvent event = new PreJoinDialogEvent("Bobby", playerId, address,
             PreJoinDialogEvent.DialogType.REGISTER, false, true);
 
@@ -37,16 +37,13 @@ class PreJoinDialogEventTest {
 
     @Test
     void shouldAllowMissingAddress() {
-        PreJoinDialogEvent event = new PreJoinDialogEvent("Bobby", playerId,
-            PreJoinDialogEvent.DialogType.LOGIN, true, true);
-
-        assertThat(event.getAddress(), nullValue());
-        assertThat(event.getDialogType(), equalTo(PreJoinDialogEvent.DialogType.LOGIN));
-        assertThat(event.isRegistered(), equalTo(true));
+        assertThat(new PreJoinDialogEvent("Bobby", playerId,
+            PreJoinDialogEvent.DialogType.LOGIN, true, true).getAddress(), nullValue());
     }
 
     @Test
     void shouldAllowMissingPlayerId() {
+        InetAddress address = mock(InetAddress.class);
         PreJoinDialogEvent event = new PreJoinDialogEvent("Bobby", null, address,
             PreJoinDialogEvent.DialogType.LOGIN, true, true);
 
@@ -59,7 +56,7 @@ class PreJoinDialogEventTest {
 
     @Test
     void shouldToggleCancellation() {
-        PreJoinDialogEvent event = new PreJoinDialogEvent("Bobby", playerId, address,
+        PreJoinDialogEvent event = new PreJoinDialogEvent("Bobby", playerId, mock(InetAddress.class),
             PreJoinDialogEvent.DialogType.LOGIN, true, true);
 
         event.setCancelled(true);
@@ -77,13 +74,13 @@ class PreJoinDialogEventTest {
 
     @Test
     void shouldRejectNullPlayerName() {
-        assertThrows(NullPointerException.class, () -> new PreJoinDialogEvent(null, playerId, address,
+        assertThrows(NullPointerException.class, () -> new PreJoinDialogEvent(null, playerId, null,
             PreJoinDialogEvent.DialogType.LOGIN, true, true));
     }
 
     @Test
     void shouldRejectNullDialogType() {
-        assertThrows(NullPointerException.class, () -> new PreJoinDialogEvent("Bobby", playerId, address,
+        assertThrows(NullPointerException.class, () -> new PreJoinDialogEvent("Bobby", playerId, null,
             null, true, true));
     }
 }

@@ -70,10 +70,8 @@ public final class CommandUtils {
      */
     public static String constructCommandPath(CommandDescription command) {
         StringBuilder sb = new StringBuilder();
-        String prefix = "/";
         for (CommandDescription ancestor : constructParentList(command)) {
-            sb.append(prefix).append(ancestor.getLabels().get(0));
-            prefix = " ";
+            sb.append(sb.length() == 0 ? "/" : " ").append(ancestor.getLabels().get(0));
         }
         return sb.toString();
     }

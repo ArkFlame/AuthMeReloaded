@@ -133,9 +133,8 @@ public class CommandMapper {
 
     private CommandDescription getBaseCommand(String label) {
         String lowerLabel = label.toLowerCase(Locale.ROOT);
-        final String baseLabel = lowerLabel.startsWith(AUTHME_PREFIX)
-            ? lowerLabel.substring(AUTHME_PREFIX.length())
-            : lowerLabel;
+        String baseLabel = lowerLabel.startsWith(AUTHME_PREFIX)
+            ? lowerLabel.substring(AUTHME_PREFIX.length()) : lowerLabel;
         for (CommandDescription command : baseCommands) {
             if (command.hasLabel(baseLabel)) {
                 return command;

@@ -39,8 +39,8 @@ public class ShowEmailCommand extends PlayerCommand {
     private String emailMask(String email) {
         String[] parts = email.split("@");
         String localPart = parts[0];
-        String domain = parts.length > 1 ? parts[1] : "";
         int idLength = localPart.isEmpty() ? 0 : localPart.length() / 3 + 1;
+        String domain = parts.length > 1 ? parts[1] : "";
         return localPart.substring(0, idLength) + "***@***" + domain.substring(domain.length() / 3);
     }
 }

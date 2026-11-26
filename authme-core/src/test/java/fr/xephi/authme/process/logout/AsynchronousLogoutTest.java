@@ -29,7 +29,6 @@ class AsynchronousLogoutTest {
 
     @InjectMocks
     private AsynchronousLogout asynchronousLogout;
-
     @Mock
     private DataSource database;
     @Mock
@@ -44,7 +43,6 @@ class AsynchronousLogoutTest {
     private SessionService sessionService;
     @Mock
     private BungeeSender bungeeSender;
-
     @Test
     void shouldUnauthenticatePlayerEvenIfSessionUpdateFails() {
         Player player = mock(Player.class);
@@ -52,9 +50,7 @@ class AsynchronousLogoutTest {
         PlayerAuth auth = mock(PlayerAuth.class);
         given(playerCache.getAuth("bobby")).willReturn(auth);
         doThrow(IllegalStateException.class).when(database).updateSession(auth);
-
         assertThrows(IllegalStateException.class, () -> asynchronousLogout.logout(player, null));
-
         verify(playerCache).removePlayer("bobby");
         verify(codeManager).unverify("bobby");
         verify(database).setUnlogged("bobby");

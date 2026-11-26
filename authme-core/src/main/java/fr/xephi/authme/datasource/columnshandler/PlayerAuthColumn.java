@@ -16,9 +16,6 @@ public class PlayerAuthColumn<T> extends DataSourceColumn<T> implements Dependen
 
     private final Function<PlayerAuth, T> playerAuthGetter;
 
-    /*
-     * Constructor. See parent class for details.
-     */
     PlayerAuthColumn(ColumnType<T> type, Property<String> nameProperty, boolean isOptional, boolean useDefaultForNull,
                      Function<PlayerAuth, T> playerAuthGetter) {
         super(type, nameProperty, isOptional, useDefaultForNull);

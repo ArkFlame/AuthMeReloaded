@@ -54,7 +54,6 @@ public class AsyncChangePassword implements AsynchronousProcess {
                 return;
             }
 
-            // Only mutate the cached auth once the change is durable.
             updateCachedPassword(auth, hashedPassword);
             commonService.send(player, MessageKey.PASSWORD_CHANGED_SUCCESS);
             logger.info(playerName + " changed his password");
@@ -83,7 +82,6 @@ public class AsyncChangePassword implements AsynchronousProcess {
 
         HashedPassword hashedPassword = passwordSecurity.computeHash(newPassword, lowerCaseName);
         if (dataSource.updatePassword(lowerCaseName, hashedPassword)) {
-            // Keep the live cache in sync for online players.
             updateCachedPassword(playerCache.getAuth(lowerCaseName), hashedPassword);
             if (sender != null) {
                 commonService.send(sender, MessageKey.PASSWORD_CHANGED_SUCCESS);

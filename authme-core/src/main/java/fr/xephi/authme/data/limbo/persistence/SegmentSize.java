@@ -6,23 +6,12 @@ package fr.xephi.authme.data.limbo.persistence;
  * The {@link DistributedFilesPersistenceHandler} reduces the number of files by assigning each UUID
  * to a segment, and this enum defines how many segments the UUIDs are distributed in.
  * <p>
- * A segment configuration consists of a <b>distribution</b> and a <b>length.</b> The distribution
- * defines to how many outputs a single hexadecimal character is mapped; e.g. a distribution of 3
- * distributes the characters 0-f evenly over three outputs. {@link SegmentNameBuilder} uses
- * hexadecimal characters as outputs, so with a distribution of 3 the characters 0-f are mapped to
- * 0, 1, or 2. To ensure an even distribution the segments must be powers of 2: a distribution of
- * 16 returns the input character unchanged, a distribution of 1 always returns the same output.
+ * A configuration consists of a <b>distribution</b> and a <b>length</b>. The distribution defines
+ * how many outputs a hexadecimal character can map to; the length defines how many UUID characters
+ * are used to create the segment ID. {@link SegmentNameBuilder} performs this mapping.
  * <p>
- * The <b>length</b> defines how many characters of a player's UUID are used to create the segment
- * ID. With a distribution of 2 and a length of 3, the first three characters are considered and
- * each mapped to one of two possible characters, so a UUID starting with "0f5c9321" may yield the
- * segment ID "010." Such a segment ID defines in which file the given UUID is found and stored.
- * <p>
- * The number of segments is {@code distribution ^ length}: a distribution of 2 and a length of 3
- * yields the segment IDs 000, 001, 010, 011, 100, 101, 110 and 111 (all binary numbers from 0 to 7).
- * A segment total may be achieved in multiple ways, e.g. 8 segments via distribution 8 and
- * length 1, or distribution 2 and length 3. Where possible, prefer a length of 1 (no string
- * concatenation required) or a distribution of 16 (no remapping of the characters required).
+ * The number of segments is {@code distribution ^ length}. Where possible, prefer a length of 1
+ * (no string concatenation required) or a distribution of 16 (no remapping required).
  */
 public enum SegmentSize {
 
