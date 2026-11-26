@@ -13,7 +13,6 @@ import fr.xephi.authme.service.CommonService;
 import fr.xephi.authme.service.ValidationService;
 import fr.xephi.authme.service.ValidationService.ValidationResult;
 import fr.xephi.authme.settings.properties.SecuritySettings;
-import org.bukkit.command.BlockCommandSender;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeEach;
@@ -73,7 +72,7 @@ public class ChangePasswordCommandTest {
     @Test
     public void shouldRejectNonPlayerSender() {
         // given
-        CommandSender sender = mock(BlockCommandSender.class);
+        CommandSender sender = mock(CommandSender.class);
 
         // when
         command.executeCommand(sender, Collections.emptyList());

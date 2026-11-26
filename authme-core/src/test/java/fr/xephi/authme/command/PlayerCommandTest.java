@@ -2,21 +2,22 @@ package fr.xephi.authme.command;
 
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.message.Messages;
-import org.bukkit.command.BlockCommandSender;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 /**
@@ -28,18 +29,29 @@ class PlayerCommandTest {
     @Mock
     private Messages messages;
 
-    @Test
-    void shouldRejectNonPlayerSender() {
+    @ParameterizedTest
+    @MethodSource("nonPlayerCommands")
+    void shouldRejectNonPlayerSender(PlayerCommand command, MessageKey key, String alternative) {
         // given
-        CommandSender sender = mock(BlockCommandSender.class);
-        PlayerCommandImpl command = new PlayerCommandImpl();
+        CommandSender sender = mock(CommandSender.class);
         command.messages = messages;
 
         // when
         command.executeCommand(sender, Collections.emptyList());
 
         // then
-        verify(messages).send(sender, MessageKey.PLAYER_COMMAND_ONLY);
+        if (alternative == null) {
+            verify(messages).send(sender, key);
+        } else {
+            verify(messages).send(sender, key, alternative);
+        }
+    }
+
+    private static Stream<Arguments> nonPlayerCommands() {
+        return Stream.of(
+            Arguments.of(new PlayerCommandImpl(), MessageKey.PLAYER_COMMAND_ONLY, null),
+            Arguments.of(new PlayerCommandWithAlt(), MessageKey.PLAYER_COMMAND_ONLY_WITH_ALTERNATIVE,
+                "/authme test <command>"));
     }
 
     @Test
@@ -53,24 +65,8 @@ class PlayerCommandTest {
         command.executeCommand(player, arguments);
 
         // then
-        verify(player, times(1)).sendMessage("testarg2");
+        verify(player).sendMessage("testarg2");
     }
-
-    @Test
-    void shouldRejectNonPlayerAndSendAlternative() {
-        // given
-        CommandSender sender = mock(CommandSender.class);
-        PlayerCommandWithAlt command = new PlayerCommandWithAlt();
-        command.messages = messages;
-
-        // when
-        command.executeCommand(sender, Collections.emptyList());
-
-        // then
-        verify(messages).send(eq(sender), eq(MessageKey.PLAYER_COMMAND_ONLY_WITH_ALTERNATIVE),
-            eq("/authme test <command>"));
-    }
-
 
     private static class PlayerCommandImpl extends PlayerCommand {
         @Override
@@ -84,6 +80,7 @@ class PlayerCommandTest {
         public void runCommand(Player player, List<String> arguments) {
             throw new IllegalStateException("Should not be called");
         }
+
         @Override
         public String getAlternativeCommand() {
             return "/authme test <command>";

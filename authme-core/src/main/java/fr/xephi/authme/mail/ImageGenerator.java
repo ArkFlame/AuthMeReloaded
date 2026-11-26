@@ -2,7 +2,6 @@ package fr.xephi.authme.mail;
 
 import java.awt.Color;
 import java.awt.Font;
-import java.awt.GradientPaint;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 
@@ -33,7 +32,7 @@ public class ImageGenerator {
         try {
             graphics.setColor(Color.BLACK);
             graphics.fillRect(0, 0, 200, 40);
-            graphics.setPaint(new GradientPaint(10, 5, Color.WHITE, 20, 10, Color.WHITE, true));
+            graphics.setColor(Color.WHITE);
             graphics.setFont(new Font("Comic Sans MS", Font.BOLD, 30));
             graphics.drawString(pass, 5, 30);
         } finally {

@@ -19,9 +19,9 @@ import fr.xephi.authme.settings.properties.RegistrationSettings;
 import fr.xephi.authme.settings.properties.RestrictionSettings;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -108,28 +108,24 @@ class ProcessSyncPlayerLoginTest {
         }
     }
 
-    @Test
-    void shouldNotSendBungeeRedirectForProxyInitiatedLogin() {
+    @ParameterizedTest(name = "proxy initiated={0}, bypass permission={1}")
+    @CsvSource({"true, false", "false, true", "false, false"})
+    void shouldSendBungeeRedirectOnlyWhenAllowed(boolean proxyInitiated, boolean hasBypassPermission) {
         given(playerCache.getAuth("bobby")).willReturn(PlayerAuth.builder().name("bobby").build());
         given(commonService.getProperty(RegistrationSettings.APPLY_BLIND_EFFECT)).willReturn(false);
+        if (!proxyInitiated) {
+            given(permissionsManager.hasPermission(player, PlayerStatePermission.BYPASS_BUNGEE_SEND))
+                .willReturn(hasBypassPermission);
+        }
 
-        processSyncPlayerLogin.processPlayerLoginFromProxy(player, false, Collections.emptyList());
+        if (proxyInitiated) {
+            processSyncPlayerLogin.processPlayerLoginFromProxy(player, false, Collections.emptyList());
+            verify(permissionsManager, never()).hasPermission(player, PlayerStatePermission.BYPASS_BUNGEE_SEND);
+        } else {
+            processSyncPlayerLogin.processPlayerLogin(player, false, Collections.emptyList());
+        }
 
-        verify(bungeeSender, never()).connectPlayerOnLogin(player);
-        verify(permissionsManager, never()).hasPermission(player, PlayerStatePermission.BYPASS_BUNGEE_SEND);
-    }
-
-    @ParameterizedTest(name = "bypass permission={0}")
-    @ValueSource(booleans = {true, false})
-    void shouldSendBungeeRedirectOnlyWithoutBypassPermission(boolean hasBypassPermission) {
-        given(playerCache.getAuth("bobby")).willReturn(PlayerAuth.builder().name("bobby").build());
-        given(commonService.getProperty(RegistrationSettings.APPLY_BLIND_EFFECT)).willReturn(false);
-        given(permissionsManager.hasPermission(player, PlayerStatePermission.BYPASS_BUNGEE_SEND))
-            .willReturn(hasBypassPermission);
-
-        processSyncPlayerLogin.processPlayerLogin(player, false, Collections.emptyList());
-
-        if (hasBypassPermission) {
+        if (proxyInitiated || hasBypassPermission) {
             verify(bungeeSender, never()).connectPlayerOnLogin(player);
         } else {
             verify(bungeeSender).connectPlayerOnLogin(player);

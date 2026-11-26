@@ -60,41 +60,36 @@ public class AsyncChangeEmail implements AsynchronousProcess {
      */
     public void changeEmail(Player player, String oldEmail, String newEmail) {
         String playerName = player.getName().toLowerCase(Locale.ROOT);
-        if (playerCache.isAuthenticated(playerName)) {
-            PlayerAuth auth = playerCache.getAuth(playerName);
-            if (auth == null) {
-                // The cache entry may have been removed while this async task was queued.
-                EmailProcessHelper.sendUnloggedMessage(service, dataSource, player);
+        PlayerAuth auth = playerCache.isAuthenticated(playerName) ? playerCache.getAuth(playerName) : null;
+        if (auth == null) {
+            // Not authenticated, or the cache entry was removed while this async task was queued.
+            EmailProcessHelper.sendUnloggedMessage(service, dataSource, player);
+            return;
+        }
+        String currentEmail = auth.getEmail();
+        if (currentEmail == null) {
+            service.send(player, MessageKey.USAGE_ADD_EMAIL);
+        } else if (newEmail == null || !validationService.validateEmail(newEmail)) {
+            service.send(player, MessageKey.INVALID_NEW_EMAIL);
+        } else if (!oldEmail.equalsIgnoreCase(currentEmail)) {
+            service.send(player, MessageKey.INVALID_OLD_EMAIL);
+        } else if (!validationService.isEmailFreeForRegistration(newEmail, player)) {
+            service.send(player, MessageKey.EMAIL_ALREADY_USED_ERROR);
+        } else {
+            EmailChangedEvent event = bukkitService.createAndCallEvent(isAsync
+                -> new EmailChangedEvent(player, oldEmail, newEmail, isAsync));
+            if (event.isCancelled()) {
+                logger.info("Could not change email for player '" + player + "' – event was cancelled");
+                service.send(player, MessageKey.EMAIL_CHANGE_NOT_ALLOWED);
                 return;
             }
-            String currentEmail = auth.getEmail();
-
-            if (currentEmail == null) {
-                service.send(player, MessageKey.USAGE_ADD_EMAIL);
-            } else if (newEmail == null || !validationService.validateEmail(newEmail)) {
-                service.send(player, MessageKey.INVALID_NEW_EMAIL);
-            } else if (!oldEmail.equalsIgnoreCase(currentEmail)) {
-                service.send(player, MessageKey.INVALID_OLD_EMAIL);
-            } else if (!validationService.isEmailFreeForRegistration(newEmail, player)) {
-                service.send(player, MessageKey.EMAIL_ALREADY_USED_ERROR);
+            if (emailService.hasAllInformation()) {
+                EmailProcessHelper.sendConfirmationCode(service, emailService, pendingEmailVerificationCache,
+                    logger, player, newEmail);
             } else {
-                EmailChangedEvent event = bukkitService.createAndCallEvent(isAsync
-                    -> new EmailChangedEvent(player, oldEmail, newEmail, isAsync));
-                if (event.isCancelled()) {
-                    logger.info("Could not change email for player '" + player + "' – event was cancelled");
-                    service.send(player, MessageKey.EMAIL_CHANGE_NOT_ALLOWED);
-                    return;
-                }
-                if (emailService.hasAllInformation()) {
-                    EmailProcessHelper.sendConfirmationCode(service, emailService, pendingEmailVerificationCache,
-                        logger, player, newEmail);
-                } else {
-                    EmailProcessHelper.persistEmail(service, dataSource, playerCache, auth, player, newEmail,
-                        MessageKey.EMAIL_CHANGED_SUCCESS);
-                }
+                EmailProcessHelper.persistEmail(service, dataSource, playerCache, auth, player, newEmail,
+                    MessageKey.EMAIL_CHANGED_SUCCESS);
             }
-        } else {
-            EmailProcessHelper.sendUnloggedMessage(service, dataSource, player);
         }
     }
 

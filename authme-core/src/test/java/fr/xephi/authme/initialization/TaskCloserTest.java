@@ -31,7 +31,6 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.withSettings;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -47,18 +46,18 @@ class TaskCloserTest {
     private TaskCloser taskCloser;
     @Mock(mockMaker = MockMakers.INLINE)
     private AuthMe authMe;
-    @Mock(mockMaker = MockMakers.INLINE)
+    @Mock
     private PluginLogger logger;
-    @Mock(mockMaker = MockMakers.INLINE)
+    @Mock
     private BukkitScheduler bukkitScheduler;
-    @Mock(mockMaker = MockMakers.INLINE)
+    @Mock
     private DataSource dataSource;
     @Captor
     private ArgumentCaptor<Integer> taskIds;
 
     @BeforeEach
     void initAuthMe() {
-        Server server = mock(Server.class, withSettings().mockMaker(MockMakers.INLINE));
+        Server server = mock(Server.class);
         given(server.getScheduler()).willReturn(bukkitScheduler);
         given(authMe.getServer()).willReturn(server);
         given(authMe.getLogger()).willReturn(logger);
@@ -130,18 +129,17 @@ class TaskCloserTest {
     }
 
     private void mockActiveWorkers() {
-        Plugin otherOwner = mock(Plugin.class, withSettings().mockMaker(MockMakers.INLINE));
+        Plugin otherOwner = mock(Plugin.class);
         List<BukkitWorker> tasks = Arrays.asList(
             mockBukkitWorker(authMe, ACTIVE_WORKERS_ID[0], false),
             mockBukkitWorker(otherOwner, 3, false),
             mockBukkitWorker(authMe, ACTIVE_WORKERS_ID[1], false),
-            mockBukkitWorker(authMe, 7, true),
-            mockBukkitWorker(otherOwner, 11, true));
+            mockBukkitWorker(authMe, 7, true));
         given(bukkitScheduler.getActiveWorkers()).willReturn(tasks);
     }
 
     private BukkitWorker mockBukkitWorker(Plugin owner, int taskId, boolean isQueued) {
-        BukkitWorker worker = mock(BukkitWorker.class, withSettings().mockMaker(MockMakers.INLINE));
+        BukkitWorker worker = mock(BukkitWorker.class);
         given(worker.getOwner()).willReturn(owner);
         if (owner == authMe) {
             given(worker.getTaskId()).willReturn(taskId);

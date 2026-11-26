@@ -60,14 +60,11 @@ class GeoIpServiceTest {
     private DatabaseReader lookupService;
 
     @Mock
-    private BukkitService bukkitService;
-
-    @Mock
     private Settings settings;
 
     @BeforeEach
     void initializeGeoLiteApi() {
-        geoIpService = new GeoIpService(dataFolder, bukkitService, settings, lookupService);
+        geoIpService = new GeoIpService(dataFolder, null, settings, lookupService);
     }
 
     @ParameterizedTest(name = "country lookup #{index}")

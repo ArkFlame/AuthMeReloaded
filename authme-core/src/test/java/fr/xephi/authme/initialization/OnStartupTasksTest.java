@@ -2,7 +2,6 @@ package fr.xephi.authme.initialization;
 
 import fr.xephi.authme.TestHelper;
 import fr.xephi.authme.datasource.DataSource;
-import fr.xephi.authme.message.Messages;
 import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.settings.Settings;
 import fr.xephi.authme.settings.properties.EmailSettings;
@@ -37,8 +36,6 @@ class OnStartupTasksTest {
     private Settings settings;
     @Mock
     private BukkitService bukkitService;
-    @Mock
-    private Messages messages;
 
     @BeforeAll
     static void initLogger() {

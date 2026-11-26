@@ -26,6 +26,8 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
     private static final String GLOBAL_SCHEDULER_NAME = "global region scheduler";
     private static final String ASYNC_SCHEDULER_NAME = "async scheduler";
 
+    private static final Method IS_GLOBAL_TICK_THREAD = findMethod(Bukkit.class, "isGlobalTickThread");
+
     private final LazyScheduler globalScheduler = new LazyScheduler("getGlobalRegionScheduler");
     private final LazyScheduler asyncScheduler = new LazyScheduler("getAsyncScheduler");
 
@@ -36,9 +38,8 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
 
     @Override
     public boolean isGlobalThread() {
-        Method check = findMethod(Bukkit.class, "isGlobalTickThread");
         // Bukkit#isPrimaryThread throws on Folia, so never use it as a fallback here.
-        return check != null && Boolean.TRUE.equals(invoke(check, null));
+        return IS_GLOBAL_TICK_THREAD != null && Boolean.TRUE.equals(invoke(IS_GLOBAL_TICK_THREAD, null));
     }
 
     @Override
@@ -90,7 +91,7 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
 
         private final String getterName;
         private volatile Object value;
-        private boolean resolved;
+        private volatile boolean resolved;
 
         private LazyScheduler(String getterName) {
             this.getterName = getterName;
@@ -138,11 +139,6 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
         return ignored -> task.run();
     }
 
-    private static CancellableTask asCancellable(Object scheduledTask) {
-        Method cancel = findMethod(scheduledTask, "cancel");
-        return cancel == null ? NO_OP_TASK : () -> invoke(cancel, scheduledTask);
-    }
-
     /**
      * Invokes a resolved scheduler method, or warns and returns a no-op handle when it is unavailable.
      */
@@ -152,6 +148,8 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
             plugin.getLogger().warning("Folia " + schedulerName + " is unavailable; skipping scheduled task");
             return NO_OP_TASK;
         }
-        return asCancellable(invoke(method, scheduler, arguments));
+        Object scheduledTask = invoke(method, scheduler, arguments);
+        Method cancel = findMethod(scheduledTask, "cancel");
+        return cancel == null ? NO_OP_TASK : () -> invoke(cancel, scheduledTask);
     }
 }

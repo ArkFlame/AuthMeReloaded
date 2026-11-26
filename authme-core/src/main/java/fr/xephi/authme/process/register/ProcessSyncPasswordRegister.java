@@ -39,9 +39,6 @@ public class ProcessSyncPasswordRegister implements SynchronousProcess {
     @Inject
     private BukkitService bukkitService;
 
-    ProcessSyncPasswordRegister() {
-    }
-
     /**
      * Processes a player having registered with a password.
      */

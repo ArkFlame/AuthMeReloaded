@@ -19,7 +19,6 @@ import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Function;
 
 import static fr.xephi.authme.command.help.HelpSection.DETAILED_DESCRIPTION;
 import static fr.xephi.authme.command.help.HelpSection.SHORT_DESCRIPTION;
@@ -210,29 +209,23 @@ public class HelpProvider implements Reloadable {
      */
     private void addAlternativesInfo(CommandDescription command, List<String> correctLabels, List<String> lines,
                                      String language) {
-        if (command.getLabels().size() <= 1) {
+        List<String> labels = command.getLabels();
+        if (labels.size() <= 1) {
             return;
         }
 
         addSectionHeader(lines, HelpSection.ALTERNATIVES, language);
 
         // Label with which the command was called -> don't show it as an alternative
-        final String usedLabel;
-        // Takes alternative label and constructs list of labels, e.g. "reg" -> [authme, reg]
-        final Function<String, List<String>> commandLabelsFn;
+        boolean hasParentLabel = correctLabels.size() > 1;
+        String usedLabel = correctLabels.get(hasParentLabel ? 1 : 0);
 
-        if (correctLabels.size() == 1) {
-            usedLabel = correctLabels.get(0);
-            commandLabelsFn = label -> singletonList(label);
-        } else {
-            usedLabel = correctLabels.get(1);
-            commandLabelsFn = label -> Arrays.asList(correctLabels.get(0), label);
-        }
-
-        // Create a list of alternatives
-        for (String label : command.getLabels()) {
+        // Create a list of alternatives, e.g. "reg" -> [authme, reg]
+        for (String label : labels) {
             if (!label.equalsIgnoreCase(usedLabel)) {
-                lines.add(" " + CommandUtils.buildSyntax(command, commandLabelsFn.apply(label)));
+                List<String> commandLabels = hasParentLabel
+                    ? Arrays.asList(correctLabels.get(0), label) : singletonList(label);
+                lines.add(" " + CommandUtils.buildSyntax(command, commandLabels));
             }
         }
     }
