@@ -55,7 +55,8 @@ public class TeleportationService implements Reloadable {
     private TeleportAdapter teleportAdapter;
 
     private Set<String> spawnOnLoginWorlds;
-    private final ConcurrentHashMap<String, Boolean> preloadedAuthStatus = new ConcurrentHashMap<>();
+    private static final int MAX_PRELOADED_STATUSES = 1024;
+    private final ConcurrentHashMap<String, Boolean> preloadedAuthStatus =new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Location> originalJoinLocations = new ConcurrentHashMap<>();
 
     TeleportationService() {
@@ -241,6 +242,11 @@ public class TeleportationService implements Reloadable {
     public void preloadAuthStatus(String name, boolean isRegistered) {
         String normalizedName = normalizePlayerName(name);
         if (normalizedName != null) {
+            // Connections kicked after pre-login never reach onPlayerJoin; cap the map so they cannot pile up.
+            // A dropped entry only costs the DB lookup the preload was meant to avoid.
+            if (preloadedAuthStatus.size() >= MAX_PRELOADED_STATUSES) {
+                preloadedAuthStatus.clear();
+            }
             preloadedAuthStatus.put(normalizedName, isRegistered);
         }
     }
