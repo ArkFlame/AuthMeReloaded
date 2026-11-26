@@ -2,7 +2,6 @@ package fr.xephi.authme.events;
 
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -23,22 +22,15 @@ class AuthMeApiContractTest {
         .toArray(Class<?>[]::new);
 
     @Test
-    void everyEventRegistersHandlersThroughItsStaticList() throws Exception {
+    void everyEventRegistersDistinctHandlersThroughItsStaticList() throws Exception {
+        Set<Object> seenLists = new HashSet<>();
         for (Class<?> eventClass : CONCRETE_EVENTS) {
             Object handlerList = eventClass.getMethod("getHandlerList").invoke(null);
             assertThat(eventClass.getSimpleName(), handlerList, notNullValue());
 
-            Method getHandlers = eventClass.getMethod("getHandlers");
             Object event = mock(eventClass, CALLS_REAL_METHODS);
-            assertThat(eventClass.getSimpleName(), getHandlers.invoke(event), sameInstance(handlerList));
-        }
-    }
-
-    @Test
-    void eachEventTypeOwnsItsHandlerList() throws Exception {
-        Set<Object> seenLists = new HashSet<>();
-        for (Class<?> eventClass : CONCRETE_EVENTS) {
-            Object handlerList = eventClass.getMethod("getHandlerList").invoke(null);
+            assertThat(eventClass.getSimpleName(),
+                eventClass.getMethod("getHandlers").invoke(event), sameInstance(handlerList));
             assertThat(eventClass.getSimpleName() + " must not share a handler list", seenLists.add(handlerList),
                 equalTo(true));
         }

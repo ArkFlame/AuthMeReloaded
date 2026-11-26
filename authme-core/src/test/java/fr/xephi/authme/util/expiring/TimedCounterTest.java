@@ -22,19 +22,19 @@ class TimedCounterTest {
 
     @Test
     void shouldIncrementAndDecrementCount() {
-        TimedCounter<String> increment = new TimedCounter<>(10, TimeUnit.MINUTES);
-        increment.put("moto", 12);
-        increment.increment("hello");
-        increment.increment("moto");
-        assertThat(increment.get("hello"), equalTo(1));
-        assertThat(increment.get("moto"), equalTo(13));
+        TimedCounter<String> counter = new TimedCounter<>(10, TimeUnit.MINUTES);
+        counter.put("moto", 12);
+        counter.increment("hello");
+        counter.increment("moto");
+        assertThat(counter.get("hello"), equalTo(1));
+        assertThat(counter.get("moto"), equalTo(13));
 
-        TimedCounter<String> decrement = new TimedCounter<>(10, TimeUnit.MINUTES);
-        decrement.put("moto", 12);
-        decrement.decrement("hello");
-        decrement.decrement("moto");
-        assertThat(decrement.get("hello"), equalTo(0));
-        assertThat(decrement.get("moto"), equalTo(11));
+        counter = new TimedCounter<>(10, TimeUnit.MINUTES);
+        counter.put("moto", 12);
+        counter.decrement("hello");
+        counter.decrement("moto");
+        assertThat(counter.get("hello"), equalTo(0));
+        assertThat(counter.get("moto"), equalTo(11));
     }
 
     @Test

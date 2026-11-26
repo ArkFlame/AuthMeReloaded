@@ -10,8 +10,7 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * Utility for teleporting players, preferring the asynchronous API when the server supports it.
- *
- * <p>Ported from HaHaWTH/AuthMeReReloaded.</p>
+ * Ported from HaHaWTH/AuthMeReReloaded.
  */
 public final class TeleportUtils {
 
@@ -32,7 +31,6 @@ public final class TeleportUtils {
                 TELEPORT_ASYNC_METHOD.invoke(player, location);
                 return;
             } catch (Throwable ignored) {
-                // Fall back to the synchronous teleport below
             }
         }
         player.teleport(location);

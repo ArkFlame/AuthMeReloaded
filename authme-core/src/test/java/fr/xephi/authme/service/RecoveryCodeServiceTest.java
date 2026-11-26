@@ -105,15 +105,11 @@ class RecoveryCodeServiceTest {
     }
 
     private long expirationMillis(Object expiringStructure) {
-        Class<?> clazz = expiringStructure.getClass();
-        while (clazz != null) {
-            try {
-                Field field = clazz.getDeclaredField("expirationMillis");
-                return (Long) ReflectionTestUtils.getFieldValue(field, expiringStructure);
-            } catch (NoSuchFieldException e) {
-                clazz = clazz.getSuperclass();
-            }
+        try {
+            Field field = ExpiringMap.class.getSuperclass().getDeclaredField("expirationMillis");
+            return (Long) ReflectionTestUtils.getFieldValue(field, expiringStructure);
+        } catch (NoSuchFieldException e) {
+            throw new IllegalStateException("Could not find expirationMillis field", e);
         }
-        throw new IllegalStateException("Could not find expirationMillis field");
     }
 }

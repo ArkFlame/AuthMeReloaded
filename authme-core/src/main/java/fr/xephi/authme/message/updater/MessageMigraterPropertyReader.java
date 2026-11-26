@@ -70,9 +70,8 @@ final class MessageMigraterPropertyReader implements PropertyReader {
             return root.get("");
         }
         Object node = root;
-        String[] keys = path.split("\\.");
-        for (String key : keys) {
-            node = getIfIsMap(key, node);
+        for (String key : path.split("\\.")) {
+            node = node instanceof Map<?, ?> ? ((Map<?, ?>) node).get(key) : null;
             if (node == null) {
                 return null;
             }
@@ -115,12 +114,5 @@ final class MessageMigraterPropertyReader implements PropertyReader {
         } catch (ClassCastException e) {
             throw new ConfigMeException("Top-level is not a map", e);
         }
-    }
-
-    private static Object getIfIsMap(String key, Object value) {
-        if (value instanceof Map<?, ?>) {
-            return ((Map<?, ?>) value).get(key);
-        }
-        return null;
     }
 }

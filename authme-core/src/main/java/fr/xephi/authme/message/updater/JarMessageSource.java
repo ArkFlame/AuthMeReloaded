@@ -42,11 +42,10 @@ public class JarMessageSource {
 
     private MessageMigraterPropertyReader loadJarFile(String jarPath) {
         try (InputStream stream = FileUtils.getResourceFromJar(jarPath)) {
-            if (stream == null) {
-                logger.debug("Could not load '" + jarPath + "' from JAR");
-                return null;
+            if (stream != null) {
+                return MessageMigraterPropertyReader.loadFromStream(stream);
             }
-            return MessageMigraterPropertyReader.loadFromStream(stream);
+            logger.debug("Could not load '" + jarPath + "' from JAR");
         } catch (IOException e) {
             logger.logException("Exception while handling JAR path '" + jarPath + "'", e);
         }

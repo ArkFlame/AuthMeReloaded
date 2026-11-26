@@ -93,11 +93,8 @@ public class AsynchronousUnregister implements AsynchronousProcess {
         if (dataSource.removeAuth(name)) {
             performPostUnregisterActions(name, player);
             bukkitService.createAndCallEvent(isAsync -> new UnregisterByAdminEvent(player, name, isAsync, initiator));
-
-            if (initiator == null) {
-                logger.info(name + " was unregistered");
-            } else {
-                logger.info(name + " was unregistered by " + initiator.getName());
+            logger.info(name + " was unregistered" + (initiator == null ? "" : " by " + initiator.getName()));
+            if (initiator != null) {
                 service.send(initiator, MessageKey.UNREGISTERED_SUCCESS);
             }
         } else if (initiator != null) {

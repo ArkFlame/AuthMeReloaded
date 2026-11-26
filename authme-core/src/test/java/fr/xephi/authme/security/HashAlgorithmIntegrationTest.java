@@ -21,6 +21,8 @@ import java.util.Set;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
@@ -59,9 +61,8 @@ class HashAlgorithmIntegrationTest {
         for (HashAlgorithm algorithm : HashAlgorithm.values()) {
             if (!HashAlgorithm.CUSTOM.equals(algorithm) && !HashAlgorithm.PLAINTEXT.equals(algorithm)) {
                 EncryptionMethod method = injector.createIfHasDependencies(algorithm.getClazz());
-                if (method == null) {
-                    fail("Could not create '" + algorithm.getClazz() + "' - forgot to provide some class?");
-                }
+                assertNotNull(method,
+                    "Could not create '" + algorithm.getClazz() + "' - forgot to provide some class?");
                 HashedPassword hashedPassword = method.computeHash("pwd", "name");
                 assertThat("Salt should not be null if method.hasSeparateSalt(), and vice versa. Method: '"
                     + method + "'", StringUtils.isBlank(hashedPassword.getSalt()), equalTo(!method.hasSeparateSalt()));
@@ -89,8 +90,6 @@ class HashAlgorithmIntegrationTest {
             }
         }
 
-        if (!failedEntries.isEmpty()) {
-            fail("Found inconsistencies:\n" + String.join("\n", failedEntries));
-        }
+        assertTrue(failedEntries.isEmpty(), "Found inconsistencies:\n" + String.join("\n", failedEntries));
     }
 }

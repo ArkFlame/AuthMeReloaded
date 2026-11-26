@@ -7,9 +7,7 @@ import org.bukkit.command.CommandSender;
 import javax.inject.Inject;
 import java.util.List;
 
-/**
- * Common base for admin commands that change the premium state of a player by name.
- */
+/** Common base for admin commands that change the premium state of a player by name. */
 public abstract class SetPremiumStateAdminCommand implements ExecutableCommand {
 
     @Inject
@@ -20,12 +18,7 @@ public abstract class SetPremiumStateAdminCommand implements ExecutableCommand {
         updatePremiumState(sender, arguments.get(0));
     }
 
-    /**
-     * Applies the premium state change to the named player.
-     *
-     * @param sender the command sender
-     * @param playerName the name of the player whose premium state should be changed
-     */
+    /** Applies the premium state change to the named player. */
     protected abstract void updatePremiumState(CommandSender sender, String playerName);
 
     protected PremiumService getPremiumService() {
