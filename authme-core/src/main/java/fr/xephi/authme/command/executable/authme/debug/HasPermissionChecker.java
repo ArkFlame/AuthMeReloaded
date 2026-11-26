@@ -18,7 +18,6 @@ import org.bukkit.entity.Player;
 import javax.inject.Inject;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.BiFunction;
 
 /**
@@ -97,21 +96,20 @@ class HasPermissionChecker implements DebugSection {
     }
 
     /**
-     * Based on the given permission node (String), tries to find the according AuthMe {@link PermissionNode}
-     * instance, or creates a new one if not available.
+     * Get the AuthMe {@link PermissionNode} matching the given node, or a default node denying the permission.
      *
      * @param sender the sender (used to inform him if no AuthMe PermissionNode can be matched)
      * @param node the node to search for
      * @return the node as {@link PermissionNode} object
      */
     private static PermissionNode getPermissionNode(CommandSender sender, String node) {
-        Optional<? extends PermissionNode> permNode = PERMISSION_NODE_CLASSES.stream()
+        PermissionNode permNode = PERMISSION_NODE_CLASSES.stream()
             .map(Class::getEnumConstants)
             .flatMap(Arrays::stream)
             .filter(perm -> perm.getNode().equals(node))
-            .findFirst();
-        if (permNode.isPresent()) {
-            return permNode.get();
+            .findFirst().orElse(null);
+        if (permNode != null) {
+            return permNode;
         }
         sender.sendMessage("Did not detect AuthMe permission; using default permission = DENIED");
         return new PermissionNode() {

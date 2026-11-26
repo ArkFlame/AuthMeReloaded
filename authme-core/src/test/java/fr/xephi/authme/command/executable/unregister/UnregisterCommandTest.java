@@ -12,7 +12,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 
@@ -52,45 +52,38 @@ public class UnregisterCommandTest {
     @Mock
     private Player player;
 
-    @Test
-    public void shouldCatchUnauthenticatedUser() {
-        // given
-        String password = "mySecret123";
-        String name = "player77";
-        given(player.getName()).willReturn(name);
-        given(playerCache.isAuthenticated(name)).willReturn(false);
-
-        // when
-        command.executeCommand(player, Collections.singletonList(password));
-
-        // then
-        verify(playerCache).isAuthenticated(name);
-        verify(commonService).send(player, MessageKey.NOT_LOGGED_IN);
-        verifyNoInteractions(management);
-    }
-
     @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    public void shouldStopForMissingVerificationCodeOrForwardToAsyncTask(boolean verificationRequired) {
+    @CsvSource({
+        "false, false, mySecret123",
+        "true, false, p@ssw0rD",
+        "true, true, p@ssw0rD"
+    })
+    public void shouldHandleUnregisterRequest(boolean authenticated, boolean verificationRequired, String password) {
         // given
-        String password = "p@ssw0rD";
         String name = "player77";
         given(player.getName()).willReturn(name);
-        given(playerCache.isAuthenticated(name)).willReturn(true);
-        given(codeManager.isVerificationRequired(player)).willReturn(verificationRequired);
+        given(playerCache.isAuthenticated(name)).willReturn(authenticated);
+        if (authenticated) {
+            given(codeManager.isVerificationRequired(player)).willReturn(verificationRequired);
+        }
 
         // when
         command.executeCommand(player, Collections.singletonList(password));
 
         // then
         verify(playerCache).isAuthenticated(name);
-        verify(codeManager).isVerificationRequired(player);
-        if (verificationRequired) {
-            verify(codeManager).codeExistOrGenerateNew(name);
-            verify(commonService).send(player, MessageKey.VERIFICATION_CODE_REQUIRED);
+        if (!authenticated) {
+            verify(commonService).send(player, MessageKey.NOT_LOGGED_IN);
             verifyNoInteractions(management);
         } else {
-            verify(management).performUnregister(player, password);
+            verify(codeManager).isVerificationRequired(player);
+            if (verificationRequired) {
+                verify(codeManager).codeExistOrGenerateNew(name);
+                verify(commonService).send(player, MessageKey.VERIFICATION_CODE_REQUIRED);
+                verifyNoInteractions(management);
+            } else {
+                verify(management).performUnregister(player, password);
+            }
         }
     }
 

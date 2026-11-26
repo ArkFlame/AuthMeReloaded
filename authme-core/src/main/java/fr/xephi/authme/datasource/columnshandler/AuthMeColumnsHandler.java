@@ -44,11 +44,9 @@ public final class AuthMeColumnsHandler {
         String tableName = settings.getProperty(DatabaseSettings.MYSQL_TABLE);
         String nameColumn = settings.getProperty(DatabaseSettings.MYSQL_COL_NAME);
 
-        SqlColumnsHandler<ColumnContext, String> sqlColHandler = new SqlColumnsHandler<>(
+        return new AuthMeColumnsHandler(new SqlColumnsHandler<>(
             forSingleConnection(connection, tableName, nameColumn, columnContext)
-                .setPredicateSqlGenerator(new PredicateSqlGenerator<>(columnContext, true))
-        );
-        return new AuthMeColumnsHandler(sqlColHandler);
+                .setPredicateSqlGenerator(new PredicateSqlGenerator<>(columnContext, true))));
     }
 
     /**
@@ -63,9 +61,8 @@ public final class AuthMeColumnsHandler {
         String tableName = settings.getProperty(DatabaseSettings.MYSQL_TABLE);
         String nameColumn = settings.getProperty(DatabaseSettings.MYSQL_COL_NAME);
 
-        SqlColumnsHandler<ColumnContext, String> sqlColHandler = new SqlColumnsHandler<>(
-            forConnectionPool(connectionSupplier, tableName, nameColumn, columnContext));
-        return new AuthMeColumnsHandler(sqlColHandler);
+        return new AuthMeColumnsHandler(new SqlColumnsHandler<>(
+            forConnectionPool(connectionSupplier, tableName, nameColumn, columnContext)));
     }
 
     /**

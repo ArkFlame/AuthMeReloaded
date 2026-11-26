@@ -43,7 +43,6 @@ public abstract class AbstractSqlDataSource implements DataSource {
     protected Columns col;
     protected List<String> columnOthers;
     protected MySqlExtension sqlExtension;
-
     // Built once after the table and column names are known, then reused for every call.
     protected String findAllSql;
     protected String deleteByNameSql;
@@ -221,16 +220,16 @@ public abstract class AbstractSqlDataSource implements DataSource {
 
     /** Reads the first column of the given query; the caller keeps ownership of the connection. */
     private List<String> readStringColumn(Connection con, String sql, Long parameter) throws SQLException {
-        List<String> values = new ArrayList<>();
         try (PreparedStatement pst = con.prepareStatement(sql)) {
             if (parameter != null) pst.setLong(1, parameter);
             try (ResultSet rs = pst.executeQuery()) {
+                List<String> values = new ArrayList<>();
                 while (rs.next()) {
                     values.add(rs.getString(1));
                 }
+                return values;
             }
         }
-        return values;
     }
 
     /** Reads the names of all records to purge; the caller keeps ownership of the connection. */

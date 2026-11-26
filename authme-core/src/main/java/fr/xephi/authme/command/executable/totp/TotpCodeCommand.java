@@ -26,8 +26,6 @@ import java.util.Locale;
  */
 public class TotpCodeCommand extends PlayerCommand {
 
-    private static final int MAX_TOTP_ATTEMPTS = 3;
-
     private final ConsoleLogger logger = ConsoleLoggerFactory.get(TotpCodeCommand.class);
 
     @Inject
@@ -76,18 +74,19 @@ public class TotpCodeCommand extends PlayerCommand {
         if (totpAuthenticator.checkCode(auth, arguments.get(0))) {
             logger.debug("Successfully checked TOTP code for `{0}`", playerName);
             asynchronousLogin.performLogin(player, auth);
+            return;
+        }
+
+        logger.debug("Input TOTP code was invalid for player `{0}`", playerName);
+        String ip = PlayerUtils.getPlayerIp(player);
+        tempbanManager.increaseCount(ip, playerName.toLowerCase(Locale.ROOT));
+        if (tempbanManager.shouldTempban(ip)) {
+            tempbanManager.tempbanPlayer(player);
+        } else if (limbo.increaseFailedTotpAttempts() >= 3) {
+            String kickMessage = messages.retrieveSingle(player, MessageKey.TWO_FACTOR_INVALID_CODE);
+            bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, () -> player.kickPlayer(kickMessage));
         } else {
-            logger.debug("Input TOTP code was invalid for player `{0}`", playerName);
-            String ip = PlayerUtils.getPlayerIp(player);
-            tempbanManager.increaseCount(ip, playerName.toLowerCase(Locale.ROOT));
-            if (tempbanManager.shouldTempban(ip)) {
-                tempbanManager.tempbanPlayer(player);
-            } else if (limbo.increaseFailedTotpAttempts() >= MAX_TOTP_ATTEMPTS) {
-                String kickMessage = messages.retrieveSingle(player, MessageKey.TWO_FACTOR_INVALID_CODE);
-                bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, () -> player.kickPlayer(kickMessage));
-            } else {
-                messages.send(player, MessageKey.TWO_FACTOR_INVALID_CODE);
-            }
+            messages.send(player, MessageKey.TWO_FACTOR_INVALID_CODE);
         }
     }
 }

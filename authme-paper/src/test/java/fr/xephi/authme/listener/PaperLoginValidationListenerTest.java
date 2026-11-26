@@ -67,15 +67,26 @@ public class PaperLoginValidationListenerTest {
         given(settings.getProperty(RestrictionSettings.REGISTER_TIMEOUT)).willReturn(30);
     }
 
-    @Test
-    public void shouldClaimNameDuringLoginPhase() {
+    @ParameterizedTest
+    @MethodSource("loginClaimCases")
+    public void shouldHandleLoginPhaseClaim(boolean claimGranted, boolean allowed) {
         givenConfiguredTimeouts();
         PlayerLoginConnection connection = newLoginConnection("Bobby");
-        given(pendingConnectionRegistry.tryClaim(eq("Bobby"), eq(connection), anyLong())).willReturn(true);
+        given(pendingConnectionRegistry.tryClaim(eq("Bobby"), eq(connection), anyLong())).willReturn(claimGranted);
+        if (!allowed) {
+            givenAlreadyOnlineMessage();
+        }
         PlayerConnectionValidateLoginEvent event = validate(connection);
 
-        assertThat(event.isAllowed(), is(true));
+        assertThat(event.isAllowed(), is(allowed));
+        if (!allowed) {
+            assertThat(serialize(event.getKickMessage()), is("&cAlready online"));
+        }
         verify(pendingConnectionRegistry).tryClaim(eq("Bobby"), eq(connection), anyLong());
+    }
+
+    private static Stream<Arguments> loginClaimCases() {
+        return Stream.of(Arguments.of(true, true), Arguments.of(false, false));
     }
 
     @Test
@@ -90,9 +101,16 @@ public class PaperLoginValidationListenerTest {
         verify(pendingConnectionRegistry).tryClaim("Bobby", connection, TimeUnit.DAYS.toMillis(1));
     }
 
-    @Test
-    public void shouldKickDuplicateSessionOnValidationEvent() throws FailedVerificationException {
-        PlayerLoginConnection connection = newLoginConnection("Bobby");
+    @ParameterizedTest
+    @MethodSource("duplicateSessionCases")
+    public void shouldKickWhenSingleSessionCheckFails(boolean configuration) throws FailedVerificationException {
+        PlayerConnection connection = configuration
+            ? newConfigurationConnection("Bobby")
+            : newLoginConnection("Bobby");
+        if (configuration) {
+            given(pendingConnectionRegistry.holdsClaim("Bobby", (PlayerConfigurationConnection) connection))
+                .willReturn(true);
+        }
         givenAlreadyOnlineMessage();
         willThrow(new FailedVerificationException(MessageKey.USERNAME_ALREADY_ONLINE_ERROR))
             .given(onJoinVerifier).checkSingleSession("Bobby");
@@ -102,19 +120,6 @@ public class PaperLoginValidationListenerTest {
         assertThat(event.isAllowed(), is(false));
         assertThat(serialize(event.getKickMessage()), is("&cAlready online"));
         verify(pendingConnectionRegistry, never()).tryClaim(eq("Bobby"), eq(connection), anyLong());
-    }
-
-    @Test
-    public void shouldRefuseSecondConnectionUsingSameNameDuringLoginPhase() {
-        givenConfiguredTimeouts();
-        PlayerLoginConnection connection = newLoginConnection("Bobby");
-        given(pendingConnectionRegistry.tryClaim(eq("Bobby"), eq(connection), anyLong())).willReturn(false);
-        givenAlreadyOnlineMessage();
-
-        PlayerConnectionValidateLoginEvent event = validate(connection);
-
-        assertThat(event.isAllowed(), is(false));
-        assertThat(serialize(event.getKickMessage()), is("&cAlready online"));
     }
 
     @Test
@@ -152,20 +157,6 @@ public class PaperLoginValidationListenerTest {
         assertThat(event.isAllowed(), is(true));
         verify(onJoinVerifier).checkSingleSession("Bobby");
         verify(pendingConnectionRegistry).tryClaim(eq("Bobby"), eq(connection), anyLong());
-    }
-
-    @Test
-    public void shouldKickWhenNameWasTakenDuringConfiguration() throws FailedVerificationException {
-        PlayerConfigurationConnection connection = newConfigurationConnection("Bobby");
-        given(pendingConnectionRegistry.holdsClaim("Bobby", connection)).willReturn(true);
-        givenAlreadyOnlineMessage();
-        willThrow(new FailedVerificationException(MessageKey.USERNAME_ALREADY_ONLINE_ERROR))
-            .given(onJoinVerifier).checkSingleSession("Bobby");
-
-        PlayerConnectionValidateLoginEvent event = validate(connection);
-
-        assertThat(event.isAllowed(), is(false));
-        assertThat(serialize(event.getKickMessage()), is("&cAlready online"));
     }
 
     @Test
@@ -209,6 +200,10 @@ public class PaperLoginValidationListenerTest {
         return Stream.of(
             Arguments.of("VipPlayer", null, true),
             Arguments.of("RegularPlayer", "&cServer full", false));
+    }
+
+    private static Stream<Arguments> duplicateSessionCases() {
+        return Stream.of(Arguments.of(true), Arguments.of(false));
     }
 
     private void givenAlreadyOnlineMessage() {

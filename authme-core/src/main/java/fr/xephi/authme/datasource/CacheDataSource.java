@@ -32,11 +32,7 @@ import java.util.stream.Collectors;
 
 public class CacheDataSource implements DataSource, SqlConnectionSource {
 
-    /**
-     * Upper bound for the auth cache. Time-based eviction alone never bounds the map when the
-     * cache stays busy, so cap the entry count to avoid unbounded growth on large networks.
-     * A cache miss simply reloads the auth from the underlying data source.
-     */
+    /** Upper bound for the auth cache; a miss simply reloads from the underlying data source. */
     static final int MAX_CACHED_AUTHS = 10_000;
 
     private final ConsoleLogger logger = ConsoleLoggerFactory.get(CacheDataSource.class);
@@ -46,12 +42,6 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
     private final LoadingCache<String, Optional<PlayerAuth>> cachedAuths;
     private final ListeningExecutorService executorService;
 
-    /**
-     * Constructor for CacheDataSource.
-     *
-     * @param source the source
-     * @param playerCache the player cache
-     */
     public CacheDataSource(DataSource source, PlayerCache playerCache) {
         this(source, playerCache, false);
     }

@@ -6,9 +6,7 @@ import fr.xephi.authme.service.CommonService;
 import fr.xephi.authme.settings.properties.RegistrationSettings;
 import org.bukkit.entity.Player;
 
-/**
- * Small actions shared by the logout and unregister processes.
- */
+/** Small actions shared by the logout and unregister processes. */
 public final class LogoutActions {
 
     private LogoutActions() {

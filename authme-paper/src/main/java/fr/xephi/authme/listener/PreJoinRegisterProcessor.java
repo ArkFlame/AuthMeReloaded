@@ -104,12 +104,11 @@ final class PreJoinRegisterProcessor {
     private void storeEmailRegistration(PlayerConfigurationConnection connection, long sessionId, String playerName,
                                         RegisterSecondaryArgument secondArg, DialogResponseView view) {
         String email = view.getText("email");
-        String confirm = view.getText("confirm");
         if (email == null || email.isBlank() || !validationService.validateEmail(email)) {
             showError(connection, playerName, MessageKey.INVALID_EMAIL);
             return;
         }
-        if (secondArg == RegisterSecondaryArgument.CONFIRMATION && !email.equals(confirm)) {
+        if (secondArg == RegisterSecondaryArgument.CONFIRMATION && !email.equals(view.getText("confirm"))) {
             showError(connection, playerName, MessageKey.PASSWORD_MATCH_ERROR);
             return;
         }
