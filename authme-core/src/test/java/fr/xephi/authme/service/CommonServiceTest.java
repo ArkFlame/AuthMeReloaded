@@ -2,7 +2,6 @@ package fr.xephi.authme.service;
 
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.message.Messages;
-import fr.xephi.authme.permission.PermissionNode;
 import fr.xephi.authme.permission.PermissionsManager;
 import fr.xephi.authme.permission.PlayerPermission;
 import fr.xephi.authme.settings.Settings;
@@ -83,12 +82,11 @@ class CommonServiceTest {
     @Test
     void shouldCheckPermission() {
         Player player = mock(Player.class);
-        PermissionNode permission = PlayerPermission.CHANGE_PASSWORD;
-        given(permissionsManager.hasPermission(player, permission)).willReturn(true);
+        given(permissionsManager.hasPermission(player, PlayerPermission.CHANGE_PASSWORD)).willReturn(true);
 
-        boolean result = commonService.hasPermission(player, permission);
+        boolean result = commonService.hasPermission(player, PlayerPermission.CHANGE_PASSWORD);
 
-        verify(permissionsManager).hasPermission(player, permission);
+        verify(permissionsManager).hasPermission(player, PlayerPermission.CHANGE_PASSWORD);
         assertThat(result, equalTo(true));
     }
 }

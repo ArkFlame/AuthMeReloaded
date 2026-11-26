@@ -97,8 +97,8 @@ public class HelpMessagesService {
     }
 
     public String getMessage(DefaultPermission defaultPermission, String language) {
-        String path = DEFAULT_PERMISSIONS_PATH + getDefaultPermissionsSubPath(defaultPermission);
-        return helpMessagesFileHandler.getMessage(path, language);
+        return helpMessagesFileHandler.getMessage(
+            DEFAULT_PERMISSIONS_PATH + getDefaultPermissionsSubPath(defaultPermission), language);
     }
 
     public static String getDefaultPermissionsSubPath(DefaultPermission defaultPermission) {
@@ -109,7 +109,6 @@ public class HelpMessagesService {
         String message = helpMessagesFileHandler.getMessageIfExists(path, language);
         return message == null ? defaultTextGetter.get() : message;
     }
-
 
     /**
      * Triggers a reload of the help messages file. Note that this method is not needed

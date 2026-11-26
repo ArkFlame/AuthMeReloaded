@@ -44,10 +44,9 @@ public abstract class AbstractPaperPlatformAdapter extends AbstractSpigotPlatfor
 
     @Override
     public void teleportPlayer(Player player, Location location) {
-        UUID playerId = player.getUniqueId();
         // compute() atomically reads the pending teleport and installs the new one, so concurrent
         // teleports for the same player are applied in call order instead of racing each other.
-        CompletableFuture<Boolean> teleport = pendingTeleports.compute(playerId, (ignoredId, previous) -> {
+        CompletableFuture<Boolean> teleport = pendingTeleports.compute(player.getUniqueId(), (ignoredId, previous) -> {
             if (previous == null) {
                 return player.teleportAsync(location);
             }
@@ -55,7 +54,7 @@ public abstract class AbstractPaperPlatformAdapter extends AbstractSpigotPlatfor
             previous.whenComplete((ignoredResult, ignoredError) -> runChainedTeleport(player, location, chained));
             return chained;
         });
-        teleport.whenComplete((ignoredResult, ignoredError) -> pendingTeleports.remove(playerId, teleport));
+        teleport.whenComplete((ignoredResult, ignoredError) -> pendingTeleports.remove(player.getUniqueId(), teleport));
     }
 
     private void runChainedTeleport(Player player, Location location, CompletableFuture<Boolean> result) {
@@ -115,9 +114,7 @@ public abstract class AbstractPaperPlatformAdapter extends AbstractSpigotPlatfor
 
     @Override
     public void closeDialog(Player player) {
-        if (DIALOG_AVAILABLE) {
-            PaperDialogHelper.closeDialog(player);
-        }
+        if (DIALOG_AVAILABLE) PaperDialogHelper.closeDialog(player);
     }
 
     @Override

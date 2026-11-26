@@ -28,24 +28,23 @@ public class AccountsCommand extends AbstractPlayerAuthCommand {
         }
         final String playerName = CommandUtils.getTargetPlayerName(sender, arguments);
 
-        // Assumption: a player name cannot contain '.'
-        if (playerName.contains(".")) {
-            bukkitService.runTaskAsynchronously(() ->
-                outputAccountsByIp(sender, playerName, playerName, MessageKey.ACCOUNTS_IP_NOT_FOUND));
-        } else {
-            bukkitService.runTaskAsynchronously(() -> {
-                PlayerAuth auth = getAuthOrReportUnknown(sender, playerName.toLowerCase(Locale.ROOT));
-                if (auth == null) {
-                    return;
-                }
-                String lastIp = auth.getLastIp();
-                if (lastIp == null) {
-                    getCommonService().send(sender, MessageKey.ACCOUNTS_NO_LAST_IP);
-                    return;
-                }
-                outputAccountsByIp(sender, playerName, lastIp, MessageKey.UNKNOWN_USER);
-            });
-        }
+        bukkitService.runTaskAsynchronously(() -> {
+            // Assumption: a player name cannot contain '.'
+            if (playerName.contains(".")) {
+                outputAccountsByIp(sender, playerName, playerName, MessageKey.ACCOUNTS_IP_NOT_FOUND);
+                return;
+            }
+            PlayerAuth auth = getAuthOrReportUnknown(sender, playerName.toLowerCase(Locale.ROOT));
+            if (auth == null) {
+                return;
+            }
+            String lastIp = auth.getLastIp();
+            if (lastIp == null) {
+                getCommonService().send(sender, MessageKey.ACCOUNTS_NO_LAST_IP);
+                return;
+            }
+            outputAccountsByIp(sender, playerName, lastIp, MessageKey.UNKNOWN_USER);
+        });
     }
 
     private void outputAccountsByIp(CommandSender sender, String playerName, String ip, MessageKey notFoundKey) {

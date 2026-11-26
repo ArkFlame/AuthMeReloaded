@@ -25,9 +25,8 @@ class TwoFactorRegisterExecutor extends AbstractPasswordRegisterExecutor<TwoFact
     public void executePostPersistAction(TwoFactorRegisterParams params) {
         super.executePostPersistAction(params);
 
-        // Note ljacqu 20170317: This two-factor registration type is only invoked when the password hash is configured
-        // to two-factor authentication. Therefore, the hashed password is the result of the TwoFactor EncryptionMethod
-        // implementation (contains the TOTP secret).
+        // Only invoked when the hash method is two-factor, so the hashed password is the TwoFactor result
+        // (which contains the TOTP secret).
         String hash = params.getHashedPassword().getHash();
         String qrCodeUrl = TwoFactor.getQrBarcodeUrl(params.getPlayerName(), Bukkit.getIp(), hash);
         commonService.send(params.getPlayer(), MessageKey.TWO_FACTOR_CREATE, hash, qrCodeUrl);

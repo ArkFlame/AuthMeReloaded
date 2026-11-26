@@ -54,8 +54,7 @@ class PlayerCommandTest {
                 MessageKey.PLAYER_COMMAND_ONLY, null),
             Arguments.of(new PlayerCommandWithAlt(), mock(CommandSender.class), Collections.emptyList(),
                 MessageKey.PLAYER_COMMAND_ONLY_WITH_ALTERNATIVE, "/authme test <command>"),
-            Arguments.of(new PlayerCommandImpl(), mock(Player.class), Arrays.asList("arg1", "testarg2"),
-                null, null));
+            Arguments.of(new PlayerCommandImpl(), mock(Player.class), Arrays.asList("arg1", "testarg2"), null, null));
     }
 
     private static class PlayerCommandImpl extends PlayerCommand {

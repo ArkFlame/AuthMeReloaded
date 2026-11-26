@@ -115,12 +115,6 @@ public class CommandHandler {
         }
     }
 
-    /**
-     * Returns the {@link ExecutableCommand} instance for the command of the given mapping result.
-     *
-     * @param result the command mapping result
-     * @return the executable command
-     */
     private ExecutableCommand getExecutableCommand(FoundCommandResult result) {
         return commands.get(result.getCommandDescription().getExecutableCommand());
     }

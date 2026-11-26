@@ -56,14 +56,26 @@ class ListenerServiceTest {
         listenerService = new ListenerService(settings, dataSource, playerCache, validationService);
     }
 
-    @ParameterizedTest(name = "non-player entity: {0}")
-    @MethodSource("nonPlayerEntities")
-    void shouldHandleEventWithNonPlayerEntity(Entity entity) {
-        assertThat(listenerService.shouldCancelEvent(eventWith(entity)), equalTo(false));
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("nonCancellableEvents")
+    void shouldNotCancelEventWithoutUnauthenticatedPlayer(EntityEvent entityEvent, PlayerEvent playerEvent) {
+        if (playerEvent == null) {
+            assertThat(listenerService.shouldCancelEvent(entityEvent), equalTo(false));
+            return;
+        }
+        Player player = playerEvent.getPlayer();
+        if (player != null) {
+            given(playerCache.isAuthenticated(player.getName())).willReturn(true);
+        }
+        assertThat(listenerService.shouldCancelEvent(playerEvent), equalTo(false));
     }
 
-    private static Stream<Entity> nonPlayerEntities() {
-        return Stream.of(null, mock(Entity.class));
+    private static Stream<Arguments> nonCancellableEvents() {
+        return Stream.of(
+            Arguments.of(eventWith(null), null),
+            Arguments.of(eventWith(mock(Entity.class)), null),
+            Arguments.of(null, new TestPlayerEvent(null)),
+            Arguments.of(null, new TestPlayerEvent(mockPlayerWithName("example"))));
     }
 
     private static EntityEvent eventWith(Entity entity) {
@@ -118,20 +130,6 @@ class ListenerServiceTest {
 
         assertThat(listenerService.shouldCancelEvent(eventWith(player)), equalTo(false));
         verifyNoInteractions(dataSource);
-    }
-
-    @ParameterizedTest(name = "player event with player={0}")
-    @MethodSource("playerEventPlayers")
-    void shouldHandlePlayerEvent(Player player) {
-        if (player != null) {
-            given(playerCache.isAuthenticated(player.getName())).willReturn(true);
-        }
-
-        assertThat(listenerService.shouldCancelEvent(new TestPlayerEvent(player)), equalTo(false));
-    }
-
-    private static Stream<Player> playerEventPlayers() {
-        return Stream.of(null, mockPlayerWithName("example"));
     }
 
     /**

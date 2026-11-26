@@ -86,13 +86,10 @@ class HasPermissionChecker implements DebugSection {
         P player, String node, BiFunction<P, PermissionNode, Boolean> permissionChecker, CommandSender sender) {
 
         PermissionNode permNode = getPermissionNode(sender, node);
-        if (permissionChecker.apply(player, permNode)) {
-            sender.sendMessage(ChatColor.DARK_GREEN + "Success: player '" + player.getName()
-                + "' has permission '" + node + "'");
-        } else {
-            sender.sendMessage(ChatColor.DARK_RED + "Check failed: player '" + player.getName()
+        sender.sendMessage(permissionChecker.apply(player, permNode)
+            ? ChatColor.DARK_GREEN + "Success: player '" + player.getName() + "' has permission '" + node + "'"
+            : ChatColor.DARK_RED + "Check failed: player '" + player.getName()
                 + "' does NOT have permission '" + node + "'");
-        }
     }
 
     /**

@@ -38,7 +38,10 @@ public class TaskCloser implements Runnable {
 
     @Override
     public void run() {
-        List<Integer> pendingTasks = getPendingTasks();
+        List<Integer> pendingTasks = scheduler.getActiveWorkers().stream()
+            .filter(worker -> worker.getOwner().equals(plugin) && !scheduler.isQueued(worker.getTaskId()))
+            .map(BukkitWorker::getTaskId)
+            .collect(Collectors.toList());
         logger.log(Level.INFO, "Waiting for {0} tasks to finish", pendingTasks.size());
         int progress = 0;
 
@@ -80,13 +83,5 @@ public class TaskCloser implements Runnable {
     @VisibleForTesting
     void sleep() throws InterruptedException {
         Thread.sleep(1000);
-    }
-
-    private List<Integer> getPendingTasks() {
-        // Only asynchronous, non-periodic tasks owned by this plugin need to be waited for.
-        return scheduler.getActiveWorkers().stream()
-            .filter(worker -> worker.getOwner().equals(plugin) && !scheduler.isQueued(worker.getTaskId()))
-            .map(BukkitWorker::getTaskId)
-            .collect(Collectors.toList());
     }
 }

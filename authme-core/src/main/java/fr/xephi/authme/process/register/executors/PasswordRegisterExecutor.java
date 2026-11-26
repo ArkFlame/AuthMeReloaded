@@ -13,5 +13,4 @@ class PasswordRegisterExecutor extends AbstractPasswordRegisterExecutor<Password
     public PlayerAuth createPlayerAuthObject(PasswordRegisterParams params) {
         return createPlayerAuth(params.getPlayer(), params.getHashedPassword(), params.getEmail());
     }
-
 }

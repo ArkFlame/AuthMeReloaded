@@ -45,16 +45,14 @@ final class MessageMigraterPropertyReader implements PropertyReader {
     }
 
     public static MessageMigraterPropertyReader loadFromStream(InputStream inputStream) {
-        Map<String, Object> valuesMap;
         try (InputStreamReader isr = new InputStreamReader(inputStream, CHARSET)) {
             Object obj = new Yaml().load(isr);
-            valuesMap = obj == null ? new HashMap<>() : (Map<String, Object>) obj;
+            return new MessageMigraterPropertyReader(obj == null ? new HashMap<>() : (Map<String, Object>) obj);
         } catch (IOException e) {
             throw new ConfigMeException("Could not read stream", e);
         } catch (ClassCastException e) {
             throw new ConfigMeException("Top-level is not a map", e);
         }
-        return new MessageMigraterPropertyReader(valuesMap);
     }
 
     @Override
@@ -74,9 +72,6 @@ final class MessageMigraterPropertyReader implements PropertyReader {
 
     @Override
     public Object getObject(String path) {
-        if (path.isEmpty()) {
-            return root.get("");
-        }
         Object node = root;
         for (String key : path.split("\\.")) {
             if (!(node instanceof Map<?, ?>)) {

@@ -65,8 +65,7 @@ public class ChangePasswordCommandTest {
 
     @BeforeEach
     public void requireVerificationByDefault() {
-        given(commonService.getProperty(SecuritySettings.CHANGE_PASSWORD_EMAIL_VERIFICATION_REQUIRED))
-            .willReturn(true);
+        given(commonService.getProperty(SecuritySettings.CHANGE_PASSWORD_EMAIL_VERIFICATION_REQUIRED)).willReturn(true);
     }
 
     @Test
@@ -132,8 +131,7 @@ public class ChangePasswordCommandTest {
     public void shouldHandleUnverifiedPlayerAccordingToVerificationSetting(boolean verificationRequired) {
         // given
         Player player = initPlayerWithName("unverified", true);
-        given(commonService.getProperty(SecuritySettings.CHANGE_PASSWORD_EMAIL_VERIFICATION_REQUIRED))
-            .willReturn(verificationRequired);
+        given(commonService.getProperty(SecuritySettings.CHANGE_PASSWORD_EMAIL_VERIFICATION_REQUIRED)).willReturn(verificationRequired);
         given(codeManager.isVerificationRequired(player)).willReturn(true);
         if (!verificationRequired) {
             given(validationService.validatePassword("newPass", "unverified")).willReturn(new ValidationResult());
@@ -167,5 +165,3 @@ public class ChangePasswordCommandTest {
         return player;
     }
 }
-
-

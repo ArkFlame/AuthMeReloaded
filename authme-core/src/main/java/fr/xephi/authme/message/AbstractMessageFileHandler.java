@@ -34,7 +34,6 @@ public abstract class AbstractMessageFileHandler implements Reloadable {
     private volatile FileConfiguration configuration;
     private final String defaultFile;
     private final ConcurrentHashMap<String, FileConfiguration> languageCache = new ConcurrentHashMap<>();
-    // Reused for every per-player language lookup so no loader instance is allocated per message.
     private final Function<String, FileConfiguration> languageLoader = language -> {
         File file = getMessageFile(createFilePath(language));
         return file.exists() ? YamlConfiguration.loadConfiguration(file) : UNAVAILABLE;
@@ -51,12 +50,8 @@ public abstract class AbstractMessageFileHandler implements Reloadable {
     public void reload() {
         filename = createFilePath(getLanguage());
         File messagesFile = initializeFile(filename);
-        // initializeFile returns null when neither the local nor the JAR default file exists.
-        // Use an empty configuration so lookups fall back to the normal missing-key message
-        // instead of throwing from YamlConfiguration.loadConfiguration(null).
-        configuration = messagesFile == null
-            ? new YamlConfiguration()
-            : YamlConfiguration.loadConfiguration(messagesFile);
+        // An empty configuration keeps lookups on the normal missing-key path if no file could be resolved.
+        configuration = messagesFile == null ? new YamlConfiguration() : YamlConfiguration.loadConfiguration(messagesFile);
         languageCache.clear();
     }
 
@@ -133,10 +128,7 @@ public abstract class AbstractMessageFileHandler implements Reloadable {
     /**
      * Looks up a key in the requested language only, without any fallback. Returns {@code null}
      * when the requested language is the server default, could not be loaded, or lacks the key.
-     * <p>
-     * The fallback is deliberately applied by the callers instead of being passed as a
-     * {@code Supplier}: it is then only evaluated when it is actually needed, and no supplier
-     * instance has to be allocated for the common case where no per-player language is used.
+     * Callers apply the fallback so it is evaluated lazily and no supplier is allocated.
      *
      * @param key the key to retrieve
      * @param language the requested language, or null for the server default

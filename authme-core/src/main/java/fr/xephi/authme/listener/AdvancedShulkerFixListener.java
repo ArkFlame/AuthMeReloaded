@@ -23,8 +23,7 @@ public class AdvancedShulkerFixListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onDispenserActivate(BlockDispenseEvent event) {
-        if (commonService != null
-            && !commonService.getProperty(SecuritySettings.ADVANCED_SHULKER_FIX)) {
+        if (commonService != null && !commonService.getProperty(SecuritySettings.ADVANCED_SHULKER_FIX)) {
             return;
         }
 
