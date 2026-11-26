@@ -22,6 +22,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
+import org.mockito.MockMakers;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -40,6 +41,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.withSettings;
 import static org.mockito.Mockito.mockStatic;
 
 /**
@@ -50,16 +52,16 @@ class SpawnLoaderTest {
 
     private SpawnLoader spawnLoader;
 
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private Settings settings;
 
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private PluginHookService pluginHookService;
 
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private TeleportAdapter teleportAdapter;
 
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private BukkitCompatibilityAdapter compatibilityAdapter;
 
     @TempDir
@@ -91,7 +93,7 @@ class SpawnLoaderTest {
     @Test
     void shouldSetSpawn() {
         // given
-        World world = mock(World.class);
+        World world = mock(World.class, withSettings().mockMaker(MockMakers.INLINE));
         given(world.getName()).willReturn("new_world");
         Location newSpawn = new Location(world, 123, 45.0, -67.89);
 
@@ -110,9 +112,9 @@ class SpawnLoaderTest {
     @Test
     void shouldReturnBedSpawnLocationForDeadPlayer() {
         // given
-        Player player = mock(Player.class);
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
         given(player.getHealth()).willReturn(0.0);
-        World world = mock(World.class);
+        World world = mock(World.class, withSettings().mockMaker(MockMakers.INLINE));
         Location bedSpawnLocation = new Location(world, 10.0, 70.0, -3.0);
         given(teleportAdapter.getPlayerRespawnLocation(player)).willReturn(bedSpawnLocation);
 
@@ -129,14 +131,14 @@ class SpawnLoaderTest {
         // given
         reloadWithPriority("default");
 
-        Player player = mock(Player.class);
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
         given(player.getHealth()).willReturn(0.0);
         if ("throws".equals(mode)) {
             given(teleportAdapter.getPlayerRespawnLocation(player)).willThrow(IllegalStateException.class);
         } else {
             given(teleportAdapter.getPlayerRespawnLocation(player)).willReturn(null);
         }
-        World world = mock(World.class);
+        World world = mock(World.class, withSettings().mockMaker(MockMakers.INLINE));
         Location worldSpawn = new Location(world, 5.0, 65.0, 5.0);
         given(player.getWorld()).willReturn(world);
         given(world.getSpawnLocation()).willReturn(worldSpawn);
@@ -154,12 +156,12 @@ class SpawnLoaderTest {
         // given
         reloadWithPriority("server");
 
-        World world = mock(World.class);
+        World world = mock(World.class, withSettings().mockMaker(MockMakers.INLINE));
         Location worldSpawn = new Location(world, 10.0, 64.0, -5.0);
         given(world.getSpawnLocation()).willReturn(worldSpawn);
         given(compatibilityAdapter.getSpawnRadius(world)).willReturn(radius);
         if (radius > 0) {
-            Block solid = mock(Block.class);
+            Block solid = mock(Block.class, withSettings().mockMaker(MockMakers.INLINE));
             given(compatibilityAdapter.isBlockPassable(solid)).willReturn(false);
             given(world.getBlockAt(anyInt(), anyInt(), anyInt())).willReturn(solid);
         }
@@ -176,13 +178,13 @@ class SpawnLoaderTest {
         // given
         reloadWithPriority("server");
 
-        World world = mock(World.class);
+        World world = mock(World.class, withSettings().mockMaker(MockMakers.INLINE));
         // worldSpawn at (100, 64, 200); place the result due east (+X) so the expected yaw is -90°
         Location worldSpawn = new Location(world, 100.0, 64.0, 200.0);
         given(world.getSpawnLocation()).willReturn(worldSpawn);
         given(compatibilityAdapter.getSpawnRadius(world)).willReturn(10);
 
-        Block passable = mock(Block.class);
+        Block passable = mock(Block.class, withSettings().mockMaker(MockMakers.INLINE));
         given(compatibilityAdapter.isBlockPassable(passable)).willReturn(true);
         given(world.getBlockAt(anyInt(), eq(64), anyInt()))
             .willReturn(passable);
@@ -208,14 +210,14 @@ class SpawnLoaderTest {
         // given
         reloadWithPriority("server");
 
-        World world = mock(World.class);
+        World world = mock(World.class, withSettings().mockMaker(MockMakers.INLINE));
         Location worldSpawn = new Location(world, 0.0, baseY, 0.0);
         given(world.getSpawnLocation()).willReturn(worldSpawn);
         given(compatibilityAdapter.getSpawnRadius(world)).willReturn(5);
 
-        Block passable = mock(Block.class);
+        Block passable = mock(Block.class, withSettings().mockMaker(MockMakers.INLINE));
         given(compatibilityAdapter.isBlockPassable(passable)).willReturn(true);
-        Block solid = mock(Block.class);
+        Block solid = mock(Block.class, withSettings().mockMaker(MockMakers.INLINE));
         given(compatibilityAdapter.isBlockPassable(solid)).willReturn(false);
         for (int y : solidYs) {
             given(world.getBlockAt(anyInt(), eq(y), anyInt())).willReturn(solid);
@@ -244,16 +246,16 @@ class SpawnLoaderTest {
         // given
         reloadWithPriority("default");
 
-        World world = mock(World.class);
+        World world = mock(World.class, withSettings().mockMaker(MockMakers.INLINE));
         Location worldSpawn = new Location(world, 0.0, 0.0, 0.0);
         given(world.getSpawnLocation()).willReturn(worldSpawn);
 
-        World candidateWorld = mock(World.class);
+        World candidateWorld = mock(World.class, withSettings().mockMaker(MockMakers.INLINE));
         given(candidateWorld.getSpawnLocation()).willReturn(null);
 
         // when
         Location result;
-        try (MockedStatic<Bukkit> bukkitMock = mockStatic(Bukkit.class)) {
+        try (MockedStatic<Bukkit> bukkitMock = mockStatic(Bukkit.class, withSettings().mockMaker(MockMakers.INLINE))) {
             bukkitMock.when(Bukkit::getWorlds).thenReturn(List.of(candidateWorld));
             result = spawnLoader.getSpawnLocation(world);
         }

@@ -1,6 +1,7 @@
 package fr.xephi.authme.datasource;
 
 import fr.xephi.authme.data.auth.PlayerAuth;
+import org.mockito.MockMakers;
 import fr.xephi.authme.datasource.columnshandler.AuthMeColumnsHandler;
 import fr.xephi.authme.datasource.columnshandler.PlayerAuthColumn;
 import fr.xephi.authme.datasource.mysqlextensions.MySqlExtension;
@@ -15,6 +16,7 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.withSettings;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 /**
@@ -24,10 +26,10 @@ class HikariSaveAuthFailureTest {
 
     @Test
     void shouldNotReportSuccessWhenPrimaryInsertFails() {
-        AuthMeColumnsHandler columnsHandler = mock(AuthMeColumnsHandler.class);
+        AuthMeColumnsHandler columnsHandler = mock(AuthMeColumnsHandler.class, withSettings().mockMaker(MockMakers.INLINE));
         given(columnsHandler.insert(any(PlayerAuth.class), any(PlayerAuthColumn[].class))).willReturn(false);
-        MySqlExtension extension = mock(MySqlExtension.class);
-        Connection connection = mock(Connection.class);
+        MySqlExtension extension = mock(MySqlExtension.class, withSettings().mockMaker(MockMakers.INLINE));
+        Connection connection = mock(Connection.class, withSettings().mockMaker(MockMakers.INLINE));
 
         AbstractHikariSqlDataSource dataSource = new HikariStub(columnsHandler, extension, connection);
 

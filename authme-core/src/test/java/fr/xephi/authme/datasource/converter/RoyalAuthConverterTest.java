@@ -14,6 +14,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+import org.mockito.MockMakers;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -29,6 +30,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.withSettings;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -39,13 +41,13 @@ import static org.mockito.Mockito.verify;
 @ExtendWith(MockitoExtension.class)
 class RoyalAuthConverterTest extends AbstractConverterTest {
 
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private AuthMe plugin;
 
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private Server server;
 
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private DataSource dataSource;
 
     @TempDir
@@ -78,12 +80,12 @@ class RoyalAuthConverterTest extends AbstractConverterTest {
             "timestamps:", "  quit: 1546300800000", "login:", "  password: royalauth-hash"),
             StandardCharsets.UTF_8);
 
-        try (MockedStatic<FileUtils> fileUtils = mockStatic(FileUtils.class)) {
+        try (MockedStatic<FileUtils> fileUtils = mockStatic(FileUtils.class, withSettings().mockMaker(MockMakers.INLINE))) {
             mockUserDataPath(fileUtils, "testplayer.yml", testPlayerFile);
             mockUserDataPath(fileUtils, "existingplayer.yml", new File(tempFolder, "existingplayer.yml"));
             mockUserDataPath(fileUtils, "nofileplayer.yml", new File(tempFolder, "nofileplayer.yml"));
 
-            converter.execute(mock(CommandSender.class));
+            converter.execute(mock(CommandSender.class, withSettings().mockMaker(MockMakers.INLINE)));
         }
 
         verify(dataSource).saveAuth(authCaptor.capture());

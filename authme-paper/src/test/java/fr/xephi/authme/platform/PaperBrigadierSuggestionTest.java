@@ -13,6 +13,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.MockMakers;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
@@ -28,6 +29,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.withSettings;
 import static org.mockito.Mockito.mockStatic;
 
 /** Tab completion for force-login targets must offer every online player, authenticated or not. */
@@ -38,11 +40,11 @@ public class PaperBrigadierSuggestionTest {
     private PaperBrigadierCommandRegistrar registrar;
     private CommandDispatcher<CommandSourceStack> dispatcher;
 
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private CommandSourceStack sourceStack;
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private CommandSender sender;
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private Server server;
 
     @BeforeEach
@@ -73,7 +75,7 @@ public class PaperBrigadierSuggestionTest {
     public void shouldFallBackToBukkitOnlinePlayersForSuggestions() {
         doReturn(null).when(server).getOnlinePlayers();
         Collection<Player> players = List.of(player("Carol"), player("Dave"));
-        try (var bukkit = mockStatic(Bukkit.class)) {
+        try (var bukkit = mockStatic(Bukkit.class, withSettings().mockMaker(MockMakers.INLINE))) {
             bukkit.when(Bukkit::getOnlinePlayers).thenReturn(players);
 
             assertThat(suggestionsFor("authme forcelogin "), containsInAnyOrder("Carol", "Dave"));
@@ -94,7 +96,7 @@ public class PaperBrigadierSuggestionTest {
     }
 
     private static Player player(String name) {
-        Player player = mock(Player.class);
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
         given(player.getName()).willReturn(name);
         return player;
     }

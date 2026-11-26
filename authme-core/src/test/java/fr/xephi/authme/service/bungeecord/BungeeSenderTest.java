@@ -15,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+import org.mockito.MockMakers;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
@@ -34,22 +35,22 @@ import static org.mockito.Mockito.verify;
 @MockitoSettings(strictness = Strictness.WARN)
 class BungeeSenderTest {
 
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private AuthMe plugin;
 
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private BukkitService bukkitService;
 
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private Settings settings;
 
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private Server server;
 
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private Messenger messenger;
 
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private Player carrier;
 
     @Captor

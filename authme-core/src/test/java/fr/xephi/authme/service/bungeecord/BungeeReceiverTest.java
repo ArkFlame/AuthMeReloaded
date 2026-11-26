@@ -21,6 +21,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.MockMakers;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
@@ -38,6 +39,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.withSettings;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -48,34 +50,34 @@ class BungeeReceiverTest {
     private static final String SHARED_SECRET = "test-secret";
     private static final String PLAYER_NAME = "Bobby";
 
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private AuthMe plugin;
 
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private BukkitService bukkitService;
 
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private ProxySessionManager proxySessionManager;
 
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private Management management;
 
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private BungeeSender bungeeSender;
 
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private DataSource dataSource;
 
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private ProxyLoginRequestValidator proxyLoginRequestValidator;
 
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private Settings settings;
 
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private Server server;
 
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private Messenger messenger;
 
     @BeforeAll
@@ -119,7 +121,7 @@ class BungeeReceiverTest {
         String hmac = HashUtils.hmacSha256(SHARED_SECRET, PLAYER_NAME + ":" + timestamp + ":");
         givenBungeeReceiverReady();
 
-        Player player = mock(Player.class);
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
         given(player.getName()).willReturn(PLAYER_NAME);
         given(player.isOnline()).willReturn(true);
         given(bukkitService.getPlayerExact(PLAYER_NAME)).willReturn(player);
@@ -149,7 +151,7 @@ class BungeeReceiverTest {
 
         BungeeReceiver receiver = newReceiver();
 
-        Player carrier = mock(Player.class);
+        Player carrier = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
         byte[] payload = buildPerformLoginPayload(PLAYER_NAME, timestamp, hmac);
 
         // when
@@ -171,7 +173,7 @@ class BungeeReceiverTest {
         setBukkitServiceToRunTaskAsynchronously(bukkitService);
         setBukkitServiceToScheduleSyncEntityTaskFromOptionallyAsyncTask(bukkitService);
 
-        Player player = mock(Player.class);
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
         given(player.isOnline()).willReturn(true);
         given(bukkitService.getPlayerExact(PLAYER_NAME)).willReturn(player);
         given(proxyLoginRequestValidator.validate(player, verifiedUuid)).willReturn(true);
@@ -198,7 +200,7 @@ class BungeeReceiverTest {
         givenBungeeReceiverReady();
         setBukkitServiceToRunTaskAsynchronously(bukkitService);
 
-        Player player = mock(Player.class);
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
         given(player.isOnline()).willReturn(true);
         given(bukkitService.getPlayerExact(PLAYER_NAME)).willReturn(player);
         given(proxyLoginRequestValidator.validate(player, verifiedUuid)).willReturn(false);
@@ -262,7 +264,7 @@ class BungeeReceiverTest {
     void shouldSendEmptyPremiumListOnProxyStartedWhenPremiumIsDisabled() {
         // given
         given(settings.getProperty(PremiumSettings.ENABLE_PREMIUM)).willReturn(false);
-        Player carrier = mock(Player.class);
+        Player carrier = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
         BungeeReceiver receiver = receiverForProxyStartedNotification(carrier);
 
         // when
@@ -277,7 +279,7 @@ class BungeeReceiverTest {
     void shouldSendEmptyPremiumListOnProxyStartedWhenNoPremiumUsersAreStored() {
         // given
         given(dataSource.getPremiumUsernames()).willReturn(List.of());
-        Player carrier = mock(Player.class);
+        Player carrier = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
         BungeeReceiver receiver = receiverForProxyStartedNotification(carrier);
 
         // when
@@ -305,7 +307,7 @@ class BungeeReceiverTest {
         setBukkitServiceToScheduleSyncTaskFromOptionallyAsyncTask(bukkitService);
         given(bukkitService.getOnlinePlayers()).willReturn(List.of());
 
-        Player triggeringPlayer = mock(Player.class);
+        Player triggeringPlayer = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
 
         BungeeReceiver receiver = newReceiver();
 

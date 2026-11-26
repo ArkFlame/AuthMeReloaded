@@ -1,6 +1,7 @@
 package fr.xephi.authme.listener;
 
 import ch.jalu.configme.properties.Property;
+import org.mockito.MockMakers;
 import com.destroystokyo.paper.event.player.PlayerConnectionCloseEvent;
 import com.destroystokyo.paper.profile.PlayerProfile;
 import fr.xephi.authme.data.ProxySessionManager;
@@ -72,6 +73,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willAnswer;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.withSettings;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -92,11 +94,11 @@ public class PaperDialogFlowListenerTest {
     @Test
     public void shouldShowErrorDialogAndKeepFutureOpenForEmptyPasswordSubmission() throws Exception {
         PaperDialogFlowListener listener = new PaperDialogFlowListener();
-        CommonService commonService = mock(CommonService.class);
-        Messages messages = mock(Messages.class);
-        ValidationService validationService = mock(ValidationService.class);
-        DialogWindowService dialogWindowService = mock(DialogWindowService.class);
-        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class);
+        CommonService commonService = mock(CommonService.class, withSettings().mockMaker(MockMakers.INLINE));
+        Messages messages = mock(Messages.class, withSettings().mockMaker(MockMakers.INLINE));
+        ValidationService validationService = mock(ValidationService.class, withSettings().mockMaker(MockMakers.INLINE));
+        DialogWindowService dialogWindowService = mock(DialogWindowService.class, withSettings().mockMaker(MockMakers.INLINE));
+        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class, withSettings().mockMaker(MockMakers.INLINE));
         setField(listener, "commonService", commonService);
         setField(listener, "messages", messages);
         setField(listener, "validationService", validationService);
@@ -114,20 +116,20 @@ public class PaperDialogFlowListenerTest {
 
         CompletableFuture<String> future = new CompletableFuture<>();
         PlayerConfigurationConnection connection = mockConnection("Bobby");
-        given(connection.getAudience()).willReturn(mock(Audience.class));
+        given(connection.getAudience()).willReturn(mock(Audience.class, withSettings().mockMaker(MockMakers.INLINE)));
         seedSession(listener, connection, "pendingRegisterResponses", future);
 
-        DialogResponseView responseView = mock(DialogResponseView.class);
+        DialogResponseView responseView = mock(DialogResponseView.class, withSettings().mockMaker(MockMakers.INLINE));
         given(responseView.getText("password")).willReturn("");
 
-        PlayerCustomClickEvent event = mock(PlayerCustomClickEvent.class);
+        PlayerCustomClickEvent event = mock(PlayerCustomClickEvent.class, withSettings().mockMaker(MockMakers.INLINE));
         given(event.getCommonConnection()).willReturn(connection);
         given(event.getIdentifier()).willReturn(PaperDialogActionKeys.PRE_JOIN_REGISTER_SUBMIT);
         given(event.getDialogResponseView()).willReturn(responseView);
 
         // PaperDialogHelper.createPreJoinRegisterDialog() requires Paper registry internals;
         // mock the static to avoid that dependency and focus on behavioral assertions.
-        try (var helperStatic = mockStatic(PaperDialogHelper.class)) {
+        try (var helperStatic = mockStatic(PaperDialogHelper.class, withSettings().mockMaker(MockMakers.INLINE))) {
             helperStatic.when(() -> PaperDialogHelper.createPreJoinRegisterDialog(any())).thenReturn(null);
 
             listener.onPlayerCustomClick(event);
@@ -145,7 +147,7 @@ public class PaperDialogFlowListenerTest {
                                                                           Key cancelAction,
                                                                           String responseField) throws Exception {
         PaperDialogFlowListener listener = new PaperDialogFlowListener();
-        CommonService commonService = mock(CommonService.class);
+        CommonService commonService = mock(CommonService.class, withSettings().mockMaker(MockMakers.INLINE));
         setField(listener, "commonService", commonService);
         given(commonService.getProperty(kicksSetting)).willReturn(false);
 
@@ -153,7 +155,7 @@ public class PaperDialogFlowListenerTest {
         PlayerConfigurationConnection connection = mockConnection("Bobby");
         seedSession(listener, connection, responseField, future);
 
-        PlayerCustomClickEvent event = mock(PlayerCustomClickEvent.class);
+        PlayerCustomClickEvent event = mock(PlayerCustomClickEvent.class, withSettings().mockMaker(MockMakers.INLINE));
         given(event.getCommonConnection()).willReturn(connection);
         given(event.getIdentifier()).willReturn(cancelAction);
 
@@ -230,8 +232,8 @@ public class PaperDialogFlowListenerTest {
                                                                        String responseField,
                                                                        MessageKey messageKey) throws Exception {
         PaperDialogFlowListener listener = new PaperDialogFlowListener();
-        CommonService commonService = mock(CommonService.class);
-        Messages messages = mock(Messages.class);
+        CommonService commonService = mock(CommonService.class, withSettings().mockMaker(MockMakers.INLINE));
+        Messages messages = mock(Messages.class, withSettings().mockMaker(MockMakers.INLINE));
         setField(listener, "commonService", commonService);
         setField(listener, "messages", messages);
         given(commonService.getProperty(kicksSetting)).willReturn(true);
@@ -241,7 +243,7 @@ public class PaperDialogFlowListenerTest {
         PlayerConfigurationConnection connection = mockConnection("Bobby");
         seedSession(listener, connection, responseField, future);
 
-        PlayerCustomClickEvent event = mock(PlayerCustomClickEvent.class);
+        PlayerCustomClickEvent event = mock(PlayerCustomClickEvent.class, withSettings().mockMaker(MockMakers.INLINE));
         given(event.getCommonConnection()).willReturn(connection);
         given(event.getIdentifier()).willReturn(cancelAction);
 
@@ -264,9 +266,9 @@ public class PaperDialogFlowListenerTest {
     @Test
     public void shouldKickWhenPreJoinRecoveryIsSubmittedWithoutEmailAndSettingEnabled() throws Exception {
         PaperDialogFlowListener listener = new PaperDialogFlowListener();
-        CommonService commonService = mock(CommonService.class);
-        Messages messages = mock(Messages.class);
-        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class);
+        CommonService commonService = mock(CommonService.class, withSettings().mockMaker(MockMakers.INLINE));
+        Messages messages = mock(Messages.class, withSettings().mockMaker(MockMakers.INLINE));
+        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class, withSettings().mockMaker(MockMakers.INLINE));
         setField(listener, "commonService", commonService);
         setField(listener, "messages", messages);
         setField(listener, "preJoinDialogService", preJoinDialogService);
@@ -286,8 +288,8 @@ public class PaperDialogFlowListenerTest {
     @Test
     public void shouldFallbackToPostJoinDialogWhenPreJoinRecoveryIsSubmittedWithoutEmail() throws Exception {
         PaperDialogFlowListener listener = new PaperDialogFlowListener();
-        CommonService commonService = mock(CommonService.class);
-        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class);
+        CommonService commonService = mock(CommonService.class, withSettings().mockMaker(MockMakers.INLINE));
+        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class, withSettings().mockMaker(MockMakers.INLINE));
         setField(listener, "commonService", commonService);
         setField(listener, "preJoinDialogService", preJoinDialogService);
         given(commonService.getProperty(RegistrationSettings.PRE_JOIN_LOGIN_CANCEL_KICKS)).willReturn(false);
@@ -305,7 +307,7 @@ public class PaperDialogFlowListenerTest {
     @Test
     public void shouldStoreRecoveryEmailSubmittedInPreJoinDialog() throws Exception {
         PaperDialogFlowListener listener = new PaperDialogFlowListener();
-        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class);
+        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class, withSettings().mockMaker(MockMakers.INLINE));
         setField(listener, "preJoinDialogService", preJoinDialogService);
 
         CompletableFuture<String> future = new CompletableFuture<>();
@@ -321,11 +323,11 @@ public class PaperDialogFlowListenerTest {
     @Test
     public void shouldSkipPreJoinDialogsForAuthenticatedPlayerEvenIfPostJoinDialogsAreDisabled() throws Exception {
         PaperDialogFlowListener listener = new PaperDialogFlowListener();
-        CommonService commonService = mock(CommonService.class);
-        PlayerCache playerCache = mock(PlayerCache.class);
-        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class);
-        SessionService sessionService = mock(SessionService.class);
-        ProxySessionManager proxySessionManager = mock(ProxySessionManager.class);
+        CommonService commonService = mock(CommonService.class, withSettings().mockMaker(MockMakers.INLINE));
+        PlayerCache playerCache = mock(PlayerCache.class, withSettings().mockMaker(MockMakers.INLINE));
+        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class, withSettings().mockMaker(MockMakers.INLINE));
+        SessionService sessionService = mock(SessionService.class, withSettings().mockMaker(MockMakers.INLINE));
+        ProxySessionManager proxySessionManager = mock(ProxySessionManager.class, withSettings().mockMaker(MockMakers.INLINE));
         setField(listener, "commonService", commonService);
         setField(listener, "playerCache", playerCache);
         setField(listener, "preJoinDialogService", preJoinDialogService);
@@ -338,16 +340,16 @@ public class PaperDialogFlowListenerTest {
         given(playerCache.isAuthenticated("bobby")).willReturn(true);
 
         UUID playerId = UUID.randomUUID();
-        PlayerProfile profile = mock(PlayerProfile.class);
+        PlayerProfile profile = mock(PlayerProfile.class, withSettings().mockMaker(MockMakers.INLINE));
         given(profile.getId()).willReturn(playerId);
         given(profile.getName()).willReturn("Bobby");
 
-        Audience audience = mock(Audience.class);
-        PlayerConfigurationConnection connection = mock(PlayerConfigurationConnection.class);
+        Audience audience = mock(Audience.class, withSettings().mockMaker(MockMakers.INLINE));
+        PlayerConfigurationConnection connection = mock(PlayerConfigurationConnection.class, withSettings().mockMaker(MockMakers.INLINE));
         given(connection.getProfile()).willReturn(profile);
         given(connection.getAudience()).willReturn(audience);
 
-        AsyncPlayerConnectionConfigureEvent event = mock(AsyncPlayerConnectionConfigureEvent.class);
+        AsyncPlayerConnectionConfigureEvent event = mock(AsyncPlayerConnectionConfigureEvent.class, withSettings().mockMaker(MockMakers.INLINE));
         given(event.getConnection()).willReturn(connection);
 
         listener.onPlayerConfigure(event);
@@ -359,11 +361,11 @@ public class PaperDialogFlowListenerTest {
     @Test
     public void shouldSkipPreJoinDialogsForPlayerWithValidSession() throws Exception {
         PaperDialogFlowListener listener = new PaperDialogFlowListener();
-        CommonService commonService = mock(CommonService.class);
-        PlayerCache playerCache = mock(PlayerCache.class);
-        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class);
-        SessionService sessionService = mock(SessionService.class);
-        ProxySessionManager proxySessionManager = mock(ProxySessionManager.class);
+        CommonService commonService = mock(CommonService.class, withSettings().mockMaker(MockMakers.INLINE));
+        PlayerCache playerCache = mock(PlayerCache.class, withSettings().mockMaker(MockMakers.INLINE));
+        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class, withSettings().mockMaker(MockMakers.INLINE));
+        SessionService sessionService = mock(SessionService.class, withSettings().mockMaker(MockMakers.INLINE));
+        ProxySessionManager proxySessionManager = mock(ProxySessionManager.class, withSettings().mockMaker(MockMakers.INLINE));
         setField(listener, "commonService", commonService);
         setField(listener, "playerCache", playerCache);
         setField(listener, "preJoinDialogService", preJoinDialogService);
@@ -377,18 +379,18 @@ public class PaperDialogFlowListenerTest {
         given(sessionService.hasValidSession("bobby", "203.0.113.5")).willReturn(true);
 
         UUID playerId = UUID.randomUUID();
-        PlayerProfile profile = mock(PlayerProfile.class);
+        PlayerProfile profile = mock(PlayerProfile.class, withSettings().mockMaker(MockMakers.INLINE));
         given(profile.getId()).willReturn(playerId);
         given(profile.getName()).willReturn("Bobby");
 
-        Audience audience = mock(Audience.class);
-        PlayerConfigurationConnection connection = mock(PlayerConfigurationConnection.class);
+        Audience audience = mock(Audience.class, withSettings().mockMaker(MockMakers.INLINE));
+        PlayerConfigurationConnection connection = mock(PlayerConfigurationConnection.class, withSettings().mockMaker(MockMakers.INLINE));
         given(connection.getProfile()).willReturn(profile);
         given(connection.getAudience()).willReturn(audience);
         given(connection.getClientAddress())
             .willReturn(new InetSocketAddress(InetAddress.getByName("203.0.113.5"), 25565));
 
-        AsyncPlayerConnectionConfigureEvent event = mock(AsyncPlayerConnectionConfigureEvent.class);
+        AsyncPlayerConnectionConfigureEvent event = mock(AsyncPlayerConnectionConfigureEvent.class, withSettings().mockMaker(MockMakers.INLINE));
         given(event.getConnection()).willReturn(connection);
 
         listener.onPlayerConfigure(event);
@@ -400,11 +402,11 @@ public class PaperDialogFlowListenerTest {
     @Test
     public void shouldSkipPreJoinDialogsForProxyAutoLogin() throws Exception {
         PaperDialogFlowListener listener = new PaperDialogFlowListener();
-        CommonService commonService = mock(CommonService.class);
-        PlayerCache playerCache = mock(PlayerCache.class);
-        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class);
-        SessionService sessionService = mock(SessionService.class);
-        ProxySessionManager proxySessionManager = mock(ProxySessionManager.class);
+        CommonService commonService = mock(CommonService.class, withSettings().mockMaker(MockMakers.INLINE));
+        PlayerCache playerCache = mock(PlayerCache.class, withSettings().mockMaker(MockMakers.INLINE));
+        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class, withSettings().mockMaker(MockMakers.INLINE));
+        SessionService sessionService = mock(SessionService.class, withSettings().mockMaker(MockMakers.INLINE));
+        ProxySessionManager proxySessionManager = mock(ProxySessionManager.class, withSettings().mockMaker(MockMakers.INLINE));
         setField(listener, "commonService", commonService);
         setField(listener, "playerCache", playerCache);
         setField(listener, "preJoinDialogService", preJoinDialogService);
@@ -419,16 +421,16 @@ public class PaperDialogFlowListenerTest {
             .willReturn(new ProxySessionManager.ProxyLoginRequest("bobby", null));
 
         UUID playerId = UUID.randomUUID();
-        PlayerProfile profile = mock(PlayerProfile.class);
+        PlayerProfile profile = mock(PlayerProfile.class, withSettings().mockMaker(MockMakers.INLINE));
         given(profile.getId()).willReturn(playerId);
         given(profile.getName()).willReturn("Bobby");
 
-        Audience audience = mock(Audience.class);
-        PlayerConfigurationConnection connection = mock(PlayerConfigurationConnection.class);
+        Audience audience = mock(Audience.class, withSettings().mockMaker(MockMakers.INLINE));
+        PlayerConfigurationConnection connection = mock(PlayerConfigurationConnection.class, withSettings().mockMaker(MockMakers.INLINE));
         given(connection.getProfile()).willReturn(profile);
         given(connection.getAudience()).willReturn(audience);
 
-        AsyncPlayerConnectionConfigureEvent event = mock(AsyncPlayerConnectionConfigureEvent.class);
+        AsyncPlayerConnectionConfigureEvent event = mock(AsyncPlayerConnectionConfigureEvent.class, withSettings().mockMaker(MockMakers.INLINE));
         given(event.getConnection()).willReturn(connection);
 
         listener.onPlayerConfigure(event);
@@ -441,13 +443,13 @@ public class PaperDialogFlowListenerTest {
     @Test
     public void shouldSkipPreJoinDialogsForVerifiedPremiumPlayer() throws Exception {
         PaperDialogFlowListener listener = new PaperDialogFlowListener();
-        CommonService commonService = mock(CommonService.class);
-        PlayerCache playerCache = mock(PlayerCache.class);
-        DataSource dataSource = mock(DataSource.class);
-        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class);
-        SessionService sessionService = mock(SessionService.class);
-        ProxySessionManager proxySessionManager = mock(ProxySessionManager.class);
-        PremiumLoginVerifier premiumLoginVerifier = mock(PremiumLoginVerifier.class);
+        CommonService commonService = mock(CommonService.class, withSettings().mockMaker(MockMakers.INLINE));
+        PlayerCache playerCache = mock(PlayerCache.class, withSettings().mockMaker(MockMakers.INLINE));
+        DataSource dataSource = mock(DataSource.class, withSettings().mockMaker(MockMakers.INLINE));
+        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class, withSettings().mockMaker(MockMakers.INLINE));
+        SessionService sessionService = mock(SessionService.class, withSettings().mockMaker(MockMakers.INLINE));
+        ProxySessionManager proxySessionManager = mock(ProxySessionManager.class, withSettings().mockMaker(MockMakers.INLINE));
+        PremiumLoginVerifier premiumLoginVerifier = mock(PremiumLoginVerifier.class, withSettings().mockMaker(MockMakers.INLINE));
         setField(listener, "commonService", commonService);
         setField(listener, "playerCache", playerCache);
         setField(listener, "dataSource", dataSource);
@@ -455,7 +457,7 @@ public class PaperDialogFlowListenerTest {
         setField(listener, "sessionService", sessionService);
         setField(listener, "proxySessionManager", proxySessionManager);
         setField(listener, "premiumLoginVerifier", premiumLoginVerifier);
-        setField(listener, "floodgateService", mock(FloodgateService.class));
+        setField(listener, "floodgateService", mock(FloodgateService.class, withSettings().mockMaker(MockMakers.INLINE)));
 
         UUID premiumUuid = UUID.randomUUID();
         // Offline (v3) UUID simulates an offline-mode backend without proxy
@@ -476,16 +478,16 @@ public class PaperDialogFlowListenerTest {
         given(premiumLoginVerifier.getVerifiedUuid("Bobby")).willReturn(premiumUuid);
         given(preJoinDialogService.openSession("bobby")).willReturn(SESSION_ID);
 
-        PlayerProfile profile = mock(PlayerProfile.class);
+        PlayerProfile profile = mock(PlayerProfile.class, withSettings().mockMaker(MockMakers.INLINE));
         given(profile.getId()).willReturn(playerId);
         given(profile.getName()).willReturn("Bobby");
 
-        Audience audience = mock(Audience.class);
-        PlayerConfigurationConnection connection = mock(PlayerConfigurationConnection.class);
+        Audience audience = mock(Audience.class, withSettings().mockMaker(MockMakers.INLINE));
+        PlayerConfigurationConnection connection = mock(PlayerConfigurationConnection.class, withSettings().mockMaker(MockMakers.INLINE));
         given(connection.getProfile()).willReturn(profile);
         given(connection.getAudience()).willReturn(audience);
 
-        AsyncPlayerConnectionConfigureEvent event = mock(AsyncPlayerConnectionConfigureEvent.class);
+        AsyncPlayerConnectionConfigureEvent event = mock(AsyncPlayerConnectionConfigureEvent.class, withSettings().mockMaker(MockMakers.INLINE));
         given(event.getConnection()).willReturn(connection);
 
         listener.onPlayerConfigure(event);
@@ -497,12 +499,12 @@ public class PaperDialogFlowListenerTest {
     @Test
     public void shouldSkipPreJoinDialogsForRegisteredFloodgatePlayer() throws Exception {
         PlayerAuth auth = PlayerAuth.builder().name(".bobby").password(new HashedPassword("hash")).build();
-        FloodgateService floodgateService = mock(FloodgateService.class);
+        FloodgateService floodgateService = mock(FloodgateService.class, withSettings().mockMaker(MockMakers.INLINE));
         UUID playerId = UUID.fromString("00000000-0000-0000-0009-01f163ba2c3a");
         given(floodgateService.canAutoLogin(playerId)).willReturn(true);
 
-        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class);
-        Audience audience = mock(Audience.class);
+        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class, withSettings().mockMaker(MockMakers.INLINE));
+        Audience audience = mock(Audience.class, withSettings().mockMaker(MockMakers.INLINE));
 
         configureFloodgateJoin(floodgateService, preJoinDialogService, audience, playerId, auth);
 
@@ -512,12 +514,12 @@ public class PaperDialogFlowListenerTest {
 
     @Test
     public void shouldSkipPreJoinDialogsForUnregisteredFloodgatePlayerWithAutoRegister() throws Exception {
-        FloodgateService floodgateService = mock(FloodgateService.class);
+        FloodgateService floodgateService = mock(FloodgateService.class, withSettings().mockMaker(MockMakers.INLINE));
         UUID playerId = UUID.fromString("00000000-0000-0000-0009-01f163ba2c3a");
         given(floodgateService.canAutoRegister(playerId)).willReturn(true);
 
-        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class);
-        Audience audience = mock(Audience.class);
+        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class, withSettings().mockMaker(MockMakers.INLINE));
+        Audience audience = mock(Audience.class, withSettings().mockMaker(MockMakers.INLINE));
 
         configureFloodgateJoin(floodgateService, preJoinDialogService, audience, playerId, null);
 
@@ -530,11 +532,11 @@ public class PaperDialogFlowListenerTest {
                                                PreJoinDialogService preJoinDialogService, Audience audience,
                                                UUID playerId, PlayerAuth auth) throws Exception {
         PaperDialogFlowListener listener = new PaperDialogFlowListener();
-        CommonService commonService = mock(CommonService.class);
-        PlayerCache playerCache = mock(PlayerCache.class);
-        DataSource dataSource = mock(DataSource.class);
-        SessionService sessionService = mock(SessionService.class);
-        ProxySessionManager proxySessionManager = mock(ProxySessionManager.class);
+        CommonService commonService = mock(CommonService.class, withSettings().mockMaker(MockMakers.INLINE));
+        PlayerCache playerCache = mock(PlayerCache.class, withSettings().mockMaker(MockMakers.INLINE));
+        DataSource dataSource = mock(DataSource.class, withSettings().mockMaker(MockMakers.INLINE));
+        SessionService sessionService = mock(SessionService.class, withSettings().mockMaker(MockMakers.INLINE));
+        ProxySessionManager proxySessionManager = mock(ProxySessionManager.class, withSettings().mockMaker(MockMakers.INLINE));
         setField(listener, "commonService", commonService);
         setField(listener, "playerCache", playerCache);
         setField(listener, "dataSource", dataSource);
@@ -548,15 +550,15 @@ public class PaperDialogFlowListenerTest {
         given(dataSource.getAuth(".bobby")).willReturn(auth);
         given(preJoinDialogService.openSession(".bobby")).willReturn(SESSION_ID);
 
-        PlayerProfile profile = mock(PlayerProfile.class);
+        PlayerProfile profile = mock(PlayerProfile.class, withSettings().mockMaker(MockMakers.INLINE));
         given(profile.getId()).willReturn(playerId);
         given(profile.getName()).willReturn(".Bobby");
 
-        PlayerConfigurationConnection connection = mock(PlayerConfigurationConnection.class);
+        PlayerConfigurationConnection connection = mock(PlayerConfigurationConnection.class, withSettings().mockMaker(MockMakers.INLINE));
         given(connection.getProfile()).willReturn(profile);
         given(connection.getAudience()).willReturn(audience);
 
-        AsyncPlayerConnectionConfigureEvent event = mock(AsyncPlayerConnectionConfigureEvent.class);
+        AsyncPlayerConnectionConfigureEvent event = mock(AsyncPlayerConnectionConfigureEvent.class, withSettings().mockMaker(MockMakers.INLINE));
         given(event.getConnection()).willReturn(connection);
 
         listener.onPlayerConfigure(event);
@@ -565,13 +567,13 @@ public class PaperDialogFlowListenerTest {
     @Test
     public void shouldNotSkipPreJoinDialogsForUnverifiedPremiumPlayer() throws Exception {
         PaperDialogFlowListener listener = new PaperDialogFlowListener();
-        CommonService commonService = mock(CommonService.class);
-        PlayerCache playerCache = mock(PlayerCache.class);
-        DataSource dataSource = mock(DataSource.class);
-        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class);
-        SessionService sessionService = mock(SessionService.class);
-        ProxySessionManager proxySessionManager = mock(ProxySessionManager.class);
-        PremiumLoginVerifier premiumLoginVerifier = mock(PremiumLoginVerifier.class);
+        CommonService commonService = mock(CommonService.class, withSettings().mockMaker(MockMakers.INLINE));
+        PlayerCache playerCache = mock(PlayerCache.class, withSettings().mockMaker(MockMakers.INLINE));
+        DataSource dataSource = mock(DataSource.class, withSettings().mockMaker(MockMakers.INLINE));
+        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class, withSettings().mockMaker(MockMakers.INLINE));
+        SessionService sessionService = mock(SessionService.class, withSettings().mockMaker(MockMakers.INLINE));
+        ProxySessionManager proxySessionManager = mock(ProxySessionManager.class, withSettings().mockMaker(MockMakers.INLINE));
+        PremiumLoginVerifier premiumLoginVerifier = mock(PremiumLoginVerifier.class, withSettings().mockMaker(MockMakers.INLINE));
         setField(listener, "commonService", commonService);
         setField(listener, "playerCache", playerCache);
         setField(listener, "dataSource", dataSource);
@@ -603,8 +605,8 @@ public class PaperDialogFlowListenerTest {
         // proxy forwarding hasn't been applied yet, the pre-join dialog must be skipped and the
         // final UUID check deferred to AsynchronousJoin.
         PaperDialogFlowListener listener = new PaperDialogFlowListener();
-        CommonService commonService = mock(CommonService.class);
-        PremiumLoginVerifier premiumLoginVerifier = mock(PremiumLoginVerifier.class);
+        CommonService commonService = mock(CommonService.class, withSettings().mockMaker(MockMakers.INLINE));
+        PremiumLoginVerifier premiumLoginVerifier = mock(PremiumLoginVerifier.class, withSettings().mockMaker(MockMakers.INLINE));
         setField(listener, "commonService", commonService);
         setField(listener, "premiumLoginVerifier", premiumLoginVerifier);
 
@@ -628,7 +630,7 @@ public class PaperDialogFlowListenerTest {
         // When the proxy has already forwarded the Mojang UUID (v4) into the PlayerProfile,
         // we can verify directly at the pre-join phase.
         PaperDialogFlowListener listener = new PaperDialogFlowListener();
-        CommonService commonService = mock(CommonService.class);
+        CommonService commonService = mock(CommonService.class, withSettings().mockMaker(MockMakers.INLINE));
         setField(listener, "commonService", commonService);
 
         UUID premiumUuid = UUID.randomUUID(); // v4 random
@@ -648,7 +650,7 @@ public class PaperDialogFlowListenerTest {
     public void shouldNotSkipPreJoinDialogForImpostorWithMismatchedMojangUuidInProxyMode() throws Exception {
         // An impostor with a different Mojang UUID (v4) must NOT bypass the dialog.
         PaperDialogFlowListener listener = new PaperDialogFlowListener();
-        CommonService commonService = mock(CommonService.class);
+        CommonService commonService = mock(CommonService.class, withSettings().mockMaker(MockMakers.INLINE));
         setField(listener, "commonService", commonService);
 
         UUID storedPremiumUuid = UUID.randomUUID(); // v4 — the legitimate player's UUID
@@ -675,7 +677,7 @@ public class PaperDialogFlowListenerTest {
     @Test
     public void shouldRetireSessionOfClosedConnectionOnly() throws Exception {
         PaperDialogFlowListener listener = new PaperDialogFlowListener();
-        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class);
+        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class, withSettings().mockMaker(MockMakers.INLINE));
         setField(listener, "preJoinDialogService", preJoinDialogService);
 
         PlayerConfigurationConnection gone = mockConnection("Bobby");
@@ -689,9 +691,9 @@ public class PaperDialogFlowListenerTest {
         pendingResponses(listener, "pendingLoginResponses").put(SESSION_ID, goneFuture);
         pendingResponses(listener, "pendingLoginResponses").put(SESSION_ID + 1, liveFuture);
 
-        setField(listener, "proxySessionManager", mock(ProxySessionManager.class));
+        setField(listener, "proxySessionManager", mock(ProxySessionManager.class, withSettings().mockMaker(MockMakers.INLINE)));
 
-        try (var bukkit = mockStatic(Bukkit.class)) {
+        try (var bukkit = mockStatic(Bukkit.class, withSettings().mockMaker(MockMakers.INLINE))) {
             listener.onPlayerConnectionClose(new PlayerConnectionCloseEvent(
                 UUID.randomUUID(), "Bobby", new java.net.InetSocketAddress(InetAddress.getLoopbackAddress(), 25565), false));
         }
@@ -709,12 +711,12 @@ public class PaperDialogFlowListenerTest {
     @ValueSource(booleans = {false, true})
     public void shouldHandleQueuedProxyLoginOnConnectionClose(boolean playerOnline) throws Exception {
         PaperDialogFlowListener listener = new PaperDialogFlowListener();
-        ProxySessionManager proxySessionManager = mock(ProxySessionManager.class);
+        ProxySessionManager proxySessionManager = mock(ProxySessionManager.class, withSettings().mockMaker(MockMakers.INLINE));
         setField(listener, "proxySessionManager", proxySessionManager);
 
-        try (var bukkit = mockStatic(Bukkit.class)) {
+        try (var bukkit = mockStatic(Bukkit.class, withSettings().mockMaker(MockMakers.INLINE))) {
             if (playerOnline) {
-                bukkit.when(() -> Bukkit.getPlayerExact("Bobby")).thenReturn(mock(Player.class));
+                bukkit.when(() -> Bukkit.getPlayerExact("Bobby")).thenReturn(mock(Player.class, withSettings().mockMaker(MockMakers.INLINE)));
             }
             listener.onPlayerConnectionClose(new PlayerConnectionCloseEvent(
                 UUID.randomUUID(), "Bobby", new java.net.InetSocketAddress(InetAddress.getLoopbackAddress(), 25565), false));
@@ -730,15 +732,15 @@ public class PaperDialogFlowListenerTest {
     @Test
     public void shouldKeepPreJoinLoginDialogOpenWhenLoginTimeoutIsDisabled() throws Exception {
         PaperDialogFlowListener listener = new PaperDialogFlowListener();
-        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class);
-        Audience audience = mock(Audience.class);
+        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class, withSettings().mockMaker(MockMakers.INLINE));
+        Audience audience = mock(Audience.class, withSettings().mockMaker(MockMakers.INLINE));
         PlayerConfigurationConnection connection = newBlockingDialogSetup(listener, preJoinDialogService, audience);
-        setField(listener, "proxySessionManager", mock(ProxySessionManager.class));
-        setField(listener, "dialogWindowService", mock(DialogWindowService.class));
+        setField(listener, "proxySessionManager", mock(ProxySessionManager.class, withSettings().mockMaker(MockMakers.INLINE)));
+        setField(listener, "dialogWindowService", mock(DialogWindowService.class, withSettings().mockMaker(MockMakers.INLINE)));
         givenTimeout(listener, RestrictionSettings.LOGIN_TIMEOUT, 0);
         givenDialogIsAnsweredLate(listener, audience, "pendingLoginResponses");
 
-        try (var helperStatic = mockStatic(PaperDialogHelper.class)) {
+        try (var helperStatic = mockStatic(PaperDialogHelper.class, withSettings().mockMaker(MockMakers.INLINE))) {
             helperStatic.when(() -> PaperDialogHelper.createPreJoinLoginDialog(any())).thenReturn(null);
 
             invokeHandleBlockingLoginDialog(listener, connection);
@@ -750,8 +752,8 @@ public class PaperDialogFlowListenerTest {
     @Test
     public void shouldKeepPreJoinRegisterDialogOpenWhenRegisterTimeoutIsDisabled() throws Exception {
         PaperDialogFlowListener listener = new PaperDialogFlowListener();
-        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class);
-        Audience audience = mock(Audience.class);
+        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class, withSettings().mockMaker(MockMakers.INLINE));
+        Audience audience = mock(Audience.class, withSettings().mockMaker(MockMakers.INLINE));
         PlayerConfigurationConnection connection = newBlockingDialogSetup(listener, preJoinDialogService, audience);
         givenTimeout(listener, RestrictionSettings.REGISTER_TIMEOUT, 0);
         givenDialogIsAnsweredLate(listener, audience, "pendingRegisterResponses");
@@ -764,14 +766,14 @@ public class PaperDialogFlowListenerTest {
     @Test
     public void shouldKickWhenPreJoinLoginDialogTimesOut() throws Exception {
         PaperDialogFlowListener listener = new PaperDialogFlowListener();
-        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class);
+        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class, withSettings().mockMaker(MockMakers.INLINE));
         PlayerConfigurationConnection connection =
-            newBlockingDialogSetup(listener, preJoinDialogService, mock(Audience.class));
-        setField(listener, "proxySessionManager", mock(ProxySessionManager.class));
-        setField(listener, "dialogWindowService", mock(DialogWindowService.class));
+            newBlockingDialogSetup(listener, preJoinDialogService, mock(Audience.class, withSettings().mockMaker(MockMakers.INLINE)));
+        setField(listener, "proxySessionManager", mock(ProxySessionManager.class, withSettings().mockMaker(MockMakers.INLINE)));
+        setField(listener, "dialogWindowService", mock(DialogWindowService.class, withSettings().mockMaker(MockMakers.INLINE)));
         givenTimeout(listener, RestrictionSettings.LOGIN_TIMEOUT, 1);
 
-        try (var helperStatic = mockStatic(PaperDialogHelper.class)) {
+        try (var helperStatic = mockStatic(PaperDialogHelper.class, withSettings().mockMaker(MockMakers.INLINE))) {
             helperStatic.when(() -> PaperDialogHelper.createPreJoinLoginDialog(any())).thenReturn(null);
 
             invokeHandleBlockingLoginDialog(listener, connection);
@@ -784,7 +786,7 @@ public class PaperDialogFlowListenerTest {
     private static PlayerConfigurationConnection newBlockingDialogSetup(PaperDialogFlowListener listener,
                                                                         PreJoinDialogService preJoinDialogService,
                                                                         Audience audience) throws Exception {
-        Messages messages = mock(Messages.class);
+        Messages messages = mock(Messages.class, withSettings().mockMaker(MockMakers.INLINE));
         setField(listener, "messages", messages);
         setField(listener, "preJoinDialogService", preJoinDialogService);
         given(messages.retrieveSingle("Bobby", MessageKey.LOGIN_TIMEOUT_ERROR)).willReturn("Timed out!");
@@ -796,7 +798,7 @@ public class PaperDialogFlowListenerTest {
 
     private static void givenTimeout(PaperDialogFlowListener listener, Property<Integer> property,
                                      int seconds) throws Exception {
-        CommonService commonService = mock(CommonService.class);
+        CommonService commonService = mock(CommonService.class, withSettings().mockMaker(MockMakers.INLINE));
         setField(listener, "commonService", commonService);
         given(commonService.getProperty(property)).willReturn(seconds);
     }
@@ -825,9 +827,9 @@ public class PaperDialogFlowListenerTest {
 
     private static PlayerCustomClickEvent recoverySubmitEvent(PlayerConfigurationConnection connection,
                                                               String email) {
-        DialogResponseView responseView = mock(DialogResponseView.class);
+        DialogResponseView responseView = mock(DialogResponseView.class, withSettings().mockMaker(MockMakers.INLINE));
         given(responseView.getText("email")).willReturn(email);
-        PlayerCustomClickEvent event = mock(PlayerCustomClickEvent.class);
+        PlayerCustomClickEvent event = mock(PlayerCustomClickEvent.class, withSettings().mockMaker(MockMakers.INLINE));
         given(event.getCommonConnection()).willReturn(connection);
         given(event.getIdentifier()).willReturn(PaperDialogActionKeys.PRE_JOIN_RECOVERY_SUBMIT);
         given(event.getDialogResponseView()).willReturn(responseView);
@@ -844,13 +846,13 @@ public class PaperDialogFlowListenerTest {
 
     private static final class PreJoinLoginSetup {
         final PaperDialogFlowListener listener = new PaperDialogFlowListener();
-        final Messages messages = mock(Messages.class);
-        final DataSource dataSource = mock(DataSource.class);
-        final PasswordSecurity passwordSecurity = mock(PasswordSecurity.class);
-        final PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class);
-        final LoginCaptchaManager loginCaptchaManager = mock(LoginCaptchaManager.class);
-        final TempbanManager tempbanManager = mock(TempbanManager.class);
-        final BukkitService bukkitService = mock(BukkitService.class);
+        final Messages messages = mock(Messages.class, withSettings().mockMaker(MockMakers.INLINE));
+        final DataSource dataSource = mock(DataSource.class, withSettings().mockMaker(MockMakers.INLINE));
+        final PasswordSecurity passwordSecurity = mock(PasswordSecurity.class, withSettings().mockMaker(MockMakers.INLINE));
+        final PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class, withSettings().mockMaker(MockMakers.INLINE));
+        final LoginCaptchaManager loginCaptchaManager = mock(LoginCaptchaManager.class, withSettings().mockMaker(MockMakers.INLINE));
+        final TempbanManager tempbanManager = mock(TempbanManager.class, withSettings().mockMaker(MockMakers.INLINE));
+        final BukkitService bukkitService = mock(BukkitService.class, withSettings().mockMaker(MockMakers.INLINE));
         final PlayerAuth auth = PlayerAuth.builder().name("bobby")
             .password(new HashedPassword("hash")).build();
         final CompletableFuture<String> future = new CompletableFuture<>();
@@ -875,9 +877,9 @@ public class PaperDialogFlowListenerTest {
         }
 
         PlayerCustomClickEvent submitEvent(String password) {
-            DialogResponseView responseView = mock(DialogResponseView.class);
+            DialogResponseView responseView = mock(DialogResponseView.class, withSettings().mockMaker(MockMakers.INLINE));
             given(responseView.getText("password")).willReturn(password);
-            PlayerCustomClickEvent event = mock(PlayerCustomClickEvent.class);
+            PlayerCustomClickEvent event = mock(PlayerCustomClickEvent.class, withSettings().mockMaker(MockMakers.INLINE));
             given(event.getCommonConnection()).willReturn(connection);
             given(event.getIdentifier()).willReturn(PaperDialogActionKeys.PRE_JOIN_LOGIN_SUBMIT);
             given(event.getDialogResponseView()).willReturn(responseView);

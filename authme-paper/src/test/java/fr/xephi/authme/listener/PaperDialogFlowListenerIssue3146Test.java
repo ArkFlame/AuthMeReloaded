@@ -1,6 +1,7 @@
 package fr.xephi.authme.listener;
 
 import fr.xephi.authme.data.ProxySessionManager;
+import org.mockito.MockMakers;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.message.Messages;
 import fr.xephi.authme.platform.PaperDialogHelper;
@@ -29,6 +30,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.withSettings;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
@@ -39,12 +41,12 @@ public class PaperDialogFlowListenerIssue3146Test {
     @Test
     public void shouldCloseLoginDialogWhenResponseTimesOut() throws Exception {
         PaperDialogFlowListener listener = new PaperDialogFlowListener();
-        CommonService commonService = mock(CommonService.class);
-        Messages messages = mock(Messages.class);
-        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class);
-        ProxySessionManager proxySessionManager = mock(ProxySessionManager.class);
-        DialogWindowService dialogWindowService = mock(DialogWindowService.class);
-        Audience audience = mock(Audience.class);
+        CommonService commonService = mock(CommonService.class, withSettings().mockMaker(MockMakers.INLINE));
+        Messages messages = mock(Messages.class, withSettings().mockMaker(MockMakers.INLINE));
+        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class, withSettings().mockMaker(MockMakers.INLINE));
+        ProxySessionManager proxySessionManager = mock(ProxySessionManager.class, withSettings().mockMaker(MockMakers.INLINE));
+        DialogWindowService dialogWindowService = mock(DialogWindowService.class, withSettings().mockMaker(MockMakers.INLINE));
+        Audience audience = mock(Audience.class, withSettings().mockMaker(MockMakers.INLINE));
         setField(listener, "commonService", commonService);
         setField(listener, "messages", messages);
         setField(listener, "preJoinDialogService", preJoinDialogService);
@@ -59,7 +61,7 @@ public class PaperDialogFlowListenerIssue3146Test {
 
         // Static mocks are thread-local, so install it on the thread that runs the blocking method.
         Thread blockingThread = new Thread(() -> {
-            try (var helperStatic = mockStatic(PaperDialogHelper.class)) {
+            try (var helperStatic = mockStatic(PaperDialogHelper.class, withSettings().mockMaker(MockMakers.INLINE))) {
                 helperStatic.when(() -> PaperDialogHelper.createPreJoinLoginDialog(any())).thenReturn(null);
                 invokeBlockingMethod(listener, connection, "handleBlockingLoginDialog",
                     PlayerConfigurationConnection.class, long.class, String.class);
@@ -86,10 +88,10 @@ public class PaperDialogFlowListenerIssue3146Test {
     @Test
     public void shouldCloseRegisterDialogWhenResponseTimesOut() throws Exception {
         PaperDialogFlowListener listener = new PaperDialogFlowListener();
-        CommonService commonService = mock(CommonService.class);
-        Messages messages = mock(Messages.class);
-        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class);
-        Audience audience = mock(Audience.class);
+        CommonService commonService = mock(CommonService.class, withSettings().mockMaker(MockMakers.INLINE));
+        Messages messages = mock(Messages.class, withSettings().mockMaker(MockMakers.INLINE));
+        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class, withSettings().mockMaker(MockMakers.INLINE));
+        Audience audience = mock(Audience.class, withSettings().mockMaker(MockMakers.INLINE));
         setField(listener, "commonService", commonService);
         setField(listener, "messages", messages);
         setField(listener, "preJoinDialogService", preJoinDialogService);

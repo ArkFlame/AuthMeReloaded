@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockMakers;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -22,6 +23,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.withSettings;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -36,15 +38,15 @@ class DoubleLoginFixListenerTest {
     @InjectMocks
     private DoubleLoginFixListener listener;
 
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private CommonService commonService;
 
     @Test
     void shouldNotKickAnyoneWhenFeatureIsDisabled() {
         given(commonService.getProperty(SecuritySettings.ANTI_GHOST_PLAYERS)).willReturn(false);
-        Player player = mock(Player.class);
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
 
-        withBukkitServer(mock(Server.class), () -> listener.onDuplicateNameJoin(mock(PlayerJoinEvent.class)));
+        withBukkitServer(mock(Server.class, withSettings().mockMaker(MockMakers.INLINE)), () -> listener.onDuplicateNameJoin(mock(PlayerJoinEvent.class, withSettings().mockMaker(MockMakers.INLINE))));
 
         verify(commonService).getProperty(SecuritySettings.ANTI_GHOST_PLAYERS);
         verifyNoInteractions(player);
@@ -59,7 +61,7 @@ class DoubleLoginFixListenerTest {
             .willReturn("Doubled login");
 
         withBukkitServer(serverWithPlayers(first, duplicate),
-            () -> listener.onDuplicateNameJoin(mock(PlayerJoinEvent.class)));
+            () -> listener.onDuplicateNameJoin(mock(PlayerJoinEvent.class, withSettings().mockMaker(MockMakers.INLINE))));
 
         verify(first, never()).kickPlayer("Doubled login");
         verify(duplicate).kickPlayer("Doubled login");
@@ -72,7 +74,7 @@ class DoubleLoginFixListenerTest {
         Player second = mockPlayerWithName("Bob");
 
         withBukkitServer(serverWithPlayers(first, second),
-            () -> listener.onDuplicateNameJoin(mock(PlayerJoinEvent.class)));
+            () -> listener.onDuplicateNameJoin(mock(PlayerJoinEvent.class, withSettings().mockMaker(MockMakers.INLINE))));
 
         verify(first, never()).kickPlayer(anyString());
         verify(second, never()).kickPlayer(anyString());
@@ -80,14 +82,14 @@ class DoubleLoginFixListenerTest {
     }
 
     private void withBukkitServer(Server server, Runnable action) {
-        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class, withSettings().mockMaker(MockMakers.INLINE))) {
             bukkit.when(Bukkit::getServer).thenReturn(server);
             action.run();
         }
     }
 
     private static Server serverWithPlayers(Player... players) {
-        Server server = mock(Server.class);
+        Server server = mock(Server.class, withSettings().mockMaker(MockMakers.INLINE));
         doReturn(Arrays.asList(players)).when(server).getOnlinePlayers();
         return server;
     }

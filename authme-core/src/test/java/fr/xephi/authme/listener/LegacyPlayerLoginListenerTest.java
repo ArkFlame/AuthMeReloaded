@@ -9,13 +9,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockMakers;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static fr.xephi.authme.listener.TestPlayerUtils.mockPlayerWithName;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.withSettings;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -26,18 +29,18 @@ class LegacyPlayerLoginListenerTest {
     @InjectMocks
     private LegacyPlayerLoginListener listener;
 
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private Messages messages;
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private OnJoinVerifier onJoinVerifier;
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private ValidationService validationService;
 
     @Test
     void shouldNotInterfereWithUnrestrictedUser() throws FailedVerificationException {
         String name = "Player01";
         Player player = mockPlayerWithName(name);
-        PlayerLoginEvent event = spy(new PlayerLoginEvent(player, "", null));
+        PlayerLoginEvent event = inlineSpy(new PlayerLoginEvent(player, "", null));
         given(validationService.isUnrestricted(name)).willReturn(true);
 
         listener.onPlayerLogin(event);
@@ -52,7 +55,7 @@ class LegacyPlayerLoginListenerTest {
     void shouldStopHandlingForFullServer() throws FailedVerificationException {
         String name = "someone";
         Player player = mockPlayerWithName(name);
-        PlayerLoginEvent event = spy(new PlayerLoginEvent(player, "", null));
+        PlayerLoginEvent event = inlineSpy(new PlayerLoginEvent(player, "", null));
         given(validationService.isUnrestricted(name)).willReturn(false);
         given(onJoinVerifier.refusePlayerForFullServer(event)).willReturn(true);
 
@@ -71,7 +74,7 @@ class LegacyPlayerLoginListenerTest {
         Player player = mockPlayerWithName(name);
         PlayerLoginEvent event = new PlayerLoginEvent(player, "", null);
         event.setResult(PlayerLoginEvent.Result.KICK_BANNED);
-        event = spy(event);
+        event = inlineSpy(event);
         given(validationService.isUnrestricted(name)).willReturn(false);
         given(onJoinVerifier.refusePlayerForFullServer(event)).willReturn(false);
 
@@ -87,7 +90,7 @@ class LegacyPlayerLoginListenerTest {
     void shouldKickForFailedSingleSessionCheck() throws FailedVerificationException {
         String name = "someone";
         Player player = mockPlayerWithName(name);
-        PlayerLoginEvent event = spy(new PlayerLoginEvent(player, "", null));
+        PlayerLoginEvent event = inlineSpy(new PlayerLoginEvent(player, "", null));
         FailedVerificationException exception = new FailedVerificationException(MessageKey.ALREADY_LOGGED_IN_ERROR);
         doThrow(exception).when(onJoinVerifier).checkSingleSession(name);
         given(messages.retrieveSingle(name, exception.getReason(), exception.getArgs())).willReturn("Already logged in");
@@ -103,7 +106,7 @@ class LegacyPlayerLoginListenerTest {
     void shouldPerformAllJoinVerificationsSuccessfullyLogin() {
         String name = "someone";
         Player player = mockPlayerWithName(name);
-        PlayerLoginEvent loginEvent = spy(new PlayerLoginEvent(player, "", null));
+        PlayerLoginEvent loginEvent = inlineSpy(new PlayerLoginEvent(player, "", null));
         given(validationService.isUnrestricted(name)).willReturn(false);
         given(onJoinVerifier.refusePlayerForFullServer(loginEvent)).willReturn(false);
 
@@ -120,5 +123,11 @@ class LegacyPlayerLoginListenerTest {
         verify(event, atLeast(0)).getResult();
         verify(event, atLeast(0)).getAddress();
         verifyNoMoreInteractions(event);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> T inlineSpy(T instance) {
+        return mock((Class<T>) instance.getClass(), withSettings().spiedInstance(instance)
+            .defaultAnswer(CALLS_REAL_METHODS).mockMaker(MockMakers.INLINE));
     }
 }

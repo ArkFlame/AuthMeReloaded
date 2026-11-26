@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockMakers;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -22,6 +23,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.withSettings;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -35,7 +37,7 @@ class LoginLocationFixListenerTest {
     @InjectMocks
     private LoginLocationFixListener listener;
 
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private CommonService commonService;
 
     @Test
@@ -43,17 +45,17 @@ class LoginLocationFixListenerTest {
         given(commonService.getProperty(SecuritySettings.LOGIN_LOC_FIX_SUB_PORTAL)).willReturn(true);
         given(commonService.getProperty(SecuritySettings.LOGIN_LOC_FIX_SUB_UNDERGROUND)).willReturn(true);
 
-        Player player = mock(Player.class);
-        Location joinLocation = mock(Location.class);
-        Block joinBlock = mock(Block.class);
-        Block above = mock(Block.class);
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
+        Location joinLocation = mock(Location.class, withSettings().mockMaker(MockMakers.INLINE));
+        Block joinBlock = mock(Block.class, withSettings().mockMaker(MockMakers.INLINE));
+        Block above = mock(Block.class, withSettings().mockMaker(MockMakers.INLINE));
         given(joinBlock.getType()).willReturn(Material.AIR);
         given(joinBlock.getRelative(BlockFace.UP)).willReturn(above);
         given(above.getType()).willReturn(Material.AIR);
         given(joinLocation.getBlock()).willReturn(joinBlock);
         given(player.getLocation()).willReturn(joinLocation);
 
-        try (MockedStatic<TeleportUtils> teleportUtils = mockStatic(TeleportUtils.class)) {
+        try (MockedStatic<TeleportUtils> teleportUtils = mockStatic(TeleportUtils.class, withSettings().mockMaker(MockMakers.INLINE))) {
             listener.onLoginLocationFix(eventFor(player));
 
             teleportUtils.verifyNoInteractions();
@@ -66,12 +68,12 @@ class LoginLocationFixListenerTest {
         given(commonService.getProperty(SecuritySettings.LOGIN_LOC_FIX_SUB_PORTAL)).willReturn(true);
         given(commonService.getProperty(SecuritySettings.LOGIN_LOC_FIX_SUB_UNDERGROUND)).willReturn(false);
 
-        Player player = mock(Player.class);
-        Location joinLocation = mock(Location.class);
-        Block joinBlock = mock(Block.class);
-        Block above = mock(Block.class);
-        Block neighbor = mock(Block.class);
-        Block neighborAbove = mock(Block.class);
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
+        Location joinLocation = mock(Location.class, withSettings().mockMaker(MockMakers.INLINE));
+        Block joinBlock = mock(Block.class, withSettings().mockMaker(MockMakers.INLINE));
+        Block above = mock(Block.class, withSettings().mockMaker(MockMakers.INLINE));
+        Block neighbor = mock(Block.class, withSettings().mockMaker(MockMakers.INLINE));
+        Block neighborAbove = mock(Block.class, withSettings().mockMaker(MockMakers.INLINE));
         given(joinLocation.getBlock()).willReturn(joinBlock);
         given(player.getLocation()).willReturn(joinLocation);
         given(joinBlock.getType()).willReturn(portalMaterial());
@@ -80,9 +82,9 @@ class LoginLocationFixListenerTest {
         given(neighbor.getType()).willReturn(Material.AIR);
         given(neighbor.getRelative(BlockFace.UP)).willReturn(neighborAbove);
         given(neighborAbove.getType()).willReturn(Material.AIR);
-        given(neighbor.getLocation()).willReturn(new Location(mock(World.class), 10, 64, 10));
+        given(neighbor.getLocation()).willReturn(new Location(mock(World.class, withSettings().mockMaker(MockMakers.INLINE)), 10, 64, 10));
 
-        try (MockedStatic<TeleportUtils> teleportUtils = mockStatic(TeleportUtils.class)) {
+        try (MockedStatic<TeleportUtils> teleportUtils = mockStatic(TeleportUtils.class, withSettings().mockMaker(MockMakers.INLINE))) {
             listener.onLoginLocationFix(eventFor(player));
 
             teleportUtils.verify(() -> TeleportUtils.teleport(eq(player), any(Location.class)));
@@ -95,21 +97,21 @@ class LoginLocationFixListenerTest {
         given(commonService.getProperty(SecuritySettings.LOGIN_LOC_FIX_SUB_PORTAL)).willReturn(false);
         given(commonService.getProperty(SecuritySettings.LOGIN_LOC_FIX_SUB_UNDERGROUND)).willReturn(true);
 
-        Player player = mock(Player.class);
-        Location joinLocation = mock(Location.class);
-        World world = mock(World.class);
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
+        Location joinLocation = mock(Location.class, withSettings().mockMaker(MockMakers.INLINE));
+        World world = mock(World.class, withSettings().mockMaker(MockMakers.INLINE));
         given(world.getMaxHeight()).willReturn(5);
         given(player.getWorld()).willReturn(world);
         given(player.getLocation()).willReturn(joinLocation);
 
-        Block buried = mock(Block.class);
-        Block buriedAbove = mock(Block.class);
+        Block buried = mock(Block.class, withSettings().mockMaker(MockMakers.INLINE));
+        Block buriedAbove = mock(Block.class, withSettings().mockMaker(MockMakers.INLINE));
         given(buried.getRelative(BlockFace.UP)).willReturn(buriedAbove);
         given(buriedAbove.getType()).willReturn(Material.STONE);
 
-        Block candidate = mock(Block.class);
-        Block solidBelow = mock(Block.class);
-        Block airAbove = mock(Block.class);
+        Block candidate = mock(Block.class, withSettings().mockMaker(MockMakers.INLINE));
+        Block solidBelow = mock(Block.class, withSettings().mockMaker(MockMakers.INLINE));
+        Block airAbove = mock(Block.class, withSettings().mockMaker(MockMakers.INLINE));
         given(candidate.getRelative(BlockFace.DOWN)).willReturn(solidBelow);
         given(solidBelow.getType()).willReturn(Material.STONE);
         given(candidate.getType()).willReturn(Material.AIR);
@@ -119,7 +121,7 @@ class LoginLocationFixListenerTest {
 
         given(joinLocation.getBlock()).willReturn(buried, candidate);
 
-        try (MockedStatic<TeleportUtils> teleportUtils = mockStatic(TeleportUtils.class)) {
+        try (MockedStatic<TeleportUtils> teleportUtils = mockStatic(TeleportUtils.class, withSettings().mockMaker(MockMakers.INLINE))) {
             listener.onLoginLocationFix(eventFor(player));
 
             teleportUtils.verify(() -> TeleportUtils.teleport(eq(player), any(Location.class)));
@@ -132,9 +134,9 @@ class LoginLocationFixListenerTest {
         given(commonService.getProperty(SecuritySettings.LOGIN_LOC_FIX_SUB_PORTAL)).willReturn(false);
         given(commonService.getProperty(SecuritySettings.LOGIN_LOC_FIX_SUB_UNDERGROUND)).willReturn(false);
 
-        Player player = mock(Player.class);
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
 
-        try (MockedStatic<TeleportUtils> teleportUtils = mockStatic(TeleportUtils.class)) {
+        try (MockedStatic<TeleportUtils> teleportUtils = mockStatic(TeleportUtils.class, withSettings().mockMaker(MockMakers.INLINE))) {
             listener.onLoginLocationFix(eventFor(player));
 
             verify(commonService).getProperty(SecuritySettings.LOGIN_LOC_FIX_SUB_PORTAL);
@@ -145,7 +147,7 @@ class LoginLocationFixListenerTest {
     }
 
     private static PlayerJoinEvent eventFor(Player player) {
-        PlayerJoinEvent event = mock(PlayerJoinEvent.class);
+        PlayerJoinEvent event = mock(PlayerJoinEvent.class, withSettings().mockMaker(MockMakers.INLINE));
         given(event.getPlayer()).willReturn(player);
         return event;
     }

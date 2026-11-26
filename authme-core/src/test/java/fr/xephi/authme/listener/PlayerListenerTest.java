@@ -64,6 +64,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockMakers;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.lang.reflect.Field;
@@ -98,10 +99,11 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.withSettings;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.only;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -119,39 +121,39 @@ class PlayerListenerTest {
     @InjectMocks
     private PlayerListener listener;
 
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private Settings settings;
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private Messages messages;
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private DataSource dataSource;
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private Management management;
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private BukkitService bukkitService;
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private SpawnLoader spawnLoader;
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private OnJoinVerifier onJoinVerifier;
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private ListenerService listenerService;
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private TeleportationService teleportationService;
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private ValidationService validationService;
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private JoinMessageService joinMessageService;
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private QuickCommandsProtectionManager quickCommandsProtectionManager;
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private PermissionsManager permissionsManager;
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private LimboService limboService;
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private ChatAdapter chatAdapter;
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private TeleportAdapter teleportAdapter;
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private PlayerCache playerCache;
 
     @AfterEach
@@ -174,7 +176,7 @@ class PlayerListenerTest {
             given(chatAdapter.getKickReason(any()))
                 .willAnswer(inv -> inv.getArgument(0, PlayerKickEvent.class).getReason());
         }
-        Player player = mock(Player.class);
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
         PlayerKickEvent event = new PlayerKickEvent(player, reason, "");
 
         listener.onPlayerKick(event);
@@ -209,7 +211,7 @@ class PlayerListenerTest {
 
     @Test
     void shouldCancelEnderPearlTeleportOfUnauthenticatedPlayer() {
-        PlayerTeleportEvent event = mock(PlayerTeleportEvent.class);
+        PlayerTeleportEvent event = mock(PlayerTeleportEvent.class, withSettings().mockMaker(MockMakers.INLINE));
         given(event.getCause()).willReturn(PlayerTeleportEvent.TeleportCause.ENDER_PEARL);
         given(listenerService.shouldCancelEvent(event)).willReturn(true);
 
@@ -220,7 +222,7 @@ class PlayerListenerTest {
 
     @Test
     void shouldNotCancelPluginTeleport() {
-        PlayerTeleportEvent event = mock(PlayerTeleportEvent.class);
+        PlayerTeleportEvent event = mock(PlayerTeleportEvent.class, withSettings().mockMaker(MockMakers.INLINE));
         given(event.getCause()).willReturn(PlayerTeleportEvent.TeleportCause.PLUGIN);
 
         listener.onPlayerTeleport(event);
@@ -258,7 +260,7 @@ class PlayerListenerTest {
         given(settings.getProperty(RestrictionSettings.ALLOW_COMMANDS)).willReturn(Collections.emptySet());
         Player player = playerWithMockedServer();
         // PlayerCommandPreprocessEvent#getPlayer is final, so create a spy instead of a mock
-        PlayerCommandPreprocessEvent event = spy(new PlayerCommandPreprocessEvent(player, "/hub"));
+        PlayerCommandPreprocessEvent event = inlineSpy(new PlayerCommandPreprocessEvent(player, "/hub"));
         given(listenerService.shouldCancelEvent(player)).willReturn(false);
         given(quickCommandsProtectionManager.isAllowed(player.getName())).willReturn(true);
 
@@ -276,7 +278,7 @@ class PlayerListenerTest {
         given(settings.getProperty(HooksSettings.USE_ESSENTIALS_MOTD)).willReturn(false);
         given(settings.getProperty(RestrictionSettings.ALLOW_COMMANDS)).willReturn(newHashSet("/spawn", "/help"));
         Player player = playerWithMockedServer();
-        PlayerCommandPreprocessEvent event = spy(new PlayerCommandPreprocessEvent(player, "/hub"));
+        PlayerCommandPreprocessEvent event = inlineSpy(new PlayerCommandPreprocessEvent(player, "/hub"));
         given(listenerService.shouldCancelEvent(player)).willReturn(true);
         given(quickCommandsProtectionManager.isAllowed(player.getName())).willReturn(true);
 
@@ -292,7 +294,7 @@ class PlayerListenerTest {
         given(settings.getProperty(HooksSettings.USE_ESSENTIALS_MOTD)).willReturn(false);
         given(settings.getProperty(RestrictionSettings.ALLOW_COMMANDS)).willReturn(newHashSet("/spawn", "/help"));
         Player player = playerWithMockedServer();
-        PlayerCommandPreprocessEvent event = spy(new PlayerCommandPreprocessEvent(player, "/hub"));
+        PlayerCommandPreprocessEvent event = inlineSpy(new PlayerCommandPreprocessEvent(player, "/hub"));
         given(quickCommandsProtectionManager.isAllowed(player.getName())).willReturn(false);
 
         listener.onPlayerCommandPreprocess(event);
@@ -304,7 +306,7 @@ class PlayerListenerTest {
     @Test
     void shouldAllowChat() {
         given(settings.getProperty(RestrictionSettings.ALLOW_CHAT)).willReturn(true);
-        AsyncPlayerChatEvent event = mock(AsyncPlayerChatEvent.class);
+        AsyncPlayerChatEvent event = mock(AsyncPlayerChatEvent.class, withSettings().mockMaker(MockMakers.INLINE));
 
         listener.onPlayerChat(event);
 
@@ -396,9 +398,9 @@ class PlayerListenerTest {
     void shouldAllowUnlimitedMovement() {
         given(settings.getProperty(RestrictionSettings.ALLOW_UNAUTHED_MOVEMENT)).willReturn(true);
         given(settings.getProperty(RestrictionSettings.ALLOWED_MOVEMENT_RADIUS)).willReturn(0);
-        Player player = mock(Player.class);
-        Location location = mock(Location.class);
-        PlayerMoveEvent event = spy(new PlayerMoveEvent(player, location, location));
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
+        Location location = mock(Location.class, withSettings().mockMaker(MockMakers.INLINE));
+        PlayerMoveEvent event = inlineSpy(new PlayerMoveEvent(player, location, location));
 
         listener.onPlayerMove(event);
 
@@ -408,10 +410,10 @@ class PlayerListenerTest {
     @Test
     void shouldAllowFalling() {
         given(settings.getProperty(RestrictionSettings.ALLOW_UNAUTHED_MOVEMENT)).willReturn(false);
-        Player player = mock(Player.class);
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
         Location from = new Location(null, 100, 90, 200);
         Location to = new Location(null, 100, 88, 200);
-        PlayerMoveEvent event = spy(new PlayerMoveEvent(player, from, to));
+        PlayerMoveEvent event = inlineSpy(new PlayerMoveEvent(player, from, to));
 
         listener.onPlayerMove(event);
 
@@ -421,10 +423,10 @@ class PlayerListenerTest {
     @Test
     void shouldAllowMovementForAuthedPlayer() {
         given(settings.getProperty(RestrictionSettings.ALLOW_UNAUTHED_MOVEMENT)).willReturn(false);
-        Player player = mock(Player.class);
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
         Location from = new Location(null, 100, 90, 200);
         Location to = new Location(null, 99, 90, 200);
-        PlayerMoveEvent event = spy(new PlayerMoveEvent(player, from, to));
+        PlayerMoveEvent event = inlineSpy(new PlayerMoveEvent(player, from, to));
         given(listenerService.shouldCancelEvent(player)).willReturn(false);
 
         listener.onPlayerMove(event);
@@ -436,11 +438,11 @@ class PlayerListenerTest {
     @Test
     void shouldCancelEventForDisabledUnauthedMovement() {
         given(settings.getProperty(RestrictionSettings.ALLOW_UNAUTHED_MOVEMENT)).willReturn(false);
-        Player player = mock(Player.class);
-        World world = mock(World.class);
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
+        World world = mock(World.class, withSettings().mockMaker(MockMakers.INLINE));
         Location from = new Location(world, 200, 70, 200);
         Location to = new Location(world, 199, 70, 199);
-        PlayerMoveEvent event = spy(new PlayerMoveEvent(player, from, to));
+        PlayerMoveEvent event = inlineSpy(new PlayerMoveEvent(player, from, to));
         given(listenerService.shouldCancelEvent(player)).willReturn(true);
 
         listener.onPlayerMove(event);
@@ -453,15 +455,15 @@ class PlayerListenerTest {
     void shouldTeleportPlayerInDifferentWorldToSpawn() {
         given(settings.getProperty(RestrictionSettings.ALLOW_UNAUTHED_MOVEMENT)).willReturn(true);
         given(settings.getProperty(RestrictionSettings.ALLOWED_MOVEMENT_RADIUS)).willReturn(20);
-        World playerWorld = mock(World.class);
-        Player player = mock(Player.class);
+        World playerWorld = mock(World.class, withSettings().mockMaker(MockMakers.INLINE));
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
         given(player.getWorld()).willReturn(playerWorld);
         Location from = new Location(null, 200, 70, 200);
         Location to = new Location(null, 199, 70, 199);
-        PlayerMoveEvent event = spy(new PlayerMoveEvent(player, from, to));
+        PlayerMoveEvent event = inlineSpy(new PlayerMoveEvent(player, from, to));
         given(listenerService.shouldCancelEvent(player)).willReturn(true);
         given(settings.getProperty(RestrictionSettings.NO_TELEPORT)).willReturn(false);
-        World world = mock(World.class);
+        World world = mock(World.class, withSettings().mockMaker(MockMakers.INLINE));
         Location spawn = new Location(world, 0, 90, 0);
         given(spawnLoader.getSpawnLocation(player)).willReturn(spawn);
 
@@ -478,12 +480,12 @@ class PlayerListenerTest {
     void shouldEnforceMovementRadius(String description, boolean withinRadius) {
         given(settings.getProperty(RestrictionSettings.ALLOW_UNAUTHED_MOVEMENT)).willReturn(true);
         given(settings.getProperty(RestrictionSettings.ALLOWED_MOVEMENT_RADIUS)).willReturn(12);
-        World world = mock(World.class);
-        Player player = mock(Player.class);
+        World world = mock(World.class, withSettings().mockMaker(MockMakers.INLINE));
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
         given(player.getWorld()).willReturn(world);
         Location from = new Location(world, 200, 70, 200);
         Location to = new Location(world, 199, 69, 201);
-        PlayerMoveEvent event = spy(new PlayerMoveEvent(player, from, to));
+        PlayerMoveEvent event = inlineSpy(new PlayerMoveEvent(player, from, to));
         given(player.getLocation()).willReturn(from);
         given(listenerService.shouldCancelEvent(player)).willReturn(true);
         given(settings.getProperty(RestrictionSettings.NO_TELEPORT)).willReturn(false);
@@ -511,9 +513,9 @@ class PlayerListenerTest {
 
     @Test
     void shouldIgnorePlayerRespawnForAuthenticatedPlayer() {
-        Player player = mock(Player.class);
-        Location respawnLocation = mock(Location.class);
-        PlayerRespawnEvent event = spy(new PlayerRespawnEvent(player, respawnLocation, false));
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
+        Location respawnLocation = mock(Location.class, withSettings().mockMaker(MockMakers.INLINE));
+        PlayerRespawnEvent event = inlineSpy(new PlayerRespawnEvent(player, respawnLocation, false));
         given(listenerService.shouldCancelEvent(event)).willReturn(false);
 
         listener.onPlayerRespawn(event);
@@ -524,9 +526,9 @@ class PlayerListenerTest {
 
     @Test
     void shouldSkipTeleportOnRespawnWithNoTeleportButStillScheduleRestrictions() {
-        Player player = mock(Player.class);
-        Location respawnLocation = mock(Location.class);
-        PlayerRespawnEvent event = spy(new PlayerRespawnEvent(player, respawnLocation, false));
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
+        Location respawnLocation = mock(Location.class, withSettings().mockMaker(MockMakers.INLINE));
+        PlayerRespawnEvent event = inlineSpy(new PlayerRespawnEvent(player, respawnLocation, false));
         given(listenerService.shouldCancelEvent(event)).willReturn(true);
         given(settings.getProperty(RestrictionSettings.NO_TELEPORT)).willReturn(true);
 
@@ -540,9 +542,9 @@ class PlayerListenerTest {
     @ParameterizedTest(name = "{0}")
     @MethodSource("respawnLocations")
     void shouldApplyRespawnLocation(String description, Location respawnLocation, boolean expectLocationChange) {
-        Player player = mock(Player.class);
-        Location originalLocation = mock(Location.class);
-        PlayerRespawnEvent event = spy(new PlayerRespawnEvent(player, originalLocation, false));
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
+        Location originalLocation = mock(Location.class, withSettings().mockMaker(MockMakers.INLINE));
+        PlayerRespawnEvent event = inlineSpy(new PlayerRespawnEvent(player, originalLocation, false));
         given(settings.getProperty(RestrictionSettings.NO_TELEPORT)).willReturn(false);
         given(listenerService.shouldCancelEvent(event)).willReturn(true);
         given(spawnLoader.getPlayerRespawnLocationOrSpawn(player)).willReturn(respawnLocation);
@@ -559,7 +561,7 @@ class PlayerListenerTest {
     }
 
     /** Location only weakly references its world, so keep a strong reference for the test's lifetime. */
-    private static final World LOADED_WORLD = mock(World.class);
+    private static final World LOADED_WORLD = mock(World.class, withSettings().mockMaker(MockMakers.INLINE));
 
     private static Stream<Arguments> respawnLocations() {
         return Stream.of(
@@ -570,7 +572,7 @@ class PlayerListenerTest {
 
     @Test
     void shouldHandlePlayerJoining() {
-        Player player = mock(Player.class);
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
         PlayerJoinEvent event = new PlayerJoinEvent(player, "join message");
 
         listener.onPlayerJoin(event);
@@ -581,7 +583,7 @@ class PlayerListenerTest {
 
     @Test
     void shouldDiscardCachedAuthenticationOnJoin() {
-        Player player = mock(Player.class);
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
         given(player.getName()).willReturn("Bobby");
         PlayerJoinEvent event = new PlayerJoinEvent(player, "join message");
 
@@ -625,7 +627,7 @@ class PlayerListenerTest {
         UUID uniqueId = TEST_PLAYER_UUID;
     
         @SuppressWarnings("ConstantConditions")
-        AsyncPlayerPreLoginEvent preLoginEvent = spy(new AsyncPlayerPreLoginEvent(name, null, uniqueId));
+        AsyncPlayerPreLoginEvent preLoginEvent = inlineSpy(new AsyncPlayerPreLoginEvent(name, null, uniqueId));
         given(messages.retrieveSingle(name, MessageKey.KICK_UNRESOLVED_HOSTNAME)).willReturn("Unresolved hostname");
 
         listener.onAsyncPlayerPreLoginEventLowest(preLoginEvent);
@@ -657,7 +659,7 @@ class PlayerListenerTest {
     void shouldKeepCachedLoginOnPreLoginWhenPlayerWithNameIsOnline() {
         AsyncPlayerPreLoginEvent preLoginEvent = newPreLoginEvent("12.34.56.78");
         given(validationService.isUnrestricted(TEST_PLAYER_NAME)).willReturn(false);
-        given(bukkitService.getPlayerExact(TEST_PLAYER_NAME)).willReturn(mock(Player.class));
+        given(bukkitService.getPlayerExact(TEST_PLAYER_NAME)).willReturn(mock(Player.class, withSettings().mockMaker(MockMakers.INLINE)));
 
         listener.onAsyncPlayerPreLoginEventHighest(preLoginEvent);
 
@@ -669,7 +671,7 @@ class PlayerListenerTest {
         String name = "restrictedPlayer";
         UUID uniqueId = UUID.fromString("c60b7305-3a78-4f71-8a60-70a3f17e1c90");
         InetAddress address = createInetAddress("10.20.30.40");
-        AsyncPlayerPreLoginEvent event = spy(new AsyncPlayerPreLoginEvent(name, address, uniqueId));
+        AsyncPlayerPreLoginEvent event = inlineSpy(new AsyncPlayerPreLoginEvent(name, address, uniqueId));
         given(validationService.isUnrestricted(name)).willReturn(false);
         PlayerAuth auth = PlayerAuth.builder().name(name).build();
         given(dataSource.getAuth(name)).willReturn(auth);
@@ -690,7 +692,7 @@ class PlayerListenerTest {
         String name = "inval!dName";
         UUID uniqueId = TEST_PLAYER_UUID;
         InetAddress ip = createInetAddress("33.32.33.33");
-        AsyncPlayerPreLoginEvent event = spy(new AsyncPlayerPreLoginEvent(name, ip, uniqueId));
+        AsyncPlayerPreLoginEvent event = inlineSpy(new AsyncPlayerPreLoginEvent(name, ip, uniqueId));
         given(validationService.isUnrestricted(name)).willReturn(false);
         FailedVerificationException exception = new FailedVerificationException(
             MessageKey.INVALID_NAME_CHARACTERS, "[a-z]");
@@ -717,7 +719,7 @@ class PlayerListenerTest {
             given(settings.getProperty(RegistrationSettings.REMOVE_UNLOGGED_LEAVE_MESSAGE))
                 .willReturn(removeUnloggedLeaveMessage);
         }
-        Player player = mock(Player.class);
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
         PlayerQuitEvent event = new PlayerQuitEvent(player, "quit message");
         given(listenerService.shouldCancelEvent(player)).willReturn(true); // player not authenticated
         if (!removeLeaveMessage && removeUnloggedLeaveMessage) {
@@ -743,7 +745,7 @@ class PlayerListenerTest {
 
     @Test
     void shouldRestoreLimboDataSynchronouslyOnQuitOfPlayerInLimbo() {
-        Player player = mock(Player.class);
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
         mockLeaveMessagesDisabled();
         given(listenerService.shouldCancelEvent(player)).willReturn(true);
         given(limboService.hasLimboPlayer(player)).willReturn(true);
@@ -758,7 +760,7 @@ class PlayerListenerTest {
 
     @Test
     void shouldRestoreRevokedOperatorOnQuitOfPlayerWithoutLimbo() {
-        Player player = mock(Player.class);
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
         mockLeaveMessagesDisabled();
         given(listenerService.shouldCancelEvent(player)).willReturn(true);
         given(limboService.hasLimboPlayer(player)).willReturn(false);
@@ -774,7 +776,7 @@ class PlayerListenerTest {
 
     @Test
     void shouldRunQuitProcessEvenIfSavingQuitStateFails() {
-        Player player = mock(Player.class);
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
         mockLeaveMessagesDisabled();
         given(listenerService.shouldCancelEvent(player)).willReturn(false);
         given(player.getServer()).willThrow(new UnsupportedOperationException("cross-region access"));
@@ -789,10 +791,10 @@ class PlayerListenerTest {
     @ValueSource(booleans = {true, false})
     @SuppressWarnings("unchecked")
     void shouldSaveOnlyEnderPearlsOwnedByCurrentRegion(boolean ownedByCurrentThread) {
-        Player player = mock(Player.class);
-        Server server = mock(Server.class);
-        World world = mock(World.class);
-        EnderPearl pearl = mock(EnderPearl.class);
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
+        Server server = mock(Server.class, withSettings().mockMaker(MockMakers.INLINE));
+        World world = mock(World.class, withSettings().mockMaker(MockMakers.INLINE));
+        EnderPearl pearl = mock(EnderPearl.class, withSettings().mockMaker(MockMakers.INLINE));
 
         mockLeaveMessagesDisabled();
         given(listenerService.shouldCancelEvent(player)).willReturn(false);
@@ -804,7 +806,7 @@ class PlayerListenerTest {
         PlayerQuitEvent event = new PlayerQuitEvent(player, "quit");
 
         if (ownedByCurrentThread) {
-            World pearlWorld = mock(World.class);
+            World pearlWorld = mock(World.class, withSettings().mockMaker(MockMakers.INLINE));
             Location pearlLocation = new Location(pearlWorld, 10.0, 65.0, -1.0);
             org.bukkit.util.Vector pearlVelocity = new org.bukkit.util.Vector(0.1, 0.2, 0.3);
             given(pearl.getShooter()).willReturn(player);
@@ -846,8 +848,8 @@ class PlayerListenerTest {
     @ParameterizedTest(name = "sign change, shouldCancel={0}")
     @ValueSource(booleans = {true, false})
     void shouldHandleSignChange(boolean shouldCancel) {
-        SignChangeEvent event = mock(SignChangeEvent.class);
-        Player player = mock(Player.class);
+        SignChangeEvent event = mock(SignChangeEvent.class, withSettings().mockMaker(MockMakers.INLINE));
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
         given(event.getPlayer()).willReturn(player);
         given(listenerService.shouldCancelEvent(player)).willReturn(shouldCancel);
 
@@ -870,14 +872,14 @@ class PlayerListenerTest {
                                                                      Consumer<T> handler,
                                                                      Consumer<T> verifyAllowedEvent) {
         T event = mock(eventClass);
-        HumanEntity unauthenticated = mock(Player.class);
+        HumanEntity unauthenticated = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
         given(playerGetter.apply(event)).willReturn(unauthenticated);
         given(listenerService.shouldCancelEvent(unauthenticated)).willReturn(true);
         handler.accept(event);
         verify(event).setCancelled(true);
 
         T allowedEvent = mock(eventClass);
-        HumanEntity authenticated = mock(Player.class);
+        HumanEntity authenticated = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
         given(playerGetter.apply(allowedEvent)).willReturn(authenticated);
         given(listenerService.shouldCancelEvent(authenticated)).willReturn(false);
         handler.accept(allowedEvent);
@@ -886,8 +888,8 @@ class PlayerListenerTest {
 
     @Test
     void shouldAllowInventoryOpen() {
-        HumanEntity player = mock(Player.class);
-        InventoryView transaction = mock(InventoryView.class);
+        HumanEntity player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
+        InventoryView transaction = mock(InventoryView.class, withSettings().mockMaker(MockMakers.INLINE));
         InventoryOpenEvent event = new InventoryOpenEvent(transaction);
         given(event.getPlayer()).willReturn(player);
         given(listenerService.shouldCancelEvent(player)).willReturn(false);
@@ -900,8 +902,8 @@ class PlayerListenerTest {
 
     @Test
     void shouldCancelInventoryOpen() {
-        HumanEntity player = mock(Player.class);
-        InventoryView transaction = mock(InventoryView.class);
+        HumanEntity player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
+        InventoryView transaction = mock(InventoryView.class, withSettings().mockMaker(MockMakers.INLINE));
         given(settings.getProperty(RestrictionSettings.UNRESTRICTED_INVENTORIES)).willReturn(Collections.emptySet());
         InventoryOpenEvent event = new InventoryOpenEvent(transaction);
         given(event.getPlayer()).willReturn(player);
@@ -919,7 +921,7 @@ class PlayerListenerTest {
     void shouldHandleJoinMessage(String description, boolean removeMessage, String customMessage,
                                  boolean delayMessage, String playerName, String displayName,
                                  String expectedJoinMessage, String expectedPutMessage) {
-        Player player = mock(Player.class);
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
         if (playerName != null) {
             given(player.getName()).willReturn(playerName);
             given(player.getDisplayName()).willReturn(displayName);
@@ -967,27 +969,27 @@ class PlayerListenerTest {
      * @return Player mock
      */
     private static Player playerWithMockedServer() {
-        Server server = mock(Server.class);
+        Server server = mock(Server.class, withSettings().mockMaker(MockMakers.INLINE));
         given(server.getOnlinePlayers()).willReturn(Collections.emptyList());
-        Player player = mock(Player.class);
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
         given(player.getServer()).willReturn(server);
         return player;
     }
 
     private static AsyncPlayerPreLoginEvent newPreLoginEvent(String ip) {
-        return spy(new AsyncPlayerPreLoginEvent(TEST_PLAYER_NAME, createInetAddress(ip), TEST_PLAYER_UUID));
+        return inlineSpy(new AsyncPlayerPreLoginEvent(TEST_PLAYER_NAME, createInetAddress(ip), TEST_PLAYER_UUID));
     }
 
     private static PlayerCommandPreprocessEvent mockCommandEvent(String message) {
-        PlayerCommandPreprocessEvent commandEvent = mock(PlayerCommandPreprocessEvent.class);
+        PlayerCommandPreprocessEvent commandEvent = mock(PlayerCommandPreprocessEvent.class, withSettings().mockMaker(MockMakers.INLINE));
         given(commandEvent.getMessage()).willReturn(message);
         return commandEvent;
     }
 
     private static AsyncPlayerChatEvent newAsyncChatEvent() {
-        Player player = mock(Player.class);
-        List<Player> recipients = Arrays.asList(mock(Player.class), mock(Player.class), mock(Player.class));
-        return spy(new AsyncPlayerChatEvent(true, player, "Test message", new HashSet<>(recipients)));
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
+        List<Player> recipients = Arrays.asList(mock(Player.class, withSettings().mockMaker(MockMakers.INLINE)), mock(Player.class, withSettings().mockMaker(MockMakers.INLINE)), mock(Player.class, withSettings().mockMaker(MockMakers.INLINE)));
+        return inlineSpy(new AsyncPlayerChatEvent(true, player, "Test message", new HashSet<>(recipients)));
     }
 
     private static void verifyNoModifyingCalls(PlayerMoveEvent event) {
@@ -1005,4 +1007,9 @@ class PlayerListenerTest {
         verifyNoMoreInteractions(event);
     }
 
+    @SuppressWarnings("unchecked")
+    private static <T> T inlineSpy(T instance) {
+        return mock((Class<T>) instance.getClass(), withSettings().spiedInstance(instance)
+            .defaultAnswer(CALLS_REAL_METHODS).mockMaker(MockMakers.INLINE));
+    }
 }

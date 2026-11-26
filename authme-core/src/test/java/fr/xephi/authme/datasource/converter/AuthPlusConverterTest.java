@@ -15,6 +15,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+import org.mockito.MockMakers;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -30,6 +31,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.withSettings;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -48,7 +50,7 @@ class AuthPlusConverterTest extends AbstractConverterTest {
 
     private AuthPlusConverter converter;
 
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private DataSource dataSource;
 
     @TempDir
@@ -71,7 +73,7 @@ class AuthPlusConverterTest extends AbstractConverterTest {
         FileUtils.create(playersYml);
         Files.copy(TestHelper.getJarFile("datasource/Auth/players.yml"), playersYml);
 
-        CommandSender sender = mock(CommandSender.class);
+        CommandSender sender = mock(CommandSender.class, withSettings().mockMaker(MockMakers.INLINE));
         given(dataSource.isAuthAvailable("existingplayer")).willReturn(true);
         given(dataSource.isAuthAvailable("testplayer")).willReturn(false);
 
@@ -80,7 +82,7 @@ class AuthPlusConverterTest extends AbstractConverterTest {
         // UUID_UNKNOWNPLAYER resolves to null (player never joined)
         OfflinePlayer unknownPlayer  = mockOfflinePlayer(null);
 
-        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class, withSettings().mockMaker(MockMakers.INLINE))) {
             bukkit.when(() -> Bukkit.getOfflinePlayer(UUID_TESTPLAYER)).thenReturn(testPlayer);
             bukkit.when(() -> Bukkit.getOfflinePlayer(UUID_EXISTINGPLAYER)).thenReturn(existingPlayer);
             bukkit.when(() -> Bukkit.getOfflinePlayer(UUID_UNKNOWNPLAYER)).thenReturn(unknownPlayer);
@@ -101,7 +103,7 @@ class AuthPlusConverterTest extends AbstractConverterTest {
 
     @Test
     void shouldReportMissingFile() {
-        CommandSender sender = mock(CommandSender.class);
+        CommandSender sender = mock(CommandSender.class, withSettings().mockMaker(MockMakers.INLINE));
 
         converter.execute(sender);
 

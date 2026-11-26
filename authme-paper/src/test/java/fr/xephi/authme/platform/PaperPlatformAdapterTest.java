@@ -1,6 +1,7 @@
 package fr.xephi.authme.platform;
 
 import fr.xephi.authme.listener.BlockListener;
+import org.mockito.MockMakers;
 import fr.xephi.authme.listener.DoubleLoginFixListener;
 import fr.xephi.authme.listener.LoginLocationFixListener;
 import fr.xephi.authme.listener.EntityAirChangeListener;
@@ -35,6 +36,7 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.withSettings;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 
@@ -98,11 +100,11 @@ public class PaperPlatformAdapterTest {
     @Test
     public void showLoginDialogDelegatesToPaperDialogHelper() {
         // given
-        Player player = mock(Player.class);
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
 
         // when / then - PaperDialogHelper uses Paper API calls that require a running server.
         // Use mockStatic to verify delegation without invoking the full Paper server stack.
-        try (MockedStatic<PaperDialogHelper> helperMock = mockStatic(PaperDialogHelper.class)) {
+        try (MockedStatic<PaperDialogHelper> helperMock = mockStatic(PaperDialogHelper.class, withSettings().mockMaker(MockMakers.INLINE))) {
             adapter.showLoginDialog(player, dialog);
 
             helperMock.verify(() -> PaperDialogHelper.showLoginDialog(player, dialog));
@@ -112,10 +114,10 @@ public class PaperPlatformAdapterTest {
     @Test
     public void showTotpDialogDelegatesToPaperDialogHelper() {
         // given
-        Player player = mock(Player.class);
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
 
         // when / then
-        try (MockedStatic<PaperDialogHelper> helperMock = mockStatic(PaperDialogHelper.class)) {
+        try (MockedStatic<PaperDialogHelper> helperMock = mockStatic(PaperDialogHelper.class, withSettings().mockMaker(MockMakers.INLINE))) {
             adapter.showTotpDialog(player, dialog);
 
             helperMock.verify(() -> PaperDialogHelper.showTotpDialog(player, dialog));
@@ -125,10 +127,10 @@ public class PaperPlatformAdapterTest {
     @Test
     public void showRegisterDialogDelegatesToPaperDialogHelper() {
         // given
-        Player player = mock(Player.class);
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
 
         // when / then
-        try (MockedStatic<PaperDialogHelper> helperMock = mockStatic(PaperDialogHelper.class)) {
+        try (MockedStatic<PaperDialogHelper> helperMock = mockStatic(PaperDialogHelper.class, withSettings().mockMaker(MockMakers.INLINE))) {
             adapter.showRegisterDialog(player, RegistrationType.EMAIL, RegisterSecondaryArgument.CONFIRMATION, dialog);
 
             helperMock.verify(() -> PaperDialogHelper.showRegisterDialog(
@@ -142,9 +144,9 @@ public class PaperPlatformAdapterTest {
     @Test
     public void teleportPlayerCallsTeleportAsync() {
         // given
-        Player player = mock(Player.class);
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
         given(player.getUniqueId()).willReturn(UUID.randomUUID());
-        Location location = mock(Location.class);
+        Location location = mock(Location.class, withSettings().mockMaker(MockMakers.INLINE));
         given(player.teleportAsync(location)).willReturn(new CompletableFuture<>());
 
         // when
@@ -158,7 +160,7 @@ public class PaperPlatformAdapterTest {
     public void getKickReasonReturnsPlainTextFromComponent() {
         // given
         // PlayerKickEvent is not final; reason() is a Paper API method, stubable with Mockito 5
-        PlayerKickEvent event = mock(PlayerKickEvent.class);
+        PlayerKickEvent event = mock(PlayerKickEvent.class, withSettings().mockMaker(MockMakers.INLINE));
         given(event.reason()).willReturn(Component.text("You were kicked"));
 
         // when

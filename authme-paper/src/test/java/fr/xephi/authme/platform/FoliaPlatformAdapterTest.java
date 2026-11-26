@@ -1,6 +1,7 @@
 package fr.xephi.authme.platform;
 
 import fr.xephi.authme.AuthMe;
+import org.mockito.MockMakers;
 import fr.xephi.authme.listener.BlockListener;
 import fr.xephi.authme.listener.DoubleLoginFixListener;
 import fr.xephi.authme.listener.LoginLocationFixListener;
@@ -47,6 +48,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.withSettings;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -93,18 +95,18 @@ public class FoliaPlatformAdapterTest {
     @Test
     public void teleportPlayerWaitsForPendingTeleportOfSamePlayer() {
         // given
-        Player player = mock(Player.class);
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
         given(player.getUniqueId()).willReturn(UUID.randomUUID());
-        Location first = mock(Location.class);
-        Location second = mock(Location.class);
+        Location first = mock(Location.class, withSettings().mockMaker(MockMakers.INLINE));
+        Location second = mock(Location.class, withSettings().mockMaker(MockMakers.INLINE));
         CompletableFuture<Boolean> firstTeleport = new CompletableFuture<>();
         given(player.teleportAsync(first)).willReturn(firstTeleport);
         given(player.teleportAsync(second)).willReturn(new CompletableFuture<>());
-        EntityScheduler scheduler = mock(EntityScheduler.class);
+        EntityScheduler scheduler = mock(EntityScheduler.class, withSettings().mockMaker(MockMakers.INLINE));
         given(player.getScheduler()).willReturn(scheduler);
-        given(scheduler.run(isNull(), any(), any())).willReturn(mock(ScheduledTask.class));
+        given(scheduler.run(isNull(), any(), any())).willReturn(mock(ScheduledTask.class, withSettings().mockMaker(MockMakers.INLINE)));
 
-        try (MockedStatic<JavaPlugin> javaPluginMock = mockStatic(JavaPlugin.class)) {
+        try (MockedStatic<JavaPlugin> javaPluginMock = mockStatic(JavaPlugin.class, withSettings().mockMaker(MockMakers.INLINE))) {
             javaPluginMock.when(() -> JavaPlugin.getPlugin(AuthMe.class)).thenReturn(null);
 
             // when
@@ -117,7 +119,7 @@ public class FoliaPlatformAdapterTest {
             firstTeleport.complete(true);
             ArgumentCaptor<Consumer<ScheduledTask>> taskCaptor = ArgumentCaptor.captor();
             verify(scheduler).run(isNull(), taskCaptor.capture(), any());
-            taskCaptor.getValue().accept(mock(ScheduledTask.class));
+            taskCaptor.getValue().accept(mock(ScheduledTask.class, withSettings().mockMaker(MockMakers.INLINE)));
             verify(player).teleportAsync(second);
         }
     }
@@ -125,9 +127,9 @@ public class FoliaPlatformAdapterTest {
     @Test
     public void runAsyncTaskUsesFoliaAsyncScheduler() {
         // given
-        Runnable task = mock(Runnable.class);
-        AsyncScheduler asyncScheduler = mock(AsyncScheduler.class);
-        ScheduledTask scheduledTask = mock(ScheduledTask.class);
+        Runnable task = mock(Runnable.class, withSettings().mockMaker(MockMakers.INLINE));
+        AsyncScheduler asyncScheduler = mock(AsyncScheduler.class, withSettings().mockMaker(MockMakers.INLINE));
+        ScheduledTask scheduledTask = mock(ScheduledTask.class, withSettings().mockMaker(MockMakers.INLINE));
         given(asyncScheduler.runNow(isNull(), any())).willAnswer(invocation -> {
             invocation.<java.util.function.Consumer<ScheduledTask>>getArgument(1).accept(scheduledTask);
             return scheduledTask;
@@ -135,7 +137,7 @@ public class FoliaPlatformAdapterTest {
 
         // when
         CancellableTask cancellableTask;
-        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class, withSettings().mockMaker(MockMakers.INLINE))) {
             bukkit.when(Bukkit::getAsyncScheduler).thenReturn(asyncScheduler);
             cancellableTask = adapter.runAsyncTask(null, task);
         }
@@ -150,9 +152,9 @@ public class FoliaPlatformAdapterTest {
     @Test
     public void runAsyncTaskTimerConvertsTicksToMilliseconds() {
         // given
-        Runnable task = mock(Runnable.class);
-        AsyncScheduler asyncScheduler = mock(AsyncScheduler.class);
-        ScheduledTask scheduledTask = mock(ScheduledTask.class);
+        Runnable task = mock(Runnable.class, withSettings().mockMaker(MockMakers.INLINE));
+        AsyncScheduler asyncScheduler = mock(AsyncScheduler.class, withSettings().mockMaker(MockMakers.INLINE));
+        ScheduledTask scheduledTask = mock(ScheduledTask.class, withSettings().mockMaker(MockMakers.INLINE));
         long delay = 4L;
         long period = 7L;
         given(asyncScheduler.runAtFixedRate(isNull(), any(), eq(200L), eq(350L), eq(TimeUnit.MILLISECONDS)))
@@ -160,7 +162,7 @@ public class FoliaPlatformAdapterTest {
 
         // when
         CancellableTask cancellableTask;
-        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class, withSettings().mockMaker(MockMakers.INLINE))) {
             bukkit.when(Bukkit::getAsyncScheduler).thenReturn(asyncScheduler);
             cancellableTask = adapter.runAsyncTaskTimer(null, task, delay, period);
         }
@@ -174,10 +176,10 @@ public class FoliaPlatformAdapterTest {
     @Test
     public void isOwnedByCurrentThreadDelegatesToRegionCheck() {
         // given
-        Entity entity = mock(Entity.class);
-        Location location = mock(Location.class);
+        Entity entity = mock(Entity.class, withSettings().mockMaker(MockMakers.INLINE));
+        Location location = mock(Location.class, withSettings().mockMaker(MockMakers.INLINE));
 
-        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class, withSettings().mockMaker(MockMakers.INLINE))) {
             bukkit.when(() -> Bukkit.isOwnedByCurrentRegion(entity)).thenReturn(true);
             bukkit.when(() -> Bukkit.isOwnedByCurrentRegion(location)).thenReturn(false);
 
@@ -190,10 +192,10 @@ public class FoliaPlatformAdapterTest {
     @Test
     public void concurrentTeleportOfSamePlayerWaitsForPendingTeleport() throws InterruptedException {
         // given
-        Player player = mock(Player.class);
+        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
         given(player.getUniqueId()).willReturn(UUID.randomUUID());
-        Location first = mock(Location.class);
-        Location second = mock(Location.class);
+        Location first = mock(Location.class, withSettings().mockMaker(MockMakers.INLINE));
+        Location second = mock(Location.class, withSettings().mockMaker(MockMakers.INLINE));
         CompletableFuture<Boolean> firstTeleport = new CompletableFuture<>();
         AtomicInteger secondTeleportCount = new AtomicInteger();
         given(player.teleportAsync(first)).willReturn(firstTeleport);
@@ -201,14 +203,14 @@ public class FoliaPlatformAdapterTest {
             secondTeleportCount.incrementAndGet();
             return CompletableFuture.completedFuture(true);
         });
-        EntityScheduler scheduler = mock(EntityScheduler.class);
+        EntityScheduler scheduler = mock(EntityScheduler.class, withSettings().mockMaker(MockMakers.INLINE));
         given(player.getScheduler()).willReturn(scheduler);
         given(scheduler.run(isNull(), any(), any())).willAnswer(invocation -> {
-            invocation.<Consumer<ScheduledTask>>getArgument(1).accept(mock(ScheduledTask.class));
-            return mock(ScheduledTask.class);
+            invocation.<Consumer<ScheduledTask>>getArgument(1).accept(mock(ScheduledTask.class, withSettings().mockMaker(MockMakers.INLINE)));
+            return mock(ScheduledTask.class, withSettings().mockMaker(MockMakers.INLINE));
         });
 
-        try (MockedStatic<JavaPlugin> javaPluginMock = mockStatic(JavaPlugin.class)) {
+        try (MockedStatic<JavaPlugin> javaPluginMock = mockStatic(JavaPlugin.class, withSettings().mockMaker(MockMakers.INLINE))) {
             javaPluginMock.when(() -> JavaPlugin.getPlugin(AuthMe.class)).thenReturn(null);
 
             adapter.teleportPlayer(player, first);

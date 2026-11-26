@@ -1,6 +1,7 @@
 package fr.xephi.authme.listener;
 
 import fr.xephi.authme.data.captcha.RegistrationCaptchaManager;
+import org.mockito.MockMakers;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.message.Messages;
 import fr.xephi.authme.platform.DialogInputSpec;
@@ -35,6 +36,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.withSettings;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -45,13 +47,13 @@ public class PaperDialogFlowListenerIssue3088Test {
     @Test
     public void shouldRejectRegisterDialogSubmissionWhileCaptchaIsRequired() throws Exception {
         PaperDialogFlowListener listener = new PaperDialogFlowListener();
-        CommonService commonService = mock(CommonService.class);
-        Messages messages = mock(Messages.class);
-        ValidationService validationService = mock(ValidationService.class);
-        DialogWindowService dialogWindowService = mock(DialogWindowService.class);
-        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class);
-        RegistrationCaptchaManager captchaManager = mock(RegistrationCaptchaManager.class);
-        Audience audience = mock(Audience.class);
+        CommonService commonService = mock(CommonService.class, withSettings().mockMaker(MockMakers.INLINE));
+        Messages messages = mock(Messages.class, withSettings().mockMaker(MockMakers.INLINE));
+        ValidationService validationService = mock(ValidationService.class, withSettings().mockMaker(MockMakers.INLINE));
+        DialogWindowService dialogWindowService = mock(DialogWindowService.class, withSettings().mockMaker(MockMakers.INLINE));
+        PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class, withSettings().mockMaker(MockMakers.INLINE));
+        RegistrationCaptchaManager captchaManager = mock(RegistrationCaptchaManager.class, withSettings().mockMaker(MockMakers.INLINE));
+        Audience audience = mock(Audience.class, withSettings().mockMaker(MockMakers.INLINE));
         setField(listener, "commonService", commonService);
         setField(listener, "messages", messages);
         setField(listener, "validationService", validationService);
@@ -76,15 +78,15 @@ public class PaperDialogFlowListenerIssue3088Test {
         connectionSessions(listener).put(connection, SESSION_ID);
         pendingResponses(listener, "pendingRegisterResponses").put(SESSION_ID, future);
 
-        DialogResponseView responseView = mock(DialogResponseView.class);
+        DialogResponseView responseView = mock(DialogResponseView.class, withSettings().mockMaker(MockMakers.INLINE));
         given(responseView.getText("password")).willReturn("securePassword");
         given(responseView.getText("confirm")).willReturn("securePassword");
-        PlayerCustomClickEvent event = mock(PlayerCustomClickEvent.class);
+        PlayerCustomClickEvent event = mock(PlayerCustomClickEvent.class, withSettings().mockMaker(MockMakers.INLINE));
         given(event.getCommonConnection()).willReturn(connection);
         given(event.getIdentifier()).willReturn(PaperDialogActionKeys.PRE_JOIN_REGISTER_SUBMIT);
         given(event.getDialogResponseView()).willReturn(responseView);
 
-        try (var helperStatic = mockStatic(PaperDialogHelper.class)) {
+        try (var helperStatic = mockStatic(PaperDialogHelper.class, withSettings().mockMaker(MockMakers.INLINE))) {
             helperStatic.when(() -> PaperDialogHelper.createPreJoinRegisterDialog(any())).thenReturn(null);
 
             listener.onPlayerCustomClick(event);

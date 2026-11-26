@@ -1,6 +1,7 @@
 package fr.xephi.authme.listener;
 
 import ch.jalu.configme.properties.Property;
+import org.mockito.MockMakers;
 import com.destroystokyo.paper.profile.PlayerProfile;
 import fr.xephi.authme.events.PreJoinDialogEvent;
 import fr.xephi.authme.platform.PaperDialogHelper;
@@ -34,6 +35,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willAnswer;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.withSettings;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -48,7 +50,7 @@ public class PaperDialogFlowListenerPreJoinDialogEventTest {
         fixture.givenTimeout(RestrictionSettings.LOGIN_TIMEOUT, 0);
         fixture.answerDialogWithResponse("pendingLoginResponses");
 
-        try (var helperStatic = mockStatic(PaperDialogHelper.class)) {
+        try (var helperStatic = mockStatic(PaperDialogHelper.class, withSettings().mockMaker(MockMakers.INLINE))) {
             helperStatic.when(() -> PaperDialogHelper.createPreJoinLoginDialog(any())).thenReturn(null);
             invokeBlockingMethod(fixture.listener, fixture.connection, "handleBlockingLoginDialog",
                 PlayerConfigurationConnection.class, long.class, String.class);
@@ -94,7 +96,7 @@ public class PaperDialogFlowListenerPreJoinDialogEventTest {
             return null;
         }).given(fixture.bukkitService).callEvent(any(PreJoinDialogEvent.class));
 
-        try (var helperStatic = mockStatic(PaperDialogHelper.class)) {
+        try (var helperStatic = mockStatic(PaperDialogHelper.class, withSettings().mockMaker(MockMakers.INLINE))) {
             helperStatic.when(() -> PaperDialogHelper.createPreJoinLoginDialog(any())).thenReturn(null);
             invokeBlockingMethod(fixture.listener, fixture.connection, "handleBlockingLoginDialog",
                 PlayerConfigurationConnection.class, long.class, String.class);
@@ -115,7 +117,7 @@ public class PaperDialogFlowListenerPreJoinDialogEventTest {
         willThrow(new RuntimeException("bad listener")).given(fixture.bukkitService)
             .callEvent(any(PreJoinDialogEvent.class));
 
-        try (var helperStatic = mockStatic(PaperDialogHelper.class)) {
+        try (var helperStatic = mockStatic(PaperDialogHelper.class, withSettings().mockMaker(MockMakers.INLINE))) {
             helperStatic.when(() -> PaperDialogHelper.createPreJoinLoginDialog(any())).thenReturn(null);
             invokeBlockingMethod(fixture.listener, fixture.connection, "handleBlockingLoginDialog",
                 PlayerConfigurationConnection.class, long.class, String.class);
@@ -128,14 +130,14 @@ public class PaperDialogFlowListenerPreJoinDialogEventTest {
 
     private static final class Fixture {
         final PaperDialogFlowListener listener = new PaperDialogFlowListener();
-        final BukkitService bukkitService = mock(BukkitService.class);
-        final CommonService commonService = mock(CommonService.class);
-        final PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class);
-        final ProxySessionManager proxySessionManager = mock(ProxySessionManager.class);
-        final DialogWindowService dialogWindowService = mock(DialogWindowService.class);
-        final Audience audience = mock(Audience.class);
+        final BukkitService bukkitService = mock(BukkitService.class, withSettings().mockMaker(MockMakers.INLINE));
+        final CommonService commonService = mock(CommonService.class, withSettings().mockMaker(MockMakers.INLINE));
+        final PreJoinDialogService preJoinDialogService = mock(PreJoinDialogService.class, withSettings().mockMaker(MockMakers.INLINE));
+        final ProxySessionManager proxySessionManager = mock(ProxySessionManager.class, withSettings().mockMaker(MockMakers.INLINE));
+        final DialogWindowService dialogWindowService = mock(DialogWindowService.class, withSettings().mockMaker(MockMakers.INLINE));
+        final Audience audience = mock(Audience.class, withSettings().mockMaker(MockMakers.INLINE));
         final UUID playerId = UUID.fromString("f84c6a80-9f2a-4a9c-8a90-3f4ccde7d0b2");
-        final InetAddress address = mock(InetAddress.class);
+        final InetAddress address = mock(InetAddress.class, withSettings().mockMaker(MockMakers.INLINE));
         final PlayerConfigurationConnection connection;
         final List<PreJoinDialogEvent> events = new ArrayList<>();
 
@@ -146,10 +148,10 @@ public class PaperDialogFlowListenerPreJoinDialogEventTest {
             setField(listener, "proxySessionManager", proxySessionManager);
             setField(listener, "dialogWindowService", dialogWindowService);
 
-            PlayerProfile profile = mock(PlayerProfile.class);
+            PlayerProfile profile = mock(PlayerProfile.class, withSettings().mockMaker(MockMakers.INLINE));
             given(profile.getName()).willReturn("Bobby");
             given(profile.getId()).willReturn(playerId);
-            connection = mock(PlayerConfigurationConnection.class);
+            connection = mock(PlayerConfigurationConnection.class, withSettings().mockMaker(MockMakers.INLINE));
             given(connection.getProfile()).willReturn(profile);
             given(connection.getAudience()).willReturn(audience);
             given(connection.getClientAddress()).willReturn(new InetSocketAddress(address, 25565));

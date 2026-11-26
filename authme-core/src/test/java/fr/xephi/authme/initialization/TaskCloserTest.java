@@ -16,6 +16,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+import org.mockito.MockMakers;
 
 import java.util.Arrays;
 import java.util.List;
@@ -30,6 +31,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.withSettings;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -43,20 +45,20 @@ class TaskCloserTest {
     private static final int[] ACTIVE_WORKERS_ID = {2, 5};
 
     private TaskCloser taskCloser;
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private AuthMe authMe;
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private PluginLogger logger;
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private BukkitScheduler bukkitScheduler;
-    @Mock
+    @Mock(mockMaker = MockMakers.INLINE)
     private DataSource dataSource;
     @Captor
     private ArgumentCaptor<Integer> taskIds;
 
     @BeforeEach
     void initAuthMe() {
-        Server server = mock(Server.class);
+        Server server = mock(Server.class, withSettings().mockMaker(MockMakers.INLINE));
         given(server.getScheduler()).willReturn(bukkitScheduler);
         given(authMe.getServer()).willReturn(server);
         given(authMe.getLogger()).willReturn(logger);
@@ -128,7 +130,7 @@ class TaskCloserTest {
     }
 
     private void mockActiveWorkers() {
-        Plugin otherOwner = mock(Plugin.class);
+        Plugin otherOwner = mock(Plugin.class, withSettings().mockMaker(MockMakers.INLINE));
         List<BukkitWorker> tasks = Arrays.asList(
             mockBukkitWorker(authMe, ACTIVE_WORKERS_ID[0], false),
             mockBukkitWorker(otherOwner, 3, false),
@@ -139,7 +141,7 @@ class TaskCloserTest {
     }
 
     private BukkitWorker mockBukkitWorker(Plugin owner, int taskId, boolean isQueued) {
-        BukkitWorker worker = mock(BukkitWorker.class);
+        BukkitWorker worker = mock(BukkitWorker.class, withSettings().mockMaker(MockMakers.INLINE));
         given(worker.getOwner()).willReturn(owner);
         if (owner == authMe) {
             given(worker.getTaskId()).willReturn(taskId);
