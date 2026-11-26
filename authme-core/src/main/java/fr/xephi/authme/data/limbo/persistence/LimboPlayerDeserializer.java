@@ -73,7 +73,7 @@ class LimboPlayerDeserializer implements JsonDeserializer<LimboPlayer> {
             return null;
         }
 
-        Location loc = deserializeLocation(jsonObject);
+        Location loc = deserializeLocationObject(jsonObject.getAsJsonObject(LOCATION));
         boolean operator = getBoolean(jsonObject, IS_OP);
 
         Collection<UserGroup> groups = getLimboGroups(jsonObject);
@@ -108,14 +108,6 @@ class LimboPlayerDeserializer implements JsonDeserializer<LimboPlayer> {
         }
 
         return limboPlayer;
-    }
-
-    private Location deserializeLocation(JsonObject jsonObject) {
-        JsonObject locationObject = jsonObject.getAsJsonObject(LOCATION);
-        if (locationObject != null) {
-            return deserializeLocationObject(locationObject);
-        }
-        return null;
     }
 
     private EnderPearlRestoreData deserializeEnderPearl(JsonElement pearlElement) {

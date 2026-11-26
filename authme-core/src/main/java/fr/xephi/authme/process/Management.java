@@ -1,5 +1,6 @@
 package fr.xephi.authme.process;
 
+import fr.xephi.authme.data.ProxySessionManager;
 import fr.xephi.authme.process.changepassword.AsyncChangePassword;
 import fr.xephi.authme.process.email.AsyncAddEmail;
 import fr.xephi.authme.process.email.AsyncChangeEmail;
@@ -13,14 +14,12 @@ import fr.xephi.authme.process.register.executors.RegistrationMethod;
 import fr.xephi.authme.process.register.executors.RegistrationParameters;
 import fr.xephi.authme.process.unregister.AsynchronousUnregister;
 import fr.xephi.authme.service.BukkitService;
+import fr.xephi.authme.service.PreJoinDialogService;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import javax.inject.Inject;
-
-import fr.xephi.authme.data.ProxySessionManager;
-import fr.xephi.authme.service.PreJoinDialogService;
 import java.util.Locale;
 
 /**

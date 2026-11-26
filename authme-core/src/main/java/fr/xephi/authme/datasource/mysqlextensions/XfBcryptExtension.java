@@ -49,11 +49,7 @@ class XfBcryptExtension extends MySqlExtension {
         try (PreparedStatement pst = con.prepareStatement(sql)) {
             pst.setInt(1, id);
             pst.setString(2, XfBCrypt.SCHEME_CLASS);
-            String serializedHash = XfBCrypt.serializeHash(auth.getPassword().getHash());
-            byte[] bytes = serializedHash.getBytes();
-            Blob blob = con.createBlob();
-            blob.setBytes(1, bytes);
-            pst.setBlob(3, blob);
+            pst.setBlob(3, createHashBlob(auth.getPassword().getHash(), con));
             pst.executeUpdate();
         }
         // Update player group and permission combination in xf_users
@@ -104,11 +100,7 @@ class XfBcryptExtension extends MySqlExtension {
             // Insert password in the correct table
             String sql = "UPDATE " + xfPrefix + "user_authenticate SET data=? WHERE " + col.ID + "=?;";
             try (PreparedStatement pst = con.prepareStatement(sql)) {
-                String serializedHash = XfBCrypt.serializeHash(password.getHash());
-                byte[] bytes = serializedHash.getBytes();
-                Blob blob = con.createBlob();
-                blob.setBytes(1, bytes);
-                pst.setBlob(1, blob);
+                pst.setBlob(1, createHashBlob(password.getHash(), con));
                 pst.setInt(2, id);
                 pst.executeUpdate();
             }
@@ -132,5 +124,12 @@ class XfBcryptExtension extends MySqlExtension {
                 xfDelete.executeUpdate();
             }
         }
+    }
+
+    private Blob createHashBlob(String hash, Connection con) throws SQLException {
+        byte[] bytes = XfBCrypt.serializeHash(hash).getBytes();
+        Blob blob = con.createBlob();
+        blob.setBytes(1, bytes);
+        return blob;
     }
 }

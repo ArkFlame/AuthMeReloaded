@@ -168,7 +168,6 @@ public class BungeeReceiver implements PluginMessageListener, SettingsDependent 
         long timestamp;
         String uuidOrHmac;
         UUID verifiedPremiumUuid = null;
-        String hmac;
         try {
             timestamp = in.readLong();
             uuidOrHmac = in.readUTF();
@@ -176,16 +175,15 @@ public class BungeeReceiver implements PluginMessageListener, SettingsDependent 
             logger.warning("Received perform.login without HMAC — update your proxy plugin");
             return null;
         }
+        String hmac = uuidOrHmac;
         try {
             UUID parsedUuid = UuidUtils.parseUuidSafely(uuidOrHmac);
             if (parsedUuid != null || uuidOrHmac.isEmpty()) {
                 verifiedPremiumUuid = parsedUuid;
                 hmac = in.readUTF();
-            } else {
-                hmac = uuidOrHmac;
             }
         } catch (IllegalStateException e) {
-            hmac = uuidOrHmac;
+            // HMAC was concatenated into uuidOrHmac; keep using it as the HMAC.
         }
         if (!verifyHmac(playerName, timestamp, verifiedPremiumUuid, hmac)) {
             return null;

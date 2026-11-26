@@ -108,8 +108,7 @@ public class PaperLoginValidationListener implements Listener {
 
     private void verifyConfigurationPhase(PlayerConnectionValidateLoginEvent event,
                                           PlayerConfigurationConnection connection) {
-        PlayerProfile profile = connection.getProfile();
-        String playerName = profile == null ? null : profile.getName();
+        String playerName = getPlayerName(connection.getProfile());
         if (playerName == null) {
             return;
         }
@@ -158,13 +157,11 @@ public class PaperLoginValidationListener implements Listener {
     }
 
     private static String getPlayerName(PlayerLoginConnection connection) {
-        PlayerProfile profile = connection.getAuthenticatedProfile();
-        String name = profile == null ? null : profile.getName();
-        if (name != null) {
-            return name;
-        }
+        String name = getPlayerName(connection.getAuthenticatedProfile());
+        return name != null ? name : getPlayerName(connection.getUnsafeProfile());
+    }
 
-        profile = connection.getUnsafeProfile();
+    private static String getPlayerName(PlayerProfile profile) {
         return profile == null ? null : profile.getName();
     }
 }

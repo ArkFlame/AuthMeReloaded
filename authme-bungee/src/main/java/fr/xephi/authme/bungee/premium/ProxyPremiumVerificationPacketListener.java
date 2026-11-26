@@ -111,18 +111,16 @@ final class ProxyPremiumVerificationPacketListener extends PacketListenerAbstrac
         byte[] encryptedSharedSecret = wrapper.getEncryptedSharedSecret().clone();
         event.setCancelled(true);
 
-        byte[] sharedSecret;
+        byte[] sharedSecret = null;
+        boolean decryptionFailed = false;
         try {
             sharedSecret = loginVerifier.decryptData(encryptedSharedSecret);
         } catch (GeneralSecurityException e) {
             warningLogger.accept("Proxy premium RSA decryption failed for '" + username + "': " + e.getMessage());
-            loginVerifier.cleanupPending(connectionKey);
-            handlePendingVerificationFailure(username, pendingPremiumEnrollment);
-            closeConnection(user, username);
-            return;
+            decryptionFailed = true;
         }
 
-        if (!enableChannelEncryption(user.getChannel(), sharedSecret)) {
+        if (decryptionFailed || !enableChannelEncryption(user.getChannel(), sharedSecret)) {
             loginVerifier.cleanupPending(connectionKey);
             handlePendingVerificationFailure(username, pendingPremiumEnrollment);
             closeConnection(user, username);

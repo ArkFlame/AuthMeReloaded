@@ -215,22 +215,18 @@ public class OnJoinVerifier implements Reloadable {
      * @return the kick message if access should be denied, or null if the player may join
      */
     public String getServerFullKickMessageIfDenied(String playerName) {
-        if (!permissionsManager.hasPermissionOffline(playerName, PlayerStatePermission.IS_VIP)) {
-            return messages.retrieveSingle(playerName, MessageKey.KICK_FULL_SERVER);
+        if (permissionsManager.hasPermissionOffline(playerName, PlayerStatePermission.IS_VIP)) {
+            Collection<Player> onlinePlayers = bukkitService.getOnlinePlayers();
+            if (onlinePlayers.size() < server.getMaxPlayers()) {
+                return null;
+            }
+            Player nonVipPlayer = generateKickPlayer(onlinePlayers);
+            if (nonVipPlayer != null) {
+                nonVipPlayer.kickPlayer(messages.retrieveSingle(playerName, MessageKey.KICK_FOR_VIP));
+                return null;
+            }
+            logger.info("VIP player " + playerName + " tried to join, but the server was full");
         }
-
-        Collection<Player> onlinePlayers = bukkitService.getOnlinePlayers();
-        if (onlinePlayers.size() < server.getMaxPlayers()) {
-            return null;
-        }
-
-        Player nonVipPlayer = generateKickPlayer(onlinePlayers);
-        if (nonVipPlayer != null) {
-            nonVipPlayer.kickPlayer(messages.retrieveSingle(playerName, MessageKey.KICK_FOR_VIP));
-            return null;
-        }
-
-        logger.info("VIP player " + playerName + " tried to join, but the server was full");
         return messages.retrieveSingle(playerName, MessageKey.KICK_FULL_SERVER);
     }
 
