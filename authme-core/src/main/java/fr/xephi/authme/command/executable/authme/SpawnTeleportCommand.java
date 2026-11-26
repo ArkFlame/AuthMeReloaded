@@ -21,18 +21,14 @@ public abstract class SpawnTeleportCommand extends AbstractSpawnCommand {
         Location spawn = getSpawn();
         if (spawn == null) {
             messages.send(player, getNotDefinedMessage());
-        } else {
-            teleportAdapter.teleportPlayer(player, spawn);
+            return;
         }
+        teleportAdapter.teleportPlayer(player, spawn);
     }
 
-    /**
-     * @return the spawn location to teleport to, or null if none is configured
-     */
+    /** @return the spawn location to teleport to, or null if none is configured */
     protected abstract Location getSpawn();
 
-    /**
-     * @return the message to show when no spawn location is configured
-     */
+    /** @return the message to show when no spawn location is configured */
     protected abstract MessageKey getNotDefinedMessage();
 }

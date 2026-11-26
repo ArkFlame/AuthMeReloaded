@@ -4,10 +4,7 @@ import fr.xephi.authme.ConsoleLogger;
 import fr.xephi.authme.datasource.DataSource;
 import org.bukkit.command.CommandSender;
 
-/**
- * Reusable SQL import step for plugin converters: runs the query on AuthMe's connection pool
- * and passes the rows to the importer.
- */
+/** Reusable SQL import step: runs the query on AuthMe's connection pool and passes rows to the importer. */
 final class SqlImportTask extends AbstractSqlPluginConverter {
 
     private final String query;

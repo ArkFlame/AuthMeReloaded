@@ -46,10 +46,9 @@ class CommonServiceTest {
     void shouldGetProperty() {
         given(settings.getProperty(SecuritySettings.CAPTCHA_LENGTH)).willReturn(8);
 
-        int result = commonService.getProperty(SecuritySettings.CAPTCHA_LENGTH);
+        assertThat(commonService.getProperty(SecuritySettings.CAPTCHA_LENGTH), equalTo(8));
 
         verify(settings).getProperty(SecuritySettings.CAPTCHA_LENGTH);
-        assertThat(result, equalTo(8));
     }
 
     @ParameterizedTest
@@ -73,9 +72,8 @@ class CommonServiceTest {
         String text = "Test text";
         given(messages.retrieveSingle(sender, TEST_KEY)).willReturn(text);
 
-        String result = commonService.retrieveSingleMessage(sender, TEST_KEY);
+        assertThat(commonService.retrieveSingleMessage(sender, TEST_KEY), equalTo(text));
 
-        assertThat(result, equalTo(text));
         verify(messages).retrieveSingle(sender, TEST_KEY);
     }
 
@@ -84,9 +82,8 @@ class CommonServiceTest {
         Player player = mock(Player.class);
         given(permissionsManager.hasPermission(player, PlayerPermission.CHANGE_PASSWORD)).willReturn(true);
 
-        boolean result = commonService.hasPermission(player, PlayerPermission.CHANGE_PASSWORD);
+        assertThat(commonService.hasPermission(player, PlayerPermission.CHANGE_PASSWORD), equalTo(true));
 
         verify(permissionsManager).hasPermission(player, PlayerPermission.CHANGE_PASSWORD);
-        assertThat(result, equalTo(true));
     }
 }

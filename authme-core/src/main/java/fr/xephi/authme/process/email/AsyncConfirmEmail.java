@@ -34,11 +34,7 @@ public class AsyncConfirmEmail implements AsynchronousProcess {
     private PendingEmailVerificationCache pendingEmailVerificationCache;
 
     /**
-     * Validates the supplied code against the pending email confirmation for the player.
-     * On success, saves the new address to the database and player cache.
-     *
-     * @param player the player submitting the code
-     * @param code   the confirmation code
+     * Validates the code against the pending confirmation and, on success, persists the address.
      */
     public void confirmEmail(Player player, String code) {
         String playerName = player.getName();

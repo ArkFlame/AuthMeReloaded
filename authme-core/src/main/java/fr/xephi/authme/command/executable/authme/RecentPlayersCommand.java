@@ -32,9 +32,8 @@ public class RecentPlayersCommand implements ExecutableCommand {
         sender.sendMessage(ChatColor.BLUE + "[AuthMe] Recently logged in players");
         for (PlayerAuth auth : recentPlayers) {
             Long lastLogin = auth.getLastLogin();
-            String lastLoginText = lastLogin == null ? "never"
-                : DATE_FORMAT.withZone(getZoneId()).format(ofEpochMilli(lastLogin));
-            sender.sendMessage("- " + auth.getRealName() + " (" + lastLoginText + " with IP "
+            sender.sendMessage("- " + auth.getRealName() + " (" + (lastLogin == null ? "never"
+                : DATE_FORMAT.withZone(getZoneId()).format(ofEpochMilli(lastLogin))) + " with IP "
                 + auth.getLastIp() + ")");
         }
     }

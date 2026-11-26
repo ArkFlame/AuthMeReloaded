@@ -46,20 +46,16 @@ class PlayerLifecycleEventTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
-    void failedLoginEventHonorsAsyncFlag(boolean async) {
-        FailedLoginEvent event = new FailedLoginEvent(player, async);
-        assertThat(event.getPlayer(), sameInstance(player));
-        assertThat(event.isAsynchronous(), equalTo(async));
-    }
+    void eventsHonorAsyncFlag(boolean async) {
+        FailedLoginEvent failedLogin = new FailedLoginEvent(player, async);
+        assertThat(failedLogin.getPlayer(), sameInstance(player));
+        assertThat(failedLogin.isAsynchronous(), equalTo(async));
 
-    @ParameterizedTest
-    @ValueSource(booleans = {false, true})
-    void restoreSessionEventHonorsAsyncFlagAndCancellation(boolean async) {
-        RestoreSessionEvent event = new RestoreSessionEvent(player, async);
-        assertThat(event.getPlayer(), sameInstance(player));
-        assertThat(event.isAsynchronous(), equalTo(async));
-        assertThat(event.isCancelled(), equalTo(false));
-        event.setCancelled(true);
-        assertThat(event.isCancelled(), equalTo(true));
+        RestoreSessionEvent restore = new RestoreSessionEvent(player, async);
+        assertThat(restore.getPlayer(), sameInstance(player));
+        assertThat(restore.isAsynchronous(), equalTo(async));
+        assertThat(restore.isCancelled(), equalTo(false));
+        restore.setCancelled(true);
+        assertThat(restore.isCancelled(), equalTo(true));
     }
 }

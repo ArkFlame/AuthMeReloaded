@@ -26,7 +26,6 @@ public class PurgeBannedPlayersCommand implements ExecutableCommand {
 
     @Override
     public void executeCommand(CommandSender sender, List<String> arguments) {
-        // Get the list of banned players
         Set<OfflinePlayer> bannedPlayers = bukkitService.getBannedPlayers();
         Set<String> namedBanned = new HashSet<>(bannedPlayers.size());
         for (OfflinePlayer offlinePlayer : bannedPlayers) {

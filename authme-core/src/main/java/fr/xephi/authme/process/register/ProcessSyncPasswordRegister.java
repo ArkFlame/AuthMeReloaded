@@ -64,11 +64,9 @@ public class ProcessSyncPasswordRegister implements SynchronousProcess {
         // Request login after registration
         if (service.getProperty(RegistrationSettings.FORCE_LOGIN_AFTER_REGISTER)) {
             limboService.replaceTasksAfterRegistration(player);
-            if (player.isInsideVehicle()) {
-                Entity vehicle = player.getVehicle();
-                if (vehicle != null) {
-                    vehicle.eject();
-                }
+            Entity vehicle = player.isInsideVehicle() ? player.getVehicle() : null;
+            if (vehicle != null) {
+                vehicle.eject();
             }
             return;
         }
