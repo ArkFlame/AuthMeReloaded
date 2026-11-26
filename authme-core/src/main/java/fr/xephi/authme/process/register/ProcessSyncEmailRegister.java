@@ -28,9 +28,6 @@ public class ProcessSyncEmailRegister implements SynchronousProcess {
     @Inject
     private LimboService limboService;
 
-    ProcessSyncEmailRegister() {
-    }
-
     /**
      * Performs sync tasks for a player which has just registered by email.
      */

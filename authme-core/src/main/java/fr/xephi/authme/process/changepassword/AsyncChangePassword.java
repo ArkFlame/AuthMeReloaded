@@ -32,9 +32,6 @@ public class AsyncChangePassword implements AsynchronousProcess {
     @Inject
     private PlayerCache playerCache;
 
-    AsyncChangePassword() {
-    }
-
     /**
      * Change password for an online player
      *

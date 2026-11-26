@@ -83,13 +83,12 @@ class AsynchronousUnregisterTest {
         Player player = mock(Player.class);
         String name = "Bobby";
         HashedPassword password = givenRegisteredPlayer(player, name);
-        String userPassword = "pass";
-        given(passwordSecurity.comparePassword(userPassword, password, name)).willReturn(false);
+        given(passwordSecurity.comparePassword("pass", password, name)).willReturn(false);
 
-        asynchronousUnregister.unregister(player, userPassword);
+        asynchronousUnregister.unregister(player, "pass");
 
         verify(service).send(player, MessageKey.WRONG_PASSWORD);
-        verify(passwordSecurity).comparePassword(userPassword, password, name);
+        verify(passwordSecurity).comparePassword("pass", password, name);
         verifyNoInteractions(dataSource, limboService, teleportationService, bukkitService, bungeeSender);
         verify(player, only()).getName();
     }
@@ -112,8 +111,7 @@ class AsynchronousUnregisterTest {
         String name = "Frank21";
         HashedPassword password = givenRegisteredPlayer(player, name);
         given(player.isOnline()).willReturn(true);
-        String userPassword = "pass";
-        given(passwordSecurity.comparePassword(userPassword, password, name)).willReturn(true);
+        given(passwordSecurity.comparePassword("pass", password, name)).willReturn(true);
         given(dataSource.removeAuth(name)).willReturn(true);
         given(service.getProperty(RegistrationSettings.FORCE)).willReturn(true);
         given(service.getProperty(RegistrationSettings.APPLY_BLIND_EFFECT)).willReturn(applyBlindEffect);
@@ -123,15 +121,11 @@ class AsynchronousUnregisterTest {
             given(bukkitService.createBlindnessEffect(21 * 20)).willReturn(mock(PotionEffect.class));
         }
 
-        asynchronousUnregister.unregister(player, userPassword);
+        asynchronousUnregister.unregister(player, "pass");
 
-        verify(service).send(player, MessageKey.UNREGISTERED_SUCCESS);
-        verify(passwordSecurity).comparePassword(userPassword, password, name);
-        verify(dataSource).removeAuth(name);
-        verify(playerCache).removePlayer(name);
+        verifySuccessfulUnregister(player, name);
+        verify(passwordSecurity).comparePassword("pass", password, name);
         verify(teleportationService).teleportOnJoin(player);
-        verifyCalledUnregisterEventFor(player);
-        verify(commandManager).runCommandsOnUnregister(player);
         if (!applyBlindEffect) {
             verify(player, never()).addPotionEffect(any(PotionEffect.class));
         }
@@ -180,13 +174,9 @@ class AsynchronousUnregisterTest {
 
         asynchronousUnregister.unregister(player, userPassword);
 
-        verify(service).send(player, MessageKey.UNREGISTERED_SUCCESS);
+        verifySuccessfulUnregister(player, name);
         verify(passwordSecurity).comparePassword(userPassword, password, name);
-        verify(dataSource).removeAuth(name);
-        verify(playerCache).removePlayer(name);
         verifyNoInteractions(teleportationService, limboService);
-        verifyCalledUnregisterEventFor(player);
-        verify(commandManager).runCommandsOnUnregister(player);
     }
 
     @Test
@@ -194,13 +184,12 @@ class AsynchronousUnregisterTest {
         Player player = mock(Player.class);
         String name = "Frank21";
         HashedPassword password = givenRegisteredPlayer(player, name);
-        String userPassword = "pass";
-        given(passwordSecurity.comparePassword(userPassword, password, name)).willReturn(true);
+        given(passwordSecurity.comparePassword("pass", password, name)).willReturn(true);
         given(dataSource.removeAuth(name)).willReturn(false);
 
-        asynchronousUnregister.unregister(player, userPassword);
+        asynchronousUnregister.unregister(player, "pass");
 
-        verify(passwordSecurity).comparePassword(userPassword, password, name);
+        verify(passwordSecurity).comparePassword("pass", password, name);
         verify(dataSource).removeAuth(name);
         verify(service).send(player, MessageKey.ERROR);
         verifyNoInteractions(teleportationService, bukkitService, bungeeSender);
@@ -212,13 +201,12 @@ class AsynchronousUnregisterTest {
         String name = "Frank21";
         HashedPassword password = givenRegisteredPlayer(player, name);
         given(player.isOnline()).willReturn(false);
-        String userPassword = "pass";
-        given(passwordSecurity.comparePassword(userPassword, password, name)).willReturn(true);
+        given(passwordSecurity.comparePassword("pass", password, name)).willReturn(true);
         given(dataSource.removeAuth(name)).willReturn(true);
 
-        asynchronousUnregister.unregister(player, userPassword);
+        asynchronousUnregister.unregister(player, "pass");
 
-        verify(passwordSecurity).comparePassword(userPassword, password, name);
+        verify(passwordSecurity).comparePassword("pass", password, name);
         verify(dataSource).removeAuth(name);
         verify(playerCache).removePlayer(name);
         verifyNoInteractions(teleportationService);
@@ -239,13 +227,9 @@ class AsynchronousUnregisterTest {
 
         asynchronousUnregister.adminUnregister(initiator, name, player);
 
-        verify(service).send(player, MessageKey.UNREGISTERED_SUCCESS);
         verify(service).send(initiator, MessageKey.UNREGISTERED_SUCCESS);
-        verify(dataSource).removeAuth(name);
-        verify(playerCache).removePlayer(name);
+        verifySuccessfulUnregister(player, name);
         verify(teleportationService).teleportOnJoin(player);
-        verifyCalledUnregisterEventFor(player);
-        verify(commandManager).runCommandsOnUnregister(player);
     }
 
     @Test
@@ -272,6 +256,14 @@ class AsynchronousUnregisterTest {
         verify(dataSource).removeAuth(name);
         verify(service).send(initiator, MessageKey.ERROR);
         verifyNoInteractions(playerCache, teleportationService, bukkitService, bungeeSender);
+    }
+
+    private void verifySuccessfulUnregister(Player player, String name) {
+        verify(service).send(player, MessageKey.UNREGISTERED_SUCCESS);
+        verify(dataSource).removeAuth(name);
+        verify(playerCache).removePlayer(name);
+        verifyCalledUnregisterEventFor(player);
+        verify(commandManager).runCommandsOnUnregister(player);
     }
 
     private HashedPassword givenRegisteredPlayer(Player player, String name) {

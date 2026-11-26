@@ -37,54 +37,50 @@ public class ServerListener implements Listener {
     public void onPluginDisable(PluginDisableEvent event) {
         final String pluginName = event.getPlugin().getName();
         // Hook changes must happen on the global region thread for Folia safety
-        bukkitService.runOnGlobalRegion(() -> handlePluginDisable(pluginName));
-    }
+        bukkitService.runOnGlobalRegion(() -> {
+            // Call the onPluginDisable method in the permissions manager
+            permissionsManager.onPluginDisable(pluginName);
 
-    private void handlePluginDisable(String pluginName) {
-        // Call the onPluginDisable method in the permissions manager
-        permissionsManager.onPluginDisable(pluginName);
-
-        if ("Essentials".equalsIgnoreCase(pluginName)) {
-            pluginHookService.unhookEssentials();
-            logger.info("Essentials has been disabled: unhooking");
-        } else if ("CMI".equalsIgnoreCase(pluginName)) {
-            pluginHookService.unhookCmi();
-            spawnLoader.unloadCmiSpawn();
-            logger.info("CMI has been disabled: unhooking");
-        } else if ("Multiverse-Core".equalsIgnoreCase(pluginName)) {
-            pluginHookService.unhookMultiverse();
-            logger.info("Multiverse-Core has been disabled: unhooking");
-        } else if ("EssentialsSpawn".equalsIgnoreCase(pluginName)) {
-            spawnLoader.unloadEssentialsSpawn();
-            logger.info("EssentialsSpawn has been disabled: unhooking");
-        } else if ("packetevents".equalsIgnoreCase(pluginName)) {
-            packetEventsService.disable();
-            logger.warning("PacketEvents has been disabled, unhooking packet listeners!");
-        }
+            if ("Essentials".equalsIgnoreCase(pluginName)) {
+                pluginHookService.unhookEssentials();
+                logger.info("Essentials has been disabled: unhooking");
+            } else if ("CMI".equalsIgnoreCase(pluginName)) {
+                pluginHookService.unhookCmi();
+                spawnLoader.unloadCmiSpawn();
+                logger.info("CMI has been disabled: unhooking");
+            } else if ("Multiverse-Core".equalsIgnoreCase(pluginName)) {
+                pluginHookService.unhookMultiverse();
+                logger.info("Multiverse-Core has been disabled: unhooking");
+            } else if ("EssentialsSpawn".equalsIgnoreCase(pluginName)) {
+                spawnLoader.unloadEssentialsSpawn();
+                logger.info("EssentialsSpawn has been disabled: unhooking");
+            } else if ("packetevents".equalsIgnoreCase(pluginName)) {
+                packetEventsService.disable();
+                logger.warning("PacketEvents has been disabled, unhooking packet listeners!");
+            }
+        });
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPluginEnable(PluginEnableEvent event) {
         final String pluginName = event.getPlugin().getName();
         // Hook changes must happen on the global region thread for Folia safety
-        bukkitService.runOnGlobalRegion(() -> handlePluginEnable(pluginName));
-    }
+        bukkitService.runOnGlobalRegion(() -> {
+            // Call the onPluginEnable method in the permissions manager
+            permissionsManager.onPluginEnable(pluginName);
 
-    private void handlePluginEnable(String pluginName) {
-        // Call the onPluginEnable method in the permissions manager
-        permissionsManager.onPluginEnable(pluginName);
-
-        if ("Essentials".equalsIgnoreCase(pluginName)) {
-            pluginHookService.tryHookToEssentials();
-        } else if ("Multiverse-Core".equalsIgnoreCase(pluginName)) {
-            pluginHookService.tryHookToMultiverse();
-        } else if ("EssentialsSpawn".equalsIgnoreCase(pluginName)) {
-            spawnLoader.loadEssentialsSpawn();
-        } else if ("CMI".equalsIgnoreCase(pluginName)) {
-            pluginHookService.tryHookToCmi();
-            spawnLoader.loadCmiSpawn();
-        } else if ("packetevents".equalsIgnoreCase(pluginName)) {
-            packetEventsService.setup();
-        }
+            if ("Essentials".equalsIgnoreCase(pluginName)) {
+                pluginHookService.tryHookToEssentials();
+            } else if ("Multiverse-Core".equalsIgnoreCase(pluginName)) {
+                pluginHookService.tryHookToMultiverse();
+            } else if ("EssentialsSpawn".equalsIgnoreCase(pluginName)) {
+                spawnLoader.loadEssentialsSpawn();
+            } else if ("CMI".equalsIgnoreCase(pluginName)) {
+                pluginHookService.tryHookToCmi();
+                spawnLoader.loadCmiSpawn();
+            } else if ("packetevents".equalsIgnoreCase(pluginName)) {
+                packetEventsService.setup();
+            }
+        });
     }
 }

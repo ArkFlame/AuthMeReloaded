@@ -56,12 +56,7 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
     /** The scheduler matching the running server; keeps Spigot and Folia scheduling consistent. */
     private final SchedulerProvider scheduler = SchedulerProviders.current();
 
-    /**
-     * Returns the scheduler provider resolved for the running server. Subclasses can delegate
-     * global and asynchronous work here instead of keeping a second provider instance.
-     *
-     * @return the shared scheduler provider
-     */
+    /** Returns the scheduler provider resolved for the running server. */
     protected SchedulerProvider getScheduler() {
         return scheduler;
     }
@@ -214,12 +209,16 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
 
     @Override
     public void unregisterInventoryProtection() {
-        packetAdapter().ifPresent(PacketInterceptionAdapter::unregisterInventoryProtection);
+        if (packetInterceptionAdapter != null) {
+            packetInterceptionAdapter.unregisterInventoryProtection();
+        }
     }
 
     @Override
     public void sendBlankInventoryPacket(Player player) {
-        packetAdapter().ifPresent(adapter -> adapter.sendBlankInventoryPacket(player));
+        if (packetInterceptionAdapter != null) {
+            packetInterceptionAdapter.sendBlankInventoryPacket(player);
+        }
     }
 
     @Override
@@ -229,7 +228,9 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
 
     @Override
     public void unregisterTabCompleteBlock() {
-        packetAdapter().ifPresent(PacketInterceptionAdapter::unregisterTabCompleteBlock);
+        if (packetInterceptionAdapter != null) {
+            packetInterceptionAdapter.unregisterTabCompleteBlock();
+        }
     }
 
     @Override
@@ -241,7 +242,9 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
 
     @Override
     public void unregisterPremiumVerification() {
-        packetAdapter().ifPresent(PacketInterceptionAdapter::unregisterPremiumVerification);
+        if (packetInterceptionAdapter != null) {
+            packetInterceptionAdapter.unregisterPremiumVerification();
+        }
     }
 
     @Override
@@ -265,11 +268,6 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
             }
         }
         return null;
-    }
-
-    /** Returns the lazily created packet adapter only if it has been requested already. */
-    private Optional<PacketInterceptionAdapter> packetAdapter() {
-        return Optional.ofNullable(packetInterceptionAdapter);
     }
 
     private PacketInterceptionAdapter getOrCreatePacketInterceptionAdapter() {

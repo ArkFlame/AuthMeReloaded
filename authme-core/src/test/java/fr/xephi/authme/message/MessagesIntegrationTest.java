@@ -87,24 +87,13 @@ class MessagesIntegrationTest {
     }
 
     @Test
-    void shouldLoadMessageAndSplitAtNewLines() {
-        MessageKey key = MessageKey.UNKNOWN_USER;
+    void shouldLoadMessageWithNewLines() {
         CommandSender sender = mockSender();
-
-        String[] message = messages.retrieve(key, sender);
 
         String[] lines = new String[]{"We've got", "new lines", "and ' apostrophes"};
-        assertThat(message, equalTo(lines));
-    }
-
-    @Test
-    void shouldLoadMessageAsStringWithNewLines() {
-        MessageKey key = MessageKey.UNKNOWN_USER;
-        CommandSender sender = mockSender();
-
-        String message = messages.retrieveSingle(sender, key);
-
-        assertThat(message, equalTo("We've got\nnew lines\nand ' apostrophes"));
+        assertThat(messages.retrieve(MessageKey.UNKNOWN_USER, sender), equalTo(lines));
+        assertThat(messages.retrieveSingle(sender, MessageKey.UNKNOWN_USER),
+            equalTo("We've got\nnew lines\nand ' apostrophes"));
     }
 
     @Test
@@ -185,24 +174,13 @@ class MessagesIntegrationTest {
     void shouldLogErrorForInvalidReplacementCount() {
         Logger logger = mock(Logger.class);
         ConsoleLogger.initialize(logger, null);
-        MessageKey key = MessageKey.CAPTCHA_WRONG_ERROR;
         CommandSender sender = mockSender();
 
-        messages.send(sender, key, "rep", "rep2");
+        // Key with tags but wrong number of replacements, and key without any tags
+        messages.send(sender, MessageKey.CAPTCHA_WRONG_ERROR, "rep", "rep2");
+        messages.send(sender, MessageKey.UNKNOWN_USER, "Replacement");
 
-        verify(logger).warning(argThat(containsString("Invalid number of replacements")));
-    }
-
-    @Test
-    void shouldSendErrorForReplacementsOnKeyWithNoTags() {
-        Logger logger = mock(Logger.class);
-        ConsoleLogger.initialize(logger, null);
-        MessageKey key = MessageKey.UNKNOWN_USER;
-        CommandSender sender = mockSender();
-
-        messages.send(sender, key, "Replacement");
-
-        verify(logger).warning(argThat(containsString("Invalid number of replacements")));
+        verify(logger, times(2)).warning(argThat(containsString("Invalid number of replacements")));
     }
 
     @Test

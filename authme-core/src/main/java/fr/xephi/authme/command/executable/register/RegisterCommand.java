@@ -111,13 +111,11 @@ public class RegisterCommand extends PlayerCommand {
     private void handlePasswordRegistration(Player player, List<String> arguments) {
         RegisterSecondaryArgument secondArgType = commonService.getProperty(REGISTER_SECOND_ARGUMENT);
         if (isSecondArgValid(player, arguments, false, secondArgType)) {
-            final String password = arguments.get(0);
-            final String email = arguments.size() >= 2
+            String email = arguments.size() >= 2
                 && (secondArgType == EMAIL_MANDATORY || secondArgType == EMAIL_OPTIONAL)
                 ? arguments.get(1) : null;
-
             management.performRegister(RegistrationMethod.PASSWORD_REGISTRATION,
-                PasswordRegisterParams.of(player, password, email));
+                PasswordRegisterParams.of(player, arguments.get(0), email));
         }
     }
 
@@ -143,8 +141,11 @@ public class RegisterCommand extends PlayerCommand {
         }
 
         if (emailRegistration || secondArgType == CONFIRMATION) {
-            MessageKey errorMessage = emailRegistration ? MessageKey.USAGE_REGISTER : MessageKey.PASSWORD_MATCH_ERROR;
-            return checkArgumentsMatch(player, arguments, errorMessage);
+            if (arguments.get(0).equals(arguments.get(1))) {
+                return true;
+            }
+            commonService.send(player, emailRegistration ? MessageKey.USAGE_REGISTER : MessageKey.PASSWORD_MATCH_ERROR);
+            return false;
         } else if (secondArgType == EMAIL_MANDATORY || secondArgType == EMAIL_OPTIONAL) {
             if (validationService.validateEmail(arguments.get(1))) {
                 return true;
@@ -153,14 +154,6 @@ public class RegisterCommand extends PlayerCommand {
             return false;
         }
         throw new IllegalStateException("Unknown secondary argument type '" + secondArgType + "'");
-    }
-
-    private boolean checkArgumentsMatch(Player player, List<String> arguments, MessageKey errorMessage) {
-        if (arguments.get(0).equals(arguments.get(1))) {
-            return true;
-        }
-        commonService.send(player, errorMessage);
-        return false;
     }
 
     private void handleEmailRegistration(Player player, List<String> arguments) {

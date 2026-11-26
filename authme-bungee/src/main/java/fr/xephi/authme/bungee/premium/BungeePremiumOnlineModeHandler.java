@@ -18,8 +18,7 @@ public final class BungeePremiumOnlineModeHandler {
             return;
         }
 
-        String normalizedName = ProxyPremiumLoginVerifier.normalize(username);
-        if (requiresVerification.test(normalizedName) && !connection.isOnlineMode()) {
+        if (requiresVerification.test(ProxyPremiumLoginVerifier.normalize(username)) && !connection.isOnlineMode()) {
             connection.setOnlineMode(true);
         }
     }

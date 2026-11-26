@@ -50,14 +50,12 @@ public class HelpCommand implements ExecutableCommand {
             if (command == null) {
                 sender.sendMessage(ChatColor.DARK_RED + "Unknown command");
                 return;
-            } else {
-                sender.sendMessage(ChatColor.GOLD + "Assuming " + ChatColor.WHITE
-                    + CommandUtils.constructCommandPath(command));
             }
+            sender.sendMessage(ChatColor.GOLD + "Assuming " + ChatColor.WHITE
+                + CommandUtils.constructCommandPath(command));
         }
 
-        int mappedCommandLevel = command.getLabelCount();
-        if (mappedCommandLevel == 1) {
+        if (command.getLabelCount() == 1) {
             helpProvider.outputHelp(sender, result,
                 SHOW_COMMAND | SHOW_DESCRIPTION | SHOW_CHILDREN | SHOW_ALTERNATIVES);
         } else {

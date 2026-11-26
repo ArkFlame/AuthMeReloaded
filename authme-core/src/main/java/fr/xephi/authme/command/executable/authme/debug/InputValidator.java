@@ -32,7 +32,6 @@ class InputValidator implements DebugSection {
     @Inject
     private OnJoinVerifier onJoinVerifier;
 
-
     @Override
     public String getName() {
         return "valid";
@@ -50,12 +49,13 @@ class InputValidator implements DebugSection {
             return;
         }
         ValidationObject type = matchEnumByName(ValidationObject.class, arguments.get(0));
+        String value = arguments.get(1);
         if (type == PASS) {
-            validatePassword(sender, arguments.get(1));
+            validatePassword(sender, value);
         } else if (type == MAIL) {
-            validateEmail(sender, arguments.get(1));
+            validateEmail(sender, value);
         } else if (type == NAME) {
-            validateUsername(sender, arguments.get(1));
+            validateUsername(sender, value);
         } else {
             displayUsageHint(sender);
         }
@@ -105,7 +105,6 @@ class InputValidator implements DebugSection {
             messages.send(sender, failedVerificationEx.getReason(), failedVerificationEx.getArgs());
         }
     }
-
 
     enum ValidationObject { PASS, MAIL, NAME }
 

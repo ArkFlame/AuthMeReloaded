@@ -6,6 +6,8 @@ import fr.xephi.authme.settings.properties.SecuritySettings;
 import fr.xephi.authme.util.expiring.TimedCounter;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -42,61 +44,44 @@ class LoginCaptchaManagerTest {
         assertThat(manager.isCaptchaRequired("otherPlayer"), equalTo(false));
     }
 
-    @Test
-    void shouldCreateAndCheckCaptcha() {
+    @ParameterizedTest
+    @CsvSource({"4, true", "9, false"})
+    void shouldCheckCode(int captchaLength, boolean useCorrectCode) {
         // given
         String name = "Miner";
         Player player = mock(Player.class);
         given(player.getName()).willReturn(name);
-        Settings settings = mockSettings(1, 4);
-        LoginCaptchaManager manager = new LoginCaptchaManager(settings);
+        LoginCaptchaManager manager = new LoginCaptchaManager(mockSettings(1, captchaLength));
         String captchaCode = manager.getCaptchaCodeOrGenerateNew(name);
 
         // when
-        boolean result = manager.checkCode(player, captchaCode);
+        boolean result = manager.checkCode(player, useCorrectCode ? captchaCode : "wrongcode");
 
         // then
-        assertThat(captchaCode, stringWithLength(4));
-        assertThat(result, equalTo(true));
-        // Supplying correct code should clear the entry, and a code should be invalid if no entry is present
-        assertThat(manager.checkCode(player, "bogus"), equalTo(false));
-    }
-
-    @Test
-    void shouldGenerateNewCodeOnFailure() {
-        // given
-        String name = "Tarheel";
-        Player player = mock(Player.class);
-        given(player.getName()).willReturn(name);
-        Settings settings = mockSettings(1, 9);
-        LoginCaptchaManager manager = new LoginCaptchaManager(settings);
-        String captchaCode = manager.getCaptchaCodeOrGenerateNew(name);
-
-        // when
-        boolean result = manager.checkCode(player, "wrongcode");
-
-        // then
-        assertThat(captchaCode, stringWithLength(9));
-        assertThat(result, equalTo(false));
-        assertThat(manager.getCaptchaCodeOrGenerateNew(name), not(equalTo(captchaCode)));
+        assertThat(captchaCode, stringWithLength(captchaLength));
+        assertThat(result, equalTo(useCorrectCode));
+        if (useCorrectCode) {
+            // Supplying correct code clears the entry, and a code is invalid if no entry is present
+            assertThat(manager.checkCode(player, "bogus"), equalTo(false));
+        } else {
+            // A failed check generates a new code
+            assertThat(manager.getCaptchaCodeOrGenerateNew(name), not(equalTo(captchaCode)));
+        }
     }
 
     @Test
     void shouldHaveSameCodeAfterGeneration() {
         // given
         String player = "Tester";
-        Settings settings = mockSettings(1, 5);
-        LoginCaptchaManager manager = new LoginCaptchaManager(settings);
+        LoginCaptchaManager manager = new LoginCaptchaManager(mockSettings(1, 5));
 
         // when
-        String code1 = manager.getCaptchaCodeOrGenerateNew(player);
-        String code2 = manager.getCaptchaCodeOrGenerateNew(player);
-        String code3 = manager.getCaptchaCodeOrGenerateNew(player);
+        String code = manager.getCaptchaCodeOrGenerateNew(player);
 
         // then
-        assertThat(code1.length(), equalTo(5));
-        assertThat(code2, equalTo(code1));
-        assertThat(code3, equalTo(code1));
+        assertThat(code.length(), equalTo(5));
+        assertThat(manager.getCaptchaCodeOrGenerateNew(player), equalTo(code));
+        assertThat(manager.getCaptchaCodeOrGenerateNew(player), equalTo(code));
     }
 
     @Test

@@ -45,12 +45,7 @@ public class TaskCloser implements Runnable {
         try {
             //one minute + some time checking the running state
             int tries = 60;
-            while (!pendingTasks.isEmpty()) {
-                if (tries <= 0) {
-                    logger.log(Level.INFO, "Async tasks times out after to many tries {0}", pendingTasks);
-                    break;
-                }
-
+            while (tries > 0 && !pendingTasks.isEmpty()) {
                 try {
                     sleep();
                 } catch (InterruptedException ignored) {
@@ -68,6 +63,10 @@ public class TaskCloser implements Runnable {
                 }
 
                 tries--;
+            }
+
+            if (tries <= 0 && !pendingTasks.isEmpty()) {
+                logger.log(Level.INFO, "Async tasks times out after to many tries {0}", pendingTasks);
             }
         } finally {
             // Close the data source even if polling the scheduler fails unexpectedly

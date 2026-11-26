@@ -371,14 +371,9 @@ public class LimboService {
      */
     public void restoreEntities(Player player) {
         LimboPlayer limbo = entries.get(player.getUniqueId());
-        if (limbo == null) {
-            return;
+        if (limbo != null) {
+            doRestoreEntities(player, limbo, null);
         }
-        doRestoreEntities(player, limbo);
-    }
-
-    private void doRestoreEntities(Player player, LimboPlayer limbo) {
-        doRestoreEntities(player, limbo, null);
     }
 
     /**

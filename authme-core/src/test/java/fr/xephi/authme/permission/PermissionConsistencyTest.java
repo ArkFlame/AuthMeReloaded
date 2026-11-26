@@ -68,28 +68,29 @@ class PermissionConsistencyTest {
             }
         }
 
-        if (!errors.isEmpty()) {
-            fail("Found consistency issues!\n" + String.join("\n", errors));
-        }
+        failOnErrors(errors);
     }
 
     @Test
     void shouldNotHaveUnknownPermissionsInPluginYml() {
         List<String> errors = new ArrayList<>();
+        Set<String> nodeNames = permissionNodes.stream().map(PermissionNode::getNode).collect(Collectors.toSet());
 
         for (PermissionDefinition def : pluginYmlPermissions.values()) {
             if (PLUGIN_YML_PERMISSIONS_WILDCARDS.contains(def.node)) {
                 validateChildren(def, errors);
-            } else {
-                if (permissionNodes.stream().noneMatch(n -> def.node.equals(n.getNode()))) {
-                    errors.add("Permission '" + def.node + "' in plugin.yml does not exist in the codebase");
-                } else if (!def.children.isEmpty()) {
-                    errors.add("Permission '" + def.node + "' has children in plugin.yml "
-                        + "but is not a wildcard permission");
-                }
+            } else if (!nodeNames.contains(def.node)) {
+                errors.add("Permission '" + def.node + "' in plugin.yml does not exist in the codebase");
+            } else if (!def.children.isEmpty()) {
+                errors.add("Permission '" + def.node + "' has children in plugin.yml "
+                    + "but is not a wildcard permission");
             }
         }
 
+        failOnErrors(errors);
+    }
+
+    private static void failOnErrors(List<String> errors) {
         if (!errors.isEmpty()) {
             fail("Found consistency issues!\n" + String.join("\n", errors));
         }
@@ -101,11 +102,9 @@ class PermissionConsistencyTest {
      * @return collection of all permission nodes in the code
      */
     private static List<PermissionNode> getPermissionsFromClasses() {
-        List<PermissionNode> nodes = new ArrayList<>();
-        for (Class<? extends PermissionNode> clazz : permissionClasses) {
-            nodes.addAll(Arrays.<PermissionNode>asList(clazz.getEnumConstants()));
-        }
-        return Collections.unmodifiableList(nodes);
+        return permissionClasses.stream()
+            .flatMap(clazz -> Arrays.stream(clazz.getEnumConstants()))
+            .collect(Collectors.toList());
     }
 
     /**
