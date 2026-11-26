@@ -24,6 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
+import java.util.function.LongSupplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -43,7 +44,14 @@ final class ProxyPremiumLoginVerifier {
     private final ConcurrentHashMap<String, PendingVerification> pending = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, VerifiedSession> verified = new ConcurrentHashMap<>();
 
+    private final LongSupplier clock;
+
     ProxyPremiumLoginVerifier(String threadName, Consumer<String> warningLogger) {
+        this(threadName, warningLogger, System::currentTimeMillis);
+    }
+
+    ProxyPremiumLoginVerifier(String threadName, Consumer<String> warningLogger, LongSupplier clock) {
+        this.clock = clock;
         this.warningLogger = warningLogger;
         this.secureRandom = new SecureRandom();
         this.verificationExecutor = Executors.newSingleThreadExecutor(r -> {
@@ -129,7 +137,10 @@ final class ProxyPremiumLoginVerifier {
     }
 
     void storeVerified(String username, UUID mojangUuid) {
-        verified.put(normalize(username), new VerifiedSession(mojangUuid, System.currentTimeMillis()));
+        long now = clock.getAsLong();
+        // A verified player who disconnects before perform.login is sent is never looked up again: sweep them here.
+        verified.values().removeIf(session -> now - session.verifiedAt() > VERIFIED_TTL_MS);
+        verified.put(normalize(username), new VerifiedSession(mojangUuid, now));
     }
 
     UUID getVerifiedUuid(String username) {
@@ -138,7 +149,7 @@ final class ProxyPremiumLoginVerifier {
         if (verifiedSession == null) {
             return null;
         }
-        if (System.currentTimeMillis() - verifiedSession.verifiedAt() > VERIFIED_TTL_MS) {
+        if (clock.getAsLong() - verifiedSession.verifiedAt() > VERIFIED_TTL_MS) {
             verified.remove(normalizedName);
             return null;
         }
