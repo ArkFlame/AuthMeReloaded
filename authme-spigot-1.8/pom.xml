@@ -247,6 +247,17 @@
                                 <exclude>META-INF/**/module-info.class</exclude>
                             </excludes>
                         </filter>
+                        <!-- AuthMe only uses the lightweight crypto API (Argon2, BCrypt, PBKDF2, hex): drop the
+                             post-quantum, JCA/JCE provider and X.509 parts of bcprov -->
+                        <filter>
+                            <artifact>org.bouncycastle:bcprov-jdk18on</artifact>
+                            <excludes>
+                                <exclude>org/bouncycastle/pqc/**</exclude>
+                                <exclude>org/bouncycastle/jcajce/**</exclude>
+                                <exclude>org/bouncycastle/jce/**</exclude>
+                                <exclude>org/bouncycastle/x509/**</exclude>
+                            </excludes>
+                        </filter>
                     </filters>
                     <transformers>
                         <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer"/>
