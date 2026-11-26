@@ -19,6 +19,8 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -313,9 +315,8 @@ class AuthMeApiTest {
     @Test
     void shouldUnregisterPlayer() {
         // given
-        Player player = mock(Player.class);
         String name = "Donald";
-        given(player.getName()).willReturn(name);
+        Player player = mockPlayerWithName(name);
 
         // when
         api.forceUnregister(player);
@@ -407,32 +408,23 @@ class AuthMeApiTest {
         verify(management).performLogout(player);
     }
 
-    @Test
-    void shouldForceRegister() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldForceRegister(boolean autoLogin) {
         // given
         Player player = mock(Player.class);
         String pass = "test235";
 
         // when
-        api.forceRegister(player, pass);
+        if (autoLogin) {
+            api.forceRegister(player, pass);
+        } else {
+            api.forceRegister(player, pass, autoLogin);
+        }
 
         // then
         verify(management).performRegister(eq(RegistrationMethod.API_REGISTRATION),
-            argThat(hasEqualValuesOnAllFields(ApiPasswordRegisterParams.of(player, pass, true))));
-    }
-
-    @Test
-    void shouldForceRegisterAndNotAutoLogin() {
-        // given
-        Player player = mock(Player.class);
-        String pass = "test235";
-
-        // when
-        api.forceRegister(player, pass, false);
-
-        // then
-        verify(management).performRegister(eq(RegistrationMethod.API_REGISTRATION),
-            argThat(hasEqualValuesOnAllFields(ApiPasswordRegisterParams.of(player, pass, false))));
+            argThat(hasEqualValuesOnAllFields(ApiPasswordRegisterParams.of(player, pass, autoLogin))));
     }
 
     @Test

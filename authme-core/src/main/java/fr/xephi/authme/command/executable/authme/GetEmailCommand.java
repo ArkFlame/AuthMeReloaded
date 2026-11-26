@@ -20,13 +20,10 @@ public class GetEmailCommand extends AbstractPlayerAuthCommand {
         DataSourceValue<String> email = getDataSource().getEmail(playerName);
         if (!email.rowExists()) {
             getCommonService().send(sender, MessageKey.UNKNOWN_USER);
-            return;
-        }
-        String emailValue = email.getValue();
-        if (Utils.isEmailEmpty(emailValue)) {
+        } else if (Utils.isEmailEmpty(email.getValue())) {
             getCommonService().send(sender, MessageKey.SHOW_NO_EMAIL);
         } else {
-            getCommonService().send(sender, MessageKey.ADMIN_EMAIL_SHOW, playerName, emailValue);
+            getCommonService().send(sender, MessageKey.ADMIN_EMAIL_SHOW, playerName, email.getValue());
         }
     }
 }

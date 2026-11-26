@@ -3,13 +3,13 @@ package fr.xephi.authme.output;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.Mockito;
 
 import java.util.logging.LogRecord;
 import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -34,7 +34,8 @@ class ConsoleFilterTest {
     @ParameterizedTest(name = "{0}")
     @MethodSource("recordsAndExpectedFiltering")
     void shouldFilterRecordsAsExpected(String message, boolean shouldFilter) {
-        LogRecord record = createRecord(message);
+        LogRecord record = mock(LogRecord.class);
+        when(record.getMessage()).thenReturn(message);
 
         boolean result = filter.isLoggable(record);
 
@@ -44,18 +45,5 @@ class ConsoleFilterTest {
         } else {
             verify(record, never()).setMessage("User issued an AuthMe command");
         }
-    }
-
-    /**
-     * Creates a mock of {@link LogRecord} and sets it to return the given message.
-     *
-     * @param message The message to set.
-     *
-     * @return Mock of LogRecord
-     */
-    private static LogRecord createRecord(String message) {
-        LogRecord record = Mockito.mock(LogRecord.class);
-        when(record.getMessage()).thenReturn(message);
-        return record;
     }
 }

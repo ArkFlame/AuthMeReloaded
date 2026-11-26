@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.slf4j.Logger;
 
+import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,6 +38,8 @@ class Velocity3126Test {
 
     private static final UUID PREMIUM_UUID = UUID.fromString("8d6d0684-d8b4-4d40-8d2d-0dd4df5555c8");
     private static final UUID OFFLINE_UUID = UuidUtils.generateOfflinePlayerUuid("Alice");
+    private static final ServerInfo LOBBY = new ServerInfo("lobby", new InetSocketAddress("127.0.0.1", 25565));
+    private static final ServerInfo SURVIVAL = new ServerInfo("survival", new InetSocketAddress("127.0.0.1", 25566));
 
     /**
      * The proxy-side UUID chain is correct: the backend and the client are given the offline UUID,
@@ -86,12 +89,9 @@ class Velocity3126Test {
     private static final class Fixture {
         private final ProxyServer proxyServer = mock(ProxyServer.class);
         private final Logger logger = mock(Logger.class);
-        private final PluginMessageEvent pluginMessageEvent = mock(PluginMessageEvent.class);
         private final ServerConnection source = mock(ServerConnection.class);
         private final RegisteredServer authServer = mock(RegisteredServer.class);
-        private final ServerInfo authServerInfo = mock(ServerInfo.class);
         private final RegisteredServer gameServer = mock(RegisteredServer.class);
-        private final ServerInfo gameServerInfo = mock(ServerInfo.class);
         private final Player player = mock(Player.class);
         private final ServerConnection currentServer = mock(ServerConnection.class);
         private final VelocityProxyBridge bridge;
@@ -101,10 +101,8 @@ class Velocity3126Test {
         }
 
         private Fixture(boolean keepOfflineUuid) {
-            given(authServer.getServerInfo()).willReturn(authServerInfo);
-            given(authServerInfo.getName()).willReturn("lobby");
-            given(gameServer.getServerInfo()).willReturn(gameServerInfo);
-            given(gameServerInfo.getName()).willReturn("survival");
+            given(authServer.getServerInfo()).willReturn(LOBBY);
+            given(gameServer.getServerInfo()).willReturn(SURVIVAL);
             given(player.getUsername()).willReturn("Alice");
             given(currentServer.getServer()).willReturn(gameServer);
             given(currentServer.sendPluginMessage(eq(VelocityProxyBridge.AUTHME_CHANNEL), any(byte[].class)))
@@ -114,12 +112,9 @@ class Velocity3126Test {
         }
 
         private void recordPremiumName() {
-            given(pluginMessageEvent.getResult()).willReturn(PluginMessageEvent.ForwardResult.forward());
-            given(pluginMessageEvent.getIdentifier()).willReturn(VelocityProxyBridge.AUTHME_CHANNEL);
-            given(pluginMessageEvent.getSource()).willReturn(source);
-            given(pluginMessageEvent.getData()).willReturn(ProxyTestFixtures.message("premium.set", "Alice"));
             given(source.getServer()).willReturn(authServer);
-            bridge.onPluginMessage(pluginMessageEvent);
+            bridge.onPluginMessage(new PluginMessageEvent(source, source, VelocityProxyBridge.AUTHME_CHANNEL,
+                ProxyTestFixtures.message("premium.set", "Alice")));
         }
 
         private GameProfileRequestEvent verifyProfileRequest() {

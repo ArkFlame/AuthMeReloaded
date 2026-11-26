@@ -96,9 +96,7 @@ class PremiumAutoRegisterServiceTest {
 
         assertTrue(service.tryAutoRegister(player));
 
-        ArgumentCaptor<PlayerAuth> authCaptor = ArgumentCaptor.forClass(PlayerAuth.class);
-        verify(dataSource, times(1)).saveAuth(authCaptor.capture());
-        PlayerAuth auth = authCaptor.getValue();
+        PlayerAuth auth = captureSavedAuth();
         assertEquals("bobby", auth.getNickname());
         assertEquals(premiumUuid, auth.getPremiumUuid());
         assertNotNull(auth.getPassword());
@@ -117,9 +115,7 @@ class PremiumAutoRegisterServiceTest {
 
         assertTrue(service.tryAutoRegister(player));
 
-        ArgumentCaptor<PlayerAuth> authCaptor = ArgumentCaptor.forClass(PlayerAuth.class);
-        verify(dataSource).saveAuth(authCaptor.capture());
-        assertEquals(premiumUuid, authCaptor.getValue().getPremiumUuid());
+        assertEquals(premiumUuid, captureSavedAuth().getPremiumUuid());
         verify(premiumLoginVerifier).consumeVerifiedUuid("Bobby");
     }
 
@@ -134,9 +130,7 @@ class PremiumAutoRegisterServiceTest {
 
         assertTrue(service.tryAutoRegister(player));
 
-        ArgumentCaptor<PlayerAuth> authCaptor = ArgumentCaptor.forClass(PlayerAuth.class);
-        verify(dataSource).saveAuth(authCaptor.capture());
-        assertEquals(premiumUuid, authCaptor.getValue().getPremiumUuid());
+        assertEquals(premiumUuid, captureSavedAuth().getPremiumUuid());
     }
 
     @Test
@@ -146,8 +140,7 @@ class PremiumAutoRegisterServiceTest {
 
         assertFalse(service.tryAutoRegister(player));
 
-        verify(dataSource, never()).saveAuth(any(PlayerAuth.class));
-        verify(bukkitService, never()).runTaskOptionallyAsync(any(Runnable.class));
+        verifyNoRegistration();
     }
 
     @Test
@@ -157,9 +150,8 @@ class PremiumAutoRegisterServiceTest {
 
         assertFalse(service.tryAutoRegister(player));
 
-        verify(dataSource, never()).saveAuth(any(PlayerAuth.class));
+        verifyNoRegistration();
         verify(dataSource, never()).updatePremiumUuid(any(PlayerAuth.class));
-        verify(bukkitService, never()).runTaskOptionallyAsync(any(Runnable.class));
     }
 
     @Test
@@ -169,8 +161,7 @@ class PremiumAutoRegisterServiceTest {
 
         assertFalse(service.tryAutoRegister(player));
 
-        verify(dataSource, never()).saveAuth(any(PlayerAuth.class));
-        verify(bukkitService, never()).runTaskOptionallyAsync(any(Runnable.class));
+        verifyNoRegistration();
     }
 
     @Test
@@ -195,6 +186,17 @@ class PremiumAutoRegisterServiceTest {
 
         verify(dataSource, times(2)).isAuthAvailable("bobby");
         verify(dataSource, never()).saveAuth(any(PlayerAuth.class));
+    }
+
+    private PlayerAuth captureSavedAuth() {
+        ArgumentCaptor<PlayerAuth> authCaptor = ArgumentCaptor.forClass(PlayerAuth.class);
+        verify(dataSource).saveAuth(authCaptor.capture());
+        return authCaptor.getValue();
+    }
+
+    private void verifyNoRegistration() {
+        verify(dataSource, never()).saveAuth(any(PlayerAuth.class));
+        verify(bukkitService, never()).runTaskOptionallyAsync(any(Runnable.class));
     }
 
     private static UUID offlineUuid() {

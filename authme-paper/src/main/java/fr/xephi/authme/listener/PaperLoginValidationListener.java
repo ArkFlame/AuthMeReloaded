@@ -150,10 +150,9 @@ public class PaperLoginValidationListener implements Listener {
     private long getClaimTtlMillis() {
         int loginTimeout = settings.getProperty(RestrictionSettings.LOGIN_TIMEOUT);
         int registerTimeout = settings.getProperty(RestrictionSettings.REGISTER_TIMEOUT);
-        if (loginTimeout <= 0 || registerTimeout <= 0) {
-            return CLAIM_WITHOUT_TIMEOUT_MILLIS;
-        }
-        return TimeUnit.SECONDS.toMillis(Math.max(loginTimeout, registerTimeout)) + CLAIM_GRACE_MILLIS;
+        return loginTimeout <= 0 || registerTimeout <= 0
+            ? CLAIM_WITHOUT_TIMEOUT_MILLIS
+            : TimeUnit.SECONDS.toMillis(Math.max(loginTimeout, registerTimeout)) + CLAIM_GRACE_MILLIS;
     }
 
     private static String getPlayerName(PlayerLoginConnection connection) {

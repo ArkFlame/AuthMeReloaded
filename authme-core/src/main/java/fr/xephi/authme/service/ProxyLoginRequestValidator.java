@@ -76,19 +76,19 @@ public class ProxyLoginRequestValidator {
         PlayerAuth auth = playerCache.getAuth(playerName);
         if (auth == null) {
             auth = dataSource.getAuth(playerName.toLowerCase(Locale.ROOT));
-        }
-        if (auth == null) {
-            logger.warning("Rejected proxy premium login for " + playerName + ": no auth record found");
-            return false;
+            if (auth == null) {
+                logger.warning("Rejected proxy premium login for " + playerName + ": no auth record found");
+                return false;
+            }
         }
 
         if (auth.isPremium()) {
-            if (verifiedPremiumUuid.equals(auth.getPremiumUuid())) {
-                return true;
+            if (!verifiedPremiumUuid.equals(auth.getPremiumUuid())) {
+                logger.warning("Rejected proxy premium login for " + playerName
+                    + ": verified UUID does not match stored premium UUID");
+                return false;
             }
-            logger.warning("Rejected proxy premium login for " + playerName
-                + ": verified UUID does not match stored premium UUID");
-            return false;
+            return true;
         }
 
         UUID pendingPremiumUuid = pendingPremiumCache.removePending(playerName);
@@ -99,9 +99,8 @@ public class ProxyLoginRequestValidator {
         }
 
         if (!verifiedPremiumUuid.equals(pendingPremiumUuid)) {
-            logger.warning("Rejected proxy premium login for " + playerName
-                + ": verified UUID " + verifiedPremiumUuid + " does not match pending premium UUID "
-                + pendingPremiumUuid);
+            logger.warning("Rejected proxy premium login for " + playerName + ": verified UUID "
+                + verifiedPremiumUuid + " does not match pending premium UUID " + pendingPremiumUuid);
             bungeeSender.sendPremiumUnset(playerName);
             messages.send(player, MessageKey.PREMIUM_PENDING_FAIL);
             return false;

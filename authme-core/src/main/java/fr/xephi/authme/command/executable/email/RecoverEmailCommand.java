@@ -2,18 +2,15 @@ package fr.xephi.authme.command.executable.email;
 
 import ch.jalu.datasourcecolumns.data.DataSourceValue;
 import fr.xephi.authme.ConsoleLogger;
-import fr.xephi.authme.command.PlayerCommand;
 import fr.xephi.authme.data.auth.PlayerCache;
 import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.mail.EmailService;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.service.BukkitService;
-import fr.xephi.authme.service.CommonService;
 import fr.xephi.authme.service.EmailRecoveryDialogService;
 import fr.xephi.authme.service.PasswordRecoveryService;
 import fr.xephi.authme.service.RecoveryCodeService;
-import fr.xephi.authme.service.ValidationService;
 import fr.xephi.authme.util.Utils;
 import org.bukkit.entity.Player;
 
@@ -23,12 +20,9 @@ import java.util.List;
 /**
  * Command for password recovery by email.
  */
-public class RecoverEmailCommand extends PlayerCommand {
+public class RecoverEmailCommand extends AbstractEmailCommand {
 
     private final ConsoleLogger logger = ConsoleLoggerFactory.get(RecoverEmailCommand.class);
-
-    @Inject
-    private CommonService commonService;
 
     @Inject
     private DataSource dataSource;
@@ -49,9 +43,6 @@ public class RecoverEmailCommand extends PlayerCommand {
     private BukkitService bukkitService;
 
     @Inject
-    private ValidationService validationService;
-
-    @Inject
     private EmailRecoveryDialogService dialogRecoveryService;
 
     @Override
@@ -66,27 +57,26 @@ public class RecoverEmailCommand extends PlayerCommand {
 
         if (!emailService.hasAllInformation()) {
             logger.warning("Mail API is not set");
-            commonService.send(player, MessageKey.INCOMPLETE_EMAIL_SETTINGS);
+            getCommonService().send(player, MessageKey.INCOMPLETE_EMAIL_SETTINGS);
             return;
         }
         if (playerCache.isAuthenticated(playerName)) {
-            commonService.send(player, MessageKey.ALREADY_LOGGED_IN_ERROR);
+            getCommonService().send(player, MessageKey.ALREADY_LOGGED_IN_ERROR);
             return;
         }
-        if (!validationService.validateEmail(playerMail)) {
-            commonService.send(player, MessageKey.INVALID_EMAIL);
+        if (!isEmailValid(player, playerMail, MessageKey.INVALID_EMAIL)) {
             return;
         }
 
         DataSourceValue<String> emailResult = dataSource.getEmail(playerName);
         if (!emailResult.rowExists()) {
-            commonService.send(player, MessageKey.USAGE_REGISTER);
+            getCommonService().send(player, MessageKey.USAGE_REGISTER);
             return;
         }
 
         final String email = emailResult.getValue();
         if (Utils.isEmailEmpty(email) || !email.equalsIgnoreCase(playerMail)) {
-            commonService.send(player, MessageKey.INVALID_EMAIL);
+            getCommonService().send(player, MessageKey.INVALID_EMAIL);
             return;
         }
 

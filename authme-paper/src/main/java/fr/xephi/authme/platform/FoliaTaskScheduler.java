@@ -18,12 +18,7 @@ final class FoliaTaskScheduler {
 
     private static final CancellableTask NO_OP_TASK = () -> { };
 
-    private static final String ENTITY_TASK_RETIRED =
-        "Skipped entity task because the entity scheduler was retired";
-    private static final String DELAYED_ENTITY_TASK_RETIRED =
-        "Skipped delayed entity task because the entity scheduler was retired";
-    private static final String REPEATING_ENTITY_TASK_RETIRED =
-        "Skipped repeating entity task because the entity scheduler was retired";
+    private static final String RETIRED_SUFFIX = " because the entity scheduler was retired";
 
     private FoliaTaskScheduler() {
     }
@@ -37,25 +32,25 @@ final class FoliaTaskScheduler {
     }
 
     static void runOnEntityThread(AuthMe plugin, Entity entity, Runnable task) {
-        cancellableTask(entity.getScheduler().run(plugin, ignored -> task.run(), null), plugin, ENTITY_TASK_RETIRED);
+        cancellableTask(entity.getScheduler().run(plugin, ignored -> task.run(), null), plugin, "entity task");
     }
 
     static CancellableTask runDelayedOnEntityThread(AuthMe plugin, Entity entity, Runnable task, long delay) {
         return cancellableTask(
             entity.getScheduler().runDelayed(plugin, ignored -> task.run(), null, delay),
-            plugin, DELAYED_ENTITY_TASK_RETIRED);
+            plugin, "delayed entity task");
     }
 
     static CancellableTask runAtFixedRateOnEntityThread(AuthMe plugin, Entity entity, Runnable task,
                                                         long delay, long period) {
         return cancellableTask(
             entity.getScheduler().runAtFixedRate(plugin, ignored -> task.run(), null, delay, period),
-            plugin, REPEATING_ENTITY_TASK_RETIRED);
+            plugin, "repeating entity task");
     }
 
-    private static CancellableTask cancellableTask(ScheduledTask scheduledTask, AuthMe plugin, String skippedMessage) {
+    private static CancellableTask cancellableTask(ScheduledTask scheduledTask, AuthMe plugin, String taskKind) {
         if (scheduledTask == null) {
-            plugin.getLogger().fine(skippedMessage);
+            plugin.getLogger().fine("Skipped " + taskKind + RETIRED_SUFFIX);
             return NO_OP_TASK;
         }
         return scheduledTask::cancel;

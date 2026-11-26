@@ -12,7 +12,6 @@ import fr.xephi.authme.settings.Settings;
 import fr.xephi.authme.settings.SpawnLoader;
 import fr.xephi.authme.settings.properties.RestrictionSettings;
 import fr.xephi.authme.util.PlayerUtils;
-import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
 import javax.inject.Inject;
@@ -54,7 +53,8 @@ public class OnShutdownPlayerSaver {
     }
 
     private void savePlayer(Player player) {
-        String name = player.getName().toLowerCase(Locale.ROOT);
+        String playerName = player.getName();
+        String name = playerName.toLowerCase(Locale.ROOT);
         if (PlayerUtils.isNpc(player) || validationService.isUnrestricted(name)) {
             return;
         }
@@ -64,12 +64,10 @@ public class OnShutdownPlayerSaver {
             } else {
                 limboService.restorePendingOperator(player);
                 if (settings.getProperty(RestrictionSettings.SAVE_QUIT_LOCATION)) {
-                    Location loc = spawnLoader.getPlayerLocationOrSpawn(player);
-                    PlayerAuth auth = PlayerAuth.builder()
+                    dataSource.updateQuitLoc(PlayerAuth.builder()
                         .name(name)
-                        .realName(player.getName())
-                        .location(loc).build();
-                    dataSource.updateQuitLoc(auth);
+                        .realName(playerName)
+                        .location(spawnLoader.getPlayerLocationOrSpawn(player)).build());
                     // TODO: send an update when a messaging service will be implemented (QUITLOC)
                 }
             }
