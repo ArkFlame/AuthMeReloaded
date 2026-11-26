@@ -83,8 +83,10 @@ class CommandHandlerTest {
             .willReturn(new FoundCommandResult(command, labels, arguments, difference, status));
     }
 
+    /** Verifies the mapper was called with the given parts and that no raw message was sent to the sender. */
     private void verifyMappedParts(String... parts) {
         verify(commandMapper).mapPartsToCommand(sender, asList(parts));
+        verify(sender, never()).sendMessage(anyString());
     }
 
     /**
@@ -126,8 +128,6 @@ class CommandHandlerTest {
         ExecutableCommand executableCommand = mockedCommands.get(TestLoginCommand.class);
         verifyMappedParts("Authme", "Login", "myPass");
         verify(executableCommand).executeCommand(sender, asList("myPass"));
-        // Ensure that no error message was issued to the command sender
-        verify(sender, never()).sendMessage(anyString());
     }
 
     @ParameterizedTest(name = "status: {0}")
@@ -143,7 +143,6 @@ class CommandHandlerTest {
         verifyMappedParts("unreg", "testPlayer");
         verify(command, never()).getExecutableCommand();
         verify(messages).send(sender, messageKey);
-        verify(sender, never()).sendMessage(anyString());
     }
 
     @ParameterizedTest(name = "custom mismatch message: {0}, permission granted: {1}")
@@ -175,7 +174,6 @@ class CommandHandlerTest {
             verify(helpProvider).outputHelp(eq(sender), any(FoundCommandResult.class), eq(HelpProvider.SHOW_ARGUMENTS));
             verify(messages).send(eq(sender), eq(MessageKey.COMMAND_DETAILED_HELP), anyString());
         }
-        verify(sender, never()).sendMessage(anyString());
     }
 
     @ParameterizedTest(name = "suggestion: {1}")
@@ -200,7 +198,6 @@ class CommandHandlerTest {
             assertThat(cmdCaptor.getValue(), containsString("test_cmd"));
         }
         verify(messages).send(eq(sender), eq(MessageKey.COMMAND_SEE_HELP), anyString());
-        verify(sender, never()).sendMessage(anyString());
     }
 
     @Test

@@ -34,9 +34,8 @@ class PhpBbExtension extends MySqlExtension {
 
     private void updateSpecificsOnSave(int id, String name, Connection con) throws SQLException {
         // Insert player in phpbb_user_group
-        String sql = "INSERT INTO " + phpBbPrefix
-                   + "user_group (group_id, user_id, group_leader, user_pending) VALUES (?,?,?,?);";
-        try (PreparedStatement pst = con.prepareStatement(sql)) {
+        try (PreparedStatement pst = con.prepareStatement("INSERT INTO " + phpBbPrefix
+                + "user_group (group_id, user_id, group_leader, user_pending) VALUES (?,?,?,?);")) {
             pst.setInt(1, phpBbGroup);
             pst.setInt(2, id);
             pst.setInt(3, 0);
@@ -47,12 +46,11 @@ class PhpBbExtension extends MySqlExtension {
         setStringColumns(tableName, tableName, new String[]{"username_clean"}, name, name, con);
         setIntColumns(tableName, tableName, new String[]{"group_id"}, phpBbGroup, name, con);
         // Get current time without ms, then update user_regdate and user_lastvisit
-        long time = System.currentTimeMillis() / 1000;
-        setLongColumns(tableName, tableName, new String[]{"user_regdate", "user_lastvisit"}, time, name, con);
+        setLongColumns(tableName, tableName, new String[]{"user_regdate", "user_lastvisit"},
+            System.currentTimeMillis() / 1000, name, con);
         // Increment num_users
-        sql = "UPDATE " + phpBbPrefix
-            + "config SET config_value = config_value + 1 WHERE config_name = 'num_users';";
-        try (PreparedStatement pst = con.prepareStatement(sql)) {
+        try (PreparedStatement pst = con.prepareStatement("UPDATE " + phpBbPrefix
+                + "config SET config_value = config_value + 1 WHERE config_name = 'num_users';")) {
             pst.executeUpdate();
         }
     }

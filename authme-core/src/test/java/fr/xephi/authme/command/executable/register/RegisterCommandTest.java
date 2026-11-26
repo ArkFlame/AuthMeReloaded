@@ -134,19 +134,6 @@ public class RegisterCommandTest {
     }
 
     @Test
-    public void shouldReturnErrorForEmptyArguments() {
-        // given
-        Player player = mock(Player.class);
-
-        // when
-        command.executeCommand(player, Collections.emptyList());
-
-        // then
-        verify(commonService).send(player, MessageKey.USAGE_REGISTER);
-        verifyNoInteractions(management, emailService);
-    }
-
-    @Test
     public void shouldReturnErrorForMissingEmailConfirmation() {
         // given
         given(emailService.hasAllInformation()).willReturn(true);
@@ -283,17 +270,19 @@ public class RegisterCommandTest {
         verifyNoInteractions(bukkitService, dataSource);
     }
 
-    static Stream<Arguments> invalidPasswordConfirmationCases() {
+    static Stream<Arguments> invalidPasswordRegistrationCases() {
         return Stream.of(
-            Arguments.of(Collections.singletonList("arrrr"), MessageKey.USAGE_REGISTER),
-            Arguments.of(Arrays.asList("myPass", "mypass"), MessageKey.PASSWORD_MATCH_ERROR));
+            Arguments.of(RegisterSecondaryArgument.NONE, Collections.emptyList(), MessageKey.USAGE_REGISTER),
+            Arguments.of(RegisterSecondaryArgument.CONFIRMATION, Collections.singletonList("arrrr"), MessageKey.USAGE_REGISTER),
+            Arguments.of(RegisterSecondaryArgument.CONFIRMATION, Arrays.asList("myPass", "mypass"), MessageKey.PASSWORD_MATCH_ERROR));
     }
 
     @ParameterizedTest
-    @MethodSource("invalidPasswordConfirmationCases")
-    public void shouldRejectInvalidPasswordConfirmation(List<String> arguments, MessageKey expectedMessage) {
+    @MethodSource("invalidPasswordRegistrationCases")
+    public void shouldRejectInvalidPasswordRegistration(RegisterSecondaryArgument secondArg, List<String> arguments,
+                                                        MessageKey expectedMessage) {
         // given
-        givenPasswordRegistration(RegisterSecondaryArgument.CONFIRMATION);
+        givenPasswordRegistration(secondArg);
         Player player = mock(Player.class);
 
         // when
@@ -326,39 +315,35 @@ public class RegisterCommandTest {
             argThat(hasEqualValuesOnAllFields(PasswordRegisterParams.of(player, "myPass", null))));
     }
 
-    @Test
-    public void shouldPerformMailValidationForPasswordWithEmail() {
-        // given
-        givenPasswordRegistration(RegisterSecondaryArgument.EMAIL_MANDATORY);
-        String email = "email@example.org";
-        given(validationService.validateEmail(email)).willReturn(true);
-        Player player = mock(Player.class);
-
-        // when
-        command.executeCommand(player, Arrays.asList("myPass", email));
-
-        // then
-        verify(validationService).validateEmail(email);
-        verify(management).performRegister(eq(RegistrationMethod.PASSWORD_REGISTRATION),
-            argThat(hasEqualValuesOnAllFields(PasswordRegisterParams.of(player, "myPass", email))));
+    static Stream<Arguments> passwordWithEmailCases() {
+        return Stream.of(
+            Arguments.of(RegisterSecondaryArgument.EMAIL_MANDATORY, true, null),
+            Arguments.of(RegisterSecondaryArgument.EMAIL_OPTIONAL, false, MessageKey.INVALID_EMAIL));
     }
 
-    @Test
-    public void shouldStopForInvalidEmail() {
+    @ParameterizedTest
+    @MethodSource("passwordWithEmailCases")
+    public void shouldValidateEmailForPasswordRegistration(RegisterSecondaryArgument secondArg, boolean validEmail,
+                                                           MessageKey failureMessage) {
         // given
-        givenPasswordRegistration(RegisterSecondaryArgument.EMAIL_OPTIONAL);
+        givenPasswordRegistration(secondArg);
         String email = "email@example.org";
-        given(validationService.validateEmail(email)).willReturn(false);
-        Player player = mockPlayerWithName("Waaa");
+        given(validationService.validateEmail(email)).willReturn(validEmail);
+        Player player = validEmail ? mock(Player.class) : mockPlayerWithName("Waaa");
 
         // when
         command.executeCommand(player, Arrays.asList("myPass", email));
 
         // then
-        verify(registrationCaptchaManager).isCaptchaRequired("Waaa");
         verify(validationService).validateEmail(email);
-        verify(commonService).send(player, MessageKey.INVALID_EMAIL);
-        verifyNoInteractions(management);
+        if (validEmail) {
+            verify(management).performRegister(eq(RegistrationMethod.PASSWORD_REGISTRATION),
+                argThat(hasEqualValuesOnAllFields(PasswordRegisterParams.of(player, "myPass", email))));
+        } else {
+            verify(registrationCaptchaManager).isCaptchaRequired("Waaa");
+            verify(commonService).send(player, failureMessage);
+            verifyNoInteractions(management);
+        }
     }
 
     @Test

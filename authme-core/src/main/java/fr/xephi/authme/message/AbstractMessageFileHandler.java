@@ -90,9 +90,7 @@ public abstract class AbstractMessageFileHandler implements Reloadable {
      */
     public String getMessage(String key) {
         String message = getMessageIfExists(key);
-        return message == null
-            ? "Error retrieving message '" + key + "'"
-            : message;
+        return message == null ? "Error retrieving message '" + key + "'" : message;
     }
 
     /**
@@ -183,11 +181,7 @@ public abstract class AbstractMessageFileHandler implements Reloadable {
     @VisibleForTesting
     File initializeFile(String filePath) {
         File file = getMessageFile(filePath);
-        if (file.exists()) {
-            return file;
-        }
-
-        if (FileUtils.copyFileFromResource(file, defaultFile)) {
+        if (file.exists() || FileUtils.copyFileFromResource(file, defaultFile)) {
             return file;
         }
         logger.warning("Wanted to copy default messages file '" + defaultFile + "' from JAR but it didn't exist");

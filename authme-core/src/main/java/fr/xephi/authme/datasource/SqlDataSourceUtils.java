@@ -36,7 +36,6 @@ public final class SqlDataSourceUtils {
      * @param rs the result set to read from
      * @param columnName the name of the column to retrieve
      * @return the value (which may be null)
-     * @throws SQLException :)
      */
     public static Long getNullableLong(ResultSet rs, String columnName) throws SQLException {
         long longValue = rs.getLong(columnName);
@@ -92,7 +91,6 @@ public final class SqlDataSourceUtils {
      * @param tableName the name of the table in which the column would be
      * @param columnName the name of the column to check
      * @return true if no metadata entry exists for the column
-     * @throws SQLException :)
      */
     public static boolean isColumnMissing(DatabaseMetaData metaData, String catalog, String tableName,
                                           String columnName) throws SQLException {
@@ -108,7 +106,6 @@ public final class SqlDataSourceUtils {
      * @param tableName the name of the table in which the column is
      * @param columnName the name of the column to check
      * @return true if the column is NOT NULL, false otherwise
-     * @throws SQLException :)
      */
     public static boolean isNotNullColumn(DatabaseMetaData metaData, String tableName,
                                           String columnName) throws SQLException {
@@ -116,7 +113,6 @@ public final class SqlDataSourceUtils {
             int nullableCode = rs.getInt("NULLABLE");
             if (nullableCode == DatabaseMetaData.columnNullableUnknown) {
                 logger.warning("Unknown nullable status for column '" + columnName + "'");
-                return false;
             }
             return nullableCode == DatabaseMetaData.columnNoNulls;
         });
@@ -129,7 +125,6 @@ public final class SqlDataSourceUtils {
      * @param tableName the name of the table in which the column is
      * @param columnName the name of the column to check
      * @return the default value of the column (may be null)
-     * @throws SQLException :)
      */
     public static Object getColumnDefaultValue(DatabaseMetaData metaData, String tableName,
                                                String columnName) throws SQLException {
@@ -144,7 +139,6 @@ public final class SqlDataSourceUtils {
      * @param tableName the name of the table in which the column is
      * @param columnName the name of the column to check
      * @return the size of the column
-     * @throws SQLException :)
      */
     public static int getColumnSize(DatabaseMetaData metaData, String tableName,
                                     String columnName) throws SQLException {

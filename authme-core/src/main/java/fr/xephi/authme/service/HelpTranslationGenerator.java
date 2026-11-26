@@ -90,10 +90,7 @@ public class HelpTranslationGenerator {
             generateCommandEntries(command, commandEntries);
         }
 
-        return ImmutableMap.of(
-            "common", messageEntries,
-            "section", sectionEntries,
-            "commands", commandEntries);
+        return ImmutableMap.of("common", messageEntries, "section", sectionEntries, "commands", commandEntries);
     }
 
     /**

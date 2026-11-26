@@ -154,12 +154,9 @@ class RegisterAdminCommandTest {
     private void verifyAuthSaved(String user, HashedPassword hashedPassword) {
         ArgumentCaptor<PlayerAuth> captor = ArgumentCaptor.forClass(PlayerAuth.class);
         verify(dataSource).saveAuth(captor.capture());
-        assertAuthHasInfo(captor.getValue(), user, hashedPassword);
-    }
-
-    private void assertAuthHasInfo(PlayerAuth auth, String name, HashedPassword hashedPassword) {
-        assertThat(auth.getRealName(), equalTo(name));
-        assertThat(auth.getNickname(), equalTo(name.toLowerCase(Locale.ROOT)));
+        PlayerAuth auth = captor.getValue();
+        assertThat(auth.getRealName(), equalTo(user));
+        assertThat(auth.getNickname(), equalTo(user.toLowerCase(Locale.ROOT)));
         assertThat(auth.getPassword(), equalTo(hashedPassword));
     }
 }
