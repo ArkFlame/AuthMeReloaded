@@ -1,7 +1,6 @@
 package fr.xephi.authme.velocity;
 
 import com.google.common.io.ByteArrayDataInput;
-import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 import com.velocitypowered.api.event.command.CommandExecuteEvent;
 import com.velocitypowered.api.event.connection.DisconnectEvent;
@@ -93,7 +92,7 @@ final class VelocityProxyBridge {
     }
 
     private boolean requiresPremiumVerification(String normalizedName) {
-        return premiumNames.contains(normalizedName) || pendingPremiumUsernames.contains(normalizedName);
+        return premiumNames.contains(normalizedName) || isPendingPremiumVerification(normalizedName);
     }
 
     private boolean isPendingPremiumVerification(String normalizedName) {
@@ -109,7 +108,7 @@ final class VelocityProxyBridge {
     }
 
     private void broadcastProxyStartedHandshake() {
-        byte[] payload = createProxyStartedMessage();
+        byte[] payload = ProxyMessages.proxyStarted(PROXY_IDENTITY);
         int notified = 0;
         int deferred = 0;
         for (RegisteredServer server : proxyServer.getAllServers()) {
@@ -147,12 +146,6 @@ final class VelocityProxyBridge {
         }, 1, TimeUnit.SECONDS);
     }
 
-    private byte[] createProxyStartedMessage() {
-        ByteArrayDataOutput output = ByteStreams.newDataOutput();
-        output.writeUTF(ProxyMessageType.PROXY_STARTED.id());
-        output.writeUTF(PROXY_IDENTITY);
-        return output.toByteArray();
-    }
 
     void logConfigurationDetails() {
         if (configuration.allServersAreAuthServers()) {
@@ -511,7 +504,7 @@ final class VelocityProxyBridge {
         if (!notifiedAuthServers.add(serverName)) {
             return;
         }
-        byte[] payload = createProxyStartedMessage();
+        byte[] payload = ProxyMessages.proxyStarted(PROXY_IDENTITY);
         // Try via the specific triggering connection first to avoid the race condition where
         // ServerConnectedEvent fires before the player is added to RegisteredServer.playersConnected.
         boolean sent = triggeringConnection != null
@@ -549,27 +542,25 @@ final class VelocityProxyBridge {
                 return;
             }
             Optional<ServerConnection> serverOpt = playerOpt.get().getCurrentServer();
-            if (serverOpt.isEmpty()) {
-                int deferred = attempts.getAndIncrement();
-                if (deferred >= MAX_RETRIES) {
-                    pendingAutoLogins.remove(normalizedName);
+            int attempt = attempts.getAndIncrement();
+            if (attempt >= MAX_RETRIES) {
+                pendingAutoLogins.remove(normalizedName);
+                if (serverOpt.isEmpty()) {
                     logger.warn("No server connection for {} after {} deferred retries; giving up on auto-login",
                         normalizedName, MAX_RETRIES);
-                    return;
+                } else {
+                    logger.warn("No auto-login ACK received for {} after {} retries; giving up", normalizedName, MAX_RETRIES);
                 }
+                return;
+            }
+            if (serverOpt.isEmpty()) {
                 logger.debug("Auto-login retry for {} deferred: no active server connection yet", normalizedName);
                 scheduleRetry(normalizedName, attempts);
                 return;
             }
-            int current = attempts.getAndIncrement();
-            if (current >= MAX_RETRIES) {
-                pendingAutoLogins.remove(normalizedName);
-                logger.warn("No auto-login ACK received for {} after {} retries; giving up", normalizedName, MAX_RETRIES);
-                return;
-            }
             String serverName = serverOpt.get().getServer().getServerInfo().getName();
             logger.debug("Retrying auto-login for {} on server '{}' (attempt {}/{})",
-                normalizedName, serverName, current + 1, MAX_RETRIES);
+                normalizedName, serverName, attempt + 1, MAX_RETRIES);
 
             UUID verifiedPremiumUuid = premiumVerificationManager.getVerifiedPremiumUuid(normalizedName);
             sendPerformLoginMessage(serverOpt.get(), normalizedName, verifiedPremiumUuid);

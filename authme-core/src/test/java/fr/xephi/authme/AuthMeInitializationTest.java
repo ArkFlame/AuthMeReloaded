@@ -38,6 +38,7 @@ import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPluginLoader;
 import org.bukkit.scheduler.BukkitScheduler;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -75,32 +76,32 @@ class AuthMeInitializationTest {
     private AuthMe authMe;
 
     @TempDir
-    File dataFolder;
+    static File dataFolder;
+
+    @BeforeAll
+    static void copyConfigurationFile() throws IOException {
+        Files.copy(TestHelper.getJarFile(TestHelper.PROJECT_ROOT + "config.test.yml"),
+            new File(dataFolder, "config.yml"));
+    }
 
     @BeforeEach
-    void initAuthMe() throws IOException {
-        File settingsFile = new File(dataFolder, "config.yml");
+    void initAuthMe() {
         given(server.getLogger()).willReturn(Logger.getAnonymousLogger());
         JavaPluginLoader pluginLoader = new JavaPluginLoader(server);
-        Files.copy(TestHelper.getJarFile(TestHelper.PROJECT_ROOT + "config.test.yml"), settingsFile);
-
-        // Mock / wire various Bukkit components
         ReflectionTestUtils.setField(Bukkit.class, null, "server", server);
 
         // PluginDescriptionFile is final: need to create a sample one
         PluginDescriptionFile descriptionFile = new PluginDescriptionFile(
             "AuthMe", "N/A", AuthMe.class.getCanonicalName());
 
-        // Initialize AuthMe
         authMe = new AuthMe(pluginLoader, descriptionFile, dataFolder, null);
     }
 
     @Test
     void shouldInitializeAllServices() {
         // given
-        PropertyReader reader = mock(PropertyReader.class);
         PropertyResource resource = mock(PropertyResource.class);
-        given(resource.createReader()).willReturn(reader);
+        given(resource.createReader()).willReturn(mock(PropertyReader.class));
         Settings settings = new Settings(dataFolder, resource, null, buildConfigurationData());
 
         given(server.getPluginManager()).willReturn(pluginManager);
@@ -135,16 +136,12 @@ class AuthMeInitializationTest {
 
         // then
         // Take a few samples and ensure that they are not null
-        assertThat(injector.getIfAvailable(AuthMeApi.class), not(nullValue()));
-        assertThat(injector.getIfAvailable(BlockListener.class), not(nullValue()));
-        assertThat(injector.getIfAvailable(BungeeReceiver.class), not(nullValue()));
-        assertThat(injector.getIfAvailable(BungeeSender.class), not(nullValue()));
-        assertThat(injector.getIfAvailable(CommandHandler.class), not(nullValue()));
-        assertThat(injector.getIfAvailable(Management.class), not(nullValue()));
-        assertThat(injector.getIfAvailable(PasswordSecurity.class), not(nullValue()));
-        assertThat(injector.getIfAvailable(PermissionsManager.class), not(nullValue()));
-        assertThat(injector.getIfAvailable(ProcessSyncPlayerLogin.class), not(nullValue()));
-        assertThat(injector.getIfAvailable(PurgeService.class), not(nullValue()));
+        List<Class<?>> services = List.of(AuthMeApi.class, BlockListener.class, BungeeReceiver.class,
+            BungeeSender.class, CommandHandler.class, Management.class, PasswordSecurity.class,
+            PermissionsManager.class, ProcessSyncPlayerLogin.class, PurgeService.class);
+        for (Class<?> service : services) {
+            assertThat(service.getSimpleName(), injector.getIfAvailable(service), not(nullValue()));
+        }
     }
 
     @Test
@@ -155,10 +152,8 @@ class AuthMeInitializationTest {
         PlayerListener playerListener = mock(PlayerListener.class);
         LegacyPlayerLoginListener legacyLoginListener = new LegacyPlayerLoginListener();
         LegacyPlayerSpawnLocationListener legacySpawnListener = new LegacyPlayerSpawnLocationListener();
-        List<Class<? extends Listener>> listeners = List.of(
-            PlayerListener.class,
-            LegacyPlayerLoginListener.class,
-            LegacyPlayerSpawnLocationListener.class);
+        List<Class<? extends Listener>> listeners = List.of(PlayerListener.class,
+            LegacyPlayerLoginListener.class, LegacyPlayerSpawnLocationListener.class);
         given(server.getPluginManager()).willReturn(pluginManager);
         given(injector.getSingleton(EventRegistrationAdapter.class)).willReturn(platformAdapter);
         given(platformAdapter.getListeners()).willReturn(listeners);

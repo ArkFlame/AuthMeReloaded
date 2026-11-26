@@ -26,35 +26,35 @@ public class CommandDescription {
      * Defines the labels to execute the command. For example, if labels are "register" and "r" and the parent is
      * the command for "/authme", then both "/authme register" and "/authme r" will be handled by this command.
      */
-    private List<String> labels;
+    private final List<String> labels;
     /**
      * Short description of the command.
      */
-    private String description;
+    private final String description;
     /**
      * Detailed description of what the command does.
      */
-    private String detailedDescription;
+    private final String detailedDescription;
     /**
      * The class implementing the command described by this object.
      */
-    private Class<? extends ExecutableCommand> executableCommand;
+    private final Class<? extends ExecutableCommand> executableCommand;
     /**
      * The parent command.
      */
-    private CommandDescription parent;
+    private final CommandDescription parent;
     /**
      * The child commands that extend this command.
      */
-    private List<CommandDescription> children = new ArrayList<>();
+    private final List<CommandDescription> children = new ArrayList<>();
     /**
      * The arguments the command takes.
      */
-    private List<CommandArgumentDescription> arguments;
+    private final List<CommandArgumentDescription> arguments;
     /**
      * Permission node required to execute this command.
      */
-    private PermissionNode permission;
+    private final PermissionNode permission;
 
     /**
      * Private constructor.
@@ -70,9 +70,9 @@ public class CommandDescription {
      * @param arguments           command arguments
      * @param permission          permission node required to execute this command
      */
-    private CommandDescription(List<String> labels, String description, String detailedDescription, 
+    private CommandDescription(List<String> labels, String description, String detailedDescription,
                                Class<? extends ExecutableCommand> executableCommand, CommandDescription parent,
-                               List<CommandArgumentDescription> arguments,  PermissionNode permission) {
+                               List<CommandArgumentDescription> arguments, PermissionNode permission) {
         this.labels = labels;
         this.description = description;
         this.detailedDescription = detailedDescription;
@@ -133,10 +133,7 @@ public class CommandDescription {
      * @return The number of labels, e.g. for "/authme abc def" the label count is 3
      */
     public int getLabelCount() {
-        if (parent == null) {
-            return 1;
-        }
-        return parent.getLabelCount() + 1;
+        return parent == null ? 1 : parent.getLabelCount() + 1;
     }
 
     /**

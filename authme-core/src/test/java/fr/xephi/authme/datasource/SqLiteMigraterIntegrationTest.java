@@ -5,8 +5,8 @@ import com.google.common.io.Files;
 import fr.xephi.authme.TestHelper;
 import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.settings.Settings;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -37,11 +37,11 @@ import static org.mockito.Mockito.mock;
 class SqLiteMigraterIntegrationTest {
 
     @TempDir
-    File dataFolder;
-    private SQLite sqLite;
+    static File dataFolder;
+    private static SQLite sqLite;
 
-    @BeforeEach
-    void setup() throws SQLException, IOException {
+    @BeforeAll
+    static void setup() throws SQLException, IOException {
         TestHelper.setupLogger();
 
         Settings settings = mock(Settings.class);
@@ -53,17 +53,17 @@ class SqLiteMigraterIntegrationTest {
 
         Connection con = DriverManager.getConnection("jdbc:sqlite:" + tempFile.getPath());
         sqLite = createSqlite(settings, dataFolder, con);
+        sqLite.setup();
+        sqLite.migrateIfNeeded();
     }
 
-    @AfterEach
-    void close() {
+    @AfterAll
+    static void close() {
         sqLite.closeConnection();
     }
 
     @Test
-    void shouldRun() throws SQLException {
-        migrateDatabase();
-
+    void shouldRun() {
         List<PlayerAuth> auths = sqLite.getAllAuths();
         assertThat(Lists.transform(auths, PlayerAuth::getNickname),
             containsInAnyOrder("mysql1", "mysql2", "mysql3", "mysql4", "mysql5", "mysql6"));
@@ -78,9 +78,7 @@ class SqLiteMigraterIntegrationTest {
     @ParameterizedTest(name = "migrates {0}")
     @MethodSource("migratedAccounts")
     void shouldMigrateAccount(String name, String realName, String email, String ip,
-                              double x, double y, double z, String world, long lastLogin) throws SQLException {
-        migrateDatabase();
-
+                              double x, double y, double z, String world, long lastLogin) {
         PlayerAuth auth = getByNameOrFail(name, sqLite.getAllAuths());
         assertThat(auth, hasAuthBasicData(name, realName, email, ip));
         assertThat(auth, hasAuthLocation(x, y, z, world, 0, 0));
@@ -97,11 +95,6 @@ class SqLiteMigraterIntegrationTest {
             Arguments.of("mysql5", "mysql5", null, null, 0.0, 0.0, 0.0, "world5", 1472992680922L),
             Arguments.of("mysql6", "MySql6", "user6@example.com", "44.45.67.188",
                 28.5, 53.43, -147.23, "world6", 1472992686300L));
-    }
-
-    private void migrateDatabase() throws SQLException {
-        sqLite.setup();
-        sqLite.migrateIfNeeded();
     }
 
     private static PlayerAuth getByNameOrFail(String name, List<PlayerAuth> auths) {

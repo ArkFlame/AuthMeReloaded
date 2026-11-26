@@ -61,12 +61,11 @@ public class DebugCommand implements ExecutableCommand {
     // Lazy getter
     private Map<String, DebugSection> getSections() {
         if (sections == null) {
-            Map<String, DebugSection> sections = new TreeMap<>();
+            sections = new TreeMap<>();
             for (Class<? extends DebugSection> sectionClass : SECTION_CLASSES) {
                 DebugSection section = debugSectionFactory.newInstance(sectionClass);
                 sections.put(section.getName(), section);
             }
-            this.sections = sections;
         }
         return sections;
     }

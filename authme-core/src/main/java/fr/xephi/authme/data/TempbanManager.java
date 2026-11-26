@@ -93,10 +93,7 @@ public class TempbanManager implements SettingsDependent, HasCleanup {
      * @return True if the IP should be tempbanned
      */
     public boolean shouldTempban(String address) {
-        if (!isEnabled) {
-            return false;
-        }
-        TimedCounter<String> countsByName = ipLoginFailureCounts.get(address);
+        TimedCounter<String> countsByName = isEnabled ? ipLoginFailureCounts.get(address) : null;
         return countsByName != null && countsByName.total() >= threshold;
     }
 
@@ -142,6 +139,6 @@ public class TempbanManager implements SettingsDependent, HasCleanup {
         for (TimedCounter<String> countsByIp : ipLoginFailureCounts.values()) {
             countsByIp.removeExpiredEntries();
         }
-        ipLoginFailureCounts.entrySet().removeIf(e -> e.getValue().isEmpty());
+        ipLoginFailureCounts.values().removeIf(TimedCounter::isEmpty);
     }
 }

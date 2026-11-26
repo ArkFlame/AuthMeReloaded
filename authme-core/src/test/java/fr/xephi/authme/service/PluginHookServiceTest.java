@@ -14,7 +14,6 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -49,17 +48,16 @@ class PluginHookServiceTest {
     /** The plugin name of Multiverse-Core. */
     private static final String MULTIVERSE = "Multiverse-Core";
 
-    private PluginManager pluginManager;
+    // PluginManager is an interface, so the default subclass mock maker suffices.
+    // JUnit creates a new test instance per method, so this is a fresh mock for every test.
+    private final PluginManager pluginManager = mock(PluginManager.class);
+    /** World only serves as an unstubbed lookup key, so a single shared mock is enough. */
+    private static World world;
 
     @BeforeAll
-    static void setLogger() {
+    static void setUpOnce() {
         TestHelper.setupLogger();
-    }
-
-    @BeforeEach
-    void setUp() {
-        // PluginManager is an interface, so the default subclass mock maker suffices
-        pluginManager = mock(PluginManager.class);
+        world = mock(World.class, withSettings().mockMaker(MockMakers.INLINE));
     }
 
     @Test
@@ -205,7 +203,6 @@ class PluginHookServiceTest {
         MultiverseWorld multiverseWorld = mock(MultiverseWorld.class, withSettings().mockMaker(MockMakers.INLINE));
         given(multiverseWorld.getSpawnLocation()).willReturn(location);
 
-        World world = mock(World.class, withSettings().mockMaker(MockMakers.INLINE));
         MVWorldManager mvWorldManager = mock(MVWorldManager.class, withSettings().mockMaker(MockMakers.INLINE));
         given(mvWorldManager.isMVWorld(world)).willReturn(true);
         given(mvWorldManager.getMVWorld(world)).willReturn(multiverseWorld);
@@ -228,7 +225,6 @@ class PluginHookServiceTest {
     @Test
     void shouldReturnNullForNonMvWorld() {
         // given
-        World world = mock(World.class, withSettings().mockMaker(MockMakers.INLINE));
         MVWorldManager mvWorldManager = mock(MVWorldManager.class, withSettings().mockMaker(MockMakers.INLINE));
         given(mvWorldManager.isMVWorld(world)).willReturn(false);
 

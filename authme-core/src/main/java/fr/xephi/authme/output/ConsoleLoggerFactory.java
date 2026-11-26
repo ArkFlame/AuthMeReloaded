@@ -14,9 +14,6 @@ public final class ConsoleLoggerFactory {
     private static final Map<String, ConsoleLogger> consoleLoggers = new ConcurrentHashMap<>();
     private static Settings settings;
 
-    private ConsoleLoggerFactory() {
-    }
-
     /**
      * Creates or returns the already existing logger associated with the given class.
      *
@@ -24,7 +21,13 @@ public final class ConsoleLoggerFactory {
      * @return logger for the given class
      */
     public static ConsoleLogger get(Class<?> owningClass) {
-        return consoleLoggers.computeIfAbsent(owningClass.getCanonicalName(), ConsoleLoggerFactory::createLogger);
+        return consoleLoggers.computeIfAbsent(owningClass.getCanonicalName(), name -> {
+            ConsoleLogger logger = new ConsoleLogger(name);
+            if (settings != null) {
+                logger.initializeSettings(settings);
+            }
+            return logger;
+        });
     }
 
     /**
@@ -41,13 +44,5 @@ public final class ConsoleLoggerFactory {
 
     public static int getTotalLoggers() {
         return consoleLoggers.size();
-    }
-
-    private static ConsoleLogger createLogger(String name) {
-        ConsoleLogger logger = new ConsoleLogger(name);
-        if (settings != null) {
-            logger.initializeSettings(settings);
-        }
-        return logger;
     }
 }

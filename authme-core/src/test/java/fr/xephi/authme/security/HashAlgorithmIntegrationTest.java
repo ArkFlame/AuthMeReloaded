@@ -48,10 +48,8 @@ class HashAlgorithmIntegrationTest {
         Set<Class<? extends EncryptionMethod>> classes = new HashSet<>();
 
         for (HashAlgorithm algorithm : HashAlgorithm.values()) {
-            if (!HashAlgorithm.CUSTOM.equals(algorithm)) {
-                if (!classes.add(algorithm.getClazz())) {
-                    fail("Found class '" + algorithm.getClazz() + "' twice!");
-                }
+            if (!HashAlgorithm.CUSTOM.equals(algorithm) && !classes.add(algorithm.getClazz())) {
+                fail("Found class '" + algorithm.getClazz() + "' twice!");
             }
         }
     }
