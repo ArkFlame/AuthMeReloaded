@@ -37,8 +37,8 @@ public class HelpMessagesFileHandler extends AbstractMessageFileHandler {
             return message;
         }
 
-        logger.warning("Error getting message with key '" + key + "'. "
-            + "Please update your config file '" + getFilename() + "' or run /authme messages help");
+        logger.warning("Error getting message with key '" + key + "'. Please update your config file '"
+            + getFilename() + "' or run /authme messages help");
         if (defaultConfiguration == null) {
             defaultConfiguration = loadDefaultConfiguration();
         }

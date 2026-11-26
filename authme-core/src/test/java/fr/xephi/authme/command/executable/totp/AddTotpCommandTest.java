@@ -61,8 +61,7 @@ public class AddTotpCommandTest {
     private static Stream<Arguments> invalidStates() {
         return Stream.of(
             Arguments.of(null, MessageKey.NOT_LOGGED_IN),
-            Arguments.of(PlayerAuth.builder().name("bob").totpKey("TOTP2345").build(),
-                MessageKey.TWO_FACTOR_ALREADY_ENABLED));
+            Arguments.of(PlayerAuth.builder().name("bob").totpKey("TOTP2345").build(), MessageKey.TWO_FACTOR_ALREADY_ENABLED));
     }
 
     @Test
@@ -85,5 +84,4 @@ public class AddTotpCommandTest {
     }
 
 }
-
 

@@ -28,7 +28,6 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.UUID;
 
 import static fr.xephi.authme.util.Utils.logAndSendMessage;
 
@@ -132,7 +131,6 @@ public class LoginSecurityConverter implements Converter {
         Timestamp lastLogin = resultSet.getTimestamp("last_login");
         Date registrationDate = resultSet.getDate("registration_date");
         long regDate = registrationDate == null ? System.currentTimeMillis() : registrationDate.getTime();
-        UUID uuid = UuidUtils.parseUuidSafely(resultSet.getString("unique_user_id"));
         return PlayerAuth.builder()
             .name(name)
             .realName(name)
@@ -146,7 +144,7 @@ public class LoginSecurityConverter implements Converter {
             .locWorld(resultSet.getString("world"))
             .locYaw(resultSet.getFloat("yaw"))
             .locPitch(resultSet.getFloat("pitch"))
-            .uuid(uuid)
+            .uuid(UuidUtils.parseUuidSafely(resultSet.getString("unique_user_id")))
             .build();
     }
 

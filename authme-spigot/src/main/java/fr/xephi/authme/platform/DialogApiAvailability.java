@@ -9,12 +9,10 @@ package fr.xephi.authme.platform;
  */
 final class DialogApiAvailability {
 
-    private static final String DIALOG_API_CLASS = "net.md_5.bungee.api.dialog.MultiActionDialog";
-
     // Probing must never abort plugin startup: a class that exists but cannot be linked (e.g. an
     // incompatible bungee-chat version) throws a LinkageError, which is treated as unavailable.
     private static final boolean AVAILABLE =
-        isPresent(DIALOG_API_CLASS, DialogApiAvailability.class.getClassLoader());
+        isPresent("net.md_5.bungee.api.dialog.MultiActionDialog", DialogApiAvailability.class.getClassLoader());
 
     private DialogApiAvailability() {
     }

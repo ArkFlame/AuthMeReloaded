@@ -1,7 +1,6 @@
 package fr.xephi.authme.events;
 
 import org.bukkit.entity.Player;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -27,6 +26,9 @@ class PlayerLifecycleEventTest {
         CustomEvent event = factory.apply(player);
         assertThat(name, playerGetter.apply(event), sameInstance(player));
         assertThat(name, event.isAsynchronous(), equalTo(false));
+        if (event instanceof LoginEvent) {
+            assertThat(((LoginEvent) event).isLogin(), equalTo(true));
+        }
     }
 
     private static Stream<Arguments> simplePlayerEvents() {
@@ -37,11 +39,6 @@ class PlayerLifecycleEventTest {
                 (Function<CustomEvent, Player>) e -> ((LogoutEvent) e).getPlayer()),
             Arguments.of("register", (Function<Player, CustomEvent>) p -> new RegisterEvent(p),
                 (Function<CustomEvent, Player>) e -> ((RegisterEvent) e).getPlayer()));
-    }
-
-    @Test
-    void loginEventRetainsCompatibilityFlag() {
-        assertThat(new LoginEvent(player).isLogin(), equalTo(true));
     }
 
     @ParameterizedTest
