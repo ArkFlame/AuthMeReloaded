@@ -1,7 +1,5 @@
 package fr.xephi.authme.command.executable.unregister;
 
-import org.mockito.quality.Strictness;
-import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.junit.jupiter.api.extension.ExtendWith;
 import fr.xephi.authme.data.VerificationCodeManager;
@@ -29,7 +27,6 @@ import static org.mockito.Mockito.verifyNoInteractions;
  * Test for {@link UnregisterCommand}.
  */
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.WARN)
 public class UnregisterCommandTest {
 
     @InjectMocks
@@ -50,12 +47,14 @@ public class UnregisterCommandTest {
     @Mock
     private Messages messages;
 
+    @Mock
+    private Player player;
+
     @Test
     public void shouldCatchUnauthenticatedUser() {
         // given
         String password = "mySecret123";
         String name = "player77";
-        Player player = mock(Player.class);
         given(player.getName()).willReturn(name);
         given(playerCache.isAuthenticated(name)).willReturn(false);
 
@@ -72,7 +71,6 @@ public class UnregisterCommandTest {
     public void shouldStopForMissingVerificationCode() {
         // given
         String name = "asldjf";
-        Player player = mock(Player.class);
         given(player.getName()).willReturn(name);
         given(playerCache.isAuthenticated(name)).willReturn(true);
         given(codeManager.isVerificationRequired(player)).willReturn(true);
@@ -92,7 +90,6 @@ public class UnregisterCommandTest {
         // given
         String password = "p@ssw0rD";
         String name = "jas0n_";
-        Player player = mock(Player.class);
         given(player.getName()).willReturn(name);
         given(playerCache.isAuthenticated(name)).willReturn(true);
         given(codeManager.isVerificationRequired(player)).willReturn(false);

@@ -2,7 +2,7 @@ package fr.xephi.authme.service;
 
 import fr.xephi.authme.data.auth.PlayerCache;
 import fr.xephi.authme.datasource.DataSource;
-import fr.xephi.authme.platform.PlatformAdapter;
+import fr.xephi.authme.platform.TeleportAdapter;
 import fr.xephi.authme.settings.Settings;
 import fr.xephi.authme.settings.SpawnLoader;
 import fr.xephi.authme.settings.properties.RegistrationSettings;
@@ -56,19 +56,13 @@ class TeleportationServiceFirstSpawnTest {
     private DataSource dataSource;
 
     @Mock
-    private PlatformAdapter platformAdapter;
-
-    @org.junit.jupiter.api.BeforeEach
-    void stubDefaults() {
-        given(settings.getProperty(RestrictionSettings.NO_TELEPORT)).willReturn(false);
-    }
+    private TeleportAdapter teleportAdapter;
 
     @Test
     void shouldSendNewPlayerToFirstSpawnOnJoin() {
         // given
         givenSpawnSettings("authme,essentials,default");
         Player player = mock(Player.class);
-        given(player.hasPlayedBefore()).willReturn(false);
         given(player.isOnline()).willReturn(true);
         Location firstSpawn = new Location(mock(World.class), 10.0, 64.0, -20.0);
         given(spawnLoader.getFirstSpawn()).willReturn(firstSpawn);
@@ -78,7 +72,7 @@ class TeleportationServiceFirstSpawnTest {
         teleportationService.teleportOnJoin(player);
 
         // then
-        verify(platformAdapter).teleportPlayer(player, firstSpawn);
+        verify(teleportAdapter).teleportPlayer(player, firstSpawn);
     }
 
     @Test
@@ -122,6 +116,7 @@ class TeleportationServiceFirstSpawnTest {
     }
 
     private void givenSpawnSettings(String spawnPriority) {
+        given(settings.getProperty(RestrictionSettings.NO_TELEPORT)).willReturn(false);
         given(settings.getProperty(RestrictionSettings.SPAWN_PRIORITY)).willReturn(spawnPriority);
         given(settings.getProperty(RestrictionSettings.TELEPORT_UNAUTHED_TO_SPAWN)).willReturn(true);
         given(settings.getProperty(RegistrationSettings.FORCE)).willReturn(true);

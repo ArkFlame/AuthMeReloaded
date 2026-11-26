@@ -21,7 +21,6 @@ import org.mockito.Mock;
 import java.util.Collections;
 
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -51,6 +50,9 @@ public class EmailSetPasswordCommandTest {
     @Mock
     private ValidationService validationService;
 
+    @Mock
+    private Player player;
+
     @BeforeAll
     public static void setUpLogger() {
         TestHelper.setupLogger();
@@ -59,10 +61,7 @@ public class EmailSetPasswordCommandTest {
     @Test
     public void shouldChangePassword() {
         // given
-        Player player = mock(Player.class);
-        String name = "Jerry";
-        given(player.getName()).willReturn(name);
-        given(recoveryService.canChangePassword(player)).willReturn(true);
+        String name = givenPlayerCanChangePassword("Jerry");
         HashedPassword hashedPassword = new HashedPassword("hash");
         given(passwordSecurity.computeHash("abc123", name)).willReturn(hashedPassword);
         given(dataSource.updatePassword(name, hashedPassword)).willReturn(true);
@@ -82,11 +81,8 @@ public class EmailSetPasswordCommandTest {
     @Test
     public void shouldReportErrorWhenDatabaseUpdateFails() {
         // given
-        Player player = mock(Player.class);
-        String name = "Jerry";
+        String name = givenPlayerCanChangePassword("Jerry");
         String password = "abc123";
-        given(player.getName()).willReturn(name);
-        given(recoveryService.canChangePassword(player)).willReturn(true);
         HashedPassword hashedPassword = new HashedPassword("hash");
         given(passwordSecurity.computeHash(password, name)).willReturn(hashedPassword);
         given(validationService.validatePassword(password, name))
@@ -107,13 +103,10 @@ public class EmailSetPasswordCommandTest {
     @Test
     public void shouldRejectInvalidPassword() {
         // given
-        Player player = mock(Player.class);
-        String name = "Morgan";
-        given(player.getName()).willReturn(name);
+        String name = givenPlayerCanChangePassword("Morgan");
         String password = "newPW";
         given(validationService.validatePassword(password, name))
             .willReturn(new ValidationService.ValidationResult(MessageKey.INVALID_PASSWORD_LENGTH));
-        given(recoveryService.canChangePassword(player)).willReturn(true);
 
         // when
         command.executeCommand(player, Collections.singletonList(password));
@@ -125,9 +118,6 @@ public class EmailSetPasswordCommandTest {
 
     @Test
     public void shouldDoNothingCantChangePass() {
-        // given
-        Player player = mock(Player.class);
-
         // when
         command.runCommand(player, Collections.singletonList("abc123"));
 
@@ -135,6 +125,10 @@ public class EmailSetPasswordCommandTest {
         verifyNoInteractions(validationService, dataSource);
         verify(commonService).send(player, MessageKey.CHANGE_PASSWORD_EXPIRED);
     }
+
+    private String givenPlayerCanChangePassword(String name) {
+        given(player.getName()).willReturn(name);
+        given(recoveryService.canChangePassword(player)).willReturn(true);
+        return name;
+    }
 }
-
-

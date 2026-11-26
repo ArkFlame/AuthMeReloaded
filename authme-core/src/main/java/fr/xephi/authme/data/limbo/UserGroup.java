@@ -5,8 +5,8 @@ import java.util.Objects;
 
 public class UserGroup {
 
-    private String groupName;
-    private Map<String, String> contextMap;
+    private final String groupName;
+    private final Map<String, String> contextMap;
 
     public UserGroup(String groupName) {
         this(groupName, null);
@@ -27,9 +27,6 @@ public class UserGroup {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
         if (o == null || getClass() != o.getClass()) {
             return false;
         }

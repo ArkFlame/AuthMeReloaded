@@ -85,17 +85,16 @@ final class PreJoinLoginProcessor {
                 tempbanManager.increaseCount(ip, normalizedName);
             }
 
-            if (passwordSecurity.comparePassword(password, auth.getPassword(), playerName)) {
+            boolean passwordValid = passwordSecurity.comparePassword(password, auth.getPassword(), playerName);
+            if (passwordValid) {
                 loginCaptchaManager.resetLoginFailureCount(normalizedName);
                 if (ip != null) {
                     tempbanManager.resetCount(ip, normalizedName);
                 }
                 preJoinDialogService.storePendingLoginPassword(sessionId, password);
-                PaperDialogSessionSupport.completeResponse(pendingResponses, sessionId, null);
-            } else {
-                PaperDialogSessionSupport.completeResponse(pendingResponses, sessionId,
-                    messages.retrieveSingle(playerName, MessageKey.WRONG_PASSWORD));
             }
+            PaperDialogSessionSupport.completeResponse(pendingResponses, sessionId, passwordValid ? null
+                : messages.retrieveSingle(playerName, MessageKey.WRONG_PASSWORD));
         });
     }
 

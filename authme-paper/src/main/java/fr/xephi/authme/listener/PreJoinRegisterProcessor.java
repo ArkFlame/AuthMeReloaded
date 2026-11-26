@@ -138,11 +138,9 @@ final class PreJoinRegisterProcessor {
         if (secondArg == RegisterSecondaryArgument.EMAIL_MANDATORY
             || secondArg == RegisterSecondaryArgument.EMAIL_OPTIONAL) {
             email = view.getText("email");
-            if (secondArg == RegisterSecondaryArgument.EMAIL_MANDATORY && isBlank(email)) {
-                showError(connection, playerName, MessageKey.INVALID_EMAIL);
-                return;
-            }
-            if (!isBlank(email) && !validationService.validateEmail(email)) {
+            boolean blankEmail = isBlank(email);
+            if (blankEmail ? secondArg == RegisterSecondaryArgument.EMAIL_MANDATORY
+                : !validationService.validateEmail(email)) {
                 showError(connection, playerName, MessageKey.INVALID_EMAIL);
                 return;
             }

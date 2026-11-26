@@ -41,9 +41,8 @@ public final class ProxyMessageSecurity {
     private static String toHex(byte[] bytes) {
         char[] chars = new char[bytes.length * 2];
         for (int i = 0; i < bytes.length; i++) {
-            int value = bytes[i] & 0xff;
-            chars[i * 2] = HEX_DIGITS[value >>> 4];
-            chars[i * 2 + 1] = HEX_DIGITS[value & 0x0f];
+            chars[i * 2] = HEX_DIGITS[(bytes[i] >> 4) & 0x0f];
+            chars[i * 2 + 1] = HEX_DIGITS[bytes[i] & 0x0f];
         }
         return new String(chars);
     }

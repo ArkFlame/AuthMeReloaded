@@ -19,7 +19,6 @@ public enum HelpSection implements HelpTextKey {
 
     CHILDREN("children");
 
-    private static final String PREFIX = "section.";
     private final String entryKey;
 
     /**
@@ -33,7 +32,7 @@ public enum HelpSection implements HelpTextKey {
 
     @Override
     public String getPrefix() {
-        return PREFIX;
+        return "section.";
     }
 
     @Override

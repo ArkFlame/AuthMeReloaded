@@ -73,12 +73,8 @@ public class CaptchaCommand extends PlayerCommand {
             commonService.send(player, nextStepMessage);
             return true;
         }
-        sendWrongCaptchaError(player, captchaManager);
+        commonService.send(player, MessageKey.CAPTCHA_WRONG_ERROR,
+            captchaManager.getCaptchaCodeOrGenerateNew(player.getName()));
         return false;
-    }
-
-    private void sendWrongCaptchaError(Player player, CaptchaManager captchaManager) {
-        String newCode = captchaManager.getCaptchaCodeOrGenerateNew(player.getName());
-        commonService.send(player, MessageKey.CAPTCHA_WRONG_ERROR, newCode);
     }
 }
