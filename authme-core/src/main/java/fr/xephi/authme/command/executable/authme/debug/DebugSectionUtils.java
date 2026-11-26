@@ -60,17 +60,9 @@ final class DebugSectionUtils {
      * @return the formatted location
      */
     static String formatLocation(double x, double y, double z, String world) {
-        return "(" + round(x) + ", " + round(y) + ", " + round(z) + ") in '" + world + "'";
-    }
-
-    /**
-     * Rounds the given number to two decimals.
-     *
-     * @param number the number to round
-     * @return the rounded number
-     */
-    private static String round(double number) {
-        return DECIMAL_FORMAT.get().format(number);
+        DecimalFormat format = DECIMAL_FORMAT.get();
+        return "(" + format.format(x) + ", " + format.format(y) + ", " + format.format(z)
+            + ") in '" + world + "'";
     }
 
     /**

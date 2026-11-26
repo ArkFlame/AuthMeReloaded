@@ -2,10 +2,7 @@ package fr.xephi.authme.bungee;
 
 import java.util.UUID;
 
-/**
- * Module-local facade kept for callers and tests that use this name; the implementation lives in
- * {@code fr.xephi.authme.proxy.ProxyMessageSecurity} and is shared with the Velocity bridge.
- */
+/** Facade kept for callers and tests; implementation in {@code fr.xephi.authme.proxy.ProxyMessageSecurity}. */
 final class ProxyMessageSecurity {
 
     private ProxyMessageSecurity() {

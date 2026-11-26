@@ -5,7 +5,6 @@ import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.security.HashAlgorithm;
-import fr.xephi.authme.security.crypts.HashedPassword;
 import fr.xephi.authme.security.crypts.Sha256;
 import fr.xephi.authme.settings.Settings;
 import fr.xephi.authme.settings.properties.SecuritySettings;
@@ -41,8 +40,7 @@ public final class MigrationService {
                 if (hash.startsWith("$SHA$")) {
                     logger.warning("Skipping conversion for " + auth.getNickname() + "; detected SHA hash");
                 } else {
-                    HashedPassword hashedPassword = authmeSha256.computeHash(hash, auth.getNickname());
-                    auth.setPassword(hashedPassword);
+                    auth.setPassword(authmeSha256.computeHash(hash, auth.getNickname()));
                     dataSource.updatePassword(auth);
                 }
             }

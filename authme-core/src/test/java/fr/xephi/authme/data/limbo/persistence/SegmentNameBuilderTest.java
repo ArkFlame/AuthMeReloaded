@@ -49,11 +49,7 @@ class SegmentNameBuilderTest {
     }
 
     private static String toPaddedHex(int dec, int padLength) {
-        String hexResult = Integer.toString(dec, 16);
-        while (hexResult.length() < padLength) {
-            hexResult = "0" + hexResult;
-        }
-        return hexResult;
+        return String.format("%0" + padLength + "x", dec);
     }
 
     @ParameterizedTest(name = "{0}")

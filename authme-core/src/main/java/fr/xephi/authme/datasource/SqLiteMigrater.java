@@ -87,13 +87,14 @@ class SqLiteMigrater {
     // cf. https://stackoverflow.com/questions/805363/how-do-i-rename-a-column-in-a-sqlite-database-table
     private void recreateDatabaseWithNewDefinitions(SQLite sqLite) throws SQLException {
         String tempTable = "tmp_" + tableName;
-        try (Statement st = getConnection(sqLite).createStatement()) {
+        Connection connection = getConnection(sqLite);
+        try (Statement st = connection.createStatement()) {
             st.execute("ALTER TABLE " + tableName + " RENAME TO " + tempTable + ";");
         }
 
         sqLite.reload();
 
-        try (Statement st = getConnection(sqLite).createStatement()) {
+        try (Statement st = connection.createStatement()) {
             String copySql = "INSERT INTO " + tableName + " ("
                 + col.ID + ", " + col.NAME + ", " + col.REAL_NAME + ", " + col.PASSWORD + ", "
                 + col.LAST_IP + ", " + col.LAST_LOGIN + ", " + col.REGISTRATION_IP + ", " + col.REGISTRATION_DATE
@@ -116,9 +117,6 @@ class SqLiteMigrater {
 
     /**
      * Returns the connection from the given SQLite instance.
-     *
-     * @param sqLite the SQLite instance to process
-     * @return the connection to the SQLite database
      */
     private static Connection getConnection(SQLite sqLite) {
         try {

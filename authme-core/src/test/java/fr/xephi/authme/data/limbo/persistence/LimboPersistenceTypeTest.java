@@ -18,10 +18,7 @@ class LimboPersistenceTypeTest {
 
     @Test
     void shouldHaveUniqueImplementationClasses() {
-        // given
         Set<Class<?>> classes = new HashSet<>();
-
-        // when / then
         for (LimboPersistenceType persistenceType : LimboPersistenceType.values()) {
             if (!classes.add(persistenceType.getImplementationClass())) {
                 fail("Implementation class '" + persistenceType.getImplementationClass() + "' from '"
@@ -33,14 +30,10 @@ class LimboPersistenceTypeTest {
     @Test
     void shouldHaveTypeReturnedFromImplementationClass() {
         for (LimboPersistenceType persistenceType : LimboPersistenceType.values()) {
-            // given
             LimboPersistenceHandler implementationMock = mock(persistenceType.getImplementationClass());
             given(implementationMock.getType()).willCallRealMethod();
 
-            // when
             LimboPersistenceType returnedType = implementationMock.getType();
-
-            // then
             assertThat(returnedType, equalTo(persistenceType));
         }
     }

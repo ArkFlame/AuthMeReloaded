@@ -49,29 +49,14 @@ public class LimboPlayer {
         this.flySpeed = flySpeed;
     }
 
-    /**
-     * Return the player's original location.
-     *
-     * @return The player's location
-     */
     public Location getLocation() {
         return loc;
     }
 
-    /**
-     * Return whether the player is an operator or not (i.e. whether he is an OP).
-     *
-     * @return True if the player has OP status, false otherwise
-     */
     public boolean isOperator() {
         return operator;
     }
 
-    /**
-     * Return the player's permissions groups.
-     *
-     * @return The permissions groups the player belongs to
-     */
     public Collection<UserGroup> getGroups() {
         return groups;
     }
@@ -88,21 +73,12 @@ public class LimboPlayer {
         return flySpeed;
     }
 
-    /**
-     * Return the timeout task, which kicks the player if he hasn't registered or logged in
-     * after a configurable amount of time.
-     *
-     * @return The timeout task associated to the player
-     */
     public CancellableTask getTimeoutTask() {
         return timeoutTask;
     }
 
     /**
-     * Set the timeout task of the player. The timeout task kicks the player after a configurable
-     * amount of time if he hasn't logged in or registered.
-     *
-     * @param timeoutTask The task to set
+     * Sets the task kicking the player if he doesn't log in or register in time, cancelling any previous one.
      */
     public void setTimeoutTask(CancellableTask timeoutTask) {
         if (this.timeoutTask != null) {
@@ -115,19 +91,12 @@ public class LimboPlayer {
         setTimeoutTask(timeoutTask == null ? null : timeoutTask::cancel);
     }
 
-    /**
-     * Return the message task reminding the player to log in or register.
-     *
-     * @return The task responsible for sending the message regularly
-     */
     public MessageTask getMessageTask() {
         return messageTask;
     }
 
     /**
-     * Set the messages task responsible for telling the player to log in or register.
-     *
-     * @param messageTask The message task to set
+     * Sets the task reminding the player to log in or register, cancelling any previous one.
      */
     public void setMessageTask(MessageTask messageTask, CancellableTask messageTaskHandle) {
         if (this.messageTaskHandle != null) {
@@ -167,30 +136,22 @@ public class LimboPlayer {
     }
 
     /**
-     * Returns the entity UUIDs of ender pearls in flight for this player, used to restore stasis
-     * chambers after a reconnect. Backed by the pearl map; treat as read-only.
-     *
-     * @return view of the ender pearl entity UUIDs (never null)
+     * Returns the entity UUIDs of the tracked ender pearls (never null).
      */
     public Set<UUID> getEnderPearlUuids() {
         return enderPearls.keySet();
     }
 
     /**
-     * Returns the tracked ender pearls for this player, including the data required to recreate
-     * them if the original entity can no longer be found. Backed by the pearl map; read-only.
-     *
-     * @return view of the tracked ender pearls for this player
+     * Returns the tracked ender pearls, including the data required to recreate them.
      */
     public Collection<EnderPearlRestoreData> getEnderPearls() {
         return enderPearls.values();
     }
 
     /**
-     * Returns a mutable copy of the tracked ender pearls keyed by entity UUID. Callers can
-     * remove restored pearls from the copy without modifying this limbo snapshot.
-     *
-     * @return ender pearls keyed by UUID
+     * Returns a mutable copy of the tracked ender pearls keyed by entity UUID, so callers can remove
+     * restored pearls without modifying this limbo snapshot.
      */
     Map<UUID, EnderPearlRestoreData> copyEnderPearlsByUuid() {
         return new HashMap<>(enderPearls);
@@ -198,8 +159,6 @@ public class LimboPlayer {
 
     /**
      * Sets the tracked ender pearls for this player.
-     *
-     * @param pearls tracked ender pearls to restore on reconnect
      */
     public void setEnderPearls(Collection<EnderPearlRestoreData> pearls) {
         Map<UUID, EnderPearlRestoreData> pearlMap = new HashMap<>();
@@ -211,30 +170,16 @@ public class LimboPlayer {
         this.enderPearls = pearlMap.isEmpty() ? Collections.emptyMap() : pearlMap;
     }
 
-    /**
-     * Returns the UUID of the vehicle entity the player was riding when they disconnected,
-     * used to remount them on reconnect.
-     *
-     * @return the vehicle entity UUID, or null if not riding anything
-     */
     public UUID getVehicleUuid() {
         return vehicleUuid;
     }
 
-    /**
-     * Returns the type of the vehicle the player was riding when they disconnected.
-     *
-     * @return the vehicle EntityType, or null if not riding anything
-     */
     public EntityType getVehicleType() {
         return vehicleType;
     }
 
     /**
      * Sets the vehicle to restore on reconnect. Pass null for both arguments to clear.
-     *
-     * @param vehicleUuid the entity UUID of the vehicle, or null
-     * @param vehicleType the entity type of the vehicle, or null
      */
     public void setVehicle(UUID vehicleUuid, EntityType vehicleType) {
         this.vehicleUuid = vehicleUuid;

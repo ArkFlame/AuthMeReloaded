@@ -21,18 +21,14 @@ public class LastLoginCommand extends AbstractPlayerAuthCommand {
             return;
         }
 
-        // Get the last login date
-        final Long lastLogin = auth.getLastLogin();
-        final String lastLoginDate = lastLogin == null ? "never" : new Date(lastLogin).toString();
-
-        // Show the player status
-        sender.sendMessage("[AuthMe] " + playerName + " last login: " + lastLoginDate);
-        if (lastLogin != null) {
+        Long lastLogin = auth.getLastLogin();
+        if (lastLogin == null) {
+            sender.sendMessage("[AuthMe] " + playerName + " last login: never");
+        } else {
             long diff = System.currentTimeMillis() - lastLogin;
-            sender.sendMessage("[AuthMe] The player " + playerName + " last logged in "
-                + (int) (diff / 86400000) + " days "
-                + (int) (diff / 3600000 % 24) + " hours "
-                + (int) (diff / 60000 % 60) + " mins "
+            sender.sendMessage("[AuthMe] " + playerName + " last login: " + new Date(lastLogin));
+            sender.sendMessage("[AuthMe] The player " + playerName + " last logged in " + (int) (diff / 86400000)
+                + " days " + (int) (diff / 3600000 % 24) + " hours " + (int) (diff / 60000 % 60) + " mins "
                 + (int) (diff / 1000 % 60) + " secs ago");
         }
         sender.sendMessage("[AuthMe] Last player's IP: " + auth.getLastIp());

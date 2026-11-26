@@ -128,30 +128,22 @@ class AsyncChangeEmailTest {
         verify(service).send(player, MessageKey.EMAIL_ALREADY_USED_ERROR);
     }
 
-    @ParameterizedTest(name = "registered={0}")
-    @CsvSource({"true, LOGIN_MESSAGE", "false, REGISTER_MESSAGE"})
-    void shouldShowLoginOrRegisterMessageForUnauthenticatedPlayer(boolean isRegistered, MessageKey expectedMessage) {
+    @ParameterizedTest(name = "authenticated={0}, registered={1}")
+    @CsvSource({
+        "false, true, LOGIN_MESSAGE",
+        "false, false, REGISTER_MESSAGE",
+        "true, true, LOGIN_MESSAGE"
+    })
+    void shouldShowLoginOrRegisterMessageForUnauthenticatedPlayer(boolean authenticated, boolean isRegistered,
+                                                                  MessageKey expectedMessage) {
         given(player.getName()).willReturn("Bobby");
-        given(playerCache.isAuthenticated("bobby")).willReturn(false);
+        given(playerCache.isAuthenticated("bobby")).willReturn(authenticated);
         given(dataSource.isAuthAvailable("Bobby")).willReturn(isRegistered);
 
         process.changeEmail(player, "old@mail.tld", "new@mail.tld");
 
         verifyEmailNotUpdated();
         verify(service).send(player, expectedMessage);
-    }
-
-    @Test
-    void shouldSendUnloggedMessageWhenCacheEntryVanished() {
-        given(player.getName()).willReturn("Bobby");
-        given(playerCache.isAuthenticated("bobby")).willReturn(true);
-        given(playerCache.getAuth("bobby")).willReturn(null);
-        given(dataSource.isAuthAvailable("Bobby")).willReturn(true);
-
-        process.changeEmail(player, "old@mail.tld", "new@mail.tld");
-
-        verifyEmailNotUpdated();
-        verify(service).send(player, MessageKey.LOGIN_MESSAGE);
     }
 
     @Test

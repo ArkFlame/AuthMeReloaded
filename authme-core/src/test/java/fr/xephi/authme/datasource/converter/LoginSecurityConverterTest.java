@@ -68,25 +68,16 @@ class LoginSecurityConverterTest extends AbstractConverterTest {
 
     @Test
     void shouldMigrateAccountsAndSkipExistingOnes() throws SQLException, ClassNotFoundException {
-        File dbFile = new File(tempFolder, "LoginSecurity.db");
-        try (Connection setup = openDatabase(dbFile);
-             Statement statement = setup.createStatement()) {
-            createTables(statement);
-            statement.execute("INSERT INTO ls_players VALUES (1, 'TestPlayer', 'bcrypt-hash', "
+        convertWith(() -> {
+            given(dataSource.isAuthAvailable("TestPlayer")).willReturn(false);
+            given(dataSource.isAuthAvailable("ExistingPlayer")).willReturn(true);
+        },
+            "INSERT INTO ls_players VALUES (1, 'TestPlayer', 'bcrypt-hash', "
                 + "'2020-01-02 03:04:05.000', '2019-01-02 00:00:00.000', '" + PLAYER_UUID
-                + "', '127.0.0.1')");
-            statement.execute("INSERT INTO ls_players VALUES (2, 'ExistingPlayer', 'other-hash', "
-                + "NULL, NULL, NULL, NULL)");
-            statement.execute("INSERT INTO ls_locations VALUES (1, 1.5, 2.5, 3.5, 'world', 90.0, 45.0)");
-            statement.execute("INSERT INTO ls_locations VALUES (2, 0, 0, 0, 'world', 0, 0)");
-        }
-        given(dataSource.isAuthAvailable("TestPlayer")).willReturn(false);
-        given(dataSource.isAuthAvailable("ExistingPlayer")).willReturn(true);
-        CommandSender sender = mock(CommandSender.class);
-
-        try (Connection connection = openDatabase(dbFile)) {
-            converter.performConversion(sender, connection);
-        }
+                + "', '127.0.0.1')",
+            "INSERT INTO ls_players VALUES (2, 'ExistingPlayer', 'other-hash', NULL, NULL, NULL, NULL)",
+            "INSERT INTO ls_locations VALUES (1, 1.5, 2.5, 3.5, 'world', 90.0, 45.0)",
+            "INSERT INTO ls_locations VALUES (2, 0, 0, 0, 'world', 0, 0)");
 
         verify(dataSource).saveAuth(authCaptor.capture());
         PlayerAuth auth = authCaptor.getValue();
@@ -108,24 +99,14 @@ class LoginSecurityConverterTest extends AbstractConverterTest {
 
     @Test
     void shouldSkipRowsWithNullOrEmptyName() throws SQLException, ClassNotFoundException {
-        File dbFile = new File(tempFolder, "LoginSecurity.db");
-        try (Connection setup = openDatabase(dbFile);
-             Statement statement = setup.createStatement()) {
-            createTables(statement);
-            statement.execute("INSERT INTO ls_players VALUES (1, NULL, 'hash', NULL, NULL, NULL, NULL)");
-            statement.execute("INSERT INTO ls_players VALUES (2, '', 'hash', NULL, NULL, NULL, NULL)");
-            statement.execute("INSERT INTO ls_players VALUES (3, 'ValidPlayer', 'bcrypt-hash', "
-                + "NULL, NULL, NULL, '127.0.0.1')");
-            statement.execute("INSERT INTO ls_locations VALUES (1, 0, 0, 0, 'world', 0, 0)");
-            statement.execute("INSERT INTO ls_locations VALUES (2, 0, 0, 0, 'world', 0, 0)");
-            statement.execute("INSERT INTO ls_locations VALUES (3, 0, 0, 0, 'world', 0, 0)");
-        }
-        given(dataSource.isAuthAvailable("ValidPlayer")).willReturn(false);
-        CommandSender sender = mock(CommandSender.class);
-
-        try (Connection connection = openDatabase(dbFile)) {
-            converter.performConversion(sender, connection);
-        }
+        convertWith(() -> given(dataSource.isAuthAvailable("ValidPlayer")).willReturn(false),
+            "INSERT INTO ls_players VALUES (1, NULL, 'hash', NULL, NULL, NULL, NULL)",
+            "INSERT INTO ls_players VALUES (2, '', 'hash', NULL, NULL, NULL, NULL)",
+            "INSERT INTO ls_players VALUES (3, 'ValidPlayer', 'bcrypt-hash', "
+                + "NULL, NULL, NULL, '127.0.0.1')",
+            "INSERT INTO ls_locations VALUES (1, 0, 0, 0, 'world', 0, 0)",
+            "INSERT INTO ls_locations VALUES (2, 0, 0, 0, 'world', 0, 0)",
+            "INSERT INTO ls_locations VALUES (3, 0, 0, 0, 'world', 0, 0)");
 
         verify(dataSource, times(1)).saveAuth(authCaptor.capture());
         assertThat(authCaptor.getValue().getNickname(), equalTo("validplayer"));
@@ -139,6 +120,21 @@ class LoginSecurityConverterTest extends AbstractConverterTest {
 
         verify(sender).sendMessage(argThat(containsString("does not exist")));
         verifyNoInteractions(dataSource);
+    }
+
+    private void convertWith(Runnable stubs, String... inserts) throws SQLException, ClassNotFoundException {
+        File dbFile = new File(tempFolder, "LoginSecurity.db");
+        try (Connection setup = openDatabase(dbFile);
+             Statement statement = setup.createStatement()) {
+            createTables(statement);
+            for (String sql : inserts) {
+                statement.execute(sql);
+            }
+        }
+        stubs.run();
+        try (Connection connection = openDatabase(dbFile)) {
+            converter.performConversion(mock(CommandSender.class), connection);
+        }
     }
 
     private static Connection openDatabase(File dbFile) throws SQLException, ClassNotFoundException {

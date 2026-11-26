@@ -105,9 +105,7 @@ public class PremiumAutoRegisterService {
             ProxySessionManager.ProxyLoginRequest request = proxySessionManager.getLoginRequest(name);
             return request == null ? null : request.verifiedPremiumUuid();
         }
-        return consume
-            ? premiumLoginVerifier.consumeVerifiedUuid(name)
-            : premiumLoginVerifier.getVerifiedUuid(name);
+        return consume ? premiumLoginVerifier.consumeVerifiedUuid(name) : premiumLoginVerifier.getVerifiedUuid(name);
     }
 
     private void createAccount(Player player, UUID premiumUuid) {

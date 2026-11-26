@@ -17,8 +17,7 @@ class ExceptionUtilsTest {
 
     @Test
     void shouldFindWantedThrowable() {
-        ConcurrentModificationException initialCme = new ConcurrentModificationException();
-        Throwable th = new Throwable(initialCme);
+        Throwable th = new Throwable(new ConcurrentModificationException());
         ConcurrentModificationException cme = new ConcurrentModificationException(th);
         IllegalStateException ise = new IllegalStateException(cme);
         UnsupportedOperationException uoe = new UnsupportedOperationException(ise);

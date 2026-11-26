@@ -39,24 +39,18 @@ final class ListenerConsistencyTest {
 
     @Test
     void shouldSetIgnoreCancelledToTrue() {
-        for (Class<?> listener : classes) {
-            checkCanceledAttribute(listener);
-        }
+        classes.forEach(ListenerConsistencyTest::checkEventHandlerAttributes);
     }
 
     @Test
     void shouldHaveOnlyEventListenersAsPublicMembers() {
-        for (Class<?> listener : classes) {
-            checkPublicMethodsAreListeners(listener);
-        }
+        classes.forEach(ListenerConsistencyTest::checkPublicMethodsAreListeners);
     }
 
     // #367: Event listeners with EventPriority.MONITOR should not change events
     @Test
     void shouldNotHaveMonitorLevelEventHandlers() {
-        for (Class<?> listener : classes) {
-            verifyListenerIsNotUsingMonitorPriority(listener);
-        }
+        classes.forEach(ListenerConsistencyTest::checkEventHandlerAttributes);
     }
 
     @Test
@@ -72,39 +66,26 @@ final class ListenerConsistencyTest {
         }
     }
 
-    private static void checkCanceledAttribute(Class<?> listenerClass) {
+    private static void checkEventHandlerAttributes(Class<?> listenerClass) {
         final String clazz = listenerClass.getSimpleName();
-        Method[] methods = listenerClass.getDeclaredMethods();
-        for (Method method : methods) {
+        for (Method method : listenerClass.getDeclaredMethods()) {
             if (isTestableMethod(method) && method.isAnnotationPresent(EventHandler.class)) {
-                if (!method.getParameterTypes()[0].isAssignableFrom(Cancellable.class)) {
-                    continue;
+                EventHandler annotation = method.getAnnotation(EventHandler.class);
+                assertThat("Method " + clazz + "#" + method.getName() + " does not use EventPriority.MONITOR",
+                    annotation.priority(), not(equalTo(EventPriority.MONITOR)));
+                if (method.getParameterTypes()[0].isAssignableFrom(Cancellable.class)) {
+                    assertThat("Method " + clazz + "#" + method.getName() + " should have ignoreCancelled = true",
+                        annotation.ignoreCancelled(), equalTo(true));
                 }
-
-                EventHandler eventHandlerAnnotation = method.getAnnotation(EventHandler.class);
-                assertThat("Method " + clazz + "#" + method.getName() + " should have ignoreCancelled = true",
-                    eventHandlerAnnotation.ignoreCancelled(), equalTo(true));
             }
         }
     }
 
     private static void checkPublicMethodsAreListeners(Class<?> listenerClass) {
-        final String clazz = listenerClass.getSimpleName();
-        Method[] methods = listenerClass.getDeclaredMethods();
-        for (Method method : methods) {
-            if (isTestableMethod(method) && !method.isAnnotationPresent(EventHandler.class)) {
-                fail("Expected @EventHandler annotation on non-private method " + clazz + "#" + method.getName());
-            }
-        }
-    }
-
-    private static void verifyListenerIsNotUsingMonitorPriority(Class<?> listenerClass) {
-        final String clazz = listenerClass.getSimpleName();
         for (Method method : listenerClass.getDeclaredMethods()) {
-            if (isTestableMethod(method) && method.isAnnotationPresent(EventHandler.class)) {
-                EventHandler eventHandlerAnnotation = method.getAnnotation(EventHandler.class);
-                assertThat("Method " + clazz + "#" + method.getName() + " does not use EventPriority.MONITOR",
-                    eventHandlerAnnotation.priority(), not(equalTo(EventPriority.MONITOR)));
+            if (isTestableMethod(method) && !method.isAnnotationPresent(EventHandler.class)) {
+                fail("Expected @EventHandler annotation on non-private method "
+                    + listenerClass.getSimpleName() + "#" + method.getName());
             }
         }
     }

@@ -27,25 +27,26 @@ public class UuidCommand extends AbstractPlayerAuthCommand {
     @Override
     public void executeCommand(CommandSender sender, List<String> arguments) {
         String playerName = CommandUtils.getTargetPlayerName(sender, arguments);
-        String offlineName = playerName.toLowerCase(Locale.ROOT);
-        UUID offlineUuid = UUID.nameUUIDFromBytes(("OfflinePlayer:" + offlineName)
+        UUID offlineUuid = UUID.nameUUIDFromBytes(("OfflinePlayer:" + playerName.toLowerCase(Locale.ROOT))
             .getBytes(StandardCharsets.UTF_8));
         getCommonService().send(sender, MessageKey.ADMIN_UUID_OFFLINE, playerName, offlineUuid.toString());
 
         PlayerAuth auth = getDataSource().getAuth(playerName);
-        UUID mojangUuid = auth == null ? null : auth.getPremiumUuid();
-        if (mojangUuid == null) {
-            getCommonService().send(sender, MessageKey.ADMIN_UUID_MOJANG_UNKNOWN, playerName);
-        } else {
-            getCommonService().send(sender, MessageKey.ADMIN_UUID_MOJANG, playerName, mojangUuid.toString());
-        }
+        sendUuid(sender, MessageKey.ADMIN_UUID_MOJANG, MessageKey.ADMIN_UUID_MOJANG_UNKNOWN, playerName,
+            auth == null ? null : auth.getPremiumUuid());
 
         Player player = bukkitService.getPlayerExact(playerName);
-        UUID floodgateUuid = player == null ? null : player.getUniqueId();
-        if (floodgateUuid == null || !floodgateService.isFloodgatePlayer(floodgateUuid)) {
-            getCommonService().send(sender, MessageKey.ADMIN_UUID_FLOODGATE_UNKNOWN, playerName);
+        UUID playerUuid = player == null ? null : player.getUniqueId();
+        sendUuid(sender, MessageKey.ADMIN_UUID_FLOODGATE, MessageKey.ADMIN_UUID_FLOODGATE_UNKNOWN, playerName,
+            playerUuid != null && floodgateService.isFloodgatePlayer(playerUuid) ? playerUuid : null);
+    }
+
+    private void sendUuid(CommandSender sender, MessageKey knownKey, MessageKey unknownKey,
+                          String playerName, UUID uuid) {
+        if (uuid == null) {
+            getCommonService().send(sender, unknownKey, playerName);
         } else {
-            getCommonService().send(sender, MessageKey.ADMIN_UUID_FLOODGATE, playerName, floodgateUuid.toString());
+            getCommonService().send(sender, knownKey, playerName, uuid.toString());
         }
     }
 }
