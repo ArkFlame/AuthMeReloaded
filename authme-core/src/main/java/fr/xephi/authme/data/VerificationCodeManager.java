@@ -66,7 +66,7 @@ public class VerificationCodeManager implements SettingsDependent, HasCleanup {
     public boolean isVerificationRequired(Player player) {
         final String name = player.getName();
         return canSendMail
-            && !isPlayerVerified(name)
+            && !verifiedPlayers.contains(normalize(name))
             && permissionsManager.hasPermission(player, PlayerPermission.VERIFICATION_CODE)
             && hasEmail(name);
     }
@@ -78,21 +78,11 @@ public class VerificationCodeManager implements SettingsDependent, HasCleanup {
      * @return true if the player has an existing code and has not been verified yet, false otherwise
      */
     public boolean isCodeRequired(String name) {
-        return canSendMail && hasCode(name) && !isPlayerVerified(name);
+        return canSendMail && hasCode(name) && !verifiedPlayers.contains(normalize(name));
     }
 
     private static String normalize(String name) {
         return name.toLowerCase(Locale.ROOT);
-    }
-
-    /**
-     * Returns whether the given player has been verified or not
-     *
-     * @param name the name of the player to verify
-     * @return true if the player has been verified, false otherwise
-     */
-    private boolean isPlayerVerified(String name) {
-        return verifiedPlayers.contains(normalize(name));
     }
 
     /**
@@ -112,7 +102,10 @@ public class VerificationCodeManager implements SettingsDependent, HasCleanup {
      * @return true if the player is able to receive emails, false otherwise
      */
     public boolean hasEmail(String name) {
-        DataSourceValue<String> emailResult = dataSource.getEmail(name);
+        return hasEmail(dataSource.getEmail(name));
+    }
+
+    private static boolean hasEmail(DataSourceValue<String> emailResult) {
         return emailResult.rowExists() && !Utils.isEmailEmpty(emailResult.getValue());
     }
 
@@ -145,13 +138,10 @@ public class VerificationCodeManager implements SettingsDependent, HasCleanup {
     private void generateCode(String name, String lowerName) {
         try {
             DataSourceValue<String> emailResult = dataSource.getEmail(name);
-            if (emailResult.rowExists()) {
-                final String email = emailResult.getValue();
-                if (!Utils.isEmailEmpty(email)) {
-                    String code = RandomStringUtils.generateNum(6); // 6 digits code
-                    if (emailService.sendVerificationMail(name, email, code)) {
-                        verificationCodes.put(lowerName, code);
-                    }
+            if (hasEmail(emailResult)) {
+                String code = RandomStringUtils.generateNum(6); // 6 digits code
+                if (emailService.sendVerificationMail(name, emailResult.getValue(), code)) {
+                    verificationCodes.put(lowerName, code);
                 }
             }
         } finally {

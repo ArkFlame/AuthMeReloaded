@@ -110,21 +110,19 @@ public class EmailRecoveryDialogService {
      */
     public void submitCode(Player player, String code) {
         String name = player.getName();
-        if (recoveryCodeService.hasTriesLeft(name)) {
-            if (recoveryCodeService.isCodeValid(name, code)) {
-                commonService.send(player, MessageKey.RECOVERY_CODE_CORRECT);
-                passwordRecoveryService.addSuccessfulRecovery(player);
-                recoveryCodeService.removeCode(name);
-                if (isDialogFlowEnabled()) {
-                    showNewPasswordDialog(player);
-                }
-            } else {
-                commonService.send(player, MessageKey.INCORRECT_RECOVERY_CODE,
-                    Integer.toString(recoveryCodeService.getTriesLeft(name)));
-            }
-        } else {
+        if (!recoveryCodeService.hasTriesLeft(name)) {
             recoveryCodeService.removeCode(name);
             commonService.send(player, MessageKey.RECOVERY_TRIES_EXCEEDED);
+        } else if (recoveryCodeService.isCodeValid(name, code)) {
+            commonService.send(player, MessageKey.RECOVERY_CODE_CORRECT);
+            passwordRecoveryService.addSuccessfulRecovery(player);
+            recoveryCodeService.removeCode(name);
+            if (isDialogFlowEnabled()) {
+                showNewPasswordDialog(player);
+            }
+        } else {
+            commonService.send(player, MessageKey.INCORRECT_RECOVERY_CODE,
+                Integer.toString(recoveryCodeService.getTriesLeft(name)));
         }
     }
 

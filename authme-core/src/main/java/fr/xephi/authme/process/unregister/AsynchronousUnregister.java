@@ -56,9 +56,6 @@ public class AsynchronousUnregister implements AsynchronousProcess {
     @Inject
     private BungeeSender bungeeSender;
 
-    AsynchronousUnregister() {
-    }
-
     /**
      * Processes a player's request to unregister himself. Unregisters the player after
      * successful password check.
@@ -72,17 +69,17 @@ public class AsynchronousUnregister implements AsynchronousProcess {
         if (cachedAuth == null) {
             return;
         }
-        if (passwordSecurity.comparePassword(password, cachedAuth.getPassword(), name)) {
-            if (dataSource.removeAuth(name)) {
-                performPostUnregisterActions(name, player);
-                logger.info(name + " unregistered himself");
-                bukkitService.createAndCallEvent(isAsync -> new UnregisterByPlayerEvent(player, isAsync));
-            } else {
-                service.send(player, MessageKey.ERROR);
-            }
-        } else {
+        if (!passwordSecurity.comparePassword(password, cachedAuth.getPassword(), name)) {
             service.send(player, MessageKey.WRONG_PASSWORD);
+            return;
         }
+        if (!dataSource.removeAuth(name)) {
+            service.send(player, MessageKey.ERROR);
+            return;
+        }
+        performPostUnregisterActions(name, player);
+        logger.info(name + " unregistered himself");
+        bukkitService.createAndCallEvent(isAsync -> new UnregisterByPlayerEvent(player, isAsync));
     }
 
     /**
@@ -120,8 +117,6 @@ public class AsynchronousUnregister implements AsynchronousProcess {
         boolean sendBungeeLogout = player != null && playerCache.isAuthenticated(name);
         playerCache.removePlayer(name);
         Runnable bungeeLogout = () -> bungeeSender.sendAuthMeBungeecordMessage(player, MessageType.LOGOUT);
-
-        // TODO: send an update when a messaging service will be implemented (UNREGISTER)
 
         if (player == null || !player.isOnline()) {
             if (sendBungeeLogout) {

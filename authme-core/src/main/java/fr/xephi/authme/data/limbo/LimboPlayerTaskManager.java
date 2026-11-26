@@ -175,13 +175,9 @@ class LimboPlayerTaskManager {
         }
 
         private void setTask(AtomicReference<CancellableTask> taskReference, CancellableTask task) {
-            if (cancelled.get()) {
+            taskReference.set(task);
+            if (cancelled.get() && taskReference.compareAndSet(task, null)) {
                 task.cancel();
-            } else {
-                taskReference.set(task);
-                if (cancelled.get() && taskReference.compareAndSet(task, null)) {
-                    task.cancel();
-                }
             }
         }
 

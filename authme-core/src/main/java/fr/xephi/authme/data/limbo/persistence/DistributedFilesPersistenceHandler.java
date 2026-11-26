@@ -153,7 +153,12 @@ class DistributedFilesPersistenceHandler implements LimboPersistenceHandler {
      * @param limbosFromOldSegments the limbo players to store into the current segment files
      */
     private void saveToNewSegments(Map<String, LimboPlayer> limbosFromOldSegments) {
-        Map<String, Map<String, LimboPlayer>> limboBySegment = groupBySegment(limbosFromOldSegments);
+        Map<String, Map<String, LimboPlayer>> limboBySegment = new HashMap<>();
+        for (Map.Entry<String, LimboPlayer> entry : limbosFromOldSegments.entrySet()) {
+            String segmentId = segmentNameBuilder.createSegmentName(entry.getKey());
+            limboBySegment.computeIfAbsent(segmentId, s -> new HashMap<>())
+                .put(entry.getKey(), entry.getValue());
+        }
 
         logger.info("Saving " + limbosFromOldSegments.size() + " LimboPlayers from old segments into "
             + limboBySegment.size() + " current segments");
@@ -166,23 +171,6 @@ class DistributedFilesPersistenceHandler implements LimboPersistenceHandler {
             limbosToSave.putAll(entry.getValue());
             saveEntries(limbosToSave, file);
         }
-    }
-
-    /**
-     * Converts a Map of UUID to LimboPlayers to a 2-dimensional Map of LimboPlayers by segment ID and UUID.
-     * {@code Map(uuid -> LimboPlayer) to Map(segment -> Map(uuid -> LimboPlayer))}
-     *
-     * @param readLimboPlayers the limbo players to order by segment
-     * @return limbo players ordered by segment ID and associated player UUID
-     */
-    private Map<String, Map<String, LimboPlayer>> groupBySegment(Map<String, LimboPlayer> readLimboPlayers) {
-        Map<String, Map<String, LimboPlayer>> limboBySegment = new HashMap<>();
-        for (Map.Entry<String, LimboPlayer> entry : readLimboPlayers.entrySet()) {
-            String segmentId = segmentNameBuilder.createSegmentName(entry.getKey());
-            limboBySegment.computeIfAbsent(segmentId, s -> new HashMap<>())
-                .put(entry.getKey(), entry.getValue());
-        }
-        return limboBySegment;
     }
 
     /**

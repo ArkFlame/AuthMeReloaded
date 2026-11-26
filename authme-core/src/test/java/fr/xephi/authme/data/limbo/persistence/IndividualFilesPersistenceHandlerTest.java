@@ -52,20 +52,23 @@ class IndividualFilesPersistenceHandlerTest {
     @BeforeEach
     void copyTestFilesAndInitHandler() throws IOException {
         File playerFolder = new File(dataFolder, FileUtils.makePath("playerdata", SAMPLE_UUID.toString()));
-        if (!playerFolder.mkdirs()) {
-            throw new IllegalStateException("Cannot create '" + playerFolder.getAbsolutePath() + "'");
-        }
+        Files.createDirectories(playerFolder.toPath());
         Files.copy(TestHelper.getJarPath(FileUtils.makePath(SOURCE_FOLDER, "sample-folder", "data.json")),
             new File(playerFolder, "data.json").toPath());
 
         handler = new IndividualFilesPersistenceHandler(dataFolder, bukkitService);
     }
 
+    private static Player mockPlayer(UUID uuid) {
+        Player player = mock(Player.class);
+        given(player.getUniqueId()).willReturn(uuid);
+        return player;
+    }
+
     @Test
     void shouldReadDataFromFile() {
         // given
-        Player player = mock(Player.class);
-        given(player.getUniqueId()).willReturn(SAMPLE_UUID);
+        Player player = mockPlayer(SAMPLE_UUID);
         World world = mock(World.class);
         given(bukkitService.getWorld("nether")).willReturn(world);
 
@@ -91,8 +94,7 @@ class IndividualFilesPersistenceHandlerTest {
     @Test
     void shouldReturnNullForUnavailablePlayer() {
         // given
-        Player player = mock(Player.class);
-        given(player.getUniqueId()).willReturn(UUID.nameUUIDFromBytes("other-player".getBytes()));
+        Player player = mockPlayer(UUID.nameUUIDFromBytes("other-player".getBytes()));
 
         // when
         LimboPlayer data = handler.getLimboPlayer(player);
@@ -104,9 +106,8 @@ class IndividualFilesPersistenceHandlerTest {
     @Test
     void shouldSavePlayerData() {
         // given
-        Player player = mock(Player.class);
         UUID uuid = UUID.nameUUIDFromBytes("New player".getBytes());
-        given(player.getUniqueId()).willReturn(uuid);
+        Player player = mockPlayer(uuid);
 
         World world = mock(World.class);
         given(world.getName()).willReturn("player-world");
@@ -125,9 +126,8 @@ class IndividualFilesPersistenceHandlerTest {
     @Test
     void shouldPersistEnderPearlRestoreData() {
         // given
-        Player player = mock(Player.class);
         UUID uuid = UUID.nameUUIDFromBytes("Pearl player".getBytes());
-        given(player.getUniqueId()).willReturn(uuid);
+        Player player = mockPlayer(uuid);
 
         World world = mock(World.class);
         given(world.getName()).willReturn("pearl-world");

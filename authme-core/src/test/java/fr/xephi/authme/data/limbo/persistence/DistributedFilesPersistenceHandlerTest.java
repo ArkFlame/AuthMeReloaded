@@ -196,14 +196,9 @@ class DistributedFilesPersistenceHandlerTest {
         return player;
     }
 
-    private static World mockWorldWithName(String name) {
-        World world = mock(World.class);
-        given(world.getName()).willReturn(name);
-        return world;
-    }
-
     private static Location mockLocation(String worldName) {
-        World world = mockWorldWithName(worldName);
+        World world = mock(World.class);
+        given(world.getName()).willReturn(worldName);
         Location location = mock(Location.class);
         given(location.getWorld()).willReturn(world);
         return location;

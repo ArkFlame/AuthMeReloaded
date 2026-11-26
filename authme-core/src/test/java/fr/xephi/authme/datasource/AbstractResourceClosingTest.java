@@ -104,17 +104,17 @@ public abstract class AbstractResourceClosingTest {
      * @return Parameter list to invoke the given method with
      */
     private Object[] buildParamListForMethod(Method method) {
+        Class<?>[] paramTypes = method.getParameterTypes();
+        Type[] genericTypes = method.getGenericParameterTypes();
         List<Object> params = new ArrayList<>();
-        int index = 0;
-        for (Class<?> paramType : method.getParameterTypes()) {
+        for (int i = 0; i < paramTypes.length; i++) {
             // Checking List.class == paramType instead of Class#isAssignableFrom means we really only accept List,
             // but that is a sensible assumption and makes our life much easier later on when juggling with Type
-            Object param = Collection.class.isAssignableFrom(paramType)
-                ? getTypedCollection(method.getGenericParameterTypes()[index])
-                : getMethodParameter(paramType);
-            Preconditions.checkNotNull(param, "No param type for " + paramType);
+            Object param = Collection.class.isAssignableFrom(paramTypes[i])
+                ? getTypedCollection(genericTypes[i])
+                : getMethodParameter(paramTypes[i]);
+            Preconditions.checkNotNull(param, "No param type for " + paramTypes[i]);
             params.add(param);
-            ++index;
         }
         return params.toArray();
     }

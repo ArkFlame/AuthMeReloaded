@@ -805,61 +805,49 @@ class PlayerListenerTest {
         verify(management).performQuit(player);
     }
 
-    @Test
+    @ParameterizedTest(name = "owned by current region: {0}")
+    @ValueSource(booleans = {true, false})
     @SuppressWarnings("unchecked")
-    void shouldSaveEnderPearlRestoreDataOnQuit() {
+    void shouldSaveOnlyEnderPearlsOwnedByCurrentRegion(boolean ownedByCurrentThread) {
         Player player = mock(Player.class);
         Server server = mock(Server.class);
         World world = mock(World.class);
         EnderPearl pearl = mock(EnderPearl.class);
-        World pearlWorld = mock(World.class);
-        Location pearlLocation = new Location(pearlWorld, 10.0, 65.0, -1.0);
-        org.bukkit.util.Vector pearlVelocity = new org.bukkit.util.Vector(0.1, 0.2, 0.3);
 
         mockLeaveMessagesDisabled();
         given(listenerService.shouldCancelEvent(player)).willReturn(false);
         given(player.getServer()).willReturn(server);
         given(server.getWorlds()).willReturn(Collections.singletonList(world));
         given(world.getEntitiesByClass(EnderPearl.class)).willReturn(Collections.singletonList(pearl));
-        given(bukkitService.isOwnedByCurrentThread(pearl)).willReturn(true);
-        given(pearl.getShooter()).willReturn(player);
-        given(pearl.getUniqueId()).willReturn(UUID.nameUUIDFromBytes("quit-pearl".getBytes()));
-        given(pearl.getLocation()).willReturn(pearlLocation);
-        given(pearl.getVelocity()).willReturn(pearlVelocity);
+        given(bukkitService.isOwnedByCurrentThread(pearl)).willReturn(ownedByCurrentThread);
 
         PlayerQuitEvent event = new PlayerQuitEvent(player, "quit");
-        org.mockito.ArgumentCaptor<Collection<fr.xephi.authme.data.limbo.EnderPearlRestoreData>> captor =
-            org.mockito.ArgumentCaptor.forClass(Collection.class);
 
-        listener.onPlayerQuit(event);
+        if (ownedByCurrentThread) {
+            World pearlWorld = mock(World.class);
+            Location pearlLocation = new Location(pearlWorld, 10.0, 65.0, -1.0);
+            org.bukkit.util.Vector pearlVelocity = new org.bukkit.util.Vector(0.1, 0.2, 0.3);
+            given(pearl.getShooter()).willReturn(player);
+            given(pearl.getUniqueId()).willReturn(UUID.nameUUIDFromBytes("quit-pearl".getBytes()));
+            given(pearl.getLocation()).willReturn(pearlLocation);
+            given(pearl.getVelocity()).willReturn(pearlVelocity);
 
-        verify(limboService).saveEnderPearlsForPlayer(eq(player), captor.capture());
-        Collection<fr.xephi.authme.data.limbo.EnderPearlRestoreData> pearls = captor.getValue();
-        assertThat(pearls, hasSize(1));
-        fr.xephi.authme.data.limbo.EnderPearlRestoreData savedPearl = pearls.iterator().next();
-        assertThat(savedPearl.getLocation(), equalTo(pearlLocation));
-        assertThat(savedPearl.getVelocity(), equalTo(pearlVelocity));
-        verify(management).performQuit(player);
-    }
+            org.mockito.ArgumentCaptor<Collection<fr.xephi.authme.data.limbo.EnderPearlRestoreData>> captor =
+                org.mockito.ArgumentCaptor.forClass(Collection.class);
+            listener.onPlayerQuit(event);
 
-    @Test
-    void shouldNotReadEnderPearlsOfAnotherRegionOnQuit() {
-        Player player = mock(Player.class);
-        Server server = mock(Server.class);
-        World world = mock(World.class);
-        EnderPearl pearl = mock(EnderPearl.class);
-        mockLeaveMessagesDisabled();
-        given(listenerService.shouldCancelEvent(player)).willReturn(false);
-        given(player.getServer()).willReturn(server);
-        given(server.getWorlds()).willReturn(Collections.singletonList(world));
-        given(world.getEntitiesByClass(EnderPearl.class)).willReturn(Collections.singletonList(pearl));
-        given(bukkitService.isOwnedByCurrentThread(pearl)).willReturn(false);
-        PlayerQuitEvent event = new PlayerQuitEvent(player, "quit");
+            verify(limboService).saveEnderPearlsForPlayer(eq(player), captor.capture());
+            Collection<fr.xephi.authme.data.limbo.EnderPearlRestoreData> pearls = captor.getValue();
+            assertThat(pearls, hasSize(1));
+            fr.xephi.authme.data.limbo.EnderPearlRestoreData savedPearl = pearls.iterator().next();
+            assertThat(savedPearl.getLocation(), equalTo(pearlLocation));
+            assertThat(savedPearl.getVelocity(), equalTo(pearlVelocity));
+        } else {
+            listener.onPlayerQuit(event);
 
-        listener.onPlayerQuit(event);
-
-        verify(pearl, never()).getShooter();
-        verify(limboService, never()).saveEnderPearlsForPlayer(eq(player), any(Collection.class));
+            verify(pearl, never()).getShooter();
+            verify(limboService, never()).saveEnderPearlsForPlayer(eq(player), any(Collection.class));
+        }
         verify(management).performQuit(player);
     }
 
@@ -946,68 +934,45 @@ class PlayerListenerTest {
         verify(player).closeInventory();
     }
 
-    @Test
-    void shouldNotModifyJoinMessage() {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("joinMessageCases")
+    void shouldHandleJoinMessage(String description, boolean removeMessage, String customMessage,
+                                 boolean delayMessage, String playerName, String displayName,
+                                 String expectedJoinMessage, String expectedPutMessage) {
         Player player = mock(Player.class);
-        String joinMsg = "The player joined";
-        PlayerJoinEvent event = new PlayerJoinEvent(player, joinMsg);
-        given(settings.getProperty(RegistrationSettings.REMOVE_JOIN_MESSAGE)).willReturn(false);
-        given(settings.getProperty(RegistrationSettings.CUSTOM_JOIN_MESSAGE)).willReturn("");
-        given(settings.getProperty(RegistrationSettings.DELAY_JOIN_MESSAGE)).willReturn(false);
+        if (playerName != null) {
+            given(player.getName()).willReturn(playerName);
+            given(player.getDisplayName()).willReturn(displayName);
+        }
+        PlayerJoinEvent event = new PlayerJoinEvent(player, "The player joined");
+        given(settings.getProperty(RegistrationSettings.REMOVE_JOIN_MESSAGE)).willReturn(removeMessage);
+        if (!removeMessage) {
+            given(settings.getProperty(RegistrationSettings.CUSTOM_JOIN_MESSAGE)).willReturn(customMessage);
+            given(settings.getProperty(RegistrationSettings.DELAY_JOIN_MESSAGE)).willReturn(delayMessage);
+        }
 
         listener.onJoinMessage(event);
 
-        assertThat(event.getJoinMessage(), equalTo(joinMsg));
-        verifyNoInteractions(joinMessageService);
+        if (expectedJoinMessage == null) {
+            assertThat(event.getJoinMessage(), nullValue());
+        } else {
+            assertThat(event.getJoinMessage(), equalTo(expectedJoinMessage));
+        }
+        if (expectedPutMessage == null) {
+            verifyNoInteractions(joinMessageService);
+        } else {
+            verify(joinMessageService).putMessage(playerName, expectedPutMessage);
+        }
     }
 
-    @Test
-    void shouldRemoveJoinMessage() {
-        Player player = mock(Player.class);
-        String joinMsg = "The player joined";
-        PlayerJoinEvent event = new PlayerJoinEvent(player, joinMsg);
-        given(settings.getProperty(RegistrationSettings.REMOVE_JOIN_MESSAGE)).willReturn(true);
-
-        listener.onJoinMessage(event);
-
-        assertThat(event.getJoinMessage(), nullValue());
-        verifyNoInteractions(joinMessageService);
-    }
-
-    @Test
-    void shouldUseCustomMessage() {
-        Player player = mock(Player.class);
-        given(player.getName()).willReturn("doooew");
-        given(player.getDisplayName()).willReturn("Displ");
-        String joinMsg = "The player joined";
-        PlayerJoinEvent event = new PlayerJoinEvent(player, joinMsg);
-        given(settings.getProperty(RegistrationSettings.REMOVE_JOIN_MESSAGE)).willReturn(false);
-        given(settings.getProperty(RegistrationSettings.CUSTOM_JOIN_MESSAGE))
-            .willReturn("Hello {PLAYERNAME} (aka {DISPLAYNAME})");
-        given(settings.getProperty(RegistrationSettings.DELAY_JOIN_MESSAGE)).willReturn(false);
-
-        listener.onJoinMessage(event);
-
-        assertThat(event.getJoinMessage(), equalTo("Hello doooew (aka Displ)"));
-        verifyNoInteractions(joinMessageService);
-    }
-
-    @Test
-    void shouldDelayJoinMessage() {
-        Player player = mock(Player.class);
-        given(player.getName()).willReturn("thename0");
-        given(player.getDisplayName()).willReturn("(not used)");
-        String joinMsg = "The player joined";
-        PlayerJoinEvent event = new PlayerJoinEvent(player, joinMsg);
-        given(settings.getProperty(RegistrationSettings.REMOVE_JOIN_MESSAGE)).willReturn(false);
-        given(settings.getProperty(RegistrationSettings.CUSTOM_JOIN_MESSAGE))
-            .willReturn("{PLAYERNAME} is joining us");
-        given(settings.getProperty(RegistrationSettings.DELAY_JOIN_MESSAGE)).willReturn(true);
-
-        listener.onJoinMessage(event);
-
-        assertThat(event.getJoinMessage(), nullValue());
-        verify(joinMessageService).putMessage("thename0", "thename0 is joining us");
+    private static Stream<Arguments> joinMessageCases() {
+        return Stream.of(
+            Arguments.of("keep message", false, "", false, null, null, "The player joined", null),
+            Arguments.of("remove message", true, null, false, null, null, null, null),
+            Arguments.of("custom message", false, "Hello {PLAYERNAME} (aka {DISPLAYNAME})", false,
+                "doooew", "Displ", "Hello doooew (aka Displ)", null),
+            Arguments.of("delay message", false, "{PLAYERNAME} is joining us", true,
+                "thename0", "(not used)", null, "thename0 is joining us"));
     }
 
     private void mockLeaveMessagesDisabled() {

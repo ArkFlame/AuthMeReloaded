@@ -58,10 +58,7 @@ public class PluginHookService {
      * @return The Essentials data folder, or null if unavailable
      */
     public File getEssentialsDataFolder() {
-        if (essentials != null) {
-            return essentials.getDataFolder();
-        }
-        return null;
+        return essentials == null ? null : essentials.getDataFolder();
     }
 
     /**
@@ -71,10 +68,7 @@ public class PluginHookService {
      */
     public File getCmiDataFolder() {
         Plugin plugin = pluginManager.getPlugin("CMI");
-        if (plugin == null) {
-            return null;
-        }
-        return plugin.getDataFolder();
+        return plugin == null ? null : plugin.getDataFolder();
     }
 
     /**
@@ -180,7 +174,7 @@ public class PluginHookService {
                 return plugin;
             }
         } catch (Exception | NoClassDefFoundError ignored) {
-            return null;
+            // Plugin is not available
         }
         return null;
     }

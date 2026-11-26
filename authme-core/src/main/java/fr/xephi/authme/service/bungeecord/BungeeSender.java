@@ -47,13 +47,7 @@ public class BungeeSender implements SettingsDependent {
         setOutgoingChannel(messenger, MessageType.CHANNEL, isEnabled);
     }
 
-    /**
-     * Registers or unregisters an outgoing channel so that its state matches the given flag.
-     *
-     * @param messenger the server messenger
-     * @param channel   the channel to update
-     * @param register  whether the channel should be registered
-     */
+    /** Registers or unregisters an outgoing channel so that its state matches the given flag. */
     private void setOutgoingChannel(Messenger messenger, String channel, boolean register) {
         boolean registered = messenger.isOutgoingChannelRegistered(plugin, channel);
         if (register && !registered) {
@@ -103,14 +97,7 @@ public class BungeeSender implements SettingsDependent {
         bukkitService.sendAuthMePluginMessage(player, buildIdAndNameMessage(type, player.getName()));
     }
 
-    /**
-     * Builds the common "message type id + lowercased player name" payload used by the
-     * authme:main messages.
-     *
-     * @param type the message type
-     * @param name the player name (lowercased before being written)
-     * @return the serialized payload
-     */
+    /** Builds the common "message type id + lowercased player name" payload. */
     private static byte[] buildIdAndNameMessage(MessageType type, String name) {
         ByteArrayDataOutput out = ByteStreams.newDataOutput();
         out.writeUTF(type.getId());
@@ -130,9 +117,9 @@ public class BungeeSender implements SettingsDependent {
 
     /**
      * Notifies the proxy that a pending premium verification has been started for the given
-     * username. The proxy should force Mojang authentication for this player on their next
-     * connection but must NOT auto-login them via {@code PERFORM_LOGIN} (that path is reserved
-     * for confirmed premium players). Uses any online player as the message carrier.
+     * username. The proxy should force Mojang authentication on the next connection but must
+     * NOT auto-login the player via {@code PERFORM_LOGIN}, which is reserved for confirmed
+     * premium players.
      *
      * @param username the player name (will be lowercased)
      */
@@ -142,7 +129,6 @@ public class BungeeSender implements SettingsDependent {
 
     /**
      * Notifies the proxy that premium mode has been disabled for the given username.
-     * Uses any online player as the message carrier.
      *
      * @param username the player name (will be lowercased)
      */
@@ -152,8 +138,8 @@ public class BungeeSender implements SettingsDependent {
 
     /**
      * Sends the full list of premium usernames to the proxy using the given carrier player.
-     * The list is split into chunks of at most 1 000 names to stay within the BungeeCord
-     * plugin-messaging 32 767-byte limit per message.
+     * The list is split into chunks of at most 1 000 names to stay within the plugin-messaging
+     * 32 767-byte limit per message; an empty list produces a single empty last chunk.
      *
      * @param carrier          the player used as message carrier
      * @param premiumUsernames the list of premium usernames (lowercase)
@@ -166,11 +152,7 @@ public class BungeeSender implements SettingsDependent {
             .map(name -> name.toLowerCase(Locale.ROOT))
             .collect(Collectors.toList());
         int total = normalizedUsernames.size();
-        if (total == 0) {
-            sendPremiumListChunk(carrier, 0, true, "");
-            return;
-        }
-        int numChunks = (total + PREMIUM_LIST_CHUNK_SIZE - 1) / PREMIUM_LIST_CHUNK_SIZE;
+        int numChunks = Math.max(1, (total + PREMIUM_LIST_CHUNK_SIZE - 1) / PREMIUM_LIST_CHUNK_SIZE);
         for (int i = 0; i < numChunks; i++) {
             int fromIndex = i * PREMIUM_LIST_CHUNK_SIZE;
             int toIndex = Math.min(fromIndex + PREMIUM_LIST_CHUNK_SIZE, total);

@@ -113,10 +113,9 @@ public class PurgeExecutor {
         }
 
         int deleted = 0;
-        for (String file : folder.list()) {
-            String name = nameExtractor.apply(file);
-            if (name != null && names.contains(name.toLowerCase(Locale.ROOT))
-                && new File(folder, file).delete()) {
+        for (File file : folder.listFiles()) {
+            String name = nameExtractor.apply(file.getName());
+            if (name != null && names.contains(name.toLowerCase(Locale.ROOT)) && file.delete()) {
                 deleted++;
             }
         }

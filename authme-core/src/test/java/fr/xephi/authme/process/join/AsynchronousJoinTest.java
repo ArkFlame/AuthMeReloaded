@@ -157,9 +157,7 @@ public class AsynchronousJoinTest {
     public void shouldShowLoginDialogForUnauthenticatedRegisteredPlayer() {
         Player player = givenRegisteredPlayer();
         given(playerCache.isAuthenticated("Bobby")).willReturn(false);
-        given(service.getProperty(RegistrationSettings.USE_DIALOG_UI)).willReturn(true);
-        given(dialogAdapter.isDialogSupported()).willReturn(true);
-        given(dialogWindowService.createLoginDialog(player)).willReturn(createDialogSpec("Login", "Login"));
+        givenDialogUi(player);
 
         asynchronousJoin.processJoin(player);
 
@@ -184,9 +182,7 @@ public class AsynchronousJoinTest {
         Player player = givenRegisteredPlayer();
         given(player.isOnline()).willReturn(true);
         given(playerCache.isAuthenticated("Bobby")).willReturn(false, false, true);
-        given(service.getProperty(RegistrationSettings.USE_DIALOG_UI)).willReturn(true);
-        given(dialogAdapter.isDialogSupported()).willReturn(true);
-        given(dialogWindowService.createLoginDialog(player)).willReturn(createDialogSpec("Login", "Login"));
+        givenDialogUi(player);
 
         AtomicReference<Runnable> delayedTask = new AtomicReference<>();
         doAnswer(invocation -> {
@@ -213,9 +209,7 @@ public class AsynchronousJoinTest {
         verify(asynchronousLogin).forceLogin(player);
         verify(limboService, never()).createLimboPlayer(player, true);
         verifyNoLoginDialog(player);
-        // The account is read once and reused; no second availability lookup is performed.
-        verify(database, times(1)).getAuth("bobby");
-        verify(database, never()).isAuthAvailable(anyString());
+        verifySingleAuthLookup("bobby");
     }
 
     @Test
@@ -262,9 +256,7 @@ public class AsynchronousJoinTest {
         verify(limboService).createLimboPlayer(player, true);
         verify(asynchronousLogin).login(player, "hunter2");
         verifyNoLoginDialog(player);
-        // The account is read once and reused; no second availability lookup is performed.
-        verify(database, times(1)).getAuth("bobby");
-        verify(database, never()).isAuthAvailable(anyString());
+        verifySingleAuthLookup("bobby");
     }
 
     @ParameterizedTest(name = "queued proxy premium request={0}")
@@ -333,8 +325,7 @@ public class AsynchronousJoinTest {
         givenPendingDialogState(new PreJoinDialogService.PendingDialogState(
             null, null, null, true, false, null));
         given(playerCache.isAuthenticated("Bobby")).willReturn(false);
-        given(service.getProperty(RegistrationSettings.USE_DIALOG_UI)).willReturn(true);
-        given(dialogAdapter.isDialogSupported()).willReturn(true);
+        givenDialogUi(player);
 
         asynchronousJoin.processJoin(player);
 
@@ -402,8 +393,7 @@ public class AsynchronousJoinTest {
         verify(limboService, never()).createLimboPlayer(eq(player), anyBoolean());
         verifyNoLoginDialog(player);
         // The account is read once and reused; no second availability lookup is performed.
-        verify(database, times(1)).getAuth(".bobby");
-        verify(database, never()).isAuthAvailable(anyString());
+        verifySingleAuthLookup(".bobby");
     }
 
     @Test
@@ -434,6 +424,7 @@ public class AsynchronousJoinTest {
     @Test
     public void shouldForceLoginWithoutPromptWhenListenerRequestsIt() {
         Player player = givenRegisteredPlayer();
+        given(auth.getTotpKey()).willReturn("TOTPSECRET");
         AtomicReference<PlayerPreAuthEvent> seen = new AtomicReference<>();
         listenToPreAuth(event -> {
             seen.set(event);
@@ -449,8 +440,8 @@ public class AsynchronousJoinTest {
         order.verify(bukkitService).runTaskOptionallyAsync(any(Runnable.class));
         verify(asynchronousLogin).performLogin(player, auth);
         verify(asynchronousLogin, never()).forceLogin(player);
-        verify(database, times(1)).getAuth("bobby");
-        verify(database, never()).isAuthAvailable(anyString());
+        verify(asynchronousLogin, never()).login(eq(player), anyString());
+        verifySingleAuthLookup("bobby");
         verify(limboService, never()).createLimboPlayer(eq(player), anyBoolean());
         verify(sessionService, never()).canResumeSession(player);
         verify(bukkitService, never()).createAndCallEvent(any());
@@ -575,20 +566,7 @@ public class AsynchronousJoinTest {
         verify(limboService).createLimboPlayer(player, false);
         verify(asynchronousLogin, never()).performLogin(eq(player), any(PlayerAuth.class));
         verify(asynchronousLogin, never()).forceLogin(player);
-        verify(database, times(1)).getAuth("bobby");
-        verify(database, never()).isAuthAvailable(anyString());
-    }
-
-    @Test
-    public void shouldSkipTotpForForcedLoginFromPreAuthEvent() {
-        Player player = givenRegisteredPlayer();
-        given(auth.getTotpKey()).willReturn("TOTPSECRET");
-        listenToPreAuth(PlayerPreAuthEvent::forceLogin);
-
-        asynchronousJoin.processJoin(player);
-
-        verify(asynchronousLogin).performLogin(player, auth);
-        verify(asynchronousLogin, never()).login(eq(player), anyString());
+        verifySingleAuthLookup("bobby");
     }
 
     @Test
@@ -617,8 +595,7 @@ public class AsynchronousJoinTest {
         InOrder order = inOrder(bukkitService, asynchronousLogin);
         order.verify(bukkitService).callEvent(any(PlayerPreAuthEvent.class));
         order.verify(asynchronousLogin).forceLogin(player);
-        verify(database, times(1)).getAuth("bobby");
-        verify(database, never()).isAuthAvailable(anyString());
+        verifySingleAuthLookup("bobby");
         verify(limboService, never()).createLimboPlayer(eq(player), anyBoolean());
         verify(bukkitService, times(1)).scheduleSyncTaskFromOptionallyAsyncTask(eq(player), any(Runnable.class));
     }
@@ -628,6 +605,18 @@ public class AsynchronousJoinTest {
             target.set(invocation.getArgument(0));
             return null;
         }).when(bukkitService).runTaskOptionallyAsync(any(Runnable.class));
+    }
+
+    private void verifySingleAuthLookup(String normalizedName) {
+        // The account is read once and reused; no second availability lookup is performed.
+        verify(database, times(1)).getAuth(normalizedName);
+        verify(database, never()).isAuthAvailable(anyString());
+    }
+
+    private void givenDialogUi(Player player) {
+        given(service.getProperty(RegistrationSettings.USE_DIALOG_UI)).willReturn(true);
+        given(dialogAdapter.isDialogSupported()).willReturn(true);
+        given(dialogWindowService.createLoginDialog(player)).willReturn(createDialogSpec("Login", "Login"));
     }
 
     private void listenToPreAuth(Consumer<PlayerPreAuthEvent> listener) {

@@ -87,56 +87,42 @@ class HelpProviderTest {
         helpProvider = new HelpProvider(permissionsManager, helpMessagesService, settings, compatibilityAdapter);
     }
 
-    @Test
-    void shouldShowLongDescription() {
+    @ParameterizedTest(name = "help output for {0}")
+    @MethodSource("helpOutputCases")
+    void shouldOutputExpectedHelpLines(List<String> commandLabels, List<String> resultLabels, int flags,
+                                       List<String> expectedLines) {
         // given
-        CommandDescription command = getCommandWithLabel(commands, "authme", "login");
-        FoundCommandResult result = newFoundResult(command, Arrays.asList("authme", "login"));
+        CommandDescription command = commandLabels.size() == 1
+            ? getCommandWithLabel(commands, commandLabels.get(0))
+            : getCommandWithLabel(commands, commandLabels.get(0), commandLabels.get(1));
+        FoundCommandResult result = newFoundResult(command, resultLabels);
 
         // when
-        helpProvider.outputHelp(sender, result, SHOW_COMMAND | SHOW_LONG_DESCRIPTION | SHOW_DESCRIPTION);
+        helpProvider.outputHelp(sender, result, flags);
 
         // then
-        List<String> lines = getLines(sender);
-        assertThat(lines, hasSize(5));
-        assertThat(lines.get(0), containsString("Header"));
-        assertThat(lines.get(1), containsString("Command: /authme login <password>"));
-        assertThat(lines.get(2), containsString("Short description: login cmd"));
-        assertThat(lines.get(3), equalTo("Detailed description:"));
-        assertThat(lines.get(4), containsString("'login' test command"));
+        assertThat(getLines(sender), equalTo(expectedLines));
     }
 
-    @Test
-    void shouldShowArguments() {
-        // given
-        CommandDescription command = getCommandWithLabel(commands, "authme", "register");
-        FoundCommandResult result = newFoundResult(command, Arrays.asList("authme", "reg"));
-
-        // when
-        helpProvider.outputHelp(sender, result, SHOW_ARGUMENTS);
-
-        // then
-        List<String> lines = getLines(sender);
-        assertThat(lines, hasSize(4));
-        assertThat(lines.get(0), containsString("Header"));
-        assertThat(lines.get(1), equalTo("Arguments:"));
-        assertThat(lines.get(2), containsString("password: 'password' argument description"));
-        assertThat(lines.get(3), containsString("confirmation: 'confirmation' argument description"));
-    }
-
-    @Test
-    void shouldShowSpecifyIfArgumentIsOptional() {
-        // given
-        CommandDescription command = getCommandWithLabel(commands, "email");
-        FoundCommandResult result = newFoundResult(command, Collections.singletonList("email"));
-
-        // when
-        helpProvider.outputHelp(sender, result, SHOW_ARGUMENTS);
-
-        // then
-        List<String> lines = getLines(sender);
-        assertThat(lines, hasSize(3));
-        assertThat(lines.get(2), containsString("player: 'player' argument description (Optional)"));
+    static Stream<Arguments> helpOutputCases() {
+        return Stream.of(
+            Arguments.of(Arrays.asList("authme", "login"), Arrays.asList("authme", "login"),
+                SHOW_COMMAND | SHOW_LONG_DESCRIPTION | SHOW_DESCRIPTION,
+                Arrays.asList("Header", "Command: /authme login <password>", "Short description: login cmd",
+                    "Detailed description:", " 'login' test command")),
+            Arguments.of(Arrays.asList("authme", "register"), Arrays.asList("authme", "reg"), SHOW_ARGUMENTS,
+                Arrays.asList("Header", "Arguments:", " password: 'password' argument description",
+                    " confirmation: 'confirmation' argument description")),
+            Arguments.of(Collections.singletonList("email"), Collections.singletonList("email"), SHOW_ARGUMENTS,
+                Arrays.asList("Header", "Arguments:", " player: 'player' argument description (Optional)")),
+            Arguments.of(Arrays.asList("authme", "register"), Arrays.asList("authme", "reg"), SHOW_ALTERNATIVES,
+                Arrays.asList("Header", "Alternatives:", " /authme register <password> <confirmation>",
+                    " /authme r <password> <confirmation>")),
+            Arguments.of(Arrays.asList("authme", "register"), Arrays.asList("authme", "ragister"), SHOW_COMMAND,
+                Arrays.asList("Header", "Command: /authme register <password> <confirmation>")),
+            Arguments.of(Collections.singletonList("unregister"), Collections.singletonList("unreg"),
+                SHOW_COMMAND | SHOW_ALTERNATIVES,
+                Arrays.asList("Header", "Command: /unreg <player>", "Alternatives:", " /unregister <player>")));
     }
 
     /** Verifies that a section with no content only produces the help banner. */
@@ -206,23 +192,6 @@ class HelpProviderTest {
     }
 
     @Test
-    void shouldShowAlternatives() {
-        // given
-        CommandDescription command = getCommandWithLabel(commands, "authme", "register");
-        FoundCommandResult result = newFoundResult(command, Arrays.asList("authme", "reg"));
-
-        // when
-        helpProvider.outputHelp(sender, result, SHOW_ALTERNATIVES);
-
-        // then
-        List<String> lines = getLines(sender);
-        assertThat(lines, hasSize(4));
-        assertThat(lines.get(1), containsString("Alternatives:"));
-        assertThat(lines.get(2), containsString("/authme register <password> <confirmation>"));
-        assertThat(lines.get(3), containsString("/authme r <password> <confirmation>"));
-    }
-
-    @Test
     void shouldShowChildren() {
         // given
         CommandDescription command = getCommandWithLabel(commands, "authme");
@@ -256,26 +225,6 @@ class HelpProviderTest {
         List<String> lines = getLines(sender);
         assertThat(lines, hasSize(1));
         assertThat(lines.get(0), containsString("Failed to retrieve any help information"));
-    }
-
-    /**
-     * Since command parts may be mapped to a command description with labels that don't completely correspond to it,
-     * (e.g. suggest "register command" for /authme ragister), we need to check the labels and construct a correct list
-     */
-    @Test
-    void shouldShowCommandSyntaxWithCorrectLabels() {
-        // given
-        CommandDescription command = getCommandWithLabel(commands, "authme", "register");
-        FoundCommandResult result = newFoundResult(command, Arrays.asList("authme", "ragister"));
-
-        // when
-        helpProvider.outputHelp(sender, result, SHOW_COMMAND);
-
-        // then
-        List<String> lines = getLines(sender);
-        assertThat(lines, hasSize(2));
-        assertThat(lines.get(0), containsString("Header"));
-        assertThat(lines.get(1), containsString("Command: /authme register <password> <confirmation>"));
     }
 
     @ParameterizedTest(name = "{0}")
@@ -352,24 +301,6 @@ class HelpProviderTest {
         List<String> lines = getLines(sender);
         assertThat(lines, hasSize(1));
         assertThat(lines.get(0), equalTo("Command: /authme register <password> <confirmation>"));
-    }
-
-    @Test
-    void shouldShowAlternativesForRootCommand() {
-        // given
-        CommandDescription command = getCommandWithLabel(commands, "unregister");
-        FoundCommandResult result = newFoundResult(command, Collections.singletonList("unreg"));
-
-        // when
-        helpProvider.outputHelp(sender, result, SHOW_COMMAND | SHOW_ALTERNATIVES);
-
-        // then
-        List<String> lines = getLines(sender);
-        assertThat(lines, hasSize(4));
-        assertThat(lines.get(0), equalTo("Header"));
-        assertThat(lines.get(1), equalTo("Command: /unreg <player>"));
-        assertThat(lines.get(2), equalTo("Alternatives:"));
-        assertThat(lines.get(3), equalTo(" /unregister <player>"));
     }
 
     /**

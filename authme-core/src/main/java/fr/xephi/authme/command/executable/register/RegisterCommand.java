@@ -72,7 +72,8 @@ public class RegisterCommand extends PlayerCommand {
             management.performRegister(RegistrationMethod.TWO_FACTOR_REGISTRATION,
                 TwoFactorRegisterParams.of(player));
             return;
-        } else if (arguments.size() < 1) {
+        }
+        if (arguments.isEmpty()) {
             commonService.send(player, MessageKey.USAGE_REGISTER);
             return;
         }
@@ -111,19 +112,13 @@ public class RegisterCommand extends PlayerCommand {
         RegisterSecondaryArgument secondArgType = commonService.getProperty(REGISTER_SECOND_ARGUMENT);
         if (isSecondArgValid(player, arguments, false, secondArgType)) {
             final String password = arguments.get(0);
-            final String email = getEmailIfAvailable(arguments, secondArgType);
+            final String email = arguments.size() >= 2
+                && (secondArgType == EMAIL_MANDATORY || secondArgType == EMAIL_OPTIONAL)
+                ? arguments.get(1) : null;
 
             management.performRegister(RegistrationMethod.PASSWORD_REGISTRATION,
                 PasswordRegisterParams.of(player, password, email));
         }
-    }
-
-    private static String getEmailIfAvailable(List<String> arguments,
-                                              RegisterSecondaryArgument secondArgType) {
-        if (arguments.size() >= 2 && (secondArgType == EMAIL_MANDATORY || secondArgType == EMAIL_OPTIONAL)) {
-            return arguments.get(1);
-        }
-        return null;
     }
 
     /**
@@ -156,10 +151,7 @@ public class RegisterCommand extends PlayerCommand {
         }
 
         if (emailRegistration) {
-            if (secondArgType == EMAIL_OPTIONAL || secondArgType == EMAIL_MANDATORY
-                || secondArgType == CONFIRMATION) {
-                return checkArgumentsMatch(player, arguments, MessageKey.USAGE_REGISTER);
-            }
+            return checkArgumentsMatch(player, arguments, MessageKey.USAGE_REGISTER);
         } else if (secondArgType == CONFIRMATION) {
             return checkArgumentsMatch(player, arguments, MessageKey.PASSWORD_MATCH_ERROR);
         } else if (secondArgType == EMAIL_MANDATORY || secondArgType == EMAIL_OPTIONAL) {

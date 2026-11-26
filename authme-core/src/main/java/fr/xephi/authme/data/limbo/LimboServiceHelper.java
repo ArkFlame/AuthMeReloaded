@@ -105,10 +105,8 @@ class LimboServiceHelper {
      * @return merged limbo player if both arguments are not null, otherwise the first non-null argument
      */
     LimboPlayer merge(LimboPlayer newLimbo, LimboPlayer oldLimbo) {
-        if (newLimbo == null) {
-            return oldLimbo;
-        } else if (oldLimbo == null) {
-            return newLimbo;
+        if (newLimbo == null || oldLimbo == null) {
+            return firstNotNull(oldLimbo, newLimbo);
         }
 
         boolean isOperator = newLimbo.isOperator() || oldLimbo.isOperator();
@@ -146,16 +144,11 @@ class LimboServiceHelper {
     }
 
     private static Collection<EnderPearlRestoreData> mergeEnderPearls(LimboPlayer newLimbo, LimboPlayer oldLimbo) {
-        Collection<EnderPearlRestoreData> oldPearls = oldLimbo.getEnderPearls();
-        Collection<EnderPearlRestoreData> newPearls = newLimbo.getEnderPearls();
-        if (oldPearls.isEmpty() && newPearls.isEmpty()) {
-            return Collections.emptyList();
-        }
         Map<UUID, EnderPearlRestoreData> mergedPearls = new LinkedHashMap<>();
-        for (EnderPearlRestoreData pearl : oldPearls) {
+        for (EnderPearlRestoreData pearl : oldLimbo.getEnderPearls()) {
             mergedPearls.put(pearl.getUuid(), pearl);
         }
-        for (EnderPearlRestoreData pearl : newPearls) {
+        for (EnderPearlRestoreData pearl : newLimbo.getEnderPearls()) {
             mergedPearls.merge(pearl.getUuid(), pearl, LimboServiceHelper::preferPearlWithMoreState);
         }
         return mergedPearls.values();
@@ -163,10 +156,8 @@ class LimboServiceHelper {
 
     private static EnderPearlRestoreData preferPearlWithMoreState(EnderPearlRestoreData existingPearl,
                                                                   EnderPearlRestoreData incomingPearl) {
-        if (incomingPearl.hasDetailedState() == existingPearl.hasDetailedState()) {
-            return incomingPearl;
-        }
-        return incomingPearl.hasDetailedState() ? incomingPearl : existingPearl;
+        return existingPearl.hasDetailedState() && !incomingPearl.hasDetailedState()
+            ? existingPearl : incomingPearl;
     }
 
     private static <T> T firstNotNull(T first, T second) {
