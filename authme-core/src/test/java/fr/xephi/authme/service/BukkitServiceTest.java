@@ -108,37 +108,6 @@ class BukkitServiceTest {
     }
 
     @Test
-    void shouldScheduleSyncDelayedTask() {
-        // given
-        Runnable task = () -> {/* noop */};
-        given(scheduler.scheduleSyncDelayedTask(authMe, task)).willReturn(123);
-        given(server.getScheduler()).willReturn(scheduler);
-
-        // when
-        int taskId = bukkitService.scheduleSyncDelayedTask(task);
-
-        // then
-        verify(scheduler, only()).scheduleSyncDelayedTask(authMe, task);
-        assertThat(taskId, equalTo(123));
-    }
-
-    @Test
-    void shouldScheduleSyncDelayedTaskWithDelay() {
-        // given
-        Runnable task = () -> {/* noop */};
-        int delay = 3;
-        given(scheduler.scheduleSyncDelayedTask(authMe, task, delay)).willReturn(44);
-        given(server.getScheduler()).willReturn(scheduler);
-
-        // when
-        int taskId = bukkitService.scheduleSyncDelayedTask(task, delay);
-
-        // then
-        verify(scheduler, only()).scheduleSyncDelayedTask(authMe, task, delay);
-        assertThat(taskId, equalTo(44));
-    }
-
-    @Test
     void shouldScheduleSyncTask() {
         // given
         Runnable task = mock(Runnable.class);

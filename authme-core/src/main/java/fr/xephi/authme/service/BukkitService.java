@@ -52,27 +52,6 @@ public class BukkitService implements SettingsDependent {
     }
 
     /**
-     * Schedules a once off task to occur as soon as possible on the main server thread.
-     *
-     * @param task Task to be executed
-     * @return Task id number (-1 if scheduling failed)
-     */
-    public int scheduleSyncDelayedTask(Runnable task) {
-        return Bukkit.getScheduler().scheduleSyncDelayedTask(authMe, task);
-    }
-
-    /**
-     * Schedules a once off task to occur after a delay on the main server thread.
-     *
-     * @param task Task to be executed
-     * @param delay Delay in server ticks before executing task
-     * @return Task id number (-1 if scheduling failed)
-     */
-    public int scheduleSyncDelayedTask(Runnable task, long delay) {
-        return Bukkit.getScheduler().scheduleSyncDelayedTask(authMe, task, delay);
-    }
-
-    /**
      * Returns whether the current thread may interact with the given entity.
      *
      * @param entity the entity to check
