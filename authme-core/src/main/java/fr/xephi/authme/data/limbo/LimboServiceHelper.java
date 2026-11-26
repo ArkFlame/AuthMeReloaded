@@ -14,12 +14,10 @@ import javax.inject.Inject;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import static fr.xephi.authme.util.Utils.isCollectionEmpty;
-import static java.util.stream.Collectors.toList;
 
 /**
  * Helper class for the LimboService.
@@ -58,12 +56,23 @@ class LimboServiceHelper {
         Collection<UserGroup> playerGroups = permissionsManager.hasGroupSupport()
             ? permissionsManager.getGroups(player) : Collections.emptyList();
 
-        List<String> groupNames = playerGroups.stream()
-            .map(UserGroup::getGroupName)
-            .collect(toList());
-
-        logger.debug("Player `{0}` has groups `{1}`", player.getName(), String.join(", ", groupNames));
+        // Build the debug text lazily: joining group names is pure logging work and must not
+        // allocate a stream, a mapped list or a joined string on every single join.
+        logger.debug(() -> "Player `" + player.getName() + "` has groups `"
+            + joinGroupNames(playerGroups) + "`");
         return new LimboPlayer(location, isOperator, playerGroups, flyEnabled, walkSpeed, flySpeed);
+    }
+
+    /** Renders the group names exactly as {@code String.join(", ", names)} would. */
+    private static String joinGroupNames(Collection<UserGroup> groups) {
+        StringBuilder result = new StringBuilder();
+        for (UserGroup group : groups) {
+            if (result.length() > 0) {
+                result.append(", ");
+            }
+            result.append(group.getGroupName());
+        }
+        return result.toString();
     }
 
     /**
@@ -139,11 +148,16 @@ class LimboServiceHelper {
     }
 
     private static Collection<EnderPearlRestoreData> mergeEnderPearls(LimboPlayer newLimbo, LimboPlayer oldLimbo) {
+        Collection<EnderPearlRestoreData> oldPearls = oldLimbo.getEnderPearls();
+        Collection<EnderPearlRestoreData> newPearls = newLimbo.getEnderPearls();
+        if (oldPearls.isEmpty() && newPearls.isEmpty()) {
+            return Collections.emptyList();
+        }
         Map<UUID, EnderPearlRestoreData> mergedPearls = new LinkedHashMap<>();
-        for (EnderPearlRestoreData pearl : oldLimbo.getEnderPearls()) {
+        for (EnderPearlRestoreData pearl : oldPearls) {
             mergedPearls.put(pearl.getUuid(), pearl);
         }
-        for (EnderPearlRestoreData pearl : newLimbo.getEnderPearls()) {
+        for (EnderPearlRestoreData pearl : newPearls) {
             mergedPearls.merge(pearl.getUuid(), pearl, LimboServiceHelper::preferPearlWithMoreState);
         }
         return mergedPearls.values();

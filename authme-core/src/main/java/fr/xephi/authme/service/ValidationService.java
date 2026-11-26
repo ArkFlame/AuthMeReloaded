@@ -16,7 +16,6 @@ import fr.xephi.authme.settings.properties.EmailSettings;
 import fr.xephi.authme.settings.properties.ProtectionSettings;
 import fr.xephi.authme.settings.properties.RestrictionSettings;
 import fr.xephi.authme.settings.properties.SecuritySettings;
-import fr.xephi.authme.util.StringUtils;
 import fr.xephi.authme.util.Utils;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -51,7 +50,7 @@ public class ValidationService implements Reloadable {
 
     private Pattern passwordRegex;
     private Pattern emailRegex;
-    private Multimap<String, String> restrictedNames;
+    private Multimap<String, Pattern> restrictedNames;
 
     ValidationService() {
     }
@@ -95,11 +94,14 @@ public class ValidationService implements Reloadable {
      * @return true if the email is valid, false otherwise
      */
     public boolean validateEmail(String email) {
-        if (Utils.isEmailEmpty(email) || !StringUtils.isInsideString('@', email)
-            || email.indexOf('@') != email.lastIndexOf('@') || !emailRegex.matcher(email).matches()) {
+        if (Utils.isEmailEmpty(email) || !isInsideString('@', email)) {
             return false;
         }
-        final String emailDomain = email.substring(email.indexOf('@') + 1);
+        int atIndex = email.indexOf('@');
+        if (atIndex != email.lastIndexOf('@') || !emailRegex.matcher(email).matches()) {
+            return false;
+        }
+        final String emailDomain = email.substring(atIndex + 1);
         return validateWhitelistAndBlacklist(
             emailDomain, EmailSettings.DOMAIN_WHITELIST, EmailSettings.DOMAIN_BLACKLIST);
     }
@@ -155,7 +157,7 @@ public class ValidationService implements Reloadable {
      * @return true if the player may join, false if the player does not satisfy the name restrictions
      */
     public boolean fulfillsNameRestrictions(Player player) {
-        Collection<String> restrictions = restrictedNames.get(player.getName().toLowerCase(Locale.ROOT));
+        Collection<Pattern> restrictions = restrictedNames.get(player.getName().toLowerCase(Locale.ROOT));
         if (Utils.isCollectionEmpty(restrictions)) {
             return true;
         }
@@ -175,7 +177,7 @@ public class ValidationService implements Reloadable {
      * @return true if the player may join, false if the name restrictions are not satisfied
      */
     public boolean fulfillsNameRestrictions(String name, InetAddress address) {
-        Collection<String> restrictions = restrictedNames.get(name.toLowerCase(Locale.ROOT));
+        Collection<Pattern> restrictions = restrictedNames.get(name.toLowerCase(Locale.ROOT));
         if (Utils.isCollectionEmpty(restrictions)) {
             return true;
         }
@@ -184,17 +186,9 @@ public class ValidationService implements Reloadable {
         return matchesRestrictions(restrictions, ip, domain);
     }
 
-    private boolean matchesRestrictions(Collection<String> restrictions, String ip, String domain) {
-        for (String restriction : restrictions) {
-            if (restriction.startsWith("regex:")) {
-                restriction = restriction.replace("regex:", "");
-            } else {
-                restriction = restriction.replace("*", "(.*)");
-            }
-            if (ip.matches(restriction)) {
-                return true;
-            }
-            if (domain.matches(restriction)) {
+    private boolean matchesRestrictions(Collection<Pattern> restrictions, String ip, String domain) {
+        for (Pattern restriction : restrictions) {
+            if (restriction.matcher(ip).matches() || restriction.matcher(domain).matches()) {
                 return true;
             }
         }
@@ -241,18 +235,25 @@ public class ValidationService implements Reloadable {
      * @param configuredRestrictions the restriction rules to convert to a map
      * @return map of allowed IPs/domain names by player name
      */
-    private Multimap<String, String> loadNameRestrictions(Set<String> configuredRestrictions) {
-        Multimap<String, String> restrictions = HashMultimap.create();
+    private Multimap<String, Pattern> loadNameRestrictions(Set<String> configuredRestrictions) {
+        Multimap<String, Pattern> restrictions = HashMultimap.create();
         for (String restriction : configuredRestrictions) {
             if (isInsideString(';', restriction)) {
                 String[] data = restriction.split(";");
-                restrictions.put(data[0].toLowerCase(Locale.ROOT), data[1]);
+                restrictions.put(data[0].toLowerCase(Locale.ROOT), Pattern.compile(toRegex(data[1])));
             } else {
                 logger.warning("Restricted user rule must have a ';' separating name from restriction,"
                     + " but found: '" + restriction + "'");
             }
         }
         return restrictions;
+    }
+
+    private static String toRegex(String restriction) {
+        if (restriction.startsWith("regex:")) {
+            return restriction.replace("regex:", "");
+        }
+        return restriction.replace("*", "(.*)");
     }
 
     public static final class ValidationResult {

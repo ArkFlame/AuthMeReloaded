@@ -19,6 +19,7 @@ import fr.xephi.authme.util.Utils;
 import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
@@ -27,7 +28,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 public class CacheDataSource implements DataSource, SqlConnectionSource {
 
@@ -301,9 +301,11 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public DataSourceValue<String> getEmail(String user) {
-        return cachedAuths.getUnchecked(user)
-            .map(auth -> DataSourceValueImpl.of(auth.getEmail()))
-            .orElse(DataSourceValueImpl.unknownRow());
+        Optional<PlayerAuth> auth = cachedAuths.getUnchecked(user);
+        if (auth.isPresent()) {
+            return DataSourceValueImpl.of(auth.get().getEmail());
+        }
+        return DataSourceValueImpl.unknownRow();
     }
 
     @Override
@@ -313,10 +315,13 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public List<String> getLoggedPlayersWithEmptyMail() {
-        return playerCache.getCache().values().stream()
-            .filter(auth -> Utils.isEmailEmpty(auth.getEmail()))
-            .map(PlayerAuth::getRealName)
-            .collect(Collectors.toList());
+        List<String> result = new ArrayList<>();
+        for (PlayerAuth auth : playerCache.getCache().values()) {
+            if (Utils.isEmailEmpty(auth.getEmail())) {
+                result.add(auth.getRealName());
+            }
+        }
+        return result;
     }
 
     @Override

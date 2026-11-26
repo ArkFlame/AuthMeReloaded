@@ -55,12 +55,13 @@ public class AsynchronousLogout implements AsynchronousProcess {
      */
     public void logout(Player player, Location quitLocation) {
         String name = player.getName().toLowerCase(Locale.ROOT);
-        if (!playerCache.isAuthenticated(name)) {
+        // Single lookup: for the ConcurrentHashMap-backed cache, a null auth means "not authenticated".
+        PlayerAuth auth = playerCache.getAuth(name);
+        if (auth == null) {
             service.send(player, MessageKey.NOT_LOGGED_IN);
             return;
         }
 
-        PlayerAuth auth = playerCache.getAuth(name);
         database.updateSession(auth);
         // TODO: send an update when a messaging service will be implemented (SESSION)
         if (service.getProperty(RestrictionSettings.SAVE_QUIT_LOCATION)) {

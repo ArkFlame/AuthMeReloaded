@@ -43,12 +43,13 @@ public class AsyncChangePassword implements AsynchronousProcess {
      * @param newPassword the new password chosen by the player
      */
     public void changePassword(Player player, String oldPassword, String newPassword) {
-        String name = player.getName().toLowerCase(Locale.ROOT);
+        String playerName = player.getName();
+        String name = playerName.toLowerCase(Locale.ROOT);
         PlayerAuth auth = playerCache.getAuth(name);
         if (auth == null) {
             return;
         }
-        if (passwordSecurity.comparePassword(oldPassword, auth.getPassword(), player.getName())) {
+        if (passwordSecurity.comparePassword(oldPassword, auth.getPassword(), playerName)) {
             HashedPassword hashedPassword = passwordSecurity.computeHash(newPassword, name);
             auth.setPassword(hashedPassword);
 
@@ -61,7 +62,7 @@ public class AsyncChangePassword implements AsynchronousProcess {
 
             playerCache.updatePlayerIfPresent(auth);
             commonService.send(player, MessageKey.PASSWORD_CHANGED_SUCCESS);
-            logger.info(player.getName() + " changed his password");
+            logger.info(playerName + " changed his password");
         } else {
             commonService.send(player, MessageKey.WRONG_PASSWORD);
         }

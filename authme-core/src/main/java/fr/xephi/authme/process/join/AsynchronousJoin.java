@@ -10,6 +10,7 @@ import fr.xephi.authme.events.PlayerPreAuthEvent;
 import fr.xephi.authme.events.ProtectInventoryEvent;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
+import fr.xephi.authme.output.LogLevel;
 import fr.xephi.authme.permission.PlayerStatePermission;
 import fr.xephi.authme.platform.DialogAdapter;
 import fr.xephi.authme.process.AsynchronousProcess;
@@ -293,7 +294,9 @@ public class AsynchronousJoin implements AsynchronousProcess {
                 isAsync -> new ProtectInventoryEvent(player, isAsync));
             if (ev.isCancelled()) {
                 bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, player::updateInventory);
-                logger.fine("ProtectInventoryEvent has been cancelled for " + player.getName() + "...");
+                if (logger.getLogLevel().includes(LogLevel.FINE)) {
+                    logger.fine("ProtectInventoryEvent has been cancelled for " + player.getName() + "...");
+                }
             }
         }
 
@@ -322,8 +325,8 @@ public class AsynchronousJoin implements AsynchronousProcess {
                 // BungeeReceiver.performLogin() concurrently already completed the login, this
                 // call is a no-op rather than sending an "already logged in" error.
                 resumeSession(player, true);
-                logger.info("The user " + player.getName() + " has been automatically logged in, "
-                    + "as present in autologin queue.");
+                logger.info("The user " + player.getName()
+                    + " has been automatically logged in, as present in autologin queue.");
                 return true;
             }
             // Validation failed (e.g. premium UUID mismatch after /freemium).
@@ -364,7 +367,9 @@ public class AsynchronousJoin implements AsynchronousProcess {
             } catch (RuntimeException e) {
                 // Bukkit logs and swallows listener exceptions; do the same so a faulty listener
                 // cannot stall or abort the join.
-                logger.fine("PlayerPreAuthEvent listener failed for " + player.getName() + ": " + e);
+                if (logger.getLogLevel().includes(LogLevel.FINE)) {
+                    logger.fine("PlayerPreAuthEvent listener failed for " + player.getName() + ": " + e);
+                }
             } finally {
                 result.complete(event);
             }
@@ -372,17 +377,23 @@ public class AsynchronousJoin implements AsynchronousProcess {
 
         PlayerPreAuthEvent event = awaitPreAuthResult(result, player);
         if (event == null) {
-            logger.fine("PlayerPreAuthEvent could not be dispatched for " + player.getName()
-                + "; continuing with the regular join");
+            if (logger.getLogLevel().includes(LogLevel.FINE)) {
+                logger.fine("PlayerPreAuthEvent could not be dispatched for " + player.getName()
+                    + "; continuing with the regular join");
+            }
             return false;
         }
         if (event.isForceLoginRequested()) {
-            logger.fine("PlayerPreAuthEvent: forced login requested for " + player.getName());
+            if (logger.getLogLevel().includes(LogLevel.FINE)) {
+                logger.fine("PlayerPreAuthEvent: forced login requested for " + player.getName());
+            }
             bukkitService.runTaskOptionallyAsync(() -> performForcedLogin(player, auth, name));
             return true;
         }
         if (event.isCancelled()) {
-            logger.fine("PlayerPreAuthEvent cancelled for " + player.getName() + ", skipping authentication");
+            if (logger.getLogLevel().includes(LogLevel.FINE)) {
+                logger.fine("PlayerPreAuthEvent cancelled for " + player.getName() + ", skipping authentication");
+            }
             return true;
         }
         return false;
@@ -394,12 +405,18 @@ public class AsynchronousJoin implements AsynchronousProcess {
             // (e.g. the player disconnected), fall back to the regular join instead of blocking forever.
             return result.get(preAuthEventTimeoutMillis, TimeUnit.MILLISECONDS);
         } catch (TimeoutException e) {
-            logger.fine("Timed out waiting for PlayerPreAuthEvent for " + player.getName());
+            if (logger.getLogLevel().includes(LogLevel.FINE)) {
+                logger.fine("Timed out waiting for PlayerPreAuthEvent for " + player.getName());
+            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            logger.fine("Interrupted while waiting for PlayerPreAuthEvent for " + player.getName());
+            if (logger.getLogLevel().includes(LogLevel.FINE)) {
+                logger.fine("Interrupted while waiting for PlayerPreAuthEvent for " + player.getName());
+            }
         } catch (ExecutionException e) {
-            logger.fine("Failed to dispatch PlayerPreAuthEvent for " + player.getName() + ": " + e.getCause());
+            if (logger.getLogLevel().includes(LogLevel.FINE)) {
+                logger.fine("Failed to dispatch PlayerPreAuthEvent for " + player.getName() + ": " + e.getCause());
+            }
         }
         return null;
     }
@@ -416,13 +433,17 @@ public class AsynchronousJoin implements AsynchronousProcess {
      */
     private void performForcedLogin(Player player, PlayerAuth auth, String name) {
         if (auth == null || !player.isOnline()) {
-            logger.fine("PlayerPreAuthEvent: forced login skipped for offline or unregistered player "
-                + player.getName());
+            if (logger.getLogLevel().includes(LogLevel.FINE)) {
+                logger.fine("PlayerPreAuthEvent: forced login skipped for offline or unregistered player "
+                    + player.getName());
+            }
             return;
         }
         if (playerCache.isAuthenticated(name)) {
-            logger.fine("PlayerPreAuthEvent: " + player.getName()
-                + " is already authenticated, not logging in twice");
+            if (logger.getLogLevel().includes(LogLevel.FINE)) {
+                logger.fine("PlayerPreAuthEvent: " + player.getName()
+                    + " is already authenticated, not logging in twice");
+            }
             return;
         }
         asynchronousLogin.performLogin(player, auth);
@@ -701,7 +722,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
         ProxySessionManager.ProxyLoginRequest queued = proxySessionManager.getLoginRequest(name);
         UUID verified = queued == null ? null : queued.verifiedPremiumUuid();
         if (verified == null) {
-            logger.debug("canBypassWithPremium[v3/proxy]: " + name
+            logger.debug(() -> "canBypassWithPremium[v3/proxy]: " + name
                 + " has a pending premium enrollment but no queued verified UUID yet; deferring to perform.login");
             return false;
         }
@@ -709,7 +730,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
         // if a concurrent perform.login already consumed it, stay silent and let that path win.
         UUID pendingUuid = pendingPremiumCache.removePending(name);
         if (pendingUuid == null) {
-            logger.debug("canBypassWithPremium[v3/proxy]: pending entry for " + name
+            logger.debug(() -> "canBypassWithPremium[v3/proxy]: pending entry for " + name
                 + " already consumed (concurrent perform.login); deferring");
             return false;
         }

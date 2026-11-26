@@ -12,11 +12,11 @@ import org.bukkit.plugin.PluginManager;
 
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.EnumMap;
+import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 /**
  * Manager class for password-related operations.
@@ -37,7 +37,7 @@ public class PasswordSecurity implements Reloadable {
 
     private volatile EncryptionMethod encryptionMethod;
     private volatile Collection<HashAlgorithm> legacyAlgorithms;
-    private volatile Map<HashAlgorithm, EncryptionMethod> legacyEncryptionMethods;
+    private volatile List<EncryptionMethod> legacyEncryptionMethods;
 
     /**
      * Load or reload the configuration.
@@ -104,9 +104,8 @@ public class PasswordSecurity implements Reloadable {
      * @return True if there was a password match with a configured legacy encryption method, false otherwise
      */
     private boolean compareWithLegacyHashes(String password, HashedPassword hashedPassword, String playerName) {
-        Map<HashAlgorithm, EncryptionMethod> methods = legacyEncryptionMethods;
-        for (HashAlgorithm algorithm : legacyAlgorithms) {
-            if (methodMatches(methods.get(algorithm), password, hashedPassword, playerName)) {
+        for (EncryptionMethod method : legacyEncryptionMethods) {
+            if (methodMatches(method, password, hashedPassword, playerName)) {
                 hashAndSavePasswordWithNewAlgorithm(password, playerName);
                 return true;
             }
@@ -115,17 +114,18 @@ public class PasswordSecurity implements Reloadable {
     }
 
     /**
-     * Instantiate the legacy encryption methods once per configuration instead of once per password check.
+     * Instantiate the legacy encryption methods once per configuration instead of once per password check,
+     * keeping them in the configured order so no lookup is needed on the login path.
      *
      * @param algorithms The configured legacy algorithms
-     * @return An immutable mapping of algorithm to its encryption method (null for unsupported algorithms)
+     * @return An immutable list of encryption methods in configuration order (null for unsupported algorithms)
      */
-    private Map<HashAlgorithm, EncryptionMethod> createLegacyEncryptionMethods(Collection<HashAlgorithm> algorithms) {
-        Map<HashAlgorithm, EncryptionMethod> methods = new EnumMap<>(HashAlgorithm.class);
+    private List<EncryptionMethod> createLegacyEncryptionMethods(Collection<HashAlgorithm> algorithms) {
+        List<EncryptionMethod> methods = new ArrayList<>(algorithms.size());
         for (HashAlgorithm algorithm : algorithms) {
-            methods.put(algorithm, initializeEncryptionMethod(algorithm));
+            methods.add(initializeEncryptionMethod(algorithm));
         }
-        return Collections.unmodifiableMap(methods);
+        return Collections.unmodifiableList(methods);
     }
 
     /**

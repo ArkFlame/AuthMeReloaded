@@ -35,7 +35,7 @@ class SegmentNameBuilder {
         if (distribution == 16) {
             return prefix + uuid.substring(0, length);
         } else {
-            return prefix + buildSegmentName(uuid.substring(0, length).toCharArray());
+            return prefix + buildSegmentName(uuid.substring(0, length));
         }
     }
 
@@ -46,10 +46,10 @@ class SegmentNameBuilder {
         return prefix;
     }
 
-    private String buildSegmentName(char[] chars) {
-        StringBuilder sb = new StringBuilder(chars.length);
-        for (char chr : chars) {
-            sb.append(charToSegmentChar.get(chr));
+    private String buildSegmentName(String uuidPrefix) {
+        StringBuilder sb = new StringBuilder(uuidPrefix.length());
+        for (int i = 0; i < uuidPrefix.length(); ++i) {
+            sb.append(charToSegmentChar.get(uuidPrefix.charAt(i)));
         }
         return sb.toString();
     }

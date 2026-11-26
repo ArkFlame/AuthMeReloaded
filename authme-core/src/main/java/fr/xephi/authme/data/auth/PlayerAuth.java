@@ -35,6 +35,10 @@ public class PlayerAuth {
     // 0 (DB_LAST_LOGIN_DEFAULT) means "never logged in". Keeping this primitive avoids a boxed
     // Long object for every player held in the cache; the public getter still returns null for 0.
     private long lastLogin;
+    // Lazily boxed value: login and session checks read lastLogin repeatedly, so reuse one Long
+    // per value instead of allocating a new one on every getter call. Volatile keeps the cache
+    // in step with setLastLogin when another thread reads while the login task updates the auth.
+    private volatile Long lastLoginBoxed;
     private String registrationIp;
     private long registrationDate;
     // Fields storing the player's quit location
@@ -129,10 +133,22 @@ public class PlayerAuth {
     }
 
     public Long getLastLogin() {
-        return lastLogin == DB_LAST_LOGIN_DEFAULT ? null : Long.valueOf(lastLogin);
+        long value = lastLogin;
+        if (value == DB_LAST_LOGIN_DEFAULT) {
+            return null;
+        }
+        Long boxed = lastLoginBoxed;
+        if (boxed == null) {
+            boxed = Long.valueOf(value);
+            lastLoginBoxed = boxed;
+        }
+        return boxed;
     }
 
     public void setLastLogin(long lastLogin) {
+        // Clear the cached box first so a concurrent getter can never keep a stale value:
+        // a getter that observes the new primitive also observes the cleared cache.
+        lastLoginBoxed = null;
         this.lastLogin = lastLogin;
     }
 

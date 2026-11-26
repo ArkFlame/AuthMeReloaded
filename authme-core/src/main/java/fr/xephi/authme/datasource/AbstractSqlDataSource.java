@@ -67,17 +67,25 @@ public abstract class AbstractSqlDataSource implements DataSource {
 
     @Override
     public boolean isAuthAvailable(String user) {
-        return executeQuery(() -> columnsHandler.retrieve(user, AuthMeColumns.NAME).rowExists(), false);
+        try {
+            return columnsHandler.retrieve(user, AuthMeColumns.NAME).rowExists();
+        } catch (SQLException e) {
+            logSqlException(e);
+            return false;
+        }
     }
 
     @Override
     public HashedPassword getPassword(String user) {
-        return executeQuery(() -> {
+        try {
             DataSourceValues values = columnsHandler.retrieve(user, AuthMeColumns.PASSWORD, AuthMeColumns.SALT);
             return values.rowExists()
                 ? new HashedPassword(values.get(AuthMeColumns.PASSWORD), values.get(AuthMeColumns.SALT))
                 : null;
-        }, null);
+        } catch (SQLException e) {
+            logSqlException(e);
+            return null;
+        }
     }
 
     @Override
@@ -119,8 +127,12 @@ public abstract class AbstractSqlDataSource implements DataSource {
 
     @Override
     public List<String> getAllAuthsByIp(String ip) {
-        return executeQuery(() -> columnsHandler.retrieve(eq(AuthMeColumns.LAST_IP, ip), AuthMeColumns.NAME),
-            Collections.emptyList());
+        try {
+            return columnsHandler.retrieve(eq(AuthMeColumns.LAST_IP, ip), AuthMeColumns.NAME);
+        } catch (SQLException e) {
+            logSqlException(e);
+            return Collections.emptyList();
+        }
     }
 
     @Override
@@ -175,8 +187,12 @@ public abstract class AbstractSqlDataSource implements DataSource {
 
     @Override
     public List<String> getPremiumUsernames() {
-        return executeQuery(() -> columnsHandler.retrieve(isNotNull(AuthMeColumns.PREMIUM_UUID), AuthMeColumns.NAME),
-            Collections.emptyList());
+        try {
+            return columnsHandler.retrieve(isNotNull(AuthMeColumns.PREMIUM_UUID), AuthMeColumns.NAME);
+        } catch (SQLException e) {
+            logSqlException(e);
+            return Collections.emptyList();
+        }
     }
 
     @Override
@@ -186,8 +202,12 @@ public abstract class AbstractSqlDataSource implements DataSource {
 
     @Override
     public DataSourceValue<String> getEmail(String user) {
-        return executeQuery(() -> columnsHandler.retrieve(user, AuthMeColumns.EMAIL),
-            DataSourceValueImpl.unknownRow());
+        try {
+            return columnsHandler.retrieve(user, AuthMeColumns.EMAIL);
+        } catch (SQLException e) {
+            logSqlException(e);
+            return DataSourceValueImpl.unknownRow();
+        }
     }
 
     /**
@@ -278,10 +298,13 @@ public abstract class AbstractSqlDataSource implements DataSource {
      * Returns whether the given integer flag column is set to 1 for the user.
      */
     private boolean isFlagSet(String user, DataSourceColumn<Integer> column) {
-        return executeQuery(() -> {
+        try {
             DataSourceValue<Integer> result = columnsHandler.retrieve(user, column);
             return result.rowExists() && Integer.valueOf(1).equals(result.getValue());
-        }, false);
+        } catch (SQLException e) {
+            logSqlException(e);
+            return false;
+        }
     }
 
     /**
@@ -289,27 +312,6 @@ public abstract class AbstractSqlDataSource implements DataSource {
      */
     private void setFlag(String user, DataSourceColumn<Integer> column, int value) {
         columnsHandler.update(user, column, value);
-    }
-
-    /**
-     * Runs a query, logging a SQL failure and returning the fallback value in that case.
-     * The query itself is only evaluated once this method is called, so callers keep the
-     * same lazy evaluation as with an inline try/catch block.
-     */
-    private <T> T executeQuery(SqlQuery<T> query, T fallback) {
-        try {
-            return query.get();
-        } catch (SQLException e) {
-            logSqlException(e);
-            return fallback;
-        }
-    }
-
-    /** A query which may fail with a SQL exception. */
-    @FunctionalInterface
-    private interface SqlQuery<T> {
-
-        T get() throws SQLException;
     }
 
     abstract String getJdbcUrl(String host, String port, String database);

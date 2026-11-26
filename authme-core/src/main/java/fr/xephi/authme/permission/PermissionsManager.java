@@ -27,7 +27,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.UUID;
 import java.util.function.BiFunction;
-import java.util.function.Supplier;
 
 /**
  * PermissionsManager.
@@ -209,7 +208,7 @@ public class PermissionsManager implements Reloadable {
      * @return true if the player has permission, false otherwise
      */
     public boolean hasPermissionOffline(OfflinePlayer player, PermissionNode permissionNode) {
-        return checkOfflinePermission(permissionNode, player, () -> player.getName());
+        return checkOfflinePermission(permissionNode, player, player, null);
     }
 
     /**
@@ -222,18 +221,19 @@ public class PermissionsManager implements Reloadable {
      * @return true if the player has permission, false otherwise
      */
     public boolean hasPermissionOffline(String name, PermissionNode permissionNode) {
-        return checkOfflinePermission(permissionNode, null, () -> name);
+        return checkOfflinePermission(permissionNode, null, null, name);
     }
 
     private boolean checkOfflinePermission(PermissionNode permissionNode, ServerOperator sender,
-                                           Supplier<String> nameSupplier) {
+                                           OfflinePlayer offlinePlayer, String name) {
         if (permissionNode == null) {
             return true;
         }
         if (!isEnabled()) {
             return permissionNode.getDefaultPermission().evaluate(sender);
         }
-        return handler.hasPermissionOffline(nameSupplier.get(), permissionNode);
+        // Resolve the name only once the handler is known to be available, as before with the lazy supplier.
+        return handler.hasPermissionOffline(offlinePlayer != null ? offlinePlayer.getName() : name, permissionNode);
     }
 
     /**

@@ -77,20 +77,21 @@ public class LimboService {
      */
     public void createLimboPlayer(Player player, boolean isRegistered) {
         final String name = player.getName().toLowerCase(Locale.ROOT);
+        final UUID uuid = player.getUniqueId();
 
         LimboPlayer limboFromDisk = persistence.getLimboPlayer(player);
         if (limboFromDisk != null) {
             logger.debug("LimboPlayer for `{0}` already exists on disk", name);
         }
 
-        LimboPlayer existingLimbo = entries.remove(player.getUniqueId());
+        LimboPlayer existingLimbo = entries.remove(uuid);
         if (existingLimbo != null) {
             existingLimbo.clearTasks();
             logger.debug("LimboPlayer for `{0}` already present in memory", name);
         }
 
         Location location = teleportationService.consumeOriginalJoinLocation(name, spawnLoader.getPlayerLocationOrSpawn(player));
-        LimboPlayer limboPlayer = buildLimboPlayer(player, isRegistered, location, existingLimbo, limboFromDisk);
+        LimboPlayer limboPlayer = buildLimboPlayer(player, uuid, isRegistered, location, existingLimbo, limboFromDisk);
 
         LimboMessageType messageType = isRegistered ? LimboMessageType.LOG_IN : LimboMessageType.REGISTER;
         taskManager.registerMessageTask(player, limboPlayer, messageType);
@@ -98,17 +99,17 @@ public class LimboService {
         helper.revokeLimboStates(player);
         authGroupHandler.setGroup(player, limboPlayer,
             isRegistered ? AuthGroupType.REGISTERED_UNAUTHENTICATED : AuthGroupType.UNREGISTERED);
-        entries.put(player.getUniqueId(), limboPlayer);
+        entries.put(uuid, limboPlayer);
         persistence.saveLimboPlayer(player, limboPlayer);
     }
 
     /**
      * Combines the freshly captured player state with any limbo data kept in memory and on disk.
      */
-    private LimboPlayer buildLimboPlayer(Player player, boolean isRegistered, Location location,
+    private LimboPlayer buildLimboPlayer(Player player, UUID uuid, boolean isRegistered, Location location,
                                          LimboPlayer existingLimbo, LimboPlayer limboFromDisk) {
         LimboPlayer limboPlayer = helper.merge(existingLimbo, limboFromDisk);
-        boolean wasOperator = pendingOperators.remove(player.getUniqueId());
+        boolean wasOperator = pendingOperators.remove(uuid);
         limboPlayer = helper.merge(helper.createLimboPlayer(player, isRegistered, location, wasOperator), limboPlayer);
         return isRegistered ? limboPlayer : helper.withoutOperator(limboPlayer);
     }

@@ -60,6 +60,7 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.InventoryView;
 
 import javax.inject.Inject;
+import java.net.InetAddress;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Locale;
@@ -161,11 +162,13 @@ public class PlayerListener extends AbstractCancelListener implements Listener {
             final PlayerAuth auth = dataSource.getAuth(name);
             final boolean isAuthAvailable = auth != null;
             teleportationService.preloadAuthStatus(name, isAuthAvailable);
-            onJoinVerifier.checkNameRestrictions(name, event.getAddress());
+            // The address is immutable for this event: read it once instead of twice.
+            final InetAddress address = event.getAddress();
+            onJoinVerifier.checkNameRestrictions(name, address);
             onJoinVerifier.checkKickNonRegistered(isAuthAvailable);
             onJoinVerifier.checkAntibot(name, isAuthAvailable);
             onJoinVerifier.checkNameCasing(name, auth);
-            final String ip = event.getAddress().getHostAddress();
+            final String ip = address.getHostAddress();
             onJoinVerifier.checkPlayerCountry(name, ip, isAuthAvailable);
         } catch (FailedVerificationException e) {
             denyPreLogin(event, name, e);
@@ -217,11 +220,13 @@ public class PlayerListener extends AbstractCancelListener implements Listener {
 
         String customJoinMessage = settings.getProperty(RegistrationSettings.CUSTOM_JOIN_MESSAGE);
         if (!customJoinMessage.isEmpty()) {
+            // A player's display name is stable while this event is handled: read it once.
+            final String displayName = player.getDisplayName();
             customJoinMessage = ChatColor.translateAlternateColorCodes('&', customJoinMessage);
             event.setJoinMessage(customJoinMessage
                 .replace("{PLAYERNAME}", player.getName())
-                .replace("{DISPLAYNAME}", player.getDisplayName())
-                .replace("{DISPLAYNAMENOCOLOR}", ChatColor.stripColor(player.getDisplayName()))
+                .replace("{DISPLAYNAME}", displayName)
+                .replace("{DISPLAYNAMENOCOLOR}", ChatColor.stripColor(displayName))
             );
         }
 
@@ -347,8 +352,9 @@ public class PlayerListener extends AbstractCancelListener implements Listener {
         // Iterate directly instead of removeIf(listenerService::shouldCancelEvent), which would
         // allocate a new capturing predicate for every chat event.
         Set<Player> recipients = event.getRecipients();
+        ListenerService listenerService = getListenerService();
         for (Iterator<Player> it = recipients.iterator(); it.hasNext(); ) {
-            if (getListenerService().shouldCancelEvent(it.next())) {
+            if (listenerService.shouldCancelEvent(it.next())) {
                 it.remove();
             }
         }

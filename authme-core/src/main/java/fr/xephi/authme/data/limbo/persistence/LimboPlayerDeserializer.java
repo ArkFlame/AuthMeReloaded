@@ -58,6 +58,9 @@ class LimboPlayerDeserializer implements JsonDeserializer<LimboPlayer> {
     private static final String CONTEXT_MAP = "contextMap";
     private static final String GROUP_NAME = "groupName";
     private static final Gson GSON = new Gson();
+    // Immutable and reused for every group with a context map read during a join.
+    private static final Type CONTEXT_MAP_TYPE = new TypeToken<Map<String, String>>() {
+    }.getType();
 
     private final BukkitService bukkitService;
 
@@ -186,9 +189,7 @@ class LimboPlayerDeserializer implements JsonDeserializer<LimboPlayer> {
                 Map<String, String> contextMap = null;
                 if (jsonGroup.has(CONTEXT_MAP)) {
                     JsonElement contextMapJson = jsonGroup.get(CONTEXT_MAP);
-                    Type type = new TypeToken<Map<String, String>>() {
-                    }.getType();
-                    contextMap = GSON.fromJson(contextMapJson.getAsString(), type);
+                    contextMap = GSON.fromJson(contextMapJson.getAsString(), CONTEXT_MAP_TYPE);
                 }
 
                 String groupName = jsonGroup.get(GROUP_NAME).getAsString();

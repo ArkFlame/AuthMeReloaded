@@ -42,7 +42,6 @@ import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
 import javax.inject.Inject;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -274,7 +273,9 @@ public class AsynchronousLogin implements AsynchronousProcess {
      * @param ip the ip address of the player
      */
     private void handleWrongPassword(Player player, String name, PlayerAuth auth, String ip) {
-        logger.fine(name + " used the wrong password");
+        if (logger.getLogLevel().includes(LogLevel.FINE)) {
+            logger.fine(name + " used the wrong password");
+        }
 
         bukkitService.createAndCallEvent(isAsync -> new FailedLoginEvent(player, isAsync));
         if (tempbanManager.shouldTempban(ip)) {
@@ -354,7 +355,9 @@ public class AsynchronousLogin implements AsynchronousProcess {
             service.send(player, MessageKey.ADD_EMAIL_MESSAGE);
         }
 
-        logger.fine(name + " logged in " + ip);
+        if (logger.getLogLevel().includes(LogLevel.FINE)) {
+            logger.fine(name + " logged in " + ip);
+        }
 
         // makes player loggedin
         playerCache.updatePlayer(auth);
@@ -402,16 +405,22 @@ public class AsynchronousLogin implements AsynchronousProcess {
     }
 
     private String formatAccountNames(List<String> auths) {
-        List<String> formattedNames = new ArrayList<>(auths.size());
+        // Build the final message in one pass: no intermediate list, joined String or concatenated copies
+        StringBuilder builder = new StringBuilder().append(ChatColor.GRAY);
+        boolean first = true;
         for (String currentName : auths) {
+            if (!first) {
+                builder.append(", ");
+            }
+            first = false;
             Player currentPlayer = bukkitService.getPlayerExact(currentName);
             if (currentPlayer != null && currentPlayer.isOnline()) {
-                formattedNames.add(ChatColor.GREEN + currentPlayer.getName() + ChatColor.GRAY);
+                builder.append(ChatColor.GREEN).append(currentPlayer.getName()).append(ChatColor.GRAY);
             } else {
-                formattedNames.add(currentName);
+                builder.append(currentName);
             }
         }
-        return ChatColor.GRAY + String.join(", ", formattedNames) + ".";
+        return builder.append('.').toString();
     }
 
     private void notifyOnlinePlayersAboutAccounts(String playerName, int accountCount, String message) {

@@ -60,7 +60,18 @@ public final class StringUtils {
      * @return true if the string is empty, false otherwise
      */
     public static boolean isBlank(String str) {
-        return str == null || str.trim().isEmpty();
+        if (str == null) {
+            return true;
+        }
+        // Equivalent to str.trim().isEmpty(): trim() removes every leading/trailing char <= ' ',
+        // so the result is empty only if every char is <= ' '. Scanning avoids the substring
+        // allocation that trim() performs on blank-but-whitespace strings (a login/join hot path).
+        for (int i = 0; i < str.length(); i++) {
+            if (str.charAt(i) > ' ') {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
