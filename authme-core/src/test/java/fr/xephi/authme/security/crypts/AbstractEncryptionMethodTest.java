@@ -63,14 +63,8 @@ public abstract class AbstractEncryptionMethodTest {
      */
     public AbstractEncryptionMethodTest(EncryptionMethod method, String hash0,
                                         String hash1, String hash2, String hash3) {
-        verifyCorrectConstructorIsUsed(method, false);
-        this.method = method;
-
-        hashes = ImmutableMap.of(
-            GIVEN_PASSWORDS[0], new HashedPassword(hash0),
-            GIVEN_PASSWORDS[1], new HashedPassword(hash1),
-            GIVEN_PASSWORDS[2], new HashedPassword(hash2),
-            GIVEN_PASSWORDS[3], new HashedPassword(hash3));
+        this(method, false, new HashedPassword(hash0), new HashedPassword(hash1),
+            new HashedPassword(hash2), new HashedPassword(hash3));
     }
 
     /**
@@ -85,9 +79,13 @@ public abstract class AbstractEncryptionMethodTest {
      */
     public AbstractEncryptionMethodTest(EncryptionMethod method, HashedPassword result0, HashedPassword result1,
                                         HashedPassword result2, HashedPassword result3) {
-        verifyCorrectConstructorIsUsed(method, true);
+        this(method, true, result0, result1, result2, result3);
+    }
+    private AbstractEncryptionMethodTest(EncryptionMethod method, boolean constructorWithSalt,
+                                         HashedPassword result0, HashedPassword result1,
+                                         HashedPassword result2, HashedPassword result3) {
+        verifyCorrectConstructorIsUsed(method, constructorWithSalt);
         this.method = method;
-
         hashes = ImmutableMap.of(
             GIVEN_PASSWORDS[0], result0,
             GIVEN_PASSWORDS[1], result1,

@@ -49,7 +49,7 @@ public final class BungeePremiumVerificationManager implements PremiumVerificati
         if (registered) {
             return;
         }
-        if (proxyServer.getPluginManager().getPlugin("packetevents") == null) {
+        if (proxyServer.getPluginManager().getPlugin(PremiumVerificationManagers.PACKET_EVENTS_PLUGIN_NAME) == null) {
             logger.warning("PacketEvents is not loaded on the proxy; premium proxy verification stays disabled");
             return;
         }

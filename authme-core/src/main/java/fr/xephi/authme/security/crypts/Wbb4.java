@@ -24,8 +24,7 @@ public class Wbb4 implements EncryptionMethod {
 
     @Override
     public HashedPassword computeHash(String password, String name) {
-        byte[] salt = new byte[BYTES_IN_SALT];
-        random.nextBytes(salt);
+        byte[] salt = SaltBytes.random(BYTES_IN_SALT, random);
 
         String hash = hashInternal(password, salt);
         return new HashedPassword(hash);

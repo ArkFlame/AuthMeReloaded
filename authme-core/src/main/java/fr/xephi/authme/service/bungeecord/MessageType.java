@@ -3,16 +3,16 @@ package fr.xephi.authme.service.bungeecord;
 import java.util.Optional;
 
 public enum MessageType {
-    LOGIN("login", true),
-    LOGOUT("logout", true),
-    PERFORM_LOGIN("perform.login", false),
-    PERFORM_LOGIN_ACK("perform.login.ack", false),
-    PROXY_STARTED("proxy.started", false),
-    PREMIUM_SET("premium.set", false),
-    PREMIUM_UNSET("premium.unset", false),
-    PREMIUM_LIST("premium.list", false),
-    PREMIUM_LIST_CHUNK("premium.list.chunk", false),
-    PREMIUM_PENDING_SET("premium.pending.set", false);
+    LOGIN("login"),
+    LOGOUT("logout"),
+    PERFORM_LOGIN("perform.login"),
+    PERFORM_LOGIN_ACK("perform.login.ack"),
+    PROXY_STARTED("proxy.started"),
+    PREMIUM_SET("premium.set"),
+    PREMIUM_UNSET("premium.unset"),
+    PREMIUM_LIST("premium.list"),
+    PREMIUM_LIST_CHUNK("premium.list.chunk"),
+    PREMIUM_PENDING_SET("premium.pending.set");
 
     /**
      * Plugin-messaging channel shared by the backend and the proxy side of the bridge.
@@ -20,19 +20,13 @@ public enum MessageType {
     public static final String CHANNEL = "authme:main";
 
     private final String id;
-    private final boolean broadcast;
 
-    MessageType(String id, boolean broadcast) {
+    MessageType(String id) {
         this.id = id;
-        this.broadcast = broadcast;
     }
 
     public String getId() {
         return id;
-    }
-
-    public boolean isBroadcast() {
-        return broadcast;
     }
 
     /**

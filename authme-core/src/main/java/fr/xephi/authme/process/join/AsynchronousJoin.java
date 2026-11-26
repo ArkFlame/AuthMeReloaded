@@ -213,7 +213,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
 
         // Earliest possible hook for integrations: before session lookups, premium bypass, limbo and prompts.
         // The event is dispatched on the player's thread and its decision is applied before we continue.
-        if (handlePreAuthEvent(player, auth)) {
+        if (handlePreAuthEvent(player, auth, name)) {
             return;
         }
 
@@ -315,7 +315,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
             return;
         }
 
-        processJoinSync(player, isAuthAvailable, pendingLoginPassword, pendingRecoveryEmail, pendingRegistration, shouldSkipPostJoinDialog, pendingForceLogin);
+        processJoinSync(player, name, isAuthAvailable, pendingLoginPassword, pendingRecoveryEmail, pendingRegistration, shouldSkipPostJoinDialog, pendingForceLogin);
     }
 
     /**
@@ -325,9 +325,11 @@ public class AsynchronousJoin implements AsynchronousProcess {
      * @param player the joining player
      * @param auth the account loaded for this join, null for an unregistered player; its presence is
      *             the registered flag reported to listeners, so no second lookup is required
+     * @param name the player's lower-cased name, already resolved for this join and reused by the
+     *             forced-login continuation
      * @return true if the join has been fully handled by a listener (forced login or skipped authentication)
      */
-    private boolean handlePreAuthEvent(Player player, PlayerAuth auth) {
+    private boolean handlePreAuthEvent(Player player, PlayerAuth auth, String name) {
         final boolean registered = auth != null;
         final PlayerPreAuthEvent.Source source = bungeeSender.isEnabled()
             ? PlayerPreAuthEvent.Source.PROXY : PlayerPreAuthEvent.Source.JOIN;
@@ -357,7 +359,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
         }
         if (event.isForceLoginRequested()) {
             logger.fine("PlayerPreAuthEvent: forced login requested for " + player.getName());
-            bukkitService.runTaskOptionallyAsync(() -> performForcedLogin(player, auth));
+            bukkitService.runTaskOptionallyAsync(() -> performForcedLogin(player, auth, name));
             return true;
         }
         if (event.isCancelled()) {
@@ -391,14 +393,15 @@ public class AsynchronousJoin implements AsynchronousProcess {
      *
      * @param player the joining player
      * @param auth the account loaded for this join, null for an unregistered player
+     * @param name the player's lower-cased name, reused for the authenticated-state guard
      */
-    private void performForcedLogin(Player player, PlayerAuth auth) {
+    private void performForcedLogin(Player player, PlayerAuth auth, String name) {
         if (auth == null || !player.isOnline()) {
             logger.fine("PlayerPreAuthEvent: forced login skipped for offline or unregistered player "
                 + player.getName());
             return;
         }
-        if (playerCache.isAuthenticated(player.getName().toLowerCase(Locale.ROOT))) {
+        if (playerCache.isAuthenticated(name)) {
             logger.fine("PlayerPreAuthEvent: " + player.getName()
                 + " is already authenticated, not logging in twice");
             return;
@@ -453,7 +456,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
             () -> commandManager.runCommandsOnSessionLogin(player));
     }
 
-    private Runnable pickPendingAction(Player player, String pendingLoginPassword, String pendingRecoveryEmail,
+    private Runnable pickPendingAction(Player player, String name, String pendingLoginPassword, String pendingRecoveryEmail,
                                        PreJoinDialogService.PendingRegistration pendingRegistration,
                                        boolean pendingForceLogin) {
         if (pendingRegistration != null) {
@@ -461,7 +464,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
         } else if (pendingLoginPassword != null) {
             return () -> asynchronousLogin.login(player, pendingLoginPassword);
         } else if (pendingRecoveryEmail != null) {
-            return () -> processPendingEmailRecovery(player, pendingRecoveryEmail);
+            return () -> processPendingEmailRecovery(player, name, pendingRecoveryEmail);
         } else if (pendingForceLogin) {
             return () -> asynchronousLogin.forceLogin(player);
         }
@@ -475,7 +478,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
      * @param player the player to process
      * @param isAuthAvailable true if the player is registered, false otherwise
      */
-    private void processJoinSync(Player player, boolean isAuthAvailable, String pendingLoginPassword,
+    private void processJoinSync(Player player, String name, boolean isAuthAvailable, String pendingLoginPassword,
                                  String pendingRecoveryEmail,
                                  PreJoinDialogService.PendingRegistration pendingRegistration,
                                  boolean shouldSkipPostJoinDialog, boolean pendingForceLogin) {
@@ -485,7 +488,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
 
         // Pick the pre-join dialog continuation up front: the scheduled task then captures a
         // single Runnable instead of all four pending values.
-        final Runnable pendingAction = pickPendingAction(player, pendingLoginPassword, pendingRecoveryEmail,
+        final Runnable pendingAction = pickPendingAction(player, name, pendingLoginPassword, pendingRecoveryEmail,
             pendingRegistration, pendingForceLogin);
 
         bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, () -> {
@@ -547,8 +550,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
         dialogStateService.markDialogOpen(player);
     }
 
-    private void processPendingEmailRecovery(Player player, String submittedEmail) {
-        String playerName = player.getName();
+    private void processPendingEmailRecovery(Player player, String name, String submittedEmail) {
         if (!emailService.hasAllInformation()) {
             kickFromPreJoinRecovery(player, MessageKey.INCOMPLETE_EMAIL_SETTINGS);
             return;
@@ -557,8 +559,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
             kickFromPreJoinRecovery(player, MessageKey.INVALID_EMAIL);
             return;
         }
-        ch.jalu.datasourcecolumns.data.DataSourceValue<String> emailResult =
-            database.getEmail(playerName.toLowerCase(Locale.ROOT));
+        ch.jalu.datasourcecolumns.data.DataSourceValue<String> emailResult = database.getEmail(name);
         if (!emailResult.rowExists()) {
             kickFromPreJoinRecovery(player, MessageKey.USAGE_REGISTER);
             return;
@@ -625,7 +626,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
         if (maxPerIp > 0
             && !service.hasPermission(player, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS)
             && !InternetProtocolUtils.isLoopbackAddress(ip)
-            && countOnlinePlayersByIp(ip) > maxPerIp) {
+            && exceedsMaxPlayersPerIp(ip, maxPerIp)) {
 
             kickWithMessageKey(player, MessageKey.SAME_IP_ONLINE);
             return false;
@@ -727,13 +728,20 @@ public class AsynchronousJoin implements AsynchronousProcess {
         service.send(player, MessageKey.PREMIUM_PENDING_FAIL);
     }
 
-    private int countOnlinePlayersByIp(String ip) {
+    /**
+     * Counts online players sharing the given address, stopping as soon as the configured limit is
+     * exceeded. Only the "more than maxPerIp" outcome is relevant to the caller, so there is no need
+     * to keep resolving IP addresses once that outcome is known.
+     */
+    private boolean exceedsMaxPlayersPerIp(String ip, int maxPerIp) {
         int count = 0;
         for (Player player : bukkitService.getOnlinePlayers()) {
             if (ip.equalsIgnoreCase(PlayerUtils.getPlayerIp(player))) {
-                ++count;
+                if (++count > maxPerIp) {
+                    return true;
+                }
             }
         }
-        return count;
+        return false;
     }
 }

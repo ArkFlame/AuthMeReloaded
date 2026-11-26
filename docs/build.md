@@ -6,13 +6,11 @@ and [MODULES.md](MODULES.md).
 
 ## Requirements
 
-- JDK 17+ for `authme-core`, `authme-tools`, and `authme-spigot-legacy`
-- JDK 21+ for the `java21-modules` profile, which adds:
-  - `authme-bungee`
-  - `authme-spigot-1.21`
-  - `authme-paper`
-- JDK 25+ for `authme-velocity`, which targets Java 25 bytecode. The `java21-modules` profile
-  activates on JDK 21+, so building the full reactor requires JDK 25+.
+- JDK 17+ for the default reactor modules: `authme-api`, `authme-core`, `authme-tools`,
+  `authme-spigot-1.8` and `authme-spigot-legacy`
+- JDK 21+ for the `java21-modules` profile, which adds `authme-bungee`, `authme-spigot-1.21`,
+  `authme-paper` (the merged Paper/Folia jar) and `authme-velocity`
+- JDK 25+ to compile `authme-velocity` (Java 25 bytecode), so the full reactor requires JDK 25+
 - Maven 3.8.8+
 
 ## Build commands
@@ -56,7 +54,7 @@ mvn test -pl authme-bungee -am
 # Run tests in authme-velocity
 mvn test -pl authme-velocity -am
 
-# Run tests in Paper-derived modules
+# Run tests in the merged Paper/Folia module
 mvn test -am -pl authme-paper
 
 # Run tests in 1.21 version modules

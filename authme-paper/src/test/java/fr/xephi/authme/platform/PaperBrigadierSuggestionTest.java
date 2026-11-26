@@ -20,6 +20,7 @@ import org.mockito.quality.Strictness;
 import java.util.Collection;
 import java.util.List;
 
+import static fr.xephi.authme.platform.BrigadierTestSupport.command;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
@@ -98,14 +99,4 @@ public class PaperBrigadierSuggestionTest {
         return player;
     }
 
-    private static CommandDescription command(List<String> labels, String description,
-                                              List<CommandArgumentDescription> arguments,
-                                              List<CommandDescription> children) {
-        CommandDescription command = mock(CommandDescription.class);
-        lenient().when(command.getLabels()).thenReturn(labels);
-        lenient().when(command.getDescription()).thenReturn(description);
-        lenient().when(command.getArguments()).thenReturn(arguments);
-        lenient().when(command.getChildren()).thenReturn(children);
-        return command;
-    }
 }

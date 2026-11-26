@@ -61,6 +61,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -529,8 +530,9 @@ class PlayerListenerTest {
         verifyNoModifyingCalls(event);
     }
 
-    @Test
-    void shouldAllowMovementWithinRadius() {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("movementRadiusCases")
+    void shouldEnforceMovementRadius(String description, boolean withinRadius) {
         // given
         given(settings.getProperty(RestrictionSettings.ALLOW_UNAUTHED_MOVEMENT)).willReturn(true);
         given(settings.getProperty(RestrictionSettings.ALLOWED_MOVEMENT_RADIUS)).willReturn(12);
@@ -543,8 +545,8 @@ class PlayerListenerTest {
         given(player.getLocation()).willReturn(from);
         given(listenerService.shouldCancelEvent(player)).willReturn(true);
         given(settings.getProperty(RestrictionSettings.NO_TELEPORT)).willReturn(false);
-        // sqrt(10^2 + 2^2 + 4^2) = 11 < 12 (allowed movement radius)
-        Location spawn = new Location(world, 190, 72, 204);
+        // Distance from the spawn: sqrt(10^2 + 2^2 + 4^2) = 11 (allowed), sqrt(15^2 + 2^2 + 4^2) = 16 (rejected)
+        Location spawn = new Location(world, withinRadius ? 190 : 185, 72, 204);
         given(spawnLoader.getSpawnLocation(player)).willReturn(spawn);
 
         // when
@@ -552,37 +554,19 @@ class PlayerListenerTest {
 
         // then
         verify(listenerService).shouldCancelEvent(player);
-        verify(player, never()).teleport(any(Location.class));
+        if (withinRadius) {
+            verify(player, never()).teleport(any(Location.class));
+        } else {
+            verify(teleportAdapter).teleportPlayer(player, spawn);
+        }
         verify(spawnLoader).getSpawnLocation(player);
         verifyNoModifyingCalls(event);
     }
 
-    @Test
-    void shouldRejectMovementOutsideOfRadius() {
-        // given
-        given(settings.getProperty(RestrictionSettings.ALLOW_UNAUTHED_MOVEMENT)).willReturn(true);
-        given(settings.getProperty(RestrictionSettings.ALLOWED_MOVEMENT_RADIUS)).willReturn(12);
-        World world = mock(World.class);
-        Player player = mock(Player.class);
-        given(player.getWorld()).willReturn(world);
-        Location from = new Location(world, 200, 70, 200);
-        Location to = new Location(world, 199, 69, 201);
-        PlayerMoveEvent event = spy(new PlayerMoveEvent(player, from, to));
-        given(player.getLocation()).willReturn(from);
-        given(listenerService.shouldCancelEvent(player)).willReturn(true);
-        given(settings.getProperty(RestrictionSettings.NO_TELEPORT)).willReturn(false);
-        // sqrt(15^2 + 2^2 + 4^2) = 16 > 12 (allowed movement radius)
-        Location spawn = new Location(world, 185, 72, 204);
-        given(spawnLoader.getSpawnLocation(player)).willReturn(spawn);
-
-        // when
-        listener.onPlayerMove(event);
-
-        // then
-        verify(listenerService).shouldCancelEvent(player);
-        verify(teleportAdapter).teleportPlayer(player, spawn);
-        verify(spawnLoader).getSpawnLocation(player);
-        verifyNoModifyingCalls(event);
+    private static Stream<Arguments> movementRadiusCases() {
+        return Stream.of(
+            Arguments.of("movement within radius", true),
+            Arguments.of("movement outside radius", false));
     }
 
     @Test
@@ -678,32 +662,23 @@ class PlayerListenerTest {
         verify(playerCache).removePlayer("Bobby");
     }
 
-    @Test
-    void shouldRevokeOperatorOnJoin() {
+    @ParameterizedTest(name = "unrestricted player: {0}")
+    @ValueSource(booleans = {false, true})
+    void shouldRevokeOperatorOnJoinUnlessPlayerIsUnrestricted(boolean unrestricted) {
         // given
         Player player = mockPlayerWithName("Bobby");
-        given(validationService.isUnrestricted("Bobby")).willReturn(false);
+        given(validationService.isUnrestricted("Bobby")).willReturn(unrestricted);
         PlayerJoinEvent event = new PlayerJoinEvent(player, "join message");
 
         // when
         listener.onPlayerJoinLowest(event);
 
         // then
-        verify(limboService).revokeOperatorOnJoin(player);
-    }
-
-    @Test
-    void shouldNotRevokeOperatorOfUnrestrictedPlayerOnJoin() {
-        // given
-        Player player = mockPlayerWithName("Bobby");
-        given(validationService.isUnrestricted("Bobby")).willReturn(true);
-        PlayerJoinEvent event = new PlayerJoinEvent(player, "join message");
-
-        // when
-        listener.onPlayerJoinLowest(event);
-
-        // then
-        verify(limboService, never()).revokeOperatorOnJoin(player);
+        if (unrestricted) {
+            verify(limboService, never()).revokeOperatorOnJoin(player);
+        } else {
+            verify(limboService).revokeOperatorOnJoin(player);
+        }
     }
 
     @Test

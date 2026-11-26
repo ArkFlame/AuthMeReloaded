@@ -1,12 +1,10 @@
 package fr.xephi.authme.command.executable.totp;
 
 import fr.xephi.authme.ConsoleLogger;
-import fr.xephi.authme.command.PlayerCommand;
 import fr.xephi.authme.data.auth.PlayerAuth;
-import fr.xephi.authme.data.auth.PlayerCache;
 import fr.xephi.authme.datasource.DataSource;
-import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.message.MessageKey;
+import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.security.totp.GenerateTotpService;
 import fr.xephi.authme.security.totp.TotpAuthenticator.TotpGenerationResult;
 import org.bukkit.entity.Player;
@@ -17,7 +15,7 @@ import java.util.List;
 /**
  * Command to enable TOTP by supplying the proper code as confirmation.
  */
-public class ConfirmTotpCommand extends PlayerCommand {
+public class ConfirmTotpCommand extends AbstractTotpPlayerCommand {
 
     private final ConsoleLogger logger = ConsoleLoggerFactory.get(ConfirmTotpCommand.class);
 
@@ -25,17 +23,11 @@ public class ConfirmTotpCommand extends PlayerCommand {
     private GenerateTotpService generateTotpService;
 
     @Inject
-    private PlayerCache playerCache;
-
-    @Inject
     private DataSource dataSource;
 
     @Override
-    protected void runCommand(Player player, List<String> arguments) {
-        PlayerAuth auth = playerCache.getAuth(player.getName());
-        if (auth == null) {
-            messages.send(player, MessageKey.NOT_LOGGED_IN);
-        } else if (auth.getTotpKey() != null) {
+    protected void handlePlayer(Player player, PlayerAuth auth, List<String> arguments) {
+        if (auth.getTotpKey() != null) {
             messages.send(player, MessageKey.TWO_FACTOR_ALREADY_ENABLED);
         } else {
             verifyTotpCodeConfirmation(player, auth, arguments.get(0));
@@ -60,7 +52,7 @@ public class ConfirmTotpCommand extends PlayerCommand {
         if (dataSource.setTotpKey(player.getName(), totpDetails.getTotpKey())) {
             messages.send(player, MessageKey.TWO_FACTOR_ENABLE_SUCCESS);
             auth.setTotpKey(totpDetails.getTotpKey());
-            playerCache.updatePlayerIfPresent(auth);
+            getPlayerCache().updatePlayerIfPresent(auth);
             logger.info("Player '" + player.getName() + "' has successfully added a TOTP key to their account");
         } else {
             messages.send(player, MessageKey.ERROR);

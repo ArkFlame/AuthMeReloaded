@@ -30,9 +30,25 @@ configs, permissions and databases keep working.
 The long-term goal is to collapse the server-side jars into a **single Java 8 artifact** that runs on
 Spigot 1.8+, Paper and Folia through runtime capability detection instead of separate bytecode-level
 builds. `authme-core` stays at Java 8 bytecode, and the BungeeCord/Velocity proxies remain separate
-deliverables because they target different APIs. Until that consolidation lands, the per-platform
-jars listed above continue to ship. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the target
-design and [docs/MODULES.md](docs/MODULES.md) for the staged merge plan.
+deliverables because they target different APIs. Paper and Folia are already consolidated:
+`authme-paper` produces a single `-Paper.jar` containing both platform adapters, with the Folia one
+selected at startup when `RegionizedServer` is present. Until the Java 8 single-jar consolidation lands,
+the per-platform jars listed above continue to ship. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+for the target design and [docs/MODULES.md](docs/MODULES.md) for the staged Spigot merge plan.
+
+### Modules
+
+| Module | Artifact | Target |
+| --- | --- | --- |
+| `authme-api` | `AuthMeRemastered-API-*.jar` | Java 8, public events API |
+| `authme-core` | shaded into every server jar | Java 8, shared authentication logic |
+| `authme-tools` | build/converter tooling (no server jar) | Java 17 (21 on JDK 21+) |
+| `authme-spigot-1.8` | `-Spigot-1.8.jar` | Spigot 1.8.8–1.15.2, Java 8 |
+| `authme-spigot-legacy` | `-Spigot-Legacy.jar` | Spigot 1.16–1.19, JDK 17+ |
+| `authme-spigot-1.21` | `-Spigot-1.21.jar` | Spigot 1.20–1.21, Java 21 |
+| `authme-paper` | `-Paper.jar` | merged Paper/Folia 1.21.11+, Java 21 |
+| `authme-bungee` | `-Bungee.jar` | BungeeCord/Waterfall, Java 21 |
+| `authme-velocity` | `-Velocity.jar` | Velocity 3.4+, Java 25 |
 
 ## Description
 
@@ -169,8 +185,8 @@ Minecraft login phase — no password prompt is ever shown.
 >  - Java 8+: `AuthMeRemastered-*-Spigot-1.8.jar` — Bukkit/Spigot 1.8.8–1.15.2
 >  - Java 17+: `AuthMeRemastered-*-Spigot-Legacy.jar` — Spigot 1.16.x–1.19.x
 >  - Java 21+: `AuthMeRemastered-*-Spigot-1.21.jar` — Spigot 1.20.x – 1.21.x
->  - Java 21+: `AuthMeRemastered-*-Paper.jar` — Paper 1.21+
->>  - Java 21+: `AuthMeRemastered-*-Bungee.jar` — BungeeCord / Waterfall proxy (1.19 API)
+>  - Java 21+: `AuthMeRemastered-*-Paper.jar` — one merged jar for Paper and Folia 1.21.11+ (Folia detected at startup)
+>  - Java 21+: `AuthMeRemastered-*-Bungee.jar` — BungeeCord / Waterfall proxy (1.19 API)
 >  - Java 25+: `AuthMeRemastered-*-Velocity.jar` — Velocity 3.4+ proxy
 >- [PacketEvents](https://github.com/retrooper/packetevents) 2.x (optional plugin; required for inventory protection, tab-complete blocking, and premium bypass in direct-connection mode)
 

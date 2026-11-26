@@ -40,12 +40,12 @@ public final class DatabaseSettings implements SettingsHolder {
         "We would not recommend to set this option to false.",
         "Set this option to false at your own risk if and only if you know what you're doing"})
     public static final Property<Boolean> MYSQL_CHECK_SERVER_CERTIFICATE =
-        newProperty( "DataSource.mySQLCheckServerCertificate", true );
+        newProperty("DataSource.mySQLCheckServerCertificate", true);
 
     @Comment({"Authorize client to retrieve RSA server public key.",
         "Advanced option, ignore if you don't know what it means."})
     public static final Property<Boolean> MYSQL_ALLOW_PUBLIC_KEY_RETRIEVAL =
-        newProperty( "DataSource.mySQLAllowPublicKeyRetrieval", true );
+        newProperty("DataSource.mySQLAllowPublicKeyRetrieval", true);
 
     @Comment({"MariaDB-only SSL mode. Leave empty to keep the default behavior.",
         "Valid values: disable, trust, verify_ca, verify_full"})
@@ -146,7 +146,7 @@ public final class DatabaseSettings implements SettingsHolder {
 
     @Comment("Column for storing players uuids (optional)")
     public static final Property<String> MYSQL_COL_PLAYER_UUID =
-        newProperty( "DataSource.mySQLPlayerUUID", "" );
+        newProperty("DataSource.mySQLPlayerUUID", "");
 
     @Comment({"Column for storing the Mojang UUID of premium players",
         "(null if premium mode is off for this player)"})

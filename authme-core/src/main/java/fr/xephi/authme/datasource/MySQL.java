@@ -105,6 +105,7 @@ public class MySQL extends AbstractHikariSqlDataSource {
         this.serverCertificateVerification = settings.getProperty(DatabaseSettings.MYSQL_CHECK_SERVER_CERTIFICATE);
         this.allowPublicKeyRetrieval = settings.getProperty(DatabaseSettings.MYSQL_ALLOW_PUBLIC_KEY_RETRIEVAL);
         this.mariaDbSslMode = settings.getProperty(DatabaseSettings.MARIADB_SSL_MODE);
+        initSqlStrings();
     }
 
     /**

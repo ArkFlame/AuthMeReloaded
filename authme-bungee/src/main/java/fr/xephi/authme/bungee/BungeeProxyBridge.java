@@ -92,7 +92,7 @@ public final class BungeeProxyBridge implements Listener {
     }
 
     private void loadPremiumNamesCache() {
-        Set<String> loaded = new HashSet<>();
+        Set<String> loaded = ConcurrentHashMap.newKeySet();
         try (BufferedReader reader = Files.newBufferedReader(cacheFile, StandardCharsets.UTF_8)) {
             String line;
             while ((line = reader.readLine()) != null) {
@@ -101,9 +101,7 @@ public final class BungeeProxyBridge implements Listener {
                     loaded.add(name);
                 }
             }
-            Set<String> newSet = ConcurrentHashMap.newKeySet();
-            newSet.addAll(loaded);
-            premiumUsernames = newSet;
+            premiumUsernames = loaded;
             logger.info("Loaded " + loaded.size() + " premium username(s) from cache");
         } catch (NoSuchFileException ignored) {
             // No cache yet — first startup
@@ -303,9 +301,7 @@ public final class BungeeProxyBridge implements Listener {
             case PREMIUM_LIST -> {
                 Set<String> newPremiumSet = ConcurrentHashMap.newKeySet();
                 addNormalizedPremiumNames(newPremiumSet, playerName);
-                premiumUsernames = newPremiumSet;
-                logger.info("Premium list received from backend: " + premiumUsernames.size() + " premium player(s)");
-                savePremiumNamesAsync();
+                replacePremiumNames(newPremiumSet);
             }
             case PREMIUM_LIST_CHUNK -> handlePremiumListChunk(playerName);
             default -> {
@@ -342,12 +338,16 @@ public final class BungeeProxyBridge implements Listener {
         if ("1".equals(parts[1])) {
             Set<String> newPremiumSet = ConcurrentHashMap.newKeySet();
             newPremiumSet.addAll(premiumListBuffer);
-            premiumUsernames = newPremiumSet;
             premiumListBuffer = new ArrayList<>();
             expectedPremiumListChunk = -1;
-            logger.info("Premium list received from backend: " + premiumUsernames.size() + " premium player(s)");
-            savePremiumNamesAsync();
+            replacePremiumNames(newPremiumSet);
         }
+    }
+
+    private void replacePremiumNames(Set<String> names) {
+        premiumUsernames = names;
+        logger.info("Premium list received from backend: " + premiumUsernames.size() + " premium player(s)");
+        savePremiumNamesAsync();
     }
 
     private static void addNormalizedPremiumNames(Collection<String> target, String csv) {
@@ -368,12 +368,7 @@ public final class BungeeProxyBridge implements Listener {
         if (currentServer != null) {
             sendProxyStartedHandshakeIfPending(currentServer.getInfo());
         }
-
-        if (!configuration.autoLoginEnabled()) {
-            return;
-        }
-
-        if (currentServer == null) {
+        if (!configuration.autoLoginEnabled() || currentServer == null) {
             return;
         }
 
@@ -408,11 +403,9 @@ public final class BungeeProxyBridge implements Listener {
         if (!(event.getSender() instanceof ProxiedPlayer player)) {
             return;
         }
-        if (!isUnauthenticatedOnAuthServer(player) || configuration.isWhitelistedCommand(event.getMessage())) {
-            return;
+        if (shouldBlockUnauthenticated(event, player, true)) {
+            event.setCancelled(true);
         }
-
-        event.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -423,11 +416,16 @@ public final class BungeeProxyBridge implements Listener {
         if (!(event.getSender() instanceof ProxiedPlayer player)) {
             return;
         }
-        if (!isUnauthenticatedOnAuthServer(player)) {
-            return;
+        if (shouldBlockUnauthenticated(event, player, false)) {
+            event.setCancelled(true);
         }
+    }
 
-        event.setCancelled(true);
+    private boolean shouldBlockUnauthenticated(ChatEvent event, ProxiedPlayer player, boolean command) {
+        if (!isUnauthenticatedOnAuthServer(player)) {
+            return false;
+        }
+        return !command || !configuration.isWhitelistedCommand(event.getMessage());
     }
 
     private boolean isUnauthenticatedOnAuthServer(ProxiedPlayer player) {

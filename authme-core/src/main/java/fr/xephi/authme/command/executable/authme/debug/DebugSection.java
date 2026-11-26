@@ -1,6 +1,7 @@
 package fr.xephi.authme.command.executable.authme.debug;
 
 import fr.xephi.authme.permission.PermissionNode;
+import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 
 import java.util.List;
@@ -33,4 +34,13 @@ interface DebugSection {
      */
     PermissionNode getRequiredPermission();
 
+    /**
+     * Prints the standard title line that introduces a debug section.
+     *
+     * @param sender the sender to show the title to
+     * @param title the section-specific part of the title
+     */
+    default void sendTitle(CommandSender sender, String title) {
+        sender.sendMessage(ChatColor.BLUE + "AuthMe " + title);
+    }
 }

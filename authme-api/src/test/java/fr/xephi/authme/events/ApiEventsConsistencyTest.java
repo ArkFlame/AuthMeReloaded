@@ -14,8 +14,9 @@ import static org.hamcrest.Matchers.nullValue;
 class ApiEventsConsistencyTest {
 
     private static final Class<?>[] EVENTS = {
-        AbstractTeleportEvent.class, AbstractUnregisterEvent.class, AuthMeAsyncPreLoginEvent.class,
-        AuthMeAsyncPreRegisterEvent.class, AuthMeTeleportEvent.class, EmailChangedEvent.class,
+        AbstractCancellableEvent.class, AbstractTeleportEvent.class, AbstractUnregisterEvent.class,
+        AuthMeAsyncPreLoginEvent.class, AuthMeAsyncPreRegisterEvent.class, AuthMeTeleportEvent.class,
+        EmailChangedEvent.class,
         FailedLoginEvent.class, FirstSpawnTeleportEvent.class, LoginEvent.class, LogoutEvent.class,
         PlayerPreAuthEvent.class, PreJoinDialogEvent.class, ProtectInventoryEvent.class, RegisterEvent.class,
         RestoreInventoryEvent.class, RestoreSessionEvent.class, SpawnTeleportEvent.class,

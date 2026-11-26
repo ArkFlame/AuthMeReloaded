@@ -5,7 +5,6 @@ import fr.xephi.authme.permission.DebugSectionPermissions;
 import fr.xephi.authme.permission.PermissionNode;
 import fr.xephi.authme.permission.PermissionsManager;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -34,7 +33,7 @@ class PermissionGroups implements DebugSection {
 
     @Override
     public void execute(CommandSender sender, List<String> arguments) {
-        sender.sendMessage(ChatColor.BLUE + "AuthMe permission groups");
+        sendTitle(sender, "permission groups");
         String name = arguments.isEmpty() ? sender.getName() : arguments.get(0);
         Player player = Bukkit.getPlayer(name);
         if (player == null) {

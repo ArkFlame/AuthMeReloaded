@@ -7,7 +7,6 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -34,7 +33,7 @@ public class SpigotPlatformAdapter extends AbstractSpigotPlatformAdapter {
     public List<Class<? extends Listener>> getListeners() {
         return EventRegistrationAdapter.combineListeners(
             super.getListeners(),
-            Collections.singletonList(PlayerSignOpenListener.class));
+            List.of(PlayerSignOpenListener.class));
     }
 
     /**

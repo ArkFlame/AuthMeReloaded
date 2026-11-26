@@ -7,14 +7,12 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 
-import java.util.concurrent.TimeUnit;
-
 /**
- * Region-safe task dispatch for Folia.
+ * Region-safe dispatch for the work the shared {@link SchedulerProvider} does not cover:
+ * region ownership checks and tasks bound to an entity's owning thread.
  *
- * <p>Folia requires that entity work runs on the owning region's thread, global work on the
- * global region thread, and asynchronous work on the async scheduler. Grouping those calls here
- * keeps the scheduling contract in one place and keeps the platform adapter small.</p>
+ * <p>Global and asynchronous scheduling is handled by the core FoliaSchedulerProvider
+ * through the platform adapter, so it is deliberately not duplicated here.</p>
  */
 final class FoliaTaskScheduler {
 
@@ -38,10 +36,6 @@ final class FoliaTaskScheduler {
         return Bukkit.isOwnedByCurrentRegion(location);
     }
 
-    static boolean isGlobalThread() {
-        return Bukkit.isGlobalTickThread();
-    }
-
     static void runOnEntityThread(AuthMe plugin, Entity entity, Runnable task) {
         ScheduledTask scheduledTask = entity.getScheduler().run(plugin, ignored -> task.run(), null);
         if (scheduledTask == null) {
@@ -62,33 +56,11 @@ final class FoliaTaskScheduler {
             plugin, REPEATING_ENTITY_TASK_RETIRED);
     }
 
-    static CancellableTask runAsyncTask(AuthMe plugin, Runnable task) {
-        return Bukkit.getAsyncScheduler().runNow(plugin, ignored -> task.run())::cancel;
-    }
-
-    static CancellableTask runAsyncTaskTimer(AuthMe plugin, Runnable task, long delay, long period) {
-        return Bukkit.getAsyncScheduler()
-            .runAtFixedRate(plugin, ignored -> task.run(), ticksToMillis(delay), ticksToMillis(period),
-                TimeUnit.MILLISECONDS)::cancel;
-    }
-
-    static void runOnGlobalThread(AuthMe plugin, Runnable task) {
-        Bukkit.getGlobalRegionScheduler().run(plugin, ignored -> task.run());
-    }
-
-    static CancellableTask runDelayedOnGlobalThread(AuthMe plugin, Runnable task, long delay) {
-        return Bukkit.getGlobalRegionScheduler().runDelayed(plugin, ignored -> task.run(), delay)::cancel;
-    }
-
     private static CancellableTask cancellableTask(ScheduledTask scheduledTask, AuthMe plugin, String skippedMessage) {
         if (scheduledTask == null) {
             plugin.getLogger().fine(skippedMessage);
             return NO_OP_TASK;
         }
         return scheduledTask::cancel;
-    }
-
-    private static long ticksToMillis(long ticks) {
-        return ticks * 50L;
     }
 }

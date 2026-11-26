@@ -10,7 +10,12 @@ import org.bukkit.event.Listener;
 import javax.inject.Inject;
 
 /**
- * Shared async spawn-location listener shell for Paper-derived platforms.
+ * Shared async spawn-location listener shell for Paper-derived platforms. The event handler and the
+ * bookkeeping are common to every platform; subclasses only decide how to resolve the custom location
+ * for their own threading model.
+ *
+ * @see PaperPlayerSpawnLocationListener
+ * @see FoliaPlayerSpawnLocationListener
  */
 public abstract class AbstractPaperAsyncPlayerSpawnLocationListener implements Listener {
 

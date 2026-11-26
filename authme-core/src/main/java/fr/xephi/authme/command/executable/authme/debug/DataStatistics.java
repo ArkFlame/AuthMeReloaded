@@ -11,7 +11,6 @@ import fr.xephi.authme.initialization.SettingsDependent;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.permission.DebugSectionPermissions;
 import fr.xephi.authme.permission.PermissionNode;
-import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 
 import javax.inject.Inject;
@@ -49,7 +48,7 @@ class DataStatistics implements DebugSection {
 
     @Override
     public void execute(CommandSender sender, List<String> arguments) {
-        sender.sendMessage(ChatColor.BLUE + "AuthMe statistics");
+        sendTitle(sender, "statistics");
         sender.sendMessage("LimboPlayers in memory: " + applyToLimboPlayersMap(limboService, Map::size));
         sender.sendMessage("PlayerCache size: " + playerCache.getLogged() + " (= logged in players)");
 

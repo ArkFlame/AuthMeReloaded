@@ -21,7 +21,7 @@ public class PlayerCache {
      * @param auth the player auth object to save
      */
     public void updatePlayer(PlayerAuth auth) {
-        cache.put(auth.getNickname().toLowerCase(Locale.ROOT), auth);
+        cache.put(key(auth.getNickname()), auth);
     }
 
     /**
@@ -30,7 +30,9 @@ public class PlayerCache {
      * @param auth the player auth object to save
      */
     public void updatePlayerIfPresent(PlayerAuth auth) {
-        cache.computeIfPresent(auth.getNickname().toLowerCase(Locale.ROOT), (name, cachedAuth) -> auth);
+        // replace(K, V) has the same "only if already present" semantics as
+        // computeIfPresent but avoids allocating a capturing lambda on every call.
+        cache.replace(key(auth.getNickname()), auth);
     }
 
     /**
@@ -39,7 +41,7 @@ public class PlayerCache {
      * @param user name of the player to remove
      */
     public void removePlayer(String user) {
-        cache.remove(user.toLowerCase(Locale.ROOT));
+        cache.remove(key(user));
     }
 
     /**
@@ -50,7 +52,7 @@ public class PlayerCache {
      * @return true if player is logged in, false otherwise.
      */
     public boolean isAuthenticated(String user) {
-        return cache.containsKey(user.toLowerCase(Locale.ROOT));
+        return cache.containsKey(key(user));
     }
 
     /**
@@ -61,7 +63,11 @@ public class PlayerCache {
      * @return the associated auth object, or null if not available
      */
     public PlayerAuth getAuth(String user) {
-        return cache.get(user.toLowerCase(Locale.ROOT));
+        return cache.get(key(user));
+    }
+
+    private static String key(String name) {
+        return name.toLowerCase(Locale.ROOT);
     }
 
     /**

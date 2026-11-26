@@ -100,21 +100,26 @@ class BungeeSenderTest {
 
     @Test
     void shouldSendSingleChunkForEmptyPremiumList() {
-        givenEnabledSender();
-
-        BungeeSender sender = new BungeeSender(plugin, bukkitService, settings);
-        sender.sendPremiumList(carrier, List.of());
-
-        verify(bukkitService).sendAuthMePluginMessage(eq(carrier), payloadCaptor.capture());
-        ByteArrayDataInput in = ByteStreams.newDataInput(payloadCaptor.getValue());
-        assertEquals("premium.list.chunk", in.readUTF());
-        assertEquals("0:1:", in.readUTF());
+        assertEquals("0:1:", sendAndReadSingleChunk(List.of()));
     }
 
     @Test
     void shouldSendSingleChunkForSmallPremiumList() {
+        String field = sendAndReadSingleChunk(List.of("alice", "bob", "charlie"));
+        assertTrue(field.startsWith("0:1:"), "Expected single last chunk but got: " + field);
+    }
+
+    @Test
+    void shouldNormalizePremiumListUsernamesToLowercase() {
+        assertEquals("0:1:alice,bob", sendAndReadSingleChunk(List.of("Alice", "BOB")));
+    }
+
+    /**
+     * Sends the given names as a premium list and returns the payload's data field.
+     * Asserts that the sender wrote a single chunk message.
+     */
+    private String sendAndReadSingleChunk(List<String> names) {
         givenEnabledSender();
-        List<String> names = List.of("alice", "bob", "charlie");
 
         BungeeSender sender = new BungeeSender(plugin, bukkitService, settings);
         sender.sendPremiumList(carrier, names);
@@ -122,21 +127,7 @@ class BungeeSenderTest {
         verify(bukkitService).sendAuthMePluginMessage(eq(carrier), payloadCaptor.capture());
         ByteArrayDataInput in = ByteStreams.newDataInput(payloadCaptor.getValue());
         assertEquals("premium.list.chunk", in.readUTF());
-        String field = in.readUTF();
-        assertTrue(field.startsWith("0:1:"), "Expected single last chunk but got: " + field);
-    }
-
-    @Test
-    void shouldNormalizePremiumListUsernamesToLowercase() {
-        givenEnabledSender();
-
-        BungeeSender sender = new BungeeSender(plugin, bukkitService, settings);
-        sender.sendPremiumList(carrier, List.of("Alice", "BOB"));
-
-        verify(bukkitService).sendAuthMePluginMessage(eq(carrier), payloadCaptor.capture());
-        ByteArrayDataInput in = ByteStreams.newDataInput(payloadCaptor.getValue());
-        assertEquals("premium.list.chunk", in.readUTF());
-        assertEquals("0:1:alice,bob", in.readUTF());
+        return in.readUTF();
     }
 
     @Test

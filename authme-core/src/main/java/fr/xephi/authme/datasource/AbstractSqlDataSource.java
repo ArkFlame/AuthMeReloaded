@@ -34,6 +34,26 @@ public abstract class AbstractSqlDataSource implements DataSource {
     protected List<String> columnOthers;
     protected MySqlExtension sqlExtension;
 
+    // Built once after the table and column names are known, then reused for every call.
+    protected String findAllSql;
+    protected String deleteByNameSql;
+    protected String findLoggedWithEmptyEmailSql;
+    protected String findRecentLoginsSql;
+    protected String updateTotpSql;
+
+    /**
+     * Initializes the SQL strings shared by all SQL data sources. Must be called once the
+     * table name and the column names have been assigned.
+     */
+    protected void initSqlStrings() {
+        findAllSql = "SELECT * FROM " + tableName + ";";
+        deleteByNameSql = "DELETE FROM " + tableName + " WHERE " + col.NAME + "=?;";
+        findLoggedWithEmptyEmailSql = "SELECT " + col.REAL_NAME + " FROM " + tableName + " WHERE "
+            + col.IS_LOGGED + " = 1 AND (" + col.EMAIL + " = 'your@email.com' OR " + col.EMAIL + " IS NULL);";
+        findRecentLoginsSql = "SELECT * FROM " + tableName + " ORDER BY " + col.LAST_LOGIN + " DESC LIMIT 10;";
+        updateTotpSql = "UPDATE " + tableName + " SET " + col.TOTP_KEY + " = ? WHERE " + col.NAME + " = ?";
+    }
+
     @Override
     public boolean isAuthAvailable(String user) {
         try {

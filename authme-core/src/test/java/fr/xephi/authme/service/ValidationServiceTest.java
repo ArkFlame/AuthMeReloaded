@@ -18,6 +18,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
@@ -28,6 +30,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Arrays.asList;
@@ -148,30 +151,24 @@ class ValidationServiceTest {
         assertThat(result, equalTo(true));
     }
 
-    @Test
-    void shouldAcceptEmailWithWhitelist() {
+    @ParameterizedTest(name = "{0}: {1}")
+    @MethodSource("whitelistEmails")
+    void shouldCheckEmailAgainstWhitelist(String email, boolean expected) {
         // given
         given(settings.getProperty(EmailSettings.DOMAIN_WHITELIST))
             .willReturn(asList("domain.tld", "example.com"));
 
         // when
-        boolean result = validationService.validateEmail("TesT@Example.com");
+        boolean result = validationService.validateEmail(email);
 
         // then
-        assertThat(result, equalTo(true));
+        assertThat(result, equalTo(expected));
     }
 
-    @Test
-    void shouldRejectEmailNotInWhitelist() {
-        // given
-        given(settings.getProperty(EmailSettings.DOMAIN_WHITELIST))
-            .willReturn(asList("domain.tld", "example.com"));
-
-        // when
-        boolean result = validationService.validateEmail("email@other-domain.abc");
-
-        // then
-        assertThat(result, equalTo(false));
+    private static Stream<Arguments> whitelistEmails() {
+        return Stream.of(
+            Arguments.of("TesT@Example.com", true),
+            Arguments.of("email@other-domain.abc", false));
     }
 
     @Test
@@ -183,32 +180,25 @@ class ValidationServiceTest {
         assertThat(result, equalTo(false));
     }
 
-    @Test
-    void shouldAcceptEmailNotInBlacklist() {
+    @ParameterizedTest(name = "{0}: {1}")
+    @MethodSource("blacklistEmails")
+    void shouldCheckEmailAgainstBlacklist(String email, boolean expected) {
         // given
         given(settings.getProperty(EmailSettings.DOMAIN_WHITELIST)).willReturn(Collections.emptyList());
         given(settings.getProperty(EmailSettings.DOMAIN_BLACKLIST))
             .willReturn(asList("Example.org", "a-test-name.tld"));
 
         // when
-        boolean result = validationService.validateEmail("sample@valid-name.tld");
+        boolean result = validationService.validateEmail(email);
 
         // then
-        assertThat(result, equalTo(true));
+        assertThat(result, equalTo(expected));
     }
 
-    @Test
-    void shouldRejectEmailInBlacklist() {
-        // given
-        given(settings.getProperty(EmailSettings.DOMAIN_WHITELIST)).willReturn(Collections.emptyList());
-        given(settings.getProperty(EmailSettings.DOMAIN_BLACKLIST))
-            .willReturn(asList("Example.org", "a-test-name.tld"));
-
-        // when
-        boolean result = validationService.validateEmail("sample@a-Test-name.tld");
-
-        // then
-        assertThat(result, equalTo(false));
+    private static Stream<Arguments> blacklistEmails() {
+        return Stream.of(
+            Arguments.of("sample@valid-name.tld", true),
+            Arguments.of("sample@a-Test-name.tld", false));
     }
 
     @Test

@@ -42,7 +42,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -50,9 +49,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 
+import static fr.xephi.authme.listener.PaperDialogFlowTestSupport.SESSION_ID;
+import static fr.xephi.authme.listener.PaperDialogFlowTestSupport.connectionSessions;
+import static fr.xephi.authme.listener.PaperDialogFlowTestSupport.invokeBlockingMethod;
+import static fr.xephi.authme.listener.PaperDialogFlowTestSupport.mockConnection;
+import static fr.xephi.authme.listener.PaperDialogFlowTestSupport.pendingResponses;
+import static fr.xephi.authme.listener.PaperDialogFlowTestSupport.setField;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -68,8 +72,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 public class PaperDialogFlowListenerTest {
-
-    private static final long SESSION_ID = 42L;
 
     @Test
     public void shouldListenLateOnPlayerConfigure() throws Exception {
@@ -830,18 +832,14 @@ public class PaperDialogFlowListenerTest {
 
     private static void invokeHandleBlockingLoginDialog(PaperDialogFlowListener listener,
                                                         PlayerConfigurationConnection connection) throws Exception {
-        Method method = PaperDialogFlowListener.class.getDeclaredMethod("handleBlockingLoginDialog",
+        invokeBlockingMethod(listener, connection, "handleBlockingLoginDialog",
             PlayerConfigurationConnection.class, long.class, String.class);
-        method.setAccessible(true);
-        method.invoke(listener, connection, SESSION_ID, "Bobby");
     }
 
     private static void invokeHandleBlockingRegisterDialog(PaperDialogFlowListener listener,
                                                            PlayerConfigurationConnection connection) throws Exception {
-        Method method = PaperDialogFlowListener.class.getDeclaredMethod("handleBlockingRegisterDialog",
+        invokeBlockingMethod(listener, connection, "handleBlockingRegisterDialog",
             PlayerConfigurationConnection.class, long.class, String.class, Dialog.class);
-        method.setAccessible(true);
-        method.invoke(listener, connection, SESSION_ID, "Bobby", null);
     }
 
     private static PlayerCustomClickEvent recoverySubmitEvent(PlayerConfigurationConnection connection,
@@ -855,13 +853,6 @@ public class PaperDialogFlowListenerTest {
         return event;
     }
 
-    private static PlayerConfigurationConnection mockConnection(String playerName) {
-        PlayerProfile profile = mock(PlayerProfile.class);
-        given(profile.getName()).willReturn(playerName);
-        PlayerConfigurationConnection connection = mock(PlayerConfigurationConnection.class);
-        given(connection.getProfile()).willReturn(profile);
-        return connection;
-    }
 
     private static void seedSession(PaperDialogFlowListener listener, PlayerConfigurationConnection connection,
                                     String responseField, CompletableFuture<String> future) throws Exception {
@@ -869,27 +860,6 @@ public class PaperDialogFlowListenerTest {
         pendingResponses(listener, responseField).put(SESSION_ID, future);
     }
 
-    @SuppressWarnings("unchecked")
-    private static ConcurrentMap<PlayerConfigurationConnection, Long> connectionSessions(
-        PaperDialogFlowListener listener) throws ReflectiveOperationException {
-        Field field = PaperDialogFlowListener.class.getDeclaredField("connectionSessions");
-        field.setAccessible(true);
-        return (ConcurrentMap<PlayerConfigurationConnection, Long>) field.get(listener);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static ConcurrentMap<Long, CompletableFuture<String>> pendingResponses(
-        PaperDialogFlowListener listener, String responseField) throws ReflectiveOperationException {
-        Field field = PaperDialogFlowListener.class.getDeclaredField(responseField);
-        field.setAccessible(true);
-        return (ConcurrentMap<Long, CompletableFuture<String>>) field.get(listener);
-    }
-
-    private static void setField(Object target, String fieldName, Object value) throws ReflectiveOperationException {
-        Field field = target.getClass().getDeclaredField(fieldName);
-        field.setAccessible(true);
-        field.set(target, value);
-    }
 
     private static final class PreJoinLoginSetup {
         final PaperDialogFlowListener listener = new PaperDialogFlowListener();

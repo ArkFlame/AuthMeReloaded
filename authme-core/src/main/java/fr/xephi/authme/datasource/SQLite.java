@@ -38,6 +38,8 @@ public class SQLite extends AbstractSqlDataSource {
     private final File dataFolder;
     private final String database;
     private Connection con;
+    private String findAuthSql;
+    private String findRecordsToPurgeSql;
 
     /**
      * Constructor for SQLite.
@@ -53,6 +55,7 @@ public class SQLite extends AbstractSqlDataSource {
         this.database = settings.getProperty(DatabaseSettings.MYSQL_DATABASE);
         this.tableName = settings.getProperty(DatabaseSettings.MYSQL_TABLE);
         this.col = new Columns(settings);
+        initSqlStrings();
 
         try {
             this.connect();
@@ -71,8 +74,19 @@ public class SQLite extends AbstractSqlDataSource {
         this.database = settings.getProperty(DatabaseSettings.MYSQL_DATABASE);
         this.tableName = settings.getProperty(DatabaseSettings.MYSQL_TABLE);
         this.col = new Columns(settings);
+        initSqlStrings();
         this.con = connection;
         this.columnsHandler = AuthMeColumnsHandler.createForSqlite(con, settings);
+    }
+
+    @Override
+    protected void initSqlStrings() {
+        super.initSqlStrings();
+        findAuthSql = "SELECT * FROM " + tableName + " WHERE LOWER(" + col.NAME + ")=LOWER(?);";
+        findRecordsToPurgeSql = "SELECT " + col.NAME + " FROM " + tableName + " WHERE MAX("
+            + " COALESCE(" + col.LAST_LOGIN + ", 0),"
+            + " COALESCE(" + col.REGISTRATION_DATE + ", 0)"
+            + ") < ?;";
     }
 
     /**
@@ -218,8 +232,7 @@ public class SQLite extends AbstractSqlDataSource {
 
     @Override
     public synchronized PlayerAuth getAuth(String user) {
-        String sql = "SELECT * FROM " + tableName + " WHERE LOWER(" + col.NAME + ")=LOWER(?);";
-        try (PreparedStatement pst = con.prepareStatement(sql)) {
+        try (PreparedStatement pst = con.prepareStatement(findAuthSql)) {
             pst.setString(1, user);
             try (ResultSet rs = pst.executeQuery()) {
                 if (rs.next()) {
@@ -235,11 +248,7 @@ public class SQLite extends AbstractSqlDataSource {
     @Override
     public synchronized Set<String> getRecordsToPurge(long until) {
         Set<String> list = new HashSet<>();
-        String select = "SELECT " + col.NAME + " FROM " + tableName + " WHERE MAX("
-            + " COALESCE(" + col.LAST_LOGIN + ", 0),"
-            + " COALESCE(" + col.REGISTRATION_DATE + ", 0)"
-            + ") < ?;";
-        try (PreparedStatement selectPst = con.prepareStatement(select)) {
+        try (PreparedStatement selectPst = con.prepareStatement(findRecordsToPurgeSql)) {
             selectPst.setLong(1, until);
             try (ResultSet rs = selectPst.executeQuery()) {
                 while (rs.next()) {
@@ -255,8 +264,7 @@ public class SQLite extends AbstractSqlDataSource {
 
     @Override
     public synchronized void purgeRecords(Collection<String> toPurge) {
-        String delete = "DELETE FROM " + tableName + " WHERE " + col.NAME + "=?;";
-        try (PreparedStatement deletePst = con.prepareStatement(delete)) {
+        try (PreparedStatement deletePst = con.prepareStatement(deleteByNameSql)) {
             for (String name : toPurge) {
                 deletePst.setString(1, name.toLowerCase(Locale.ROOT));
                 deletePst.addBatch();
@@ -269,8 +277,7 @@ public class SQLite extends AbstractSqlDataSource {
 
     @Override
     public synchronized boolean removeAuth(String user) {
-        String sql = "DELETE FROM " + tableName + " WHERE " + col.NAME + "=?;";
-        try (PreparedStatement pst = con.prepareStatement(sql)) {
+        try (PreparedStatement pst = con.prepareStatement(deleteByNameSql)) {
             pst.setString(1, user.toLowerCase(Locale.ROOT));
             pst.executeUpdate();
             return true;
@@ -299,8 +306,7 @@ public class SQLite extends AbstractSqlDataSource {
     @Override
     public synchronized List<PlayerAuth> getAllAuths() {
         List<PlayerAuth> auths = new ArrayList<>();
-        String sql = "SELECT * FROM " + tableName + ";";
-        try (PreparedStatement pst = con.prepareStatement(sql); ResultSet rs = pst.executeQuery()) {
+        try (PreparedStatement pst = con.prepareStatement(findAllSql); ResultSet rs = pst.executeQuery()) {
             while (rs.next()) {
                 PlayerAuth auth = buildAuthFromResultSet(rs);
                 auths.add(auth);
@@ -314,9 +320,7 @@ public class SQLite extends AbstractSqlDataSource {
     @Override
     public synchronized List<String> getLoggedPlayersWithEmptyMail() {
         List<String> players = new ArrayList<>();
-        String sql = "SELECT " + col.REAL_NAME + " FROM " + tableName + " WHERE " + col.IS_LOGGED + " = 1"
-            + " AND (" + col.EMAIL + " = 'your@email.com' OR " + col.EMAIL + " IS NULL);";
-        try (Statement st = con.createStatement(); ResultSet rs = st.executeQuery(sql)) {
+        try (Statement st = con.createStatement(); ResultSet rs = st.executeQuery(findLoggedWithEmptyEmailSql)) {
             while (rs.next()) {
                 players.add(rs.getString(1));
             }
@@ -329,8 +333,7 @@ public class SQLite extends AbstractSqlDataSource {
     @Override
     public synchronized List<PlayerAuth> getRecentlyLoggedInPlayers() {
         List<PlayerAuth> players = new ArrayList<>();
-        String sql = "SELECT * FROM " + tableName + " ORDER BY " + col.LAST_LOGIN + " DESC LIMIT 10;";
-        try (Statement st = con.createStatement(); ResultSet rs = st.executeQuery(sql)) {
+        try (Statement st = con.createStatement(); ResultSet rs = st.executeQuery(findRecentLoginsSql)) {
             while (rs.next()) {
                 players.add(buildAuthFromResultSet(rs));
             }
@@ -343,8 +346,7 @@ public class SQLite extends AbstractSqlDataSource {
 
     @Override
     public synchronized boolean setTotpKey(String user, String totpKey) {
-        String sql = "UPDATE " + tableName + " SET " + col.TOTP_KEY + " = ? WHERE " + col.NAME + " = ?";
-        try (PreparedStatement pst = con.prepareStatement(sql)) {
+        try (PreparedStatement pst = con.prepareStatement(updateTotpSql)) {
             pst.setString(1, totpKey);
             pst.setString(2, user.toLowerCase(Locale.ROOT));
             pst.executeUpdate();

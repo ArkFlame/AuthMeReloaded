@@ -5,7 +5,9 @@ This page compares the three Bukkit/Spigot deliverables — `authme-spigot-1.8`,
 analysis only: no module, build file, resource or source is changed here.
 [ARCHITECTURE.md](ARCHITECTURE.md) describes the longer-term single-module target and the layered
 `SchedulerProvider` design. After the refactor waves the merge itself is still a plan; this page
-records the intended order, not the current build.
+records the intended order, not the current build. Paper and Folia are already consolidated into one
+`authme-paper` jar with runtime adapter selection; this plan covers only the three Spigot jars and
+does not propose splitting that merge back apart.
 
 Guardrails for every step: no behavior change; no configuration key/default, message, permission,
 plugin id/name, main class or package change; `authme-core` stays at Java 8 bytecode; Spigot 1.8

@@ -8,14 +8,18 @@ import org.bukkit.event.player.PlayerEvent;
 import javax.inject.Inject;
 
 /**
- * Shared base for listeners whose only task is to cancel an event for a player who is
- * not allowed to act yet. The service lookup and the cancellation live here so that
- * individual listeners only need to declare their event handler.
+ * Shared base for listeners that cancel events for players who are not allowed to act
+ * yet. The service lookup and the cancellation live here so that individual listeners
+ * only need to declare their event handler.
  */
 abstract class AbstractCancelListener {
 
     @Inject
     private ListenerService listenerService;
+
+    protected final ListenerService getListenerService() {
+        return listenerService;
+    }
 
     /** Cancels a player event when its player is not allowed to act. */
     protected final void cancelIfUnauthorized(PlayerEvent event) {

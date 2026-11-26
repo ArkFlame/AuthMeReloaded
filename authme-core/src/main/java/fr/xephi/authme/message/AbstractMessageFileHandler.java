@@ -14,6 +14,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import javax.annotation.PostConstruct;
 import java.io.File;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 import static fr.xephi.authme.message.MessagePathHelper.DEFAULT_LANGUAGE;
 
@@ -33,6 +34,8 @@ public abstract class AbstractMessageFileHandler implements Reloadable {
     private FileConfiguration configuration;
     private final String defaultFile;
     private final ConcurrentHashMap<String, FileConfiguration> languageCache = new ConcurrentHashMap<>();
+    // Reused for every per-player language lookup so no loader instance is allocated per message.
+    private final Function<String, FileConfiguration> languageLoader = this::loadLanguageConfiguration;
 
     protected AbstractMessageFileHandler(@DataFolder File dataFolder, Settings settings) {
         this.dataFolder = dataFolder;
@@ -137,7 +140,7 @@ public abstract class AbstractMessageFileHandler implements Reloadable {
         if (language == null || language.equals(getLanguage())) {
             return null;
         }
-        FileConfiguration config = languageCache.computeIfAbsent(language, this::loadLanguageConfiguration);
+        FileConfiguration config = languageCache.computeIfAbsent(language, languageLoader);
         return config == UNAVAILABLE ? null : config.getString(key);
     }
 

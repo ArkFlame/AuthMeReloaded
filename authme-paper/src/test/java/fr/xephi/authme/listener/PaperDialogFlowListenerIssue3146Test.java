@@ -1,6 +1,5 @@
 package fr.xephi.authme.listener;
 
-import com.destroystokyo.paper.profile.PlayerProfile;
 import fr.xephi.authme.data.ProxySessionManager;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.message.Messages;
@@ -14,14 +13,16 @@ import io.papermc.paper.dialog.Dialog;
 import net.kyori.adventure.audience.Audience;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static fr.xephi.authme.listener.PaperDialogFlowTestSupport.SESSION_ID;
+import static fr.xephi.authme.listener.PaperDialogFlowTestSupport.invokeBlockingMethod;
+import static fr.xephi.authme.listener.PaperDialogFlowTestSupport.mockConnection;
+import static fr.xephi.authme.listener.PaperDialogFlowTestSupport.pendingResponses;
+import static fr.xephi.authme.listener.PaperDialogFlowTestSupport.setField;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -34,8 +35,6 @@ import static org.mockito.Mockito.verify;
 
 /** Regression tests for dialogs left open when the configuration-phase future times out. */
 public class PaperDialogFlowListenerIssue3146Test {
-
-    private static final long SESSION_ID = 42L;
 
     @Test
     public void shouldCloseLoginDialogWhenResponseTimesOut() throws Exception {
@@ -54,7 +53,7 @@ public class PaperDialogFlowListenerIssue3146Test {
         given(commonService.getProperty(RestrictionSettings.LOGIN_TIMEOUT)).willReturn(1);
         given(messages.retrieveSingle("Bobby", MessageKey.LOGIN_TIMEOUT_ERROR)).willReturn("Timed out!");
 
-        PlayerConfigurationConnection connection = mockConnection(audience);
+        PlayerConfigurationConnection connection = mockConnection("Bobby", audience);
         dialogTimesOutWhileBlockingThreadIsBusy(listener, audience, "pendingLoginResponses");
         AtomicReference<Throwable> failure = new AtomicReference<>();
 
@@ -97,7 +96,7 @@ public class PaperDialogFlowListenerIssue3146Test {
         given(commonService.getProperty(RestrictionSettings.REGISTER_TIMEOUT)).willReturn(1);
         given(messages.retrieveSingle("Bobby", MessageKey.LOGIN_TIMEOUT_ERROR)).willReturn("Timed out!");
 
-        PlayerConfigurationConnection connection = mockConnection(audience);
+        PlayerConfigurationConnection connection = mockConnection("Bobby", audience);
         dialogTimesOutWhileBlockingThreadIsBusy(listener, audience, "pendingRegisterResponses");
         AtomicReference<Throwable> failure = new AtomicReference<>();
 
@@ -137,37 +136,4 @@ public class PaperDialogFlowListenerIssue3146Test {
         }).given(audience).showDialog(any());
     }
 
-    private static void invokeBlockingMethod(PaperDialogFlowListener listener, Object connection, String name,
-                                             Class<?>... parameterTypes) throws Exception {
-        Method method = PaperDialogFlowListener.class.getDeclaredMethod(name, parameterTypes);
-        method.setAccessible(true);
-        if (parameterTypes.length == 3) {
-            method.invoke(listener, connection, SESSION_ID, "Bobby");
-        } else {
-            method.invoke(listener, connection, SESSION_ID, "Bobby", null);
-        }
-    }
-
-    private static PlayerConfigurationConnection mockConnection(Audience audience) {
-        PlayerProfile profile = mock(PlayerProfile.class);
-        given(profile.getName()).willReturn("Bobby");
-        PlayerConfigurationConnection connection = mock(PlayerConfigurationConnection.class);
-        given(connection.getProfile()).willReturn(profile);
-        given(connection.getAudience()).willReturn(audience);
-        return connection;
-    }
-
-    @SuppressWarnings("unchecked")
-    private static ConcurrentMap<Long, CompletableFuture<String>> pendingResponses(
-        PaperDialogFlowListener listener, String responseField) throws Exception {
-        Field field = PaperDialogFlowListener.class.getDeclaredField(responseField);
-        field.setAccessible(true);
-        return (ConcurrentMap<Long, CompletableFuture<String>>) field.get(listener);
-    }
-
-    private static void setField(Object target, String fieldName, Object value) throws Exception {
-        Field field = target.getClass().getDeclaredField(fieldName);
-        field.setAccessible(true);
-        field.set(target, value);
-    }
 }

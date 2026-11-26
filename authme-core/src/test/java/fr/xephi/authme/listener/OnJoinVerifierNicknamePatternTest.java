@@ -1,15 +1,8 @@
 package fr.xephi.authme.listener;
 
 import fr.xephi.authme.TestHelper;
-import fr.xephi.authme.datasource.DataSource;
-import fr.xephi.authme.message.Messages;
-import fr.xephi.authme.permission.PermissionsManager;
-import fr.xephi.authme.service.AntiBotService;
-import fr.xephi.authme.service.BukkitService;
-import fr.xephi.authme.service.ValidationService;
 import fr.xephi.authme.settings.Settings;
 import fr.xephi.authme.settings.properties.RestrictionSettings;
-import org.bukkit.Server;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,20 +30,6 @@ class OnJoinVerifierNicknamePatternTest {
 
     @Mock
     private Settings settings;
-    @Mock
-    private DataSource dataSource;
-    @Mock
-    private Messages messages;
-    @Mock
-    private PermissionsManager permissionsManager;
-    @Mock
-    private AntiBotService antiBotService;
-    @Mock
-    private ValidationService validationService;
-    @Mock
-    private BukkitService bukkitService;
-    @Mock
-    private Server server;
 
     @BeforeAll
     static void setUpLogger() {

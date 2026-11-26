@@ -160,14 +160,18 @@ public class Messages {
         String formatted = message.indexOf('&') >= 0
             ? ChatColor.translateAlternateColorCodes('&', message)
             : message;
-        // String.replace allocates a regex machinery even when the tag is absent, so only
-        // apply the newline conversion when it is actually present in the message.
+        // String.replace allocates regex machinery even when the tag is absent, so only
+        // apply a conversion when its tag is actually present in the message.
         if (formatted.contains(NEWLINE_TAG)) {
             formatted = formatted.replace(NEWLINE_TAG, "\n");
         }
-        return formatted
-            .replace(USERNAME_TAG, name)
-            .replace(DISPLAYNAME_TAG, displayName);
+        if (formatted.contains(USERNAME_TAG)) {
+            formatted = formatted.replace(USERNAME_TAG, name);
+        }
+        if (formatted.contains(DISPLAYNAME_TAG)) {
+            formatted = formatted.replace(DISPLAYNAME_TAG, displayName);
+        }
+        return formatted;
     }
 
     /**
@@ -202,7 +206,10 @@ public class Messages {
         String[] tags = key.getTags();
         if (replacements.length == tags.length) {
             for (int i = 0; i < tags.length; ++i) {
-                message = message.replace(tags[i], replacements[i]);
+                // Avoid the no-op String.replace calls: they still allocate regex machinery.
+                if (message.contains(tags[i])) {
+                    message = message.replace(tags[i], replacements[i]);
+                }
             }
         } else {
             logger.warning("Invalid number of replacements for message key '" + key + "'");

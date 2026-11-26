@@ -15,7 +15,6 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.concurrent.TimeUnit;
@@ -56,13 +55,7 @@ public class TwoFactor extends UnsaltedMethod {
 
     @Override
     public String computeHash(String password) {
-        // Allocating the buffer
-        byte[] buffer = new byte[SCRET_BYTE + SCRATCH_CODES * BYTES_PER_SCRATCH_CODE];
-
-        // Filling the buffer with random numbers.
-        // Notice: you want to reuse the same random generator
-        // while generating larger random number sequences.
-        new SecureRandom().nextBytes(buffer);
+        byte[] buffer = SaltBytes.random(SCRET_BYTE + SCRATCH_CODES * BYTES_PER_SCRATCH_CODE);
 
         // Getting the key and converting it to Base32
         byte[] secretKey = Arrays.copyOf(buffer, SCRET_BYTE);

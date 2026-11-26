@@ -1,6 +1,5 @@
 package fr.xephi.authme.security.crypts;
 
-import com.google.common.primitives.Ints;
 import fr.xephi.authme.ConsoleLogger;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.security.crypts.description.Recommendation;
@@ -23,22 +22,17 @@ public class Pbkdf2 extends AbstractPbkdf2 {
 
     @Override
     public String computeHash(String password, String salt, String name) {
-        return "pbkdf2_sha256$" + numberOfRounds + "$" + salt + "$"
+        return hashPrefix("pbkdf2_sha256", numberOfRounds, salt)
             + Hex.toHexString(deriveKey(password, salt.getBytes(), numberOfRounds, 64)).toUpperCase();
     }
 
     @Override
     public boolean comparePassword(String password, HashedPassword hashedPassword, String unusedName) {
-        String[] line = hashedPassword.getHash().split("\\$");
-        if (line.length != 4) {
+        HashParts parts = parseHash(hashedPassword, logger, "Pbkdf2");
+        if (parts == null) {
             return false;
         }
-        Integer iterations = Ints.tryParse(line[1]);
-        if (iterations == null) {
-            logger.warning("Cannot read number of rounds for Pbkdf2: '" + line[1] + "'");
-            return false;
-        }
-        return verifyKey(password, line[2].getBytes(), iterations, Hex.decode(line[3]));
+        return verifyKey(password, parts.salt.getBytes(), parts.iterations, Hex.decode(parts.hash));
     }
 
     @Override

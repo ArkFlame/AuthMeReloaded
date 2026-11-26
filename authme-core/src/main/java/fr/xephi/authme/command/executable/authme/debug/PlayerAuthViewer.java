@@ -39,7 +39,7 @@ class PlayerAuthViewer implements DebugSection {
     @Override
     public void execute(CommandSender sender, List<String> arguments) {
         if (arguments.isEmpty()) {
-            sender.sendMessage(ChatColor.BLUE + "AuthMe database viewer");
+            sendTitle(sender, "database viewer");
             sender.sendMessage("Enter player name to view his data in the database.");
             sender.sendMessage("Example: /authme debug db Bobby");
             return;
@@ -47,7 +47,7 @@ class PlayerAuthViewer implements DebugSection {
 
         PlayerAuth auth = dataSource.getAuth(arguments.get(0));
         if (auth == null) {
-            sender.sendMessage(ChatColor.BLUE + "AuthMe database viewer");
+            sendTitle(sender, "database viewer");
             sender.sendMessage("No record exists for '" + arguments.get(0) + "'");
         } else {
             displayAuthToSender(auth, sender);

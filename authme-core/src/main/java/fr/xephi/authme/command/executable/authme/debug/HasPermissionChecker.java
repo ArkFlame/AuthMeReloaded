@@ -47,7 +47,7 @@ class HasPermissionChecker implements DebugSection {
 
     @Override
     public void execute(CommandSender sender, List<String> arguments) {
-        sender.sendMessage(ChatColor.BLUE + "AuthMe permission check");
+        sendTitle(sender, "permission check");
         if (arguments.size() < 2) {
             sender.sendMessage("Check if a player has permission:");
             sender.sendMessage("Example: /authme debug perm bobby my.perm.node");

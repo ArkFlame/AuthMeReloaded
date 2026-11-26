@@ -14,7 +14,7 @@ import java.util.logging.Logger;
  */
 public final class PremiumVerificationManagers {
 
-    private static final String PACKET_EVENTS_PLUGIN_NAME = "packetevents";
+    static final String PACKET_EVENTS_PLUGIN_NAME = "packetevents";
 
     private PremiumVerificationManagers() {
     }

@@ -39,8 +39,7 @@ public abstract class AbstractArgon2 extends UnsaltedMethod {
 
     @Override
     public String computeHash(String password) {
-        byte[] salt = new byte[SALT_BYTES];
-        random.nextBytes(salt);
+        byte[] salt = SaltBytes.random(SALT_BYTES, random);
         byte[] hash = derive(password.toCharArray(), salt, ITERATIONS, MEMORY_KB, PARALLELISM, HASH_BYTES);
         Base64.Encoder enc = Base64.getEncoder().withoutPadding();
         return "$" + getIdentifier() + "$v=19$m=" + MEMORY_KB + ",t=" + ITERATIONS + ",p=" + PARALLELISM

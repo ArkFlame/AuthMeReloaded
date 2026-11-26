@@ -20,10 +20,12 @@ public abstract class MySqlExtension {
 
     protected final Columns col;
     protected final String tableName;
+    private final String retrieveIdSql;
 
     MySqlExtension(Settings settings, Columns col) {
         this.col = col;
         this.tableName = settings.getProperty(DatabaseSettings.MYSQL_TABLE);
+        this.retrieveIdSql = "SELECT " + col.ID + " FROM " + tableName + " WHERE " + col.NAME + "=?;";
     }
 
     /**
@@ -82,8 +84,7 @@ public abstract class MySqlExtension {
      * @throws SQLException .
      */
     protected OptionalInt retrieveIdFromTable(String name, Connection con) throws SQLException {
-        String sql = "SELECT " + col.ID + " FROM " + tableName + " WHERE " + col.NAME + "=?;";
-        try (PreparedStatement pst = con.prepareStatement(sql)) {
+        try (PreparedStatement pst = con.prepareStatement(retrieveIdSql)) {
             pst.setString(1, name);
             try (ResultSet rs = pst.executeQuery()) {
                 if (rs.next()) {

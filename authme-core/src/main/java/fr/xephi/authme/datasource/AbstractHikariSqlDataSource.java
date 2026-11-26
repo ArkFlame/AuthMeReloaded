@@ -25,6 +25,18 @@ import static fr.xephi.authme.datasource.SqlDataSourceUtils.logSqlException;
  */
 public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource implements SqlConnectionSource {
 
+    private String findAuthSql;
+    private String findRecordsToPurgeSql;
+
+    @Override
+    protected void initSqlStrings() {
+        super.initSqlStrings();
+        findAuthSql = "SELECT * FROM " + tableName + " WHERE " + col.NAME + "=?;";
+        findRecordsToPurgeSql = "SELECT " + col.NAME + " FROM " + tableName + " WHERE GREATEST("
+            + " COALESCE(" + col.LAST_LOGIN + ", 0),"
+            + " COALESCE(" + col.REGISTRATION_DATE + ", 0)"
+            + ") < ?;";
+    }
 
     @Override
     public Connection getConnection() throws SQLException {
@@ -40,8 +52,7 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
 
     @Override
     public PlayerAuth getAuth(String user) {
-        String sql = "SELECT * FROM " + tableName + " WHERE " + col.NAME + "=?;";
-        try (Connection con = getConnection(); PreparedStatement pst = con.prepareStatement(sql)) {
+        try (Connection con = getConnection(); PreparedStatement pst = con.prepareStatement(findAuthSql)) {
             pst.setString(1, user.toLowerCase(Locale.ROOT));
             try (ResultSet rs = pst.executeQuery()) {
                 if (rs.next()) {
@@ -63,13 +74,22 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
 
         try (Connection con = getConnection()) {
             if (!columnOthers.isEmpty()) {
-                for (String column : columnOthers) {
-                    try (PreparedStatement pst = con.prepareStatement(
-                        "UPDATE " + tableName + " SET " + column + "=? WHERE " + col.NAME + "=?;")) {
-                        pst.setString(1, auth.getRealName());
-                        pst.setString(2, auth.getNickname());
-                        pst.executeUpdate();
+                // One UPDATE for all configured username columns instead of one per column.
+                StringBuilder sql = new StringBuilder("UPDATE ").append(tableName).append(" SET ");
+                for (int i = 0; i < columnOthers.size(); ++i) {
+                    if (i > 0) {
+                        sql.append(", ");
                     }
+                    sql.append(columnOthers.get(i)).append("=?");
+                }
+                sql.append(" WHERE ").append(col.NAME).append("=?;");
+                try (PreparedStatement pst = con.prepareStatement(sql.toString())) {
+                    int index = 1;
+                    for (String ignored : columnOthers) {
+                        pst.setString(index++, auth.getRealName());
+                    }
+                    pst.setString(index, auth.getNickname());
+                    pst.executeUpdate();
                 }
             }
 
@@ -84,12 +104,8 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
     @Override
     public Set<String> getRecordsToPurge(long until) {
         Set<String> list = new HashSet<>();
-        String select = "SELECT " + col.NAME + " FROM " + tableName + " WHERE GREATEST("
-            + " COALESCE(" + col.LAST_LOGIN + ", 0),"
-            + " COALESCE(" + col.REGISTRATION_DATE + ", 0)"
-            + ") < ?;";
         try (Connection con = getConnection();
-             PreparedStatement selectPst = con.prepareStatement(select)) {
+             PreparedStatement selectPst = con.prepareStatement(findRecordsToPurgeSql)) {
             selectPst.setLong(1, until);
             try (ResultSet rs = selectPst.executeQuery()) {
                 while (rs.next()) {
@@ -105,8 +121,7 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
     @Override
     public boolean removeAuth(String user) {
         String name = user.toLowerCase(Locale.ROOT);
-        String sql = "DELETE FROM " + tableName + " WHERE " + col.NAME + "=?;";
-        try (Connection con = getConnection(); PreparedStatement pst = con.prepareStatement(sql)) {
+        try (Connection con = getConnection(); PreparedStatement pst = con.prepareStatement(deleteByNameSql)) {
             sqlExtension.removeAuth(name, con);
             pst.setString(1, name);
             pst.executeUpdate();
@@ -121,7 +136,7 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
     public List<PlayerAuth> getAllAuths() {
         List<PlayerAuth> auths = new ArrayList<>();
         try (Connection con = getConnection(); Statement st = con.createStatement()) {
-            try (ResultSet rs = st.executeQuery("SELECT * FROM " + tableName)) {
+            try (ResultSet rs = st.executeQuery(findAllSql)) {
                 while (rs.next()) {
                     PlayerAuth auth = SqlDataSourceUtils.buildAuthFromResultSet(rs, col, true);
                     sqlExtension.extendAuth(auth, rs.getInt(col.ID), con);
@@ -137,11 +152,9 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
     @Override
     public List<String> getLoggedPlayersWithEmptyMail() {
         List<String> players = new ArrayList<>();
-        String sql = "SELECT " + col.REAL_NAME + " FROM " + tableName + " WHERE " + col.IS_LOGGED + " = 1"
-            + " AND (" + col.EMAIL + " = 'your@email.com' OR " + col.EMAIL + " IS NULL);";
         try (Connection con = getConnection();
              Statement st = con.createStatement();
-             ResultSet rs = st.executeQuery(sql)) {
+             ResultSet rs = st.executeQuery(findLoggedWithEmptyEmailSql)) {
             while (rs.next()) {
                 players.add(rs.getString(1));
             }
@@ -154,10 +167,9 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
     @Override
     public List<PlayerAuth> getRecentlyLoggedInPlayers() {
         List<PlayerAuth> players = new ArrayList<>();
-        String sql = "SELECT * FROM " + tableName + " ORDER BY " + col.LAST_LOGIN + " DESC LIMIT 10;";
         try (Connection con = getConnection();
              Statement st = con.createStatement();
-             ResultSet rs = st.executeQuery(sql)) {
+             ResultSet rs = st.executeQuery(findRecentLoginsSql)) {
             while (rs.next()) {
                 players.add(SqlDataSourceUtils.buildAuthFromResultSet(rs, col, true));
             }
@@ -169,8 +181,7 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
 
     @Override
     public void purgeRecords(Collection<String> toPurge) {
-        String sql = "DELETE FROM " + tableName + " WHERE " + col.NAME + "=?;";
-        try (Connection con = getConnection(); PreparedStatement pst = con.prepareStatement(sql)) {
+        try (Connection con = getConnection(); PreparedStatement pst = con.prepareStatement(deleteByNameSql)) {
             for (String name : toPurge) {
                 pst.setString(1, name.toLowerCase(Locale.ROOT));
                 pst.addBatch();
@@ -183,8 +194,7 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
 
     @Override
     public boolean setTotpKey(String user, String totpKey) {
-        String sql = "UPDATE " + tableName + " SET " + col.TOTP_KEY + " = ? WHERE " + col.NAME + " = ?";
-        try (Connection con = getConnection(); PreparedStatement pst = con.prepareStatement(sql)) {
+        try (Connection con = getConnection(); PreparedStatement pst = con.prepareStatement(updateTotpSql)) {
             pst.setString(1, totpKey);
             pst.setString(2, user.toLowerCase(Locale.ROOT));
             pst.executeUpdate();

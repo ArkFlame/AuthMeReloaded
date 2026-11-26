@@ -43,8 +43,33 @@ import static fr.xephi.authme.settings.properties.RestrictionSettings.REGISTER_T
  * Service for verifying that the configuration is up-to-date.
  */
 public class SettingsMigrationService extends PlainMigrationService {
-    
+
     private static final ConsoleLogger logger = ConsoleLoggerFactory.get(SettingsMigrationService.class);
+
+    private static final String[][] MAIL_TEXT_REPLACEMENTS = {
+        {"<playername>", "<playername />"}, {"%playername%", "<playername />"},
+        {"<servername>", "<servername />"}, {"%servername%", "<servername />"},
+        {"<generatedpass>", "<generatedpass />"}, {"%generatedpass%", "<generatedpass />"},
+        {"<image>", "<image />"}, {"%image%", "<image />"}
+    };
+
+    private static final String[] DEPRECATED_PROPERTIES = {
+        "Converter.Rakamak.newPasswordHash", "Hooks.chestshop", "Hooks.legacyChestshop", "Hooks.notifications",
+        "Passpartu", "Performances", "settings.restrictions.enablePasswordVerifier", "Xenoforo.predefinedSalt",
+        "VeryGames", "settings.restrictions.allowAllCommandsIfRegistrationIsOptional", "DataSource.mySQLWebsite",
+        "Hooks.customAttributes", "Security.stop.kickPlayersBeforeStopping",
+        "settings.restrictions.keepCollisionsDisabled", "settings.forceCommands", "settings.forceCommandsAsConsole",
+        "settings.forceRegisterCommands", "settings.forceRegisterCommandsAsConsole",
+        "settings.sessions.sessionExpireOnIpChange", "settings.restrictions.otherAccountsCmd",
+        "settings.restrictions.otherAccountsCmdThreshold, DataSource.mySQLDriverClassName",
+        "settings.restrictions.timeout",
+        "settings.registration.useDialogUi", "settings.registration.usePreJoinDialogUi",
+        "settings.registration.preJoinDialog.showCancelButton",
+        "settings.registration.preJoinDialog.allowCloseWithEscape",
+        "settings.registration.preJoinDialog.registerCancelKicks",
+        "settings.registration.preJoinDialog.loginCancelKicks"
+    };
+
     private final File pluginFolder;
 
     // Stores old "other accounts command" config if present.
@@ -135,43 +160,22 @@ public class SettingsMigrationService extends PlainMigrationService {
      * @return True if the configuration has changed, false otherwise
      */
     private static boolean migrateDialogSettings(PropertyReader reader, ConfigurationData configData) {
-        return moveProperty(
-                newProperty("settings.registration.useDialogUi", true),
+        return moveProperty(newProperty("settings.registration.useDialogUi", true),
                 RegistrationSettings.USE_DIALOG_UI, reader, configData)
-            | moveProperty(
-                newProperty("settings.registration.usePreJoinDialogUi", true),
+            | moveProperty(newProperty("settings.registration.usePreJoinDialogUi", true),
                 RegistrationSettings.USE_PREJOIN_DIALOG_UI, reader, configData)
-            | moveProperty(
-                newProperty("settings.registration.preJoinDialog.showCancelButton", true),
+            | moveProperty(newProperty("settings.registration.preJoinDialog.showCancelButton", true),
                 RegistrationSettings.PRE_JOIN_DIALOG_SHOW_CANCEL_BUTTON, reader, configData)
-            | moveProperty(
-                newProperty("settings.registration.preJoinDialog.allowCloseWithEscape", false),
+            | moveProperty(newProperty("settings.registration.preJoinDialog.allowCloseWithEscape", false),
                 RegistrationSettings.PRE_JOIN_DIALOG_ALLOW_CLOSE_WITH_ESCAPE, reader, configData)
-            | moveProperty(
-                newProperty("settings.registration.preJoinDialog.registerCancelKicks", false),
+            | moveProperty(newProperty("settings.registration.preJoinDialog.registerCancelKicks", false),
                 RegistrationSettings.PRE_JOIN_REGISTER_CANCEL_KICKS, reader, configData)
-            | moveProperty(
-                newProperty("settings.registration.preJoinDialog.loginCancelKicks", true),
+            | moveProperty(newProperty("settings.registration.preJoinDialog.loginCancelKicks", true),
                 RegistrationSettings.PRE_JOIN_LOGIN_CANCEL_KICKS, reader, configData);
     }
 
     private static boolean hasDeprecatedProperties(PropertyReader reader) {
-        String[] deprecatedProperties = {
-            "Converter.Rakamak.newPasswordHash", "Hooks.chestshop", "Hooks.legacyChestshop", "Hooks.notifications",
-            "Passpartu", "Performances", "settings.restrictions.enablePasswordVerifier", "Xenoforo.predefinedSalt",
-            "VeryGames", "settings.restrictions.allowAllCommandsIfRegistrationIsOptional", "DataSource.mySQLWebsite",
-            "Hooks.customAttributes", "Security.stop.kickPlayersBeforeStopping",
-            "settings.restrictions.keepCollisionsDisabled", "settings.forceCommands", "settings.forceCommandsAsConsole",
-            "settings.forceRegisterCommands", "settings.forceRegisterCommandsAsConsole",
-            "settings.sessions.sessionExpireOnIpChange", "settings.restrictions.otherAccountsCmd",
-            "settings.restrictions.otherAccountsCmdThreshold, DataSource.mySQLDriverClassName",
-            "settings.restrictions.timeout",
-            "settings.registration.useDialogUi", "settings.registration.usePreJoinDialogUi",
-            "settings.registration.preJoinDialog.showCancelButton",
-            "settings.registration.preJoinDialog.allowCloseWithEscape",
-            "settings.registration.preJoinDialog.registerCancelKicks",
-            "settings.registration.preJoinDialog.loginCancelKicks"};
-        for (String deprecatedPath : deprecatedProperties) {
+        for (String deprecatedPath : DEPRECATED_PROPERTIES) {
             if (reader.contains(deprecatedPath)) {
                 return true;
             }
@@ -212,11 +216,10 @@ public class SettingsMigrationService extends PlainMigrationService {
         }
 
         final File emailFile = new File(pluginFolder, "email.html");
-        final String mailText = oldMailText
-            .replace("<playername>", "<playername />").replace("%playername%", "<playername />")
-            .replace("<servername>", "<servername />").replace("%servername%", "<servername />")
-            .replace("<generatedpass>", "<generatedpass />").replace("%generatedpass%", "<generatedpass />")
-            .replace("<image>", "<image />").replace("%image%", "<image />");
+        String mailText = oldMailText;
+        for (String[] replacement : MAIL_TEXT_REPLACEMENTS) {
+            mailText = mailText.replace(replacement[0], replacement[1]);
+        }
         if (!emailFile.exists()) {
             try (FileWriter fw = new FileWriter(emailFile)) {
                 fw.write(mailText);
@@ -236,8 +239,8 @@ public class SettingsMigrationService extends PlainMigrationService {
      * @return True if the configuration has changed, false otherwise
      */
     private static boolean migrateJoinLeaveMessages(PropertyReader reader, ConfigurationData configData) {
-        Property<Boolean> oldDelayJoinProperty = newProperty("settings.delayJoinLeaveMessages", false);
-        boolean hasMigrated = moveProperty(oldDelayJoinProperty, DELAY_JOIN_MESSAGE, reader, configData);
+        boolean hasMigrated = moveProperty(newProperty("settings.delayJoinLeaveMessages", false),
+            DELAY_JOIN_MESSAGE, reader, configData);
 
         if (hasMigrated) {
             logger.info(String.format("Note that we now also have the settings %s and %s",
@@ -255,12 +258,11 @@ public class SettingsMigrationService extends PlainMigrationService {
      * @return True if the configuration has changed, false otherwise
      */
     private static boolean migrateForceSpawnSettings(PropertyReader reader, ConfigurationData configData) {
-        Property<Boolean> oldForceLocEnabled = newProperty(
-            "settings.restrictions.ForceSpawnLocOnJoinEnabled", false);
         Property<List<String>> oldForceWorlds = newListProperty(
             "settings.restrictions.ForceSpawnOnTheseWorlds", "world", "world_nether", "world_the_ed");
 
-        return moveProperty(oldForceLocEnabled, FORCE_SPAWN_LOCATION_AFTER_LOGIN, reader, configData)
+        return moveProperty(newProperty("settings.restrictions.ForceSpawnLocOnJoinEnabled", false),
+                FORCE_SPAWN_LOCATION_AFTER_LOGIN, reader, configData)
             | moveProperty(oldForceWorlds, FORCE_SPAWN_ON_WORLDS, reader, configData);
     }
 
@@ -362,16 +364,12 @@ public class SettingsMigrationService extends PlainMigrationService {
      * @return True if the configuration has changed, false otherwise
      */
     private static boolean mergeAndMovePermissionGroupSettings(PropertyReader reader, ConfigurationData configData) {
-        boolean performedChanges;
-
         // We have two old settings replaced by only one: move the first non-empty one
         Property<String> oldUnloggedInGroup = newProperty("settings.security.unLoggedinGroup", "");
         Property<String> oldRegisteredGroup = newProperty("GroupOptions.RegisteredPlayerGroup", "");
-        if (!oldUnloggedInGroup.determineValue(reader).getValue().isEmpty()) {
-            performedChanges = moveProperty(oldUnloggedInGroup, PluginSettings.REGISTERED_GROUP, reader, configData);
-        } else {
-            performedChanges = moveProperty(oldRegisteredGroup, PluginSettings.REGISTERED_GROUP, reader, configData);
-        }
+        Property<String> oldGroup = oldUnloggedInGroup.determineValue(reader).getValue().isEmpty()
+            ? oldRegisteredGroup : oldUnloggedInGroup;
+        boolean performedChanges = moveProperty(oldGroup, PluginSettings.REGISTERED_GROUP, reader, configData);
 
         // Move paths of other old options
         performedChanges |= moveProperty(newProperty("GroupOptions.UnregisteredPlayerGroup", ""),
@@ -417,9 +415,9 @@ public class SettingsMigrationService extends PlainMigrationService {
      */
     private static boolean moveSaltColumnConfigWithOtherColumnConfigs(PropertyReader reader,
                                                                       ConfigurationData configData) {
-        Property<String> oldProperty = newProperty("ExternalBoardOptions.mySQLColumnSalt",
+        Property<String> oldSalt = newProperty("ExternalBoardOptions.mySQLColumnSalt",
             DatabaseSettings.MYSQL_COL_SALT.getDefaultValue());
-        return moveProperty(oldProperty, DatabaseSettings.MYSQL_COL_SALT, reader, configData);
+        return moveProperty(oldSalt, DatabaseSettings.MYSQL_COL_SALT, reader, configData);
     }
 
     /**

@@ -43,8 +43,6 @@ public class DialogWindowService {
         return createLoginDialogSpec(
             key -> getPostJoinMessage(player, key),
             showRecovery,
-            false,
-            false,
             showBody);
     }
 
@@ -122,8 +120,6 @@ public class DialogWindowService {
 
     private DialogWindowSpec createLoginDialogSpec(Function<MessageKey, String> textResolver,
                                                    boolean showRecovery,
-                                                   boolean showCancelButton,
-                                                   boolean canCloseWithEscape,
                                                    boolean showBody) {
         List<DialogInputSpec> inputs = new ArrayList<>();
         inputs.add(new DialogInputSpec("password",
@@ -135,7 +131,6 @@ public class DialogWindowService {
                 DEFAULT_MAX_INPUT_LENGTH));
         }
 
-        boolean showSecondaryButton = showRecovery || showCancelButton;
         String secondaryLabel = showRecovery
             ? textResolver.apply(MessageKey.DIALOG_LOGIN_RECOVERY_BUTTON)
             : textResolver.apply(MessageKey.DIALOG_CANCEL_BUTTON);
@@ -145,8 +140,8 @@ public class DialogWindowService {
             inputs,
             textResolver.apply(MessageKey.DIALOG_LOGIN_BUTTON),
             secondaryLabel,
-            showSecondaryButton,
-            canCloseWithEscape,
+            showRecovery,
+            false,
             showRecovery ? "email recover $(email)" : null,
             showBody ? textResolver.apply(MessageKey.DIALOG_LOGIN_BODY) : null,
             commonService.getProperty(RegistrationSettings.DIALOG_STACK_BUTTONS_VERTICALLY));

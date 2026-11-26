@@ -1,6 +1,5 @@
 package fr.xephi.authme.security.crypts;
 
-import com.google.common.primitives.Ints;
 import fr.xephi.authme.ConsoleLogger;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.security.crypts.description.Recommendation;
@@ -8,7 +7,6 @@ import fr.xephi.authme.security.crypts.description.Usage;
 import fr.xephi.authme.settings.Settings;
 
 import javax.inject.Inject;
-import java.security.SecureRandom;
 import java.util.Base64;
 
 /**
@@ -33,30 +31,23 @@ public class Pbkdf2Base64 extends AbstractPbkdf2 {
     public String computeHash(String password, String salt, String name) {
         byte[] saltBytes = Base64.getDecoder().decode(salt);
         byte[] hash = deriveKey(password, saltBytes, numberOfRounds, HASH_BYTES);
-        return "pbkdf2$" + numberOfRounds + "$" + salt + "$" + Base64.getEncoder().encodeToString(hash);
+        return hashPrefix("pbkdf2", numberOfRounds, salt) + Base64.getEncoder().encodeToString(hash);
     }
 
     @Override
     public boolean comparePassword(String password, HashedPassword hashedPassword, String unusedName) {
-        String[] parts = hashedPassword.getHash().split("\\$");
-        if (parts.length != 4) {
+        HashParts parts = parseHash(hashedPassword, logger, "Pbkdf2Base64");
+        if (parts == null) {
             return false;
         }
-        Integer iterations = Ints.tryParse(parts[1]);
-        if (iterations == null) {
-            logger.warning("Cannot read number of rounds for Pbkdf2Base64: '" + parts[1] + "'");
-            return false;
-        }
-        byte[] saltBytes = Base64.getDecoder().decode(parts[2]);
-        byte[] expectedKey = Base64.getDecoder().decode(parts[3]);
-        return verifyKey(password, saltBytes, iterations, expectedKey);
+        byte[] saltBytes = Base64.getDecoder().decode(parts.salt);
+        byte[] expectedKey = Base64.getDecoder().decode(parts.hash);
+        return verifyKey(password, saltBytes, parts.iterations, expectedKey);
     }
 
     @Override
     public String generateSalt() {
-        byte[] salt = new byte[SALT_BYTES];
-        new SecureRandom().nextBytes(salt);
-        return Base64.getEncoder().encodeToString(salt);
+        return Base64.getEncoder().encodeToString(SaltBytes.random(SALT_BYTES));
     }
 
     @Override

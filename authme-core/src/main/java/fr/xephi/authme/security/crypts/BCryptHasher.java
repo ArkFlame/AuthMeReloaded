@@ -3,7 +3,6 @@ package fr.xephi.authme.security.crypts;
 import fr.xephi.authme.util.RandomStringUtils;
 import org.bouncycastle.crypto.generators.OpenBSDBCrypt;
 
-import java.security.SecureRandom;
 import java.util.Arrays;
 
 /**
@@ -31,8 +30,7 @@ public class BCryptHasher {
     }
 
     public HashedPassword hash(String password) {
-        byte[] salt = new byte[BYTES_IN_SALT];
-        new SecureRandom().nextBytes(salt);
+        byte[] salt = SaltBytes.random(BYTES_IN_SALT);
         String hash = OpenBSDBCrypt.generate(version, password.toCharArray(), salt, costFactor);
         return new HashedPassword(hash);
     }

@@ -12,10 +12,13 @@ import java.util.List;
 
 /**
  * Platform adapter implementation for Folia 1.21.11+.
- * Reuses the Paper-derived API surface exposed by Folia while delegating every task
- * dispatch to {@link FoliaTaskScheduler}, which preserves region-safe scheduling.
+ * Reuses the Paper-derived API surface exposed by Folia. Region ownership checks and
+ * entity-thread work go through {@link FoliaTaskScheduler}; global and asynchronous work
+ * is delegated to the core {@link SchedulerProvider} for Folia.
  */
 public class FoliaPlatformAdapter extends AbstractPaperPlatformAdapter {
+
+    private final SchedulerProvider scheduler = SchedulerProviders.folia();
 
     @Override
     public boolean isOwnedByCurrentThread(Entity entity) {
@@ -29,7 +32,7 @@ public class FoliaPlatformAdapter extends AbstractPaperPlatformAdapter {
 
     @Override
     public boolean isGlobalThread() {
-        return FoliaTaskScheduler.isGlobalThread();
+        return scheduler.isGlobalThread();
     }
 
     @Override
@@ -50,22 +53,22 @@ public class FoliaPlatformAdapter extends AbstractPaperPlatformAdapter {
 
     @Override
     public CancellableTask runAsyncTask(AuthMe plugin, Runnable task) {
-        return FoliaTaskScheduler.runAsyncTask(plugin, task);
+        return scheduler.runAsync(plugin, task);
     }
 
     @Override
     public CancellableTask runAsyncTaskTimer(AuthMe plugin, Runnable task, long delay, long period) {
-        return FoliaTaskScheduler.runAsyncTaskTimer(plugin, task, delay, period);
+        return scheduler.runAsyncTimer(plugin, task, delay, period);
     }
 
     @Override
     public void runOnGlobalThread(AuthMe plugin, Runnable task) {
-        FoliaTaskScheduler.runOnGlobalThread(plugin, task);
+        scheduler.runOnGlobalThread(plugin, task);
     }
 
     @Override
     public CancellableTask runDelayedOnGlobalThread(AuthMe plugin, Runnable task, long delay) {
-        return FoliaTaskScheduler.runDelayedOnGlobalThread(plugin, task, delay);
+        return scheduler.runDelayedOnGlobalThread(plugin, task, delay);
     }
 
     @Override

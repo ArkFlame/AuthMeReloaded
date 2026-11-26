@@ -8,20 +8,24 @@ package names are changed by that roadmap.
 
 ## Current modules
 
-The reactor always builds the modules below; the `java21-modules` profile adds the newer-platform
-modules on JDK 21+.
+The default reactor builds the modules marked **always** below; the `java21-modules` profile adds the
+modules marked **JDK 21+ profile** on JDK 21+ (Velocity itself needs JDK 25+ to compile).
 
-| Module | Packaging / bytecode | Purpose |
-| --- | --- | --- |
-| `authme-api` | jar, Java 8 | Public events only; depends on `spigot-api`, `joml` and `bungeecord-chat`. |
-| `authme-core` | jar, Java 8 (`core.java.version=8`) | Authentication logic, services, commands, data sources and platform abstractions. Tests run on the reactor JDK. |
-| `authme-tools` | jar, Java 17 (21 on JDK 21+) | Standalone converter/utility tooling built on core. |
-| `authme-spigot-1.8` | jar, Java 8 | Shaded old-server jar; carries 14 library relocations and uses the Bukkit scheduler. |
-| `authme-spigot-legacy` | jar, reactor JDK | Legacy server jar; libraries are delivered via `plugin.yml`. |
-| `authme-paper` | jar, Java 21 | One shaded jar for Paper and Folia; the Folia adapter is chosen only on Folia. |
-| `authme-spigot-1.21` | jar, Java 21 | Shaded modern Spigot jar (brigadier/dialog support). |
-| `authme-bungee` | jar, Java 21 | BungeeCord proxy plugin. |
-| `authme-velocity` | jar, Java 25 | Velocity proxy plugin. |
+| Module | Reactor | Packaging / bytecode | Purpose |
+| --- | --- | --- | --- |
+| `authme-api` | always | jar, Java 8 | Public events only; depends on `spigot-api`, `joml` and `bungeecord-chat`. |
+| `authme-core` | always | jar, Java 8 (`core.java.version=8`) | Authentication logic, services, commands, data sources and platform abstractions. Tests run on the reactor JDK. |
+| `authme-tools` | always | jar, Java 17 (21 on JDK 21+) | Standalone converter/utility tooling built on core. |
+| `authme-spigot-1.8` | always | jar, Java 8 | Shaded old-server jar; carries 14 library relocations and uses the Bukkit scheduler. |
+| `authme-spigot-legacy` | always | jar, reactor JDK | Legacy server jar; libraries are delivered via `plugin.yml`. |
+| `authme-paper` | JDK 21+ profile | jar, Java 21 | One shaded jar for Paper and Folia; the Folia adapter is chosen only on Folia. |
+| `authme-spigot-1.21` | JDK 21+ profile | jar, Java 21 | Shaded modern Spigot jar (brigadier/dialog support). |
+| `authme-bungee` | JDK 21+ profile | jar, Java 21 | BungeeCord proxy plugin. |
+| `authme-velocity` | JDK 21+ profile | jar, Java 25 | Velocity proxy plugin. |
+
+`authme-paper` is the merged Paper/Folia deliverable: its single `-Paper.jar` bundles both
+`PaperPlatformAdapter` and `FoliaPlatformAdapter` in one service file, and startup selects the Folia
+adapter when `RegionizedServer` is present. There is no separate Folia jar.
 
 Server jars differ mostly in packaging and in which platform adapter they bundle; the reusable code
 lives in core and the public surface in api. The different compiler levels are why old and new

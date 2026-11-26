@@ -60,7 +60,8 @@ Details: `docs/triage/batch-A.md`, `docs/triage/batch-B.md`.
 Full port log: `docs/triage/hahawth-ported.md`. Summary:
 
 * Already in ours: forced verification command, multi-IP `allowedRestrictedUser`, Hikari tuning, force-login state
-  fixes (PR #296 semantics incl. inventory), Folia (own module), converters (OpenLogin/nLogin/LibreLogin), zh-CN and
+  fixes (PR #296 semantics incl. inventory), Folia (merged into the single `authme-paper` jar and selected at
+  startup), converters (OpenLogin/nLogin/LibreLogin), zh-CN and
   pt-BR messages, per-client-language messages.
 * Ported: optional MiniMessage (`docs/minimessage.md`), email regex, email verification before `/changepassword`,
   unregister-unverified, anti-ghost listener.

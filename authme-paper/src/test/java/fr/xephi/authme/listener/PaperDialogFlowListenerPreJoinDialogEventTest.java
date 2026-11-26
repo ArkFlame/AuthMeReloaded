@@ -15,16 +15,17 @@ import io.papermc.paper.dialog.Dialog;
 import net.kyori.adventure.audience.Audience;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentMap;
 
+import static fr.xephi.authme.listener.PaperDialogFlowTestSupport.SESSION_ID;
+import static fr.xephi.authme.listener.PaperDialogFlowTestSupport.invokeBlockingMethod;
+import static fr.xephi.authme.listener.PaperDialogFlowTestSupport.pendingResponses;
+import static fr.xephi.authme.listener.PaperDialogFlowTestSupport.setField;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -41,8 +42,6 @@ import static org.mockito.Mockito.verify;
 /** Verifies that the pre-join dialog event is fired before the dialog and honours cancellation. */
 public class PaperDialogFlowListenerPreJoinDialogEventTest {
 
-    private static final long SESSION_ID = 42L;
-
     @Test
     public void shouldFireLoginEventOnceBeforeShowingDialog() throws Exception {
         Fixture fixture = new Fixture();
@@ -51,7 +50,7 @@ public class PaperDialogFlowListenerPreJoinDialogEventTest {
 
         try (var helperStatic = mockStatic(PaperDialogHelper.class)) {
             helperStatic.when(() -> PaperDialogHelper.createPreJoinLoginDialog(any())).thenReturn(null);
-            invokeBlockingMethod(fixture, "handleBlockingLoginDialog",
+            invokeBlockingMethod(fixture.listener, fixture.connection, "handleBlockingLoginDialog",
                 PlayerConfigurationConnection.class, long.class, String.class);
         }
 
@@ -73,7 +72,7 @@ public class PaperDialogFlowListenerPreJoinDialogEventTest {
         fixture.givenTimeout(RestrictionSettings.REGISTER_TIMEOUT, 0);
         fixture.answerDialogWithResponse("pendingRegisterResponses");
 
-        invokeBlockingMethod(fixture, "handleBlockingRegisterDialog",
+        invokeBlockingMethod(fixture.listener, fixture.connection, "handleBlockingRegisterDialog",
             PlayerConfigurationConnection.class, long.class, String.class, Dialog.class);
 
         assertThat(fixture.events.size(), is(1));
@@ -97,7 +96,7 @@ public class PaperDialogFlowListenerPreJoinDialogEventTest {
 
         try (var helperStatic = mockStatic(PaperDialogHelper.class)) {
             helperStatic.when(() -> PaperDialogHelper.createPreJoinLoginDialog(any())).thenReturn(null);
-            invokeBlockingMethod(fixture, "handleBlockingLoginDialog",
+            invokeBlockingMethod(fixture.listener, fixture.connection, "handleBlockingLoginDialog",
                 PlayerConfigurationConnection.class, long.class, String.class);
         }
 
@@ -118,7 +117,7 @@ public class PaperDialogFlowListenerPreJoinDialogEventTest {
 
         try (var helperStatic = mockStatic(PaperDialogHelper.class)) {
             helperStatic.when(() -> PaperDialogHelper.createPreJoinLoginDialog(any())).thenReturn(null);
-            invokeBlockingMethod(fixture, "handleBlockingLoginDialog",
+            invokeBlockingMethod(fixture.listener, fixture.connection, "handleBlockingLoginDialog",
                 PlayerConfigurationConnection.class, long.class, String.class);
         }
 
@@ -126,16 +125,6 @@ public class PaperDialogFlowListenerPreJoinDialogEventTest {
         verify(fixture.audience).showDialog(any());
     }
 
-    private static void invokeBlockingMethod(Fixture fixture, String name,
-                                             Class<?>... parameterTypes) throws Exception {
-        Method method = PaperDialogFlowListener.class.getDeclaredMethod(name, parameterTypes);
-        method.setAccessible(true);
-        if (parameterTypes.length == 3) {
-            method.invoke(fixture.listener, fixture.connection, SESSION_ID, "Bobby");
-        } else {
-            method.invoke(fixture.listener, fixture.connection, SESSION_ID, "Bobby", null);
-        }
-    }
 
     private static final class Fixture {
         final PaperDialogFlowListener listener = new PaperDialogFlowListener();
@@ -177,7 +166,7 @@ public class PaperDialogFlowListenerPreJoinDialogEventTest {
 
         void answerDialogWithResponse(String responseField) {
             willAnswer(invocation -> {
-                CompletableFuture<String> future = responses(responseField).get(SESSION_ID);
+                CompletableFuture<String> future = pendingResponses(listener, responseField).get(SESSION_ID);
                 if (future != null) {
                     future.complete(null);
                 }
@@ -185,17 +174,6 @@ public class PaperDialogFlowListenerPreJoinDialogEventTest {
             }).given(audience).showDialog(any());
         }
 
-        @SuppressWarnings("unchecked")
-        private ConcurrentMap<Long, CompletableFuture<String>> responses(String responseField) throws Exception {
-            Field field = PaperDialogFlowListener.class.getDeclaredField(responseField);
-            field.setAccessible(true);
-            return (ConcurrentMap<Long, CompletableFuture<String>>) field.get(listener);
-        }
     }
 
-    private static void setField(Object target, String fieldName, Object value) throws Exception {
-        Field field = target.getClass().getDeclaredField(fieldName);
-        field.setAccessible(true);
-        field.set(target, value);
-    }
 }

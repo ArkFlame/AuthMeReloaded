@@ -50,7 +50,7 @@ class LimboPlayerViewer implements DebugSection {
     @Override
     public void execute(CommandSender sender, List<String> arguments) {
         if (arguments.isEmpty()) {
-            sender.sendMessage(ChatColor.BLUE + "AuthMe limbo viewer");
+            sendTitle(sender, "limbo viewer");
             sender.sendMessage("/authme debug limbo <player>: show a player's limbo info");
             sender.sendMessage("Available limbo records: " + applyToLimboPlayersMap(limboService, Map::keySet));
             return;

@@ -2,13 +2,11 @@ package fr.xephi.authme.listener;
 
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
-import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.event.entity.EntityEvent;
 import org.bukkit.event.entity.EntityInteractEvent;
 import org.bukkit.event.entity.EntityRegainHealthEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
@@ -20,20 +18,11 @@ import org.bukkit.event.vehicle.VehicleDamageEvent;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
 import org.bukkit.projectiles.ProjectileSource;
 
-import javax.inject.Inject;
-
-public class EntityListener implements Listener {
-
-    private final ListenerService listenerService;
-
-    @Inject
-    EntityListener(ListenerService listenerService) {
-        this.listenerService = listenerService;
-    }
+public class EntityListener extends AbstractCancelListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onDamage(EntityDamageEvent event) {
-        if (listenerService.shouldCancelEvent(event)) {
+        if (getListenerService().shouldCancelEvent(event)) {
             event.getEntity().setFireTicks(0);
             event.setDamage(0);
             event.setCancelled(true);
@@ -42,14 +31,14 @@ public class EntityListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onAttack(EntityDamageByEntityEvent event) {
-        if (listenerService.shouldCancelEvent(event.getDamager())) {
+        if (getListenerService().shouldCancelEvent(event.getDamager())) {
             event.setCancelled(true);
         }
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onEntityTarget(EntityTargetEvent event) {
-        if (listenerService.shouldCancelEvent(event.getTarget())) {
+        if (getListenerService().shouldCancelEvent(event.getTarget())) {
             event.setTarget(null);
             event.setCancelled(true);
         }
@@ -62,7 +51,7 @@ public class EntityListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void entityRegainHealthEvent(EntityRegainHealthEvent event) {
-        if (listenerService.shouldCancelEvent(event)) {
+        if (getListenerService().shouldCancelEvent(event)) {
             event.setAmount(0);
             event.setCancelled(true);
         }
@@ -85,7 +74,7 @@ public class EntityListener implements Listener {
         final Projectile projectile = event.getEntity();
 
         ProjectileSource shooter = projectile.getShooter();
-        if (shooter instanceof Player && listenerService.shouldCancelEvent((Player) shooter)) {
+        if (shooter instanceof Player && getListenerService().shouldCancelEvent((Player) shooter)) {
             event.setCancelled(true);
         }
     }
@@ -97,28 +86,22 @@ public class EntityListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onHangingBreakByEntity(HangingBreakByEntityEvent event) {
-        if (listenerService.shouldCancelEvent(event.getRemover())) {
+        if (getListenerService().shouldCancelEvent(event.getRemover())) {
             event.setCancelled(true);
         }
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onVehicleDamage(VehicleDamageEvent event) {
-        if (listenerService.shouldCancelEvent(event.getAttacker())) {
+        if (getListenerService().shouldCancelEvent(event.getAttacker())) {
             event.setCancelled(true);
         }
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onVehicleDestroy(VehicleDestroyEvent event) {
-        if (listenerService.shouldCancelEvent(event.getAttacker())) {
+        if (getListenerService().shouldCancelEvent(event.getAttacker())) {
             event.setCancelled(true);
-        }
-    }
-
-    private void cancelIfUnauthorized(EntityEvent event) {
-        if (listenerService.shouldCancelEvent(event)) {
-            ((Cancellable) event).setCancelled(true);
         }
     }
 }

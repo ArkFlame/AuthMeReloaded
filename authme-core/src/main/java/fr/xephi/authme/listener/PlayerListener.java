@@ -28,13 +28,11 @@ import org.bukkit.entity.EnderPearl;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
-import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.entity.EntityEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
@@ -44,7 +42,6 @@ import org.bukkit.event.player.PlayerBedEnterEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerEditBookEvent;
-import org.bukkit.event.player.PlayerEvent;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
@@ -74,7 +71,7 @@ import static fr.xephi.authme.settings.properties.RestrictionSettings.ALLOW_UNAU
 /**
  * Listener class for player events.
  */
-public class PlayerListener implements Listener {
+public class PlayerListener extends AbstractCancelListener implements Listener {
 
     @Inject
     private Settings settings;
@@ -90,8 +87,6 @@ public class PlayerListener implements Listener {
     private SpawnLoader spawnLoader;
     @Inject
     private OnJoinVerifier onJoinVerifier;
-    @Inject
-    private ListenerService listenerService;
     @Inject
     private TeleportationService teleportationService;
     @Inject
@@ -250,7 +245,7 @@ public class PlayerListener implements Listener {
         if (settings.getProperty(RegistrationSettings.REMOVE_LEAVE_MESSAGE)) {
             event.setQuitMessage(null);
         } else if (settings.getProperty(RegistrationSettings.REMOVE_UNLOGGED_LEAVE_MESSAGE)) {
-            if (listenerService.shouldCancelEvent(event)) {
+            if (getListenerService().shouldCancelEvent(event)) {
                 event.setQuitMessage(null);
             }
         }
@@ -258,7 +253,7 @@ public class PlayerListener implements Listener {
         try {
             // Save in-flight ender pearls and vehicle state to disk so they can be restored on reconnect.
             // Only authenticated players can throw pearls or ride vehicles, so we skip unauthenticated ones.
-            if (!listenerService.shouldCancelEvent(player)) {
+            if (!getListenerService().shouldCancelEvent(player)) {
                 saveStateBeforeQuit(player);
             }
 
@@ -351,7 +346,7 @@ public class PlayerListener implements Listener {
         // allocate a new capturing predicate for every chat event.
         Set<Player> recipients = event.getRecipients();
         for (Iterator<Player> it = recipients.iterator(); it.hasNext(); ) {
-            if (listenerService.shouldCancelEvent(it.next())) {
+            if (getListenerService().shouldCancelEvent(it.next())) {
                 it.remove();
             }
         }
@@ -367,7 +362,7 @@ public class PlayerListener implements Listener {
         }
 
         final Player player = event.getPlayer();
-        if (!listenerService.shouldCancelEvent(player)
+        if (!getListenerService().shouldCancelEvent(player)
             || permissionsManager.hasPermission(player, PlayerStatePermission.ALLOW_CHAT_BEFORE_LOGIN)) {
             // Read HIDE_CHAT only on the path that actually needs it.
             if (settings.getProperty(RestrictionSettings.HIDE_CHAT)) {
@@ -397,7 +392,7 @@ public class PlayerListener implements Listener {
             player.kickPlayer(messages.retrieveSingle(player, MessageKey.QUICK_COMMAND_PROTECTION_KICK));
             return;
         }
-        if (listenerService.shouldCancelEvent(player)) {
+        if (getListenerService().shouldCancelEvent(player)) {
             event.setCancelled(true);
             messages.send(player, MessageKey.DENIED_COMMAND);
         }
@@ -434,7 +429,7 @@ public class PlayerListener implements Listener {
         }
 
         Player player = event.getPlayer();
-        if (!listenerService.shouldCancelEvent(player)) {
+        if (!getListenerService().shouldCancelEvent(player)) {
             return;
         }
 
@@ -473,7 +468,7 @@ public class PlayerListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onPlayerTeleport(PlayerTeleportEvent event) {
-        if (isBlockedTeleportCause(event.getCause()) && listenerService.shouldCancelEvent(event)) {
+        if (isBlockedTeleportCause(event.getCause()) && getListenerService().shouldCancelEvent(event)) {
             event.setCancelled(true);
         }
     }
@@ -501,7 +496,7 @@ public class PlayerListener implements Listener {
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onPlayerRespawn(PlayerRespawnEvent event) {
         Player player = event.getPlayer();
-        if (!listenerService.shouldCancelEvent(event)) {
+        if (!getListenerService().shouldCancelEvent(event)) {
             return;
         }
         if (!settings.getProperty(RestrictionSettings.NO_TELEPORT)) {
@@ -608,7 +603,7 @@ public class PlayerListener implements Listener {
     public void onPlayerInventoryOpen(InventoryOpenEvent event) {
         final HumanEntity player = event.getPlayer();
 
-        if (listenerService.shouldCancelEvent(player)
+        if (getListenerService().shouldCancelEvent(player)
             && !isInventoryWhitelisted(event.getView())) {
             event.setCancelled(true);
 
@@ -622,7 +617,7 @@ public class PlayerListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onPlayerInventoryClick(InventoryClickEvent event) {
-        if (listenerService.shouldCancelEvent(event.getWhoClicked())
+        if (getListenerService().shouldCancelEvent(event.getWhoClicked())
             && !isInventoryWhitelisted(event.getView())) {
             event.setCancelled(true);
         }
@@ -630,33 +625,10 @@ public class PlayerListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onPlayerInventoryDrag(InventoryDragEvent event) {
-        if (listenerService.shouldCancelEvent(event.getWhoClicked())
+        if (getListenerService().shouldCancelEvent(event.getWhoClicked())
             && !isInventoryWhitelisted(event.getView())) {
             event.setCancelled(true);
         }
     }
 
-    /*
-     * Shared bodies for the simple "cancel if the player is not authenticated" handlers.
-     * The overloads preserve the ListenerService overload used by each event kind; the
-     * cancellation itself is handled in one place.
-     */
-
-    private <E extends PlayerEvent & Cancellable> void cancelIfUnauthorized(E event) {
-        cancelEvent(listenerService.shouldCancelEvent(event), event);
-    }
-
-    private <E extends EntityEvent & Cancellable> void cancelIfUnauthorized(E event) {
-        cancelEvent(listenerService.shouldCancelEvent(event), event);
-    }
-
-    private void cancelIfUnauthorized(Player player, Cancellable event) {
-        cancelEvent(listenerService.shouldCancelEvent(player), event);
-    }
-
-    private static void cancelEvent(boolean shouldCancel, Cancellable event) {
-        if (shouldCancel) {
-            event.setCancelled(true);
-        }
-    }
 }

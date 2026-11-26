@@ -1,6 +1,5 @@
 package fr.xephi.authme.listener;
 
-import com.destroystokyo.paper.profile.PlayerProfile;
 import fr.xephi.authme.data.captcha.RegistrationCaptchaManager;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.message.Messages;
@@ -21,11 +20,14 @@ import io.papermc.paper.event.player.PlayerCustomClickEvent;
 import net.kyori.adventure.audience.Audience;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Field;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentMap;
 
+import static fr.xephi.authme.listener.PaperDialogFlowTestSupport.SESSION_ID;
+import static fr.xephi.authme.listener.PaperDialogFlowTestSupport.connectionSessions;
+import static fr.xephi.authme.listener.PaperDialogFlowTestSupport.mockConnection;
+import static fr.xephi.authme.listener.PaperDialogFlowTestSupport.pendingResponses;
+import static fr.xephi.authme.listener.PaperDialogFlowTestSupport.setField;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -39,8 +41,6 @@ import static org.mockito.Mockito.verify;
 
 /** Registration dialogs must honour the registration captcha requirement. */
 public class PaperDialogFlowListenerIssue3088Test {
-
-    private static final long SESSION_ID = 42L;
 
     @Test
     public void shouldRejectRegisterDialogSubmissionWhileCaptchaIsRequired() throws Exception {
@@ -72,9 +72,9 @@ public class PaperDialogFlowListenerIssue3088Test {
             List.of(new DialogInputSpec("password", "Password", 100)), "Register", "Cancel", false, false, null));
 
         CompletableFuture<String> future = new CompletableFuture<>();
-        PlayerConfigurationConnection connection = mockConnection(audience);
+        PlayerConfigurationConnection connection = mockConnection("Bobby", audience);
         connectionSessions(listener).put(connection, SESSION_ID);
-        pendingResponses(listener).put(SESSION_ID, future);
+        pendingResponses(listener, "pendingRegisterResponses").put(SESSION_ID, future);
 
         DialogResponseView responseView = mock(DialogResponseView.class);
         given(responseView.getText("password")).willReturn("securePassword");
@@ -97,34 +97,4 @@ public class PaperDialogFlowListenerIssue3088Test {
         }
     }
 
-    private static PlayerConfigurationConnection mockConnection(Audience audience) {
-        PlayerProfile profile = mock(PlayerProfile.class);
-        given(profile.getName()).willReturn("Bobby");
-        PlayerConfigurationConnection connection = mock(PlayerConfigurationConnection.class);
-        given(connection.getProfile()).willReturn(profile);
-        given(connection.getAudience()).willReturn(audience);
-        return connection;
-    }
-
-    @SuppressWarnings("unchecked")
-    private static ConcurrentMap<PlayerConfigurationConnection, Long> connectionSessions(
-        PaperDialogFlowListener listener) throws Exception {
-        Field field = PaperDialogFlowListener.class.getDeclaredField("connectionSessions");
-        field.setAccessible(true);
-        return (ConcurrentMap<PlayerConfigurationConnection, Long>) field.get(listener);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static ConcurrentMap<Long, CompletableFuture<String>> pendingResponses(
-        PaperDialogFlowListener listener) throws Exception {
-        Field field = PaperDialogFlowListener.class.getDeclaredField("pendingRegisterResponses");
-        field.setAccessible(true);
-        return (ConcurrentMap<Long, CompletableFuture<String>>) field.get(listener);
-    }
-
-    private static void setField(Object target, String fieldName, Object value) throws Exception {
-        Field field = target.getClass().getDeclaredField(fieldName);
-        field.setAccessible(true);
-        field.set(target, value);
-    }
 }

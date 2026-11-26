@@ -18,6 +18,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static fr.xephi.authme.platform.BrigadierTestSupport.command;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
@@ -25,7 +26,6 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.WARN)
@@ -143,14 +143,4 @@ public class PaperBrigadierCommandRegistrarTest {
         return List.of(authmeBase, loginBase, emailBase);
     }
 
-    private static CommandDescription command(List<String> labels, String description,
-                                              List<CommandArgumentDescription> arguments,
-                                              List<CommandDescription> children) {
-        CommandDescription command = mock(CommandDescription.class);
-        lenient().when(command.getLabels()).thenReturn(labels);
-        lenient().when(command.getDescription()).thenReturn(description);
-        lenient().when(command.getArguments()).thenReturn(arguments);
-        lenient().when(command.getChildren()).thenReturn(children);
-        return command;
-    }
 }

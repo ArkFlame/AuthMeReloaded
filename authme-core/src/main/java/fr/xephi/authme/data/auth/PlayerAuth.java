@@ -5,7 +5,6 @@ import org.bukkit.Location;
 
 import java.util.Locale;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -257,29 +256,27 @@ public class PlayerAuth {
         public PlayerAuth build() {
             PlayerAuth auth = new PlayerAuth();
             auth.nickname = checkNotNull(name).toLowerCase(Locale.ROOT);
-            auth.realName = Optional.ofNullable(realName).orElse("Player");
-            auth.password = Optional.ofNullable(password).orElse(new HashedPassword(""));
+            auth.realName = realName == null ? "Player" : realName;
+            // Use a null check rather than Optional.orElse: orElse would allocate a default
+            // HashedPassword even when a real password was supplied.
+            auth.password = password == null ? new HashedPassword("") : password;
             auth.totpKey = totpKey;
             auth.email = DB_EMAIL_DEFAULT.equals(email) ? null : email;
             auth.lastIp = lastIp; // Don't check against default value 127.0.0.1 as it may be a legit value
             auth.groupId = groupId;
-            auth.lastLogin = isEqualTo(lastLogin, DB_LAST_LOGIN_DEFAULT) ? null : lastLogin;
+            auth.lastLogin = lastLogin != null && lastLogin == DB_LAST_LOGIN_DEFAULT ? null : lastLogin;
             auth.registrationIp = registrationIp;
             auth.registrationDate = registrationDate == null ? System.currentTimeMillis() : registrationDate;
 
             auth.x = x;
             auth.y = y;
             auth.z = z;
-            auth.world = Optional.ofNullable(world).orElse("world");
+            auth.world = world == null ? "world" : world;
             auth.yaw = yaw;
             auth.pitch = pitch;
             auth.uuid = uuid;
             auth.premiumUuid = premiumUuid;
             return auth;
-        }
-
-        private static boolean isEqualTo(Long value, long defaultValue) {
-            return value != null && defaultValue == value;
         }
 
         public Builder name(String name) {

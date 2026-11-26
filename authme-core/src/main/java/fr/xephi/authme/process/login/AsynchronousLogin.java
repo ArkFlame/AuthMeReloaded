@@ -112,20 +112,26 @@ public class AsynchronousLogin implements AsynchronousProcess {
         String name = player.getName();
         String lowerCaseName = name.toLowerCase(Locale.ROOT);
         PlayerAuth auth = getPlayerAuth(player, lowerCaseName, false);
-        if (auth != null && checkPlayerInfo(player, name, lowerCaseName, auth, password)) {
-            if (auth.getTotpKey() != null) {
-                LimboPlayer limbo = limboService.getLimboPlayer(player);
-                if (limbo == null) {
-                    service.send(player, MessageKey.LOGIN_MESSAGE);
-                    return;
-                }
-                limboService.resetMessageTask(player, LimboMessageType.TOTP_CODE);
-                limbo.setState(LimboPlayerState.TOTP_REQUIRED);
-                showTotpDialogIfEnabled(player);
-                // TODO #1141: Check if we should check limbo state before processing password
-            } else {
-                performLogin(player, auth);
+        if (auth == null) {
+            return;
+        }
+        // Resolve the IP once for the whole login call and pass it to every check that needs it
+        String ip = PlayerUtils.getPlayerIp(player);
+        if (!canLogin(player, ip, false) || !checkPlayerInfo(player, name, lowerCaseName, ip, auth, password)) {
+            return;
+        }
+        if (auth.getTotpKey() != null) {
+            LimboPlayer limbo = limboService.getLimboPlayer(player);
+            if (limbo == null) {
+                service.send(player, MessageKey.LOGIN_MESSAGE);
+                return;
             }
+            limboService.resetMessageTask(player, LimboMessageType.TOTP_CODE);
+            limbo.setState(LimboPlayerState.TOTP_REQUIRED);
+            showTotpDialogIfEnabled(player);
+            // TODO #1141: Check if we should check limbo state before processing password
+        } else {
+            doPerformLogin(player, name, ip, auth, false);
         }
     }
 
@@ -139,7 +145,10 @@ public class AsynchronousLogin implements AsynchronousProcess {
         String lowerCaseName = name.toLowerCase(Locale.ROOT);
         PlayerAuth auth = getPlayerAuth(player, lowerCaseName, false);
         if (auth != null) {
-            performLogin(player, auth);
+            String ip = PlayerUtils.getPlayerIp(player);
+            if (canLogin(player, ip, false)) {
+                doPerformLogin(player, name, ip, auth, false);
+            }
         }
     }
 
@@ -155,7 +164,10 @@ public class AsynchronousLogin implements AsynchronousProcess {
         String lowerCaseName = name.toLowerCase(Locale.ROOT);
         PlayerAuth auth = getPlayerAuth(player, lowerCaseName, true);
         if (auth != null) {
-            doPerformLogin(player, name, auth, true);
+            String ip = PlayerUtils.getPlayerIp(player);
+            if (canLogin(player, ip, true)) {
+                doPerformLogin(player, name, ip, auth, true);
+            }
         }
     }
 
@@ -194,22 +206,29 @@ public class AsynchronousLogin implements AsynchronousProcess {
             }
             return null;
         }
+        return auth;
+    }
 
-        String ip = PlayerUtils.getPlayerIp(player);
+    /**
+     * Checks the per-IP limit and fires the pre-login event, using the IP address already resolved
+     * for this login call.
+     *
+     * @param player the player to check
+     * @param ip the IP address of the player, resolved once for this login call
+     * @param quiet don't send messages
+     * @return true if the player may log in, false otherwise
+     */
+    private boolean canLogin(Player player, String ip, boolean quiet) {
         if (hasReachedMaxLoggedInPlayersForIp(player, ip)) {
             if (!quiet) {
                 service.send(player, MessageKey.ALREADY_LOGGED_IN_ERROR);
             }
-            return null;
+            return false;
         }
-
         boolean isAsync = service.getProperty(PluginSettings.USE_ASYNC_TASKS);
         AuthMeAsyncPreLoginEvent event = new AuthMeAsyncPreLoginEvent(player, isAsync);
         bukkitService.callEvent(event);
-        if (!event.canLogin()) {
-            return null;
-        }
-        return auth;
+        return event.canLogin();
     }
 
     /**
@@ -218,12 +237,13 @@ public class AsynchronousLogin implements AsynchronousProcess {
      * @param player the player requesting to log in
      * @param name the player's name, resolved once for this login call
      * @param lowerCaseName the lower-case name, resolved once for this login call
+     * @param ip the IP address of the player, resolved once for this login call
      * @param auth the PlayerAuth object of the player
      * @param password the password supplied by the player
      * @return true if the password matches and all other conditions are met (e.g. no captcha required),
      *         false otherwise
      */
-    private boolean checkPlayerInfo(Player player, String name, String lowerCaseName, PlayerAuth auth,
+    private boolean checkPlayerInfo(Player player, String name, String lowerCaseName, String ip, PlayerAuth auth,
                                     String password) {
         // If captcha is required send a message to the player and deny to log in
         if (loginCaptchaManager.isCaptchaRequired(lowerCaseName)) {
@@ -231,8 +251,6 @@ public class AsynchronousLogin implements AsynchronousProcess {
                 loginCaptchaManager.getCaptchaCodeOrGenerateNew(lowerCaseName));
             return false;
         }
-
-        String ip = PlayerUtils.getPlayerIp(player);
 
         // Increase the counts here before knowing the result of the login.
         loginCaptchaManager.increaseLoginFailureCount(lowerCaseName);
@@ -299,15 +317,18 @@ public class AsynchronousLogin implements AsynchronousProcess {
      * @param auth the associated PlayerAuth object
      */
     public void performLogin(Player player, PlayerAuth auth) {
-        doPerformLogin(player, player.getName(), auth, false);
+        // Callers outside the login flow have no IP resolved yet; doPerformLogin resolves it lazily
+        doPerformLogin(player, player.getName(), null, auth, false);
     }
 
-    private void doPerformLogin(Player player, String name, PlayerAuth auth, boolean proxyInitiated) {
+    private void doPerformLogin(Player player, String name, String ip, PlayerAuth auth, boolean proxyInitiated) {
         if (player.isOnline()) {
             boolean isFirstLogin = (auth.getLastLogin() == null);
 
             // Update auth to reflect this new login
-            String ip = PlayerUtils.getPlayerIp(player);
+            if (ip == null) {
+                ip = PlayerUtils.getPlayerIp(player);
+            }
             auth.setRealName(name);
             auth.setLastLogin(System.currentTimeMillis());
             auth.setLastIp(ip);

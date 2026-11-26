@@ -13,7 +13,6 @@ import com.velocitypowered.api.event.player.ServerConnectedEvent;
 import com.velocitypowered.api.event.player.ServerPreConnectEvent;
 import com.velocitypowered.api.event.player.configuration.PlayerEnterConfigurationEvent;
 import com.velocitypowered.api.event.player.configuration.PlayerEnteredConfigurationEvent;
-import com.velocitypowered.api.proxy.ConnectionRequestBuilder;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.ServerConnection;
@@ -97,7 +96,7 @@ final class VelocityProxyBridge {
     }
 
     private void loadPremiumNamesCache() {
-        Set<String> loaded = new HashSet<>();
+        Set<String> loaded = ConcurrentHashMap.newKeySet();
         try (BufferedReader reader = Files.newBufferedReader(cacheFile, StandardCharsets.UTF_8)) {
             String line;
             while ((line = reader.readLine()) != null) {
@@ -106,9 +105,7 @@ final class VelocityProxyBridge {
                     loaded.add(name);
                 }
             }
-            Set<String> newSet = ConcurrentHashMap.newKeySet();
-            newSet.addAll(loaded);
-            premiumUsernames = newSet;
+            premiumUsernames = loaded;
             logger.info("Loaded {} premium username(s) from cache", loaded.size());
         } catch (NoSuchFileException ignored) {
             // No cache yet — first startup
@@ -316,9 +313,7 @@ final class VelocityProxyBridge {
         } else if (parsedMessage.type() == ProxyMessageType.PREMIUM_LIST) {
             Set<String> newPremiumSet = ConcurrentHashMap.newKeySet();
             addNormalizedPremiumNames(newPremiumSet, parsedMessage.playerName());
-            premiumUsernames = newPremiumSet;
-            logger.info("Premium list received from backend: {} premium player(s)", premiumUsernames.size());
-            savePremiumNamesAsync();
+            replacePremiumNames(newPremiumSet);
         } else if (parsedMessage.type() == ProxyMessageType.PREMIUM_LIST_CHUNK) {
             handlePremiumListChunk(parsedMessage.playerName());
         }
@@ -351,12 +346,16 @@ final class VelocityProxyBridge {
         if ("1".equals(parts[1])) {
             Set<String> newPremiumSet = ConcurrentHashMap.newKeySet();
             newPremiumSet.addAll(premiumListBuffer);
-            premiumUsernames = newPremiumSet;
             premiumListBuffer = new ArrayList<>();
             expectedPremiumListChunk = -1;
-            logger.info("Premium list received from backend: {} premium player(s)", premiumUsernames.size());
-            savePremiumNamesAsync();
+            replacePremiumNames(newPremiumSet);
         }
+    }
+
+    private void replacePremiumNames(Set<String> names) {
+        premiumUsernames = names;
+        logger.info("Premium list received from backend: {} premium player(s)", premiumUsernames.size());
+        savePremiumNamesAsync();
     }
 
     private static void addNormalizedPremiumNames(Collection<String> target, String csv) {
@@ -472,11 +471,10 @@ final class VelocityProxyBridge {
         if (sent) {
             logger.info("Sending auto-login request to server '{}' for player {} (verifiedPremiumUuid={})",
                 serverName, normalizedName, verifiedPremiumUuid);
-            initiatePendingLogin(normalizedName);
         } else {
             logger.warn("Failed to send auto-login request to server '{}' for player {}; scheduling retry", serverName, normalizedName);
-            initiatePendingLogin(normalizedName);
         }
+        initiatePendingLogin(normalizedName);
     }
 
     void onPreLogin(PreLoginEvent event) {
@@ -613,13 +611,14 @@ final class VelocityProxyBridge {
         if (!notifiedAuthServers.add(serverName)) {
             return;
         }
+        byte[] payload = createProxyStartedMessage();
         // Try via the specific triggering connection first to avoid the race condition where
         // ServerConnectedEvent fires before the player is added to RegisteredServer.playersConnected.
         boolean sent = triggeringConnection != null
-            ? triggeringConnection.sendPluginMessage(AUTHME_CHANNEL, createProxyStartedMessage())
-            : server.sendPluginMessage(AUTHME_CHANNEL, createProxyStartedMessage());
+            ? triggeringConnection.sendPluginMessage(AUTHME_CHANNEL, payload)
+            : server.sendPluginMessage(AUTHME_CHANNEL, payload);
         if (!sent) {
-            sent = server.sendPluginMessage(AUTHME_CHANNEL, createProxyStartedMessage());
+            sent = server.sendPluginMessage(AUTHME_CHANNEL, payload);
         }
         if (sent) {
             logger.info("Sent deferred proxy.started handshake to auth server '{}'", serverName);
@@ -752,8 +751,7 @@ final class VelocityProxyBridge {
         }
 
         logger.info("Redirecting {} to server '{}' after logout", normalizedPlayerName, configuration.sendOnLogoutTarget());
-        ConnectionRequestBuilder connectionRequest = player.get().createConnectionRequest(targetServer.get());
-        connectionRequest.fireAndForget();
+        player.get().createConnectionRequest(targetServer.get()).fireAndForget();
     }
 
     private record ParsedMessage(ProxyMessageType type, String playerName) {

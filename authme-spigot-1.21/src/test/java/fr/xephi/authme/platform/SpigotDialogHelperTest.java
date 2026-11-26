@@ -93,90 +93,46 @@ public class SpigotDialogHelperTest {
 
     @Test
     public void showRegisterDialogWithPasswordAndNoSecondArgSendsPasswordTemplate() {
-        // given
-        Player player = mock(Player.class);
-        DialogWindowSpec dialog = createDialogSpec("Register", "Password", "Register");
-
-        // when
-        SpigotDialogHelper.showRegisterDialog(player, RegistrationType.PASSWORD, RegisterSecondaryArgument.NONE, dialog);
-
-        // then
-        RunCommandAction action = captureRunCommandAction(player);
-        assertThat(action.template(), is("register $(password)"));
+        assertRegisterTemplate("Password", RegistrationType.PASSWORD, RegisterSecondaryArgument.NONE,
+            "register $(password)");
     }
 
     @Test
     public void showRegisterDialogWithPasswordAndConfirmationSendsPasswordConfirmTemplate() {
-        // given
-        Player player = mock(Player.class);
-        DialogWindowSpec dialog = createDialogSpec("Register", "Password", "Register");
-
-        // when
-        SpigotDialogHelper.showRegisterDialog(player, RegistrationType.PASSWORD,
-            RegisterSecondaryArgument.CONFIRMATION, dialog);
-
-        // then
-        RunCommandAction action = captureRunCommandAction(player);
-        assertThat(action.template(), is("register $(password) $(confirm)"));
+        assertRegisterTemplate("Password", RegistrationType.PASSWORD, RegisterSecondaryArgument.CONFIRMATION,
+            "register $(password) $(confirm)");
     }
 
     @Test
     public void showRegisterDialogWithPasswordAndEmailMandatorySendsPasswordEmailTemplate() {
-        // given
-        Player player = mock(Player.class);
-        DialogWindowSpec dialog = createDialogSpec("Register", "Password", "Register");
-
-        // when
-        SpigotDialogHelper.showRegisterDialog(player, RegistrationType.PASSWORD,
-            RegisterSecondaryArgument.EMAIL_MANDATORY, dialog);
-
-        // then
-        RunCommandAction action = captureRunCommandAction(player);
-        assertThat(action.template(), is("register $(password) $(email)"));
+        assertRegisterTemplate("Password", RegistrationType.PASSWORD, RegisterSecondaryArgument.EMAIL_MANDATORY,
+            "register $(password) $(email)");
     }
 
     @Test
     public void showRegisterDialogWithPasswordAndEmailOptionalSendsPasswordEmailTemplate() {
-        // given
-        Player player = mock(Player.class);
-        DialogWindowSpec dialog = createDialogSpec("Register", "Password", "Register");
-
-        // when
-        SpigotDialogHelper.showRegisterDialog(player, RegistrationType.PASSWORD,
-            RegisterSecondaryArgument.EMAIL_OPTIONAL, dialog);
-
-        // then
-        RunCommandAction action = captureRunCommandAction(player);
-        assertThat(action.template(), is("register $(password) $(email)"));
+        assertRegisterTemplate("Password", RegistrationType.PASSWORD, RegisterSecondaryArgument.EMAIL_OPTIONAL,
+            "register $(password) $(email)");
     }
 
     @Test
     public void showRegisterDialogWithEmailAndNoSecondArgSendsEmailTemplate() {
-        // given
-        Player player = mock(Player.class);
-        DialogWindowSpec dialog = createDialogSpec("Register", "Email", "Register");
-
-        // when
-        SpigotDialogHelper.showRegisterDialog(player, RegistrationType.EMAIL, RegisterSecondaryArgument.NONE, dialog);
-
-        // then
-        RunCommandAction action = captureRunCommandAction(player);
-        assertThat(action.template(), is("register $(email)"));
+        assertRegisterTemplate("Email", RegistrationType.EMAIL, RegisterSecondaryArgument.NONE,
+            "register $(email)");
     }
 
     @Test
     public void showRegisterDialogWithEmailAndConfirmationSendsEmailConfirmTemplate() {
-        // given
+        assertRegisterTemplate("Email", RegistrationType.EMAIL, RegisterSecondaryArgument.CONFIRMATION,
+            "register $(email) $(confirm)");
+    }
+
+    private static void assertRegisterTemplate(String inputLabel, RegistrationType type,
+                                               RegisterSecondaryArgument secondArg, String expectedTemplate) {
         Player player = mock(Player.class);
-        DialogWindowSpec dialog = createDialogSpec("Register", "Email", "Register");
-
-        // when
-        SpigotDialogHelper.showRegisterDialog(player, RegistrationType.EMAIL,
-            RegisterSecondaryArgument.CONFIRMATION, dialog);
-
-        // then
-        RunCommandAction action = captureRunCommandAction(player);
-        assertThat(action.template(), is("register $(email) $(confirm)"));
+        DialogWindowSpec dialog = createDialogSpec("Register", inputLabel, "Register");
+        SpigotDialogHelper.showRegisterDialog(player, type, secondArg, dialog);
+        assertThat(captureRunCommandAction(player).template(), is(expectedTemplate));
     }
 
     private static RunCommandAction captureRunCommandAction(Player player) {

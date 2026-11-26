@@ -282,15 +282,9 @@ class BungeeReceiverTest {
     @Test
     void shouldSendEmptyPremiumListOnProxyStartedWhenPremiumIsDisabled() {
         // given
-        given(settings.getProperty(HooksSettings.BUNGEECORD)).willReturn(true);
         given(settings.getProperty(PremiumSettings.ENABLE_PREMIUM)).willReturn(false);
-        setBukkitServiceToRunTaskAsynchronously(bukkitService);
-        setBukkitServiceToScheduleSyncTaskFromOptionallyAsyncTask(bukkitService);
-
         Player carrier = mock(Player.class);
-        given(bukkitService.getOnlinePlayers()).willReturn(List.of(carrier));
-
-        BungeeReceiver receiver = newReceiver();
+        BungeeReceiver receiver = receiverForProxyStartedNotification(carrier);
 
         // when
         receiver.onPluginMessageReceived("authme:main", carrier, buildProxyStartedPayload("velocity"));
@@ -303,21 +297,24 @@ class BungeeReceiverTest {
     @Test
     void shouldSendEmptyPremiumListOnProxyStartedWhenNoPremiumUsersAreStored() {
         // given
-        given(settings.getProperty(HooksSettings.BUNGEECORD)).willReturn(true);
         given(dataSource.getPremiumUsernames()).willReturn(List.of());
-        setBukkitServiceToRunTaskAsynchronously(bukkitService);
-        setBukkitServiceToScheduleSyncTaskFromOptionallyAsyncTask(bukkitService);
-
         Player carrier = mock(Player.class);
-        given(bukkitService.getOnlinePlayers()).willReturn(List.of(carrier));
-
-        BungeeReceiver receiver = newReceiver();
+        BungeeReceiver receiver = receiverForProxyStartedNotification(carrier);
 
         // when
         receiver.onPluginMessageReceived("authme:main", carrier, buildProxyStartedPayload("velocity"));
 
         // then
         verify(bungeeSender).sendPremiumList(carrier, List.of());
+    }
+
+    /** Sets up the common stub state for a proxy-started notification with one online player. */
+    private BungeeReceiver receiverForProxyStartedNotification(Player carrier) {
+        given(settings.getProperty(HooksSettings.BUNGEECORD)).willReturn(true);
+        setBukkitServiceToRunTaskAsynchronously(bukkitService);
+        setBukkitServiceToScheduleSyncTaskFromOptionallyAsyncTask(bukkitService);
+        given(bukkitService.getOnlinePlayers()).willReturn(List.of(carrier));
+        return newReceiver();
     }
 
     @Test

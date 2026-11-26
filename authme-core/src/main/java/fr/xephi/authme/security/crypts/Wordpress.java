@@ -73,9 +73,8 @@ public class Wordpress extends UnsaltedMethod {
 
     @Override
     public String computeHash(String password) {
-        byte random[] = new byte[6];
-        randomGen.nextBytes(random);
-        return crypt(password, gensaltPrivate(new String(random).getBytes(StandardCharsets.UTF_8)));
+        return crypt(password, gensaltPrivate(new String(SaltBytes.random(6, randomGen))
+            .getBytes(StandardCharsets.UTF_8)));
     }
 
     @Override

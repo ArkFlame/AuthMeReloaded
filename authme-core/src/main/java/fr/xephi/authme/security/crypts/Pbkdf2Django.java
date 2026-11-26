@@ -1,6 +1,5 @@
 package fr.xephi.authme.security.crypts;
 
-import com.google.common.primitives.Ints;
 import fr.xephi.authme.ConsoleLogger;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.security.crypts.description.AsciiRestricted;
@@ -19,25 +18,19 @@ public class Pbkdf2Django extends HexSaltedMethod {
     public String computeHash(String password, String salt, String name) {
         byte[] derived = AbstractPbkdf2.deriveKey(password, salt.getBytes(StandardCharsets.US_ASCII),
             DEFAULT_ITERATIONS, HASH_BYTES, StandardCharsets.US_ASCII);
-        return "pbkdf2_sha256$" + DEFAULT_ITERATIONS + "$" + salt + "$"
+        return AbstractPbkdf2.hashPrefix("pbkdf2_sha256", DEFAULT_ITERATIONS, salt)
             + Base64.getEncoder().encodeToString(derived);
     }
 
     @Override
     public boolean comparePassword(String password, HashedPassword hashedPassword, String unusedName) {
-        String[] line = hashedPassword.getHash().split("\\$");
-        if (line.length != 4) {
+        AbstractPbkdf2.HashParts parts = AbstractPbkdf2.parseHash(hashedPassword, logger, "Pbkdf2Django");
+        if (parts == null) {
             return false;
         }
-        Integer iterations = Ints.tryParse(line[1]);
-        if (iterations == null) {
-            logger.warning("Cannot read number of rounds for Pbkdf2Django: '" + line[1] + "'");
-            return false;
-        }
-        String salt = line[2];
-        byte[] expected = Base64.getDecoder().decode(line[3]);
-        return AbstractPbkdf2.verifyKey(password, salt.getBytes(StandardCharsets.US_ASCII),
-            iterations, expected, StandardCharsets.US_ASCII);
+        byte[] expected = Base64.getDecoder().decode(parts.hash);
+        return AbstractPbkdf2.verifyKey(password, parts.salt.getBytes(StandardCharsets.US_ASCII),
+            parts.iterations, expected, StandardCharsets.US_ASCII);
     }
 
     @Override

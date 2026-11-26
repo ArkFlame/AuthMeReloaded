@@ -15,7 +15,11 @@ import org.bukkit.event.Listener;
 import javax.inject.Inject;
 
 /**
- * Shared async chat listener logic for Paper-derived platforms.
+ * Shared async chat listener logic for Paper-derived platforms. All chat handling lives here so that
+ * the Paper and Folia listeners only have to extend this class to be registered on their platform.
+ *
+ * @see PaperChatListener
+ * @see FoliaChatListener
  */
 public abstract class AbstractPaperAsyncChatListener implements Listener {
 

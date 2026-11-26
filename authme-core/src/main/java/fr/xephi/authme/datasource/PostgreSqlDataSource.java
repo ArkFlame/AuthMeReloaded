@@ -88,6 +88,7 @@ public class PostgreSqlDataSource extends AbstractHikariSqlDataSource {
         this.sqlExtension = extensionsFactory.buildExtension(col);
         this.poolSize = settings.getProperty(DatabaseSettings.MYSQL_POOL_SIZE);
         this.maxLifetime = settings.getProperty(DatabaseSettings.MYSQL_CONNECTION_MAX_LIFETIME);
+        initSqlStrings();
     }
 
     /**
