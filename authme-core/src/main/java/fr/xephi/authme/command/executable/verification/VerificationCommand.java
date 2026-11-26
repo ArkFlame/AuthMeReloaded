@@ -35,23 +35,21 @@ public class VerificationCommand extends PlayerCommand {
         }
 
         if (codeManager.isVerificationRequired(player)) {
-            if (codeManager.isCodeRequired(playerName)) {
-                if (codeManager.checkCode(playerName, arguments.get(0))) {
-                    commonService.send(player, MessageKey.VERIFICATION_CODE_VERIFIED);
-                } else {
-                    commonService.send(player, MessageKey.INCORRECT_VERIFICATION_CODE);
-                }
-            } else {
+            if (!codeManager.isCodeRequired(playerName)) {
                 commonService.send(player, MessageKey.VERIFICATION_CODE_EXPIRED);
+                return;
             }
-        } else {
-            if (codeManager.hasEmail(playerName)) {
-                commonService.send(player, MessageKey.VERIFICATION_CODE_ALREADY_VERIFIED);
-            } else {
-                commonService.send(player, MessageKey.VERIFICATION_CODE_EMAIL_NEEDED);
-                commonService.send(player, MessageKey.ADD_EMAIL_MESSAGE);
-            }
+            commonService.send(player, codeManager.checkCode(playerName, arguments.get(0))
+                ? MessageKey.VERIFICATION_CODE_VERIFIED : MessageKey.INCORRECT_VERIFICATION_CODE);
+            return;
         }
+
+        if (codeManager.hasEmail(playerName)) {
+            commonService.send(player, MessageKey.VERIFICATION_CODE_ALREADY_VERIFIED);
+            return;
+        }
+        commonService.send(player, MessageKey.VERIFICATION_CODE_EMAIL_NEEDED);
+        commonService.send(player, MessageKey.ADD_EMAIL_MESSAGE);
     }
 
     @Override

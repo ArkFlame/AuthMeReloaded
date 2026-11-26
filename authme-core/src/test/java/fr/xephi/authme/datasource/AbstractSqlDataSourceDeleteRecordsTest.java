@@ -8,6 +8,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
@@ -38,17 +39,17 @@ class AbstractSqlDataSourceDeleteRecordsTest {
 
     @Test
     void shouldBatchDeleteLowercasedNamesInOneStatement() throws SQLException {
-        // given
-        PreparedStatement statement = mock(PreparedStatement.class);
-        given(connection.prepareStatement(SQL)).willReturn(statement);
-
-        // when
-        dataSource.deleteRecords(connection, SQL, Arrays.asList("Alice", "BOB"));
-
-        // then
+        PreparedStatement statement = delete(Arrays.asList("Alice", "BOB"));
         verify(statement).setString(1, "alice");
         verify(statement).setString(1, "bob");
         verify(statement, times(2)).addBatch();
         verify(statement).executeBatch();
+    }
+
+    private PreparedStatement delete(List<String> names) throws SQLException {
+        PreparedStatement statement = mock(PreparedStatement.class);
+        given(connection.prepareStatement(SQL)).willReturn(statement);
+        dataSource.deleteRecords(connection, SQL, names);
+        return statement;
     }
 }

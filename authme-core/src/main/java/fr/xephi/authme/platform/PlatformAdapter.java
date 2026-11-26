@@ -20,7 +20,6 @@ public interface PlatformAdapter extends TeleportAdapter, ChatAdapter, EventRegi
      * Returns an error message if this platform adapter does not support the current server,
      * or null if the server is compatible.
      *
-     * @return the compatibility error message, or null if compatible
      */
     default String getCompatibilityError() {
         return null;

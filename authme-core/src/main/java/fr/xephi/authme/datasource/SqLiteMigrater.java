@@ -106,14 +106,11 @@ class SqLiteMigrater {
             + col.LASTLOC_WORLD + ", " + col.LASTLOC_PITCH + ", " + col.LASTLOC_YAW;
         try (Statement st = connection.createStatement()) {
             String copySql = "INSERT INTO " + tableName + " (" + baseColumns + ", " + col.LAST_IP + ", "
-                + col.LAST_LOGIN + ", " + col.REGISTRATION_IP + ", " + col.REGISTRATION_DATE + ", "
-                + locationColumns + ", " + col.EMAIL + ", " + col.IS_LOGGED + ")"
-                + " SELECT " + baseColumns + ","
-                + " CASE WHEN " + col.LAST_IP + " = '127.0.0.1' OR " + col.LAST_IP + " = '' THEN NULL else "
-                + col.LAST_IP + " END,"
-                + " " + col.LAST_LOGIN + ", " + col.REGISTRATION_IP + ", " + col.REGISTRATION_DATE + ", "
-                + locationColumns + ","
-                + " CASE WHEN " + col.EMAIL + " = 'your@email.com' THEN NULL ELSE " + col.EMAIL + " END, "
+                + col.LAST_LOGIN + ", " + col.REGISTRATION_IP + ", " + col.REGISTRATION_DATE + ", " + locationColumns
+                + ", " + col.EMAIL + ", " + col.IS_LOGGED + ") SELECT " + baseColumns + ", CASE WHEN " + col.LAST_IP
+                + " = '127.0.0.1' OR " + col.LAST_IP + " = '' THEN NULL else " + col.LAST_IP + " END, "
+                + col.LAST_LOGIN + ", " + col.REGISTRATION_IP + ", " + col.REGISTRATION_DATE + ", " + locationColumns
+                + ", CASE WHEN " + col.EMAIL + " = 'your@email.com' THEN NULL ELSE " + col.EMAIL + " END, "
                 + col.IS_LOGGED + " FROM " + tempTable + ";";
             int insertedEntries = st.executeUpdate(copySql);
             logger.info("Copied over " + insertedEntries + " from the old table to the new one");
