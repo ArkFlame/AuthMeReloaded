@@ -20,6 +20,8 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
@@ -33,6 +35,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static fr.xephi.authme.IsEqualByReflectionMatcher.hasEqualValuesOnAllFields;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -163,14 +166,13 @@ class AuthMeApiTest {
     void shouldGetLastIp() {
         // given
         String name = "Gabriel";
-        Player player = mockPlayerWithName(name);
         PlayerAuth auth = PlayerAuth.builder().name(name)
             .lastIp("93.23.44.55")
             .build();
         given(playerCache.getAuth(name)).willReturn(auth);
 
         // when
-        String result = api.getLastIp(player.getName());
+        String result = api.getLastIp(name);
 
         // then
         assertThat(result, equalTo("93.23.44.55"));
@@ -280,36 +282,28 @@ class AuthMeApiTest {
         assertThat(result, equalTo(true));
     }
 
-    @Test
-    void shouldReturnAuthNames() {
+    @ParameterizedTest
+    @MethodSource("registeredNameCases")
+    void shouldReturnRegisteredNames(String[] names, boolean realNames) {
         // given
-        String[] names = {"bobby", "peter", "elisabeth", "craig"};
         List<PlayerAuth> auths = Arrays.stream(names)
-            .map(name -> PlayerAuth.builder().name(name).build())
+            .map(name -> realNames
+                ? PlayerAuth.builder().name(name).realName(name).build()
+                : PlayerAuth.builder().name(name).build())
             .collect(Collectors.toList());
         given(dataSource.getAllAuths()).willReturn(auths);
 
         // when
-        List<String> result = api.getRegisteredNames();
+        List<String> result = realNames ? api.getRegisteredRealNames() : api.getRegisteredNames();
 
         // then
         assertThat(result, contains(names));
     }
 
-    @Test
-    void shouldReturnAuthRealNames() {
-        // given
-        String[] names = {"Bobby", "peter", "Elisabeth", "CRAIG"};
-        List<PlayerAuth> auths = Arrays.stream(names)
-            .map(name -> PlayerAuth.builder().name(name).realName(name).build())
-            .collect(Collectors.toList());
-        given(dataSource.getAllAuths()).willReturn(auths);
-
-        // when
-        List<String> result = api.getRegisteredRealNames();
-
-        // then
-        assertThat(result, contains(names));
+    private static Stream<Arguments> registeredNameCases() {
+        return Stream.of(
+            Arguments.of(new String[]{"bobby", "peter", "elisabeth", "craig"}, false),
+            Arguments.of(new String[]{"Bobby", "peter", "Elisabeth", "CRAIG"}, true));
     }
 
     @Test

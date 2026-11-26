@@ -5,8 +5,10 @@ import ch.jalu.datasourcecolumns.data.DataSourceValue;
 import ch.jalu.datasourcecolumns.data.DataSourceValueImpl;
 import ch.jalu.datasourcecolumns.data.DataSourceValues;
 import ch.jalu.datasourcecolumns.predicate.AlwaysTruePredicate;
+import ch.jalu.datasourcecolumns.predicate.Predicate;
 import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.datasource.columnshandler.AuthMeColumns;
+import fr.xephi.authme.datasource.columnshandler.ColumnContext;
 import fr.xephi.authme.datasource.columnshandler.DataSourceColumn;
 import fr.xephi.authme.datasource.mysqlextensions.MySqlExtension;
 import fr.xephi.authme.datasource.columnshandler.AuthMeColumnsHandler;
@@ -32,10 +34,7 @@ import static ch.jalu.datasourcecolumns.predicate.StandardPredicates.eqIgnoreCas
 import static ch.jalu.datasourcecolumns.predicate.StandardPredicates.isNotNull;
 import static fr.xephi.authme.datasource.SqlDataSourceUtils.logSqlException;
 
-/**
- * Common type for SQL-based data sources. Classes implementing this
- * must ensure that {@link #columnsHandler} is initialized on creation.
- */
+/** Common type for SQL-based data sources. Subclasses must initialize {@link #columnsHandler} on creation. */
 public abstract class AbstractSqlDataSource implements DataSource {
 
     protected AuthMeColumnsHandler columnsHandler;
@@ -55,11 +54,8 @@ public abstract class AbstractSqlDataSource implements DataSource {
     private String findRecordsToPurgeSql;
 
     /**
-     * Initializes the SQL strings shared by all SQL data sources. Must be called once the
-     * table name and the column names have been assigned.
-     *
-     * @param authNameCondition the dialect-specific condition for matching a name in a lookup
-     * @param purgeFunction the SQL aggregate used to pick the latest activity timestamp when purging
+     * Initializes the SQL strings shared by all SQL data sources. Requires the table name and column
+     * names to be assigned, plus the dialect's name-matching condition and purge aggregate function.
      */
     protected void initSqlStrings(String authNameCondition, String purgeFunction) {
         findAllSql = "SELECT * FROM " + tableName + ";";
@@ -143,12 +139,7 @@ public abstract class AbstractSqlDataSource implements DataSource {
 
     @Override
     public List<String> getAllAuthsByIp(String ip) {
-        try {
-            return columnsHandler.retrieve(eq(AuthMeColumns.LAST_IP, ip), AuthMeColumns.NAME);
-        } catch (SQLException e) {
-            logSqlException(e);
-            return Collections.emptyList();
-        }
+        return retrieveNames(eq(AuthMeColumns.LAST_IP, ip));
     }
 
     @Override
@@ -203,12 +194,7 @@ public abstract class AbstractSqlDataSource implements DataSource {
 
     @Override
     public List<String> getPremiumUsernames() {
-        try {
-            return columnsHandler.retrieve(isNotNull(AuthMeColumns.PREMIUM_UUID), AuthMeColumns.NAME);
-        } catch (SQLException e) {
-            logSqlException(e);
-            return Collections.emptyList();
-        }
+        return retrieveNames(isNotNull(AuthMeColumns.PREMIUM_UUID));
     }
 
     @Override
@@ -226,9 +212,17 @@ public abstract class AbstractSqlDataSource implements DataSource {
         }
     }
 
-    /**
-     * Reads the names of all records to purge. The caller keeps ownership of the connection.
-     */
+    /** Returns the names of all rows matching the given predicate, or an empty list on SQL errors. */
+    private List<String> retrieveNames(Predicate<ColumnContext> predicate) {
+        try {
+            return columnsHandler.retrieve(predicate, AuthMeColumns.NAME);
+        } catch (SQLException e) {
+            logSqlException(e);
+            return Collections.emptyList();
+        }
+    }
+
+    /** Reads the names of all records to purge; the caller keeps ownership of the connection. */
     protected Set<String> findRecordsToPurge(Connection con, String sql, long until) throws SQLException {
         Set<String> names = new HashSet<>();
         try (PreparedStatement pst = con.prepareStatement(sql)) {
@@ -242,9 +236,7 @@ public abstract class AbstractSqlDataSource implements DataSource {
         return names;
     }
 
-    /**
-     * Deletes all records whose names are in the given collection. The caller keeps ownership of the connection.
-     */
+    /** Deletes all records whose names are in the given collection; the caller keeps ownership of the connection. */
     protected void deleteRecords(Connection con, String sql, Collection<String> names) throws SQLException {
         if (names.isEmpty()) {
             return;
@@ -258,9 +250,7 @@ public abstract class AbstractSqlDataSource implements DataSource {
         }
     }
 
-    /**
-     * Reads the real names of logged-in players with an empty email address.
-     */
+    /** Reads the real names of logged-in players with an empty email address. */
     protected List<String> findLoggedWithEmptyMail(Connection con, String sql) throws SQLException {
         List<String> players = new ArrayList<>();
         try (PreparedStatement pst = con.prepareStatement(sql); ResultSet rs = pst.executeQuery()) {
@@ -271,9 +261,7 @@ public abstract class AbstractSqlDataSource implements DataSource {
         return players;
     }
 
-    /**
-     * Updates the TOTP key of the given user.
-     */
+    /** Updates the TOTP key of the given user. */
     protected boolean updateTotpKey(Connection con, String sql, String user, String totpKey) throws SQLException {
         try (PreparedStatement pst = con.prepareStatement(sql)) {
             pst.setString(1, totpKey);
@@ -283,16 +271,12 @@ public abstract class AbstractSqlDataSource implements DataSource {
         }
     }
 
-    /**
-     * Adds a column with the given definition to this data source's table.
-     */
+    /** Adds a column with the given definition to this data source's table. */
     protected void addColumn(Statement st, String column, String definition) throws SQLException {
         alterTable(st, "ADD COLUMN " + column + " " + definition);
     }
 
-    /**
-     * Adds a column with the given definition to this data source's table if it is not there yet.
-     */
+    /** Adds a column with the given definition to this data source's table if it is not there yet. */
     protected void addColumnIfAbsent(DatabaseMetaData md, Statement st, String column, String definition)
         throws SQLException {
         if (isColumnMissing(md, column)) {
@@ -309,22 +293,15 @@ public abstract class AbstractSqlDataSource implements DataSource {
         }
     }
 
-    /**
-     * Executes an ALTER TABLE statement against this data source's table.
-     */
+    /** Executes an ALTER TABLE statement against this data source's table. */
     protected void alterTable(Statement st, String alteration) throws SQLException {
         st.executeUpdate("ALTER TABLE " + tableName + " " + alteration);
     }
 
-    /**
-     * Returns whether the given column is absent from the table metadata. Each database decides
-     * which catalog to inspect and how to normalize the column name before the lookup.
-     */
+    /** Returns whether the given column is absent from the table metadata. */
     protected abstract boolean isColumnMissing(DatabaseMetaData metaData, String columnName) throws SQLException;
 
-    /**
-     * Returns whether the given integer flag column is set to 1 for the user.
-     */
+    /** Returns whether the given integer flag column is set to 1 for the user. */
     private boolean isFlagSet(String user, DataSourceColumn<Integer> column) {
         try {
             DataSourceValue<Integer> result = columnsHandler.retrieve(user, column);

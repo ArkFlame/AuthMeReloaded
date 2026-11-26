@@ -743,34 +743,25 @@ class PlayerListenerTest {
             Arguments.of("keep quit message", false, false, "quit message"));
     }
 
-    @Test
-    void shouldRestoreLimboDataSynchronouslyOnQuitOfPlayerInLimbo() {
+    @ParameterizedTest(name = "has limbo player: {0}")
+    @ValueSource(booleans = {true, false})
+    void shouldRestoreStateOnQuit(boolean hasLimboPlayer) {
         Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
         mockLeaveMessagesDisabled();
         given(listenerService.shouldCancelEvent(player)).willReturn(true);
-        given(limboService.hasLimboPlayer(player)).willReturn(true);
+        given(limboService.hasLimboPlayer(player)).willReturn(hasLimboPlayer);
         PlayerQuitEvent event = new PlayerQuitEvent(player, "quit");
 
         listener.onPlayerQuit(event);
 
-        verify(limboService).restoreData(player);
-        verify(limboService, never()).restoreSpeedSync(player);
-        verify(management).performQuit(player);
-    }
-
-    @Test
-    void shouldRestoreRevokedOperatorOnQuitOfPlayerWithoutLimbo() {
-        Player player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
-        mockLeaveMessagesDisabled();
-        given(listenerService.shouldCancelEvent(player)).willReturn(true);
-        given(limboService.hasLimboPlayer(player)).willReturn(false);
-        PlayerQuitEvent event = new PlayerQuitEvent(player, "quit");
-
-        listener.onPlayerQuit(event);
-
-        verify(limboService).restorePendingOperator(player);
-        verify(limboService).restoreSpeedSync(player);
-        verify(limboService, never()).restoreData(player);
+        if (hasLimboPlayer) {
+            verify(limboService).restoreData(player);
+            verify(limboService, never()).restoreSpeedSync(player);
+        } else {
+            verify(limboService).restorePendingOperator(player);
+            verify(limboService).restoreSpeedSync(player);
+            verify(limboService, never()).restoreData(player);
+        }
         verify(management).performQuit(player);
     }
 
@@ -834,13 +825,9 @@ class PlayerListenerTest {
     }
 
     @Test
-    void shouldHandleInventoryClick() {
+    void shouldHandleInventoryClickAndDrag() {
         verifyCancellation(InventoryClickEvent.class, InventoryClickEvent::getWhoClicked,
             listener::onPlayerInventoryClick, event -> verify(event, only()).getWhoClicked());
-    }
-
-    @Test
-    void shouldHandleInventoryDrag() {
         verifyCancellation(InventoryDragEvent.class, InventoryDragEvent::getWhoClicked,
             listener::onPlayerInventoryDrag, event -> verify(event, only()).getWhoClicked());
     }
@@ -886,34 +873,27 @@ class PlayerListenerTest {
         verifyAllowedEvent.accept(allowedEvent);
     }
 
-    @Test
-    void shouldAllowInventoryOpen() {
+    @ParameterizedTest(name = "shouldCancel={0}")
+    @ValueSource(booleans = {false, true})
+    void shouldHandleInventoryOpen(boolean shouldCancel) {
         HumanEntity player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
         InventoryView transaction = mock(InventoryView.class, withSettings().mockMaker(MockMakers.INLINE));
         InventoryOpenEvent event = new InventoryOpenEvent(transaction);
         given(event.getPlayer()).willReturn(player);
-        given(listenerService.shouldCancelEvent(player)).willReturn(false);
+        given(listenerService.shouldCancelEvent(player)).willReturn(shouldCancel);
+        if (shouldCancel) {
+            given(settings.getProperty(RestrictionSettings.UNRESTRICTED_INVENTORIES)).willReturn(Collections.emptySet());
+            setBukkitServiceToScheduleSyncDelayedTaskWithEntityAndDelay(bukkitService);
+        }
 
         listener.onPlayerInventoryOpen(event);
 
-        assertThat(event.isCancelled(), equalTo(false));
-        verifyNoInteractions(bukkitService);
-    }
-
-    @Test
-    void shouldCancelInventoryOpen() {
-        HumanEntity player = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
-        InventoryView transaction = mock(InventoryView.class, withSettings().mockMaker(MockMakers.INLINE));
-        given(settings.getProperty(RestrictionSettings.UNRESTRICTED_INVENTORIES)).willReturn(Collections.emptySet());
-        InventoryOpenEvent event = new InventoryOpenEvent(transaction);
-        given(event.getPlayer()).willReturn(player);
-        given(listenerService.shouldCancelEvent(player)).willReturn(true);
-        setBukkitServiceToScheduleSyncDelayedTaskWithEntityAndDelay(bukkitService);
-
-        listener.onPlayerInventoryOpen(event);
-
-        assertThat(event.isCancelled(), equalTo(true));
-        verify(player).closeInventory();
+        assertThat(event.isCancelled(), equalTo(shouldCancel));
+        if (shouldCancel) {
+            verify(player).closeInventory();
+        } else {
+            verifyNoInteractions(bukkitService);
+        }
     }
 
     @ParameterizedTest(name = "{0}")

@@ -178,8 +178,9 @@ public class PremiumService implements HasCleanup {
 
     private void finishEnablePremiumAdmin(CommandSender sender, String playerName, PlayerAuth auth, UUID mojangUuid) {
         Player onlinePlayer = bukkitService.getPlayerExact(playerName);
+        UUID onlineUuid = onlinePlayer == null ? null : onlinePlayer.getUniqueId();
         // If someone is online with that name but a different UUID, they are an impostor — kick them
-        if (onlinePlayer != null && !mojangUuid.equals(onlinePlayer.getUniqueId())) {
+        if (onlineUuid != null && !mojangUuid.equals(onlineUuid)) {
             kickPlayerWithMessage(onlinePlayer, MessageKey.PREMIUM_ADMIN_KICK_REASON);
             messages.send(sender, MessageKey.PREMIUM_ADMIN_IMPOSTOR_KICKED, playerName);
         }
@@ -187,8 +188,7 @@ public class PremiumService implements HasCleanup {
         // If the online player has a UUID v4 equal to the Mojang UUID the server/proxy already
         // verified their identity; save directly. Otherwise hold as pending and require the
         // player to reconnect so the crypto Mojang session check can confirm ownership.
-        if (onlinePlayer != null && onlinePlayer.getUniqueId().version() == 4
-                && mojangUuid.equals(onlinePlayer.getUniqueId())) {
+        if (onlineUuid != null && onlineUuid.version() == 4 && mojangUuid.equals(onlineUuid)) {
             if (savePremiumUuid(auth, mojangUuid, playerName, true)) {
                 messages.send(sender, MessageKey.PREMIUM_ADMIN_ENABLE_SUCCESS, playerName);
             } else {
@@ -236,10 +236,6 @@ public class PremiumService implements HasCleanup {
             messages.send(sender, MessageKey.PREMIUM_ERROR);
             return;
         }
-        finishDisablePremiumAdmin(sender, playerName, auth);
-    }
-
-    private void finishDisablePremiumAdmin(CommandSender sender, String playerName, PlayerAuth auth) {
         bungeeSender.sendPremiumUnset(playerName);
         playerCache.updatePlayerIfPresent(auth);
 
@@ -247,7 +243,6 @@ public class PremiumService implements HasCleanup {
         if (onlinePlayer != null) {
             kickPlayerWithMessage(onlinePlayer, MessageKey.PREMIUM_ADMIN_KICK_REASON);
         }
-
         messages.send(sender, MessageKey.PREMIUM_ADMIN_DISABLE_SUCCESS, playerName);
     }
 

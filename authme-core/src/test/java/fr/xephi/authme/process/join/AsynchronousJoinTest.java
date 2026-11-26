@@ -88,52 +88,29 @@ public class AsynchronousJoinTest {
     @InjectMocks
     private AsynchronousJoin asynchronousJoin;
 
-    @Mock
-    private DataSource database;
-    @Mock
-    private CommonService service;
-    @Mock
-    private LimboService limboService;
-    @Mock
-    private PluginHookService pluginHookService;
-    @Mock
-    private BukkitService bukkitService;
-    @Mock
-    private AsynchronousLogin asynchronousLogin;
-    @Mock
-    private AsyncRegister asyncRegister;
-    @Mock
-    private CommandManager commandManager;
-    @Mock
-    private ValidationService validationService;
-    @Mock
-    private WelcomeMessageConfiguration welcomeMessageConfiguration;
-    @Mock
-    private SessionService sessionService;
-    @Mock
-    private PlayerCache playerCache;
-    @Mock
-    private BungeeSender bungeeSender;
-    @Mock
-    private ProxySessionManager proxySessionManager;
-    @Mock
-    private DialogAdapter dialogAdapter;
-    @Mock
-    private DialogWindowService dialogWindowService;
-    @Mock
-    private DialogStateService dialogStateService;
-    @Mock
-    private PreJoinDialogService preJoinDialogService;
-    @Mock
-    private PremiumLoginVerifier premiumLoginVerifier;
-    @Mock
-    private PendingPremiumCache pendingPremiumCache;
-    @Mock
-    private PremiumService premiumService;
-    @Mock
-    private FloodgateService floodgateService;
-    @Mock
-    private ProxyLoginRequestValidator proxyLoginRequestValidator;
+    @Mock private DataSource database;
+    @Mock private CommonService service;
+    @Mock private LimboService limboService;
+    @Mock private PluginHookService pluginHookService;
+    @Mock private BukkitService bukkitService;
+    @Mock private AsynchronousLogin asynchronousLogin;
+    @Mock private AsyncRegister asyncRegister;
+    @Mock private CommandManager commandManager;
+    @Mock private ValidationService validationService;
+    @Mock private WelcomeMessageConfiguration welcomeMessageConfiguration;
+    @Mock private SessionService sessionService;
+    @Mock private PlayerCache playerCache;
+    @Mock private BungeeSender bungeeSender;
+    @Mock private ProxySessionManager proxySessionManager;
+    @Mock private DialogAdapter dialogAdapter;
+    @Mock private DialogWindowService dialogWindowService;
+    @Mock private DialogStateService dialogStateService;
+    @Mock private PreJoinDialogService preJoinDialogService;
+    @Mock private PremiumLoginVerifier premiumLoginVerifier;
+    @Mock private PendingPremiumCache pendingPremiumCache;
+    @Mock private PremiumService premiumService;
+    @Mock private FloodgateService floodgateService;
+    @Mock private ProxyLoginRequestValidator proxyLoginRequestValidator;
 
     private PlayerAuth auth;
 

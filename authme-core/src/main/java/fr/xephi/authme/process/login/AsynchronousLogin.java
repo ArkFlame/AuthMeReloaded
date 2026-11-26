@@ -351,22 +351,18 @@ public class AsynchronousLogin implements AsynchronousProcess {
     }
 
     private void notifyOnlinePlayersAboutAccounts(String playerName, int accountCount, String message) {
-        String[] selfHeaderArgs = {Integer.toString(accountCount)};
-        String[] otherHeaderArgs = {playerName, Integer.toString(accountCount)};
+        String countArg = Integer.toString(accountCount);
         for (Player onlinePlayer : bukkitService.getOnlinePlayers()) {
-            MessageKey headerKey;
-            String[] headerArgs;
+            String header;
             if (onlinePlayer.getName().equalsIgnoreCase(playerName)
                 && service.hasPermission(onlinePlayer, PlayerPermission.SEE_OWN_ACCOUNTS)) {
-                headerKey = MessageKey.ACCOUNTS_OWNED_SELF;
-                headerArgs = selfHeaderArgs;
+                header = service.retrieveSingleMessage(onlinePlayer, MessageKey.ACCOUNTS_OWNED_SELF, countArg);
             } else if (service.hasPermission(onlinePlayer, AdminPermission.SEE_OTHER_ACCOUNTS)) {
-                headerKey = MessageKey.ACCOUNTS_OWNED_OTHER;
-                headerArgs = otherHeaderArgs;
+                header = service.retrieveSingleMessage(onlinePlayer, MessageKey.ACCOUNTS_OWNED_OTHER,
+                    playerName, countArg);
             } else {
                 continue;
             }
-            String header = service.retrieveSingleMessage(onlinePlayer, headerKey, headerArgs);
             bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(onlinePlayer, () -> {
                 onlinePlayer.sendMessage(header);
                 onlinePlayer.sendMessage(message);

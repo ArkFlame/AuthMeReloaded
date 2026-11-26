@@ -39,7 +39,6 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
-import java.util.Objects;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
@@ -229,8 +228,7 @@ public class GeoIpService {
             }
 
             String hash = connection.getHeaderField("X-Database-MD5");
-            String rawModifiedDate = connection.getHeaderField("Last-Modified");
-            Instant modifiedDate = parseModifiedDate(rawModifiedDate);
+            Instant modifiedDate = parseModifiedDate(connection.getHeaderField("Last-Modified"));
             Files.copy(connection.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
             Files.setLastModifiedTime(destination, FileTime.from(modifiedDate));
             return hash;
@@ -301,8 +299,7 @@ public class GeoIpService {
             throw new IOException("Invalid or missing MaxMind checksum header");
         }
         HashCode actualHash = function.hashBytes(Files.readAllBytes(file));
-        HashCode expectedHash = HashCode.fromString(expectedChecksum);
-        if (!Objects.equals(actualHash, expectedHash)) {
+        if (!actualHash.equals(HashCode.fromString(expectedChecksum))) {
             throw new IOException("GEO IP Checksum verification failed. "
                 + "Expected: " + expectedChecksum + "Actual:" + actualHash);
         }
@@ -317,8 +314,8 @@ public class GeoIpService {
      */
     private void extractDatabase(Path inputFile, Path outputFile) throws IOException {
         // .gz -> gzipped file
-        try (BufferedInputStream in = new BufferedInputStream(Files.newInputStream(inputFile));
-             GZIPInputStream gzipIn = new GZIPInputStream(in)) {
+        try (GZIPInputStream gzipIn = new GZIPInputStream(
+                new BufferedInputStream(Files.newInputStream(inputFile)))) {
 
             // found the database file and copy file
             Files.copy(gzipIn, outputFile, StandardCopyOption.REPLACE_EXISTING);

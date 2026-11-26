@@ -248,11 +248,8 @@ public class LimboService {
     /** Returns the player's persisted limbo, or a fresh one capturing his current state if none exists. */
     private LimboPlayer getOrCreateLimbo(Player player) {
         LimboPlayer limbo = persistence.getLimboPlayer(player);
-        if (limbo == null) {
-            limbo = new LimboPlayer(null, false, Collections.emptyList(), player.getAllowFlight(),
-                player.getWalkSpeed(), player.getFlySpeed());
-        }
-        return limbo;
+        return limbo != null ? limbo : new LimboPlayer(null, false, Collections.emptyList(),
+            player.getAllowFlight(), player.getWalkSpeed(), player.getFlySpeed());
     }
 
     /**
@@ -393,8 +390,6 @@ public class LimboService {
         String playerName = name != null ? name : player.getName().toLowerCase(Locale.ROOT);
 
         int pearlTotal = pendingPearls.size();
-        int pearlRestored = 0;
-        boolean recreateMissingPearls = settings.getProperty(RECREATE_ENDER_PEARLS);
         boolean vehicleDone = vehicleUuid == null;
 
         outer:
@@ -406,7 +401,6 @@ public class LimboService {
                 if (!pendingPearls.isEmpty() && entity instanceof EnderPearl
                         && pendingPearls.remove(entity.getUniqueId()) != null) {
                     ((EnderPearl) entity).setShooter(player);
-                    pearlRestored++;
                 } else if (!vehicleDone
                         && vehicleUuid.equals(entity.getUniqueId())) {
                     entity.addPassenger(player);
@@ -418,14 +412,14 @@ public class LimboService {
             }
         }
 
-        int pearlRecreated = recreateMissingPearls(player, pendingPearls, playerName, recreateMissingPearls);
+        int pearlRecreated = recreateMissingPearls(player, pendingPearls, playerName);
 
         limbo.setEnderPearls(Collections.emptyList());
         limbo.setVehicle(null, null);
 
         if (pearlTotal > 0) {
             logger.debug("Restored {0}/{1} ender pearl(s) and recreated {2} for `{3}`",
-                pearlRestored, pearlTotal, pearlRecreated, playerName);
+                pearlTotal - pendingPearls.size(), pearlTotal, pearlRecreated, playerName);
         }
         if (vehicleUuid != null) {
             if (vehicleDone) {
@@ -442,8 +436,8 @@ public class LimboService {
      * @return the number of pearls successfully recreated
      */
     private int recreateMissingPearls(Player player, Map<UUID, EnderPearlRestoreData> pendingPearls,
-                                      String name, boolean enabled) {
-        if (!enabled) {
+                                      String name) {
+        if (!settings.getProperty(RECREATE_ENDER_PEARLS)) {
             if (!pendingPearls.isEmpty()) {
                 logger.debug("Skipped recreation of {0} missing ender pearl(s) for `{1}` because it is disabled in config",
                     pendingPearls.size(), name);

@@ -207,8 +207,7 @@ public class AuthMeApi {
      * @throws NullPointerException if {@code playerName} is null
      */
     public boolean isRegistered(String playerName) {
-        String player = playerName.toLowerCase(Locale.ROOT);
-        return dataSource.isAuthAvailable(player);
+        return dataSource.isAuthAvailable(playerName.toLowerCase(Locale.ROOT));
     }
 
     /**
@@ -256,18 +255,14 @@ public class AuthMeApi {
     }
 
     /**
-     * Force a player to login by name, bypassing password verification.
-     * This is intended for trusted proxy integrations where the proxy has already
-     * authenticated the player.
+     * Force a player to login by name, bypassing password verification. Intended for trusted
+     * proxy integrations: the request is queued for up to 15 seconds. If the player is online,
+     * the existing quiet force-login path is used; in a pre-join login dialog it is closed and
+     * the player is marked for force-login on join; if offline, the request is consumed on join.
      *
-     * <p>The request is queued for up to 15 seconds. If the player is already online,
-     * the existing quiet force-login path is used. If the player is in a pre-join
-     * login dialog, the dialog is closed and the player is marked for force-login on join.
-     * If the player is offline, the queued request is consumed when the player joins.
-     *
-     * <p>Authentication completion is asynchronous. Observe {@link LoginEvent},
-     * {@link RestoreSessionEvent}, or {@link AuthMeApi#isAuthenticated(Player)} later;
-     * do not assume this method returns after authentication.
+     * <p>Authentication completes asynchronously. Observe {@link LoginEvent},
+     * {@link RestoreSessionEvent}, or {@link AuthMeApi#isAuthenticated(Player)} later; do not
+     * assume this method returns after authentication.
      *
      * @param playerName the player name (case-insensitive)
      * @throws IllegalArgumentException if playerName is null

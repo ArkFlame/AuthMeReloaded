@@ -180,14 +180,12 @@ public class AsynchronousJoin implements AsynchronousProcess {
      */
     public void processJoin(Player player) {
         String name = player.getName().toLowerCase(Locale.ROOT);
-        // The player may have disconnected before this async task ran; getAddress() is null then.
+        // getAddress() is null if the player disconnected before this async task ran.
         InetSocketAddress address = player.getAddress();
         String ip = address == null ? null : address.getAddress().getHostAddress();
         PreJoinDialogService.PendingDialogState dialogState = preJoinDialogService.consumeSession(name);
+        // Applied only after the proxy/premium/session checks below: a late perform.login wins over the kick.
         String pendingKick = dialogState.kickMessage();
-        // pendingKick is applied below, after proxy/premium/session checks, which take priority:
-        // a Velocity perform.login arriving just after the player cancelled the pre-join dialog
-        // must win over the dialog cancel kick.
 
         if (!validationService.fulfillsNameRestrictions(player)) {
             kickWithMessageKey(player, MessageKey.NOT_OWNER_ERROR);
@@ -207,12 +205,10 @@ public class AsynchronousJoin implements AsynchronousProcess {
             return;
         }
 
-        // Single account lookup for the entire join. The same PlayerAuth is reused for the premium
-        // check and for a listener-requested forced login, so no second query is needed later on.
+        // Single account lookup for the whole join: reused for the premium check and forced login.
         PlayerAuth auth = database.getAuth(name);
 
-        // Earliest possible hook for integrations: before session lookups, premium bypass, limbo and prompts.
-        // The event is dispatched on the player's thread and its decision is applied before we continue.
+        // Earliest hook for integrations: before session lookups, premium bypass, limbo and prompts.
         if (handlePreAuthEvent(player, auth, name)) {
             return;
         }
@@ -221,16 +217,12 @@ public class AsynchronousJoin implements AsynchronousProcess {
             return;
         }
 
-        // Guard: a proxy-initiated forceLoginFromProxy() may have already authenticated the player
-        // (if the perform.login message arrived and was processed before this async task completes).
-        // Scheduling a limbo in that case would freeze the player permanently.
+        // A proxy-initiated forceLoginFromProxy() may have already authenticated the player.
         if (playerCache.isAuthenticated(name)) {
             return;
         }
 
-        // Apply the pre-join dialog cancel kick here, after proxy/premium/session checks above have
-        // had a chance to take priority and return early. If perform.login arrived in time, the
-        // player was already auto-logged in above and pendingKick is silently discarded.
+        // Apply the pre-join dialog cancel kick; if perform.login won, pendingKick is discarded.
         if (pendingKick != null) {
             ProcessSharedActions.kickPlayer(bukkitService, player, pendingKick);
             return;
@@ -320,22 +312,16 @@ public class AsynchronousJoin implements AsynchronousProcess {
         }
 
         ProxySessionManager.ProxyLoginRequest proxyLoginRequest = proxySessionManager.consumeLoginRequest(name);
-        if (proxyLoginRequest != null) {
-            if (proxyLoginRequestValidator.validate(player, proxyLoginRequest.verifiedPremiumUuid())) {
-                if (playerCache.isAuthenticated(name)) {
-                    return true;
-                }
-                // Use forceLoginFromProxy (quiet=true, no BungeeCord redirect) so that if
-                // BungeeReceiver.performLogin() concurrently already completed the login, this
-                // call is a no-op rather than sending an "already logged in" error.
+        // On validation failure (e.g. premium UUID mismatch after /freemium) fall through to session/limbo.
+        if (proxyLoginRequest != null
+            && proxyLoginRequestValidator.validate(player, proxyLoginRequest.verifiedPremiumUuid())) {
+            if (!playerCache.isAuthenticated(name)) {
+                // Quiet login (no BungeeCord redirect): a concurrent perform.login makes this a no-op.
                 resumeSession(player, true);
                 logger.info("The user " + player.getName()
                     + " has been automatically logged in, as present in autologin queue.");
-                return true;
             }
-            // Validation failed (e.g. premium UUID mismatch after /freemium).
-            // Fall through to session check / limbo flow below to avoid leaving the
-            // player stuck: not authenticated, no dialog, no movement allowed.
+            return true;
         }
         if (sessionService.canResumeSession(player)) {
             resumeSession(player, false);
@@ -345,15 +331,10 @@ public class AsynchronousJoin implements AsynchronousProcess {
     }
 
     /**
-     * Fires {@link PlayerPreAuthEvent} on the player's owning thread and applies what listeners asked for.
-     * The asynchronous join pipeline waits for the listeners to finish, so their decision is final.
+     * Fires {@link PlayerPreAuthEvent} on the player's owning thread and applies the listeners' decision,
+     * waiting for them to finish. {@code auth != null} is the registered flag reported to listeners.
      *
-     * @param player the joining player
-     * @param auth the account loaded for this join, null for an unregistered player; its presence is
-     *             the registered flag reported to listeners, so no second lookup is required
-     * @param name the player's lower-cased name, already resolved for this join and reused by the
-     *             forced-login continuation
-     * @return true if the join has been fully handled by a listener (forced login or skipped authentication)
+     * @return true if a listener fully handled the join (forced login or skipped authentication)
      */
     private boolean handlePreAuthEvent(Player player, PlayerAuth auth, String name) {
         final boolean registered = auth != null;
@@ -361,9 +342,8 @@ public class AsynchronousJoin implements AsynchronousProcess {
             ? PlayerPreAuthEvent.Source.PROXY : PlayerPreAuthEvent.Source.JOIN;
         final CompletableFuture<PlayerPreAuthEvent> result = new CompletableFuture<>();
 
-        // createAndCallEvent() would use the configurable async flag and run on the join thread.
-        // The entity scheduler runs on the player's region thread on Folia and on the main thread on
-        // Bukkit/Paper; the event is explicitly synchronous so listeners may safely touch the player.
+        // createAndCallEvent() would honor the configurable async flag; schedule explicitly instead.
+        // The entity scheduler uses the player's region thread on Folia and the main thread on Bukkit/Paper.
         bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, () -> {
             PlayerPreAuthEvent event = new PlayerPreAuthEvent(player, registered, source, false);
             try {
@@ -397,8 +377,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
 
     private PlayerPreAuthEvent awaitPreAuthResult(CompletableFuture<PlayerPreAuthEvent> result, Player player) {
         try {
-            // Safety net only: the event normally completes within a tick. If the scheduler drops the task
-            // (e.g. the player disconnected), fall back to the regular join instead of blocking forever.
+            // Safety net: fall back to the regular join if the scheduler drops the task instead of blocking.
             return result.get(preAuthEventTimeoutMillis, TimeUnit.MILLISECONDS);
         } catch (TimeoutException e) {
             fine(() -> "Timed out waiting for PlayerPreAuthEvent for " + player.getName());
@@ -412,14 +391,9 @@ public class AsynchronousJoin implements AsynchronousProcess {
     }
 
     /**
-     * Applies a forced login requested by a {@link PlayerPreAuthEvent} listener. Like
-     * {@code AsynchronousLogin.forceLogin}, this skips the password and TOTP check; unlike it, the
-     * account is the one already loaded for this join, so no second database lookup is performed.
+     * Applies a forced login requested by a {@link PlayerPreAuthEvent} listener, skipping password
+     * and TOTP checks with the account already loaded for this join.
      * Online and authenticated guards keep the operation idempotent and safe if the player quit.
-     *
-     * @param player the joining player
-     * @param auth the account loaded for this join, null for an unregistered player
-     * @param name the player's lower-cased name, reused for the authenticated-state guard
      */
     private void performForcedLogin(Player player, PlayerAuth auth, String name) {
         if (auth == null || !player.isOnline()) {
@@ -639,12 +613,12 @@ public class AsynchronousJoin implements AsynchronousProcess {
         }
 
         if (playerId.version() == 4) {
-            // UUID v4 = Mojang online UUID (online-mode server or proxy forwarding): compare directly.
-            // Security relies on the backend port being firewalled to only accept proxy connections.
+            // UUID v4 = Mojang online UUID (online-mode or proxy forwarding): compare directly.
+            // Security relies on the backend port only accepting proxy connections.
             return playerId.equals(auth.getPremiumUuid());
-        } else if (bungeeSender.isEnabled()) {
-            // Behind a proxy, existing premium auto-login is validated through the signed
-            // perform.login message rather than the backend player's offline UUID.
+        }
+        if (bungeeSender.isEnabled()) {
+            // Behind a proxy, existing premium auto-login is validated via the signed perform.login.
             return false;
         }
         // UUID v3 = Bukkit offline UUID: require cryptographic session verification via PacketEvents.
@@ -657,9 +631,6 @@ public class AsynchronousJoin implements AsynchronousProcess {
      * server: the connecting UUID for v4, a queued signed proxy login behind a proxy, or a verified
      * session UUID otherwise.
      *
-     * @param player the player whose enrollment may be finalized
-     * @param name the player's name, as reported to the proxy
-     * @param playerId the player's UUID, already resolved for this join
      * @return true if the enrollment was finalized and the player can bypass authentication
      */
     private boolean tryFinalizePendingPremium(Player player, String name, UUID playerId) {

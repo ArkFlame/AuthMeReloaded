@@ -79,9 +79,6 @@ public class AuthMe extends JavaPlugin {
     private BackupService backupService;
     private ConsoleLogger logger;
 
-    /**
-     * Constructor.
-     */
     public AuthMe() {
     }
 
@@ -194,12 +191,6 @@ public class AuthMe extends JavaPlugin {
         return true;
     }
 
-    /**
-     * Initializes the plugin, aborting with a diagnostic if initialization fails.
-     *
-     * @param platformAdapter the platform adapter in use
-     * @return true if initialization succeeded, false if the plugin was stopped
-     */
     private boolean initializeWithErrorHandling(PlatformAdapter platformAdapter) {
         try {
             initialize(platformAdapter);
@@ -289,17 +280,6 @@ public class AuthMe extends JavaPlugin {
         injector.provide(DataFolder.class, getDataFolder());
         injector.registerProvider(Settings.class, SettingsProvider.class);
         injector.registerProvider(DataSource.class, DataSourceProvider.class);
-        registerPlatformAdapters(injector, platformAdapter);
-        return injector;
-    }
-
-    /**
-     * Registers the platform adapter under all the adapter interfaces it implements.
-     *
-     * @param injector the injector
-     * @param platformAdapter the platform adapter in use
-     */
-    private void registerPlatformAdapters(Injector injector, PlatformAdapter platformAdapter) {
         injector.register(PlatformAdapter.class, platformAdapter);
         injector.register(BukkitCompatibilityAdapter.class, platformAdapter);
         injector.register(TeleportAdapter.class, platformAdapter);
@@ -309,6 +289,7 @@ public class AuthMe extends JavaPlugin {
         injector.register(DialogAdapter.class, platformAdapter);
         injector.register(CommandRegistrationAdapter.class, platformAdapter);
         injector.register(PacketInterceptionAdapter.class, platformAdapter);
+        return injector;
     }
 
     /**
@@ -399,12 +380,10 @@ public class AuthMe extends JavaPlugin {
      * Stops the server or disables the plugin, as defined in the configuration.
      */
     public void stopOrUnload() {
+        setEnabled(false);
         if (settings == null || settings.getProperty(SecuritySettings.STOP_SERVER_ON_PROBLEM)) {
             getLogger().warning("THE SERVER IS GOING TO SHUT DOWN AS DEFINED IN THE CONFIGURATION!");
-            setEnabled(false);
             getServer().shutdown();
-        } else {
-            setEnabled(false);
         }
     }
 

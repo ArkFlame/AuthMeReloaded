@@ -98,7 +98,6 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
         if (useVirtualThreads) {
             try {
                 Method method = executorsClass.getMethod("newVirtualThreadPerTaskExecutor");
-                method.setAccessible(true);
                 ExecutorService executor = (ExecutorService) method.invoke(null);
                 return MoreExecutors.listeningDecorator(executor);
             } catch (Exception e) {
@@ -132,10 +131,6 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
             cachedAuths.invalidate(normalize(name));
         }
         return succeeded;
-    }
-
-    private void refreshCache(String name) {
-        cachedAuths.refresh(normalize(name));
     }
 
     private boolean updateCacheOnSuccess(boolean succeeded, PlayerAuth auth) {
@@ -306,7 +301,8 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public boolean updateRealName(String user, String realName) {
-        return updateCacheOnSuccess(source.updateRealName(user, realName), user, () -> refreshCache(user));
+        return updateCacheOnSuccess(source.updateRealName(user, realName), user,
+            () -> cachedAuths.refresh(normalize(user)));
     }
 
     @Override
@@ -338,7 +334,8 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public boolean setTotpKey(String user, String totpKey) {
-        return updateCacheOnSuccess(source.setTotpKey(user, totpKey), user, () -> refreshCache(user));
+        return updateCacheOnSuccess(source.setTotpKey(user, totpKey), user,
+            () -> cachedAuths.refresh(normalize(user)));
     }
 
     @Override

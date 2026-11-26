@@ -424,55 +424,39 @@ class LimboServiceTest {
         assertThat(limbo.getEnderPearls(), hasSize(0));
     }
 
-    @Test
-    void shouldNotRecreateMissingEnderPearlsWhenDisabledInConfig() {
-        // given
-        given(settings.getProperty(LimboSettings.RECREATE_ENDER_PEARLS)).willReturn(false);
-
+    @ParameterizedTest(name = "otherRegion={0}")
+    @ValueSource(booleans = {false, true})
+    void shouldNotRecreateEnderPearlsWhenDisabledOrInAnotherRegion(boolean otherRegion) {
+        // given - recreation is only attempted when enabled and the saved location belongs to this region
         Player player = newPlayer("Pearlie");
         World pearlWorld = mock(World.class);
-        mockPlayerWorlds(player, Collections.emptyList());
+        EnderPearl pearlEntity = otherRegion ? mock(EnderPearl.class) : null;
+        mockPlayerWorlds(player, otherRegion ? Collections.singletonList(pearlEntity) : Collections.emptyList());
+        if (otherRegion) {
+            given(bukkitService.isOwnedByCurrentThread(pearlEntity)).willReturn(false);
+        }
 
         Location pearlLocation = new Location(pearlWorld, 5.0, 64.0, -2.5, 15.0f, 30.0f);
-        Vector pearlVelocity = new Vector(0.01, 0.2, -0.03);
-        UUID pearlUuid = UUID.nameUUIDFromBytes("disabled-missing-pearl".getBytes());
+        Vector pearlVelocity = otherRegion ? null : new Vector(0.01, 0.2, -0.03);
+        if (otherRegion) {
+            given(bukkitService.isOwnedByCurrentThread(pearlLocation)).willReturn(false);
+        }
+        UUID pearlUuid = UUID.nameUUIDFromBytes(
+            (otherRegion ? "other-region-pearl" : "disabled-missing-pearl").getBytes());
 
         LimboPlayer limbo = new LimboPlayer(null, false, Collections.emptyList(), false, 0.0f, 0.0f);
         limbo.setEnderPearls(Collections.singletonList(new EnderPearlRestoreData(pearlUuid, pearlLocation, pearlVelocity)));
         getLimboMap().put(player.getUniqueId(), limbo);
 
-        // when
-        limboService.restoreEntities(player);
-
-        // then
-        verifyNoInteractions(pearlWorld);
-        assertThat(limbo.getEnderPearls(), hasSize(0));
-    }
-
-    @Test
-    void shouldNotAccessEnderPearlsOfAnotherRegion() {
-        // given
-        Player player = newPlayer("Pearlie");
-        World pearlWorld = mock(World.class);
-        EnderPearl pearlEntity = mock(EnderPearl.class);
-        mockPlayerWorlds(player, Collections.singletonList(pearlEntity));
-        given(bukkitService.isOwnedByCurrentThread(pearlEntity)).willReturn(false);
-
-        Location pearlLocation = new Location(pearlWorld, 5.0, 64.0, -2.5, 15.0f, 30.0f);
-        given(bukkitService.isOwnedByCurrentThread(pearlLocation)).willReturn(false);
-        UUID pearlUuid = UUID.nameUUIDFromBytes("other-region-pearl".getBytes());
-
-        LimboPlayer limbo = new LimboPlayer(null, false, Collections.emptyList(), false, 0.0f, 0.0f);
-        limbo.setEnderPearls(Collections.singletonList(new EnderPearlRestoreData(pearlUuid, pearlLocation, null)));
-        getLimboMap().put(player.getUniqueId(), limbo);
-
-        given(settings.getProperty(LimboSettings.RECREATE_ENDER_PEARLS)).willReturn(true);
+        given(settings.getProperty(LimboSettings.RECREATE_ENDER_PEARLS)).willReturn(otherRegion);
 
         // when
         limboService.restoreEntities(player);
 
         // then
-        verify(pearlEntity, never()).setShooter(any());
+        if (otherRegion) {
+            verify(pearlEntity, never()).setShooter(any());
+        }
         verifyNoInteractions(pearlWorld);
         assertThat(limbo.getEnderPearls(), hasSize(0));
     }
@@ -490,23 +474,50 @@ class LimboServiceTest {
         verify(authGroupHandler).setGroup(player, null, AuthGroupType.REGISTERED_UNAUTHENTICATED);
     }
 
-    @Test
-    void shouldRestoreSpeedsForAutoLoginFromDiskLimbo() {
-        // given - disk limbo exists with the pre-revoke speeds
+    @ParameterizedTest(name = "walk={0}, fly={1}, pearls={3}")
+    @CsvSource({"0.3, 0.15, true, false", "0.2, 0.1, false, true"})
+    void shouldRestoreForAutoLoginFromDiskLimbo(float walkSpeed, float flySpeed, boolean canFly, boolean hasPearl) {
+        // given - disk limbo exists with the pre-revoke state
         Player player = newPlayer("Premium", false, 0.0f, false, 0.0f);
-        LimboPlayer diskLimbo = new LimboPlayer(null, false, Collections.emptyList(), true, 0.3f, 0.15f);
+        LimboPlayer diskLimbo = new LimboPlayer(null, false, Collections.emptyList(), canFly, walkSpeed, flySpeed);
         given(limboPersistence.getLimboPlayer(player)).willReturn(diskLimbo);
         given(settings.getProperty(LimboSettings.RESTORE_ALLOW_FLIGHT)).willReturn(AllowFlightRestoreType.RESTORE);
         given(settings.getProperty(LimboSettings.RESTORE_WALK_SPEED)).willReturn(WalkFlySpeedRestoreType.RESTORE);
         given(settings.getProperty(LimboSettings.RESTORE_FLY_SPEED)).willReturn(WalkFlySpeedRestoreType.RESTORE);
 
+        EnderPearl recreatedPearl = null;
+        World pearlWorld = null;
+        Location pearlLocation = null;
+        Vector pearlVelocity = null;
+        if (hasPearl) {
+            recreatedPearl = mock(EnderPearl.class);
+            mockPlayerWorlds(player, Collections.emptyList());
+            pearlWorld = mock(World.class);
+            given(pearlWorld.spawnEntity(any(Location.class), eq(EntityType.ENDER_PEARL))).willReturn(recreatedPearl);
+            pearlLocation = new Location(pearlWorld, 5.0, 64.0, -2.5, 15.0f, 30.0f);
+            pearlVelocity = new Vector(0.01, 0.2, -0.03);
+            UUID pearlUuid = UUID.nameUUIDFromBytes("premium-pearl".getBytes());
+            given(bukkitService.isOwnedByCurrentThread(pearlLocation)).willReturn(true);
+            diskLimbo.setEnderPearls(
+                Collections.singletonList(new EnderPearlRestoreData(pearlUuid, pearlLocation, pearlVelocity)));
+            given(settings.getProperty(LimboSettings.RECREATE_ENDER_PEARLS)).willReturn(true);
+        }
+
         // when
         limboService.restoreSpeedsForAutoLogin(player);
 
         // then
-        verify(player).setAllowFlight(true);
-        verify(player).setWalkSpeed(0.3f);
-        verify(player).setFlySpeed(0.15f);
+        if (hasPearl) {
+            // the pearl must be recreated from disk limbo even though no in-memory limbo exists
+            verify(pearlWorld).spawnEntity(pearlLocation, EntityType.ENDER_PEARL);
+            verify(recreatedPearl).setShooter(player);
+            verify(recreatedPearl).setVelocity(pearlVelocity);
+            assertThat(diskLimbo.getEnderPearls(), hasSize(0));
+        } else {
+            verify(player).setAllowFlight(canFly);
+            verify(player).setWalkSpeed(walkSpeed);
+            verify(player).setFlySpeed(flySpeed);
+        }
         verify(limboPersistence).removeLimboPlayer(player);
     }
 
@@ -526,39 +537,6 @@ class LimboServiceTest {
         // then - the entry and its scheduled tasks must not leak past auto-login
         assertThat(limboService.hasLimboPlayer(player), equalTo(false));
         verify(messageTaskHandle).cancel();
-        verify(limboPersistence).removeLimboPlayer(player);
-    }
-
-    @Test
-    void shouldRestoreEnderPearlsForAutoLoginFromDiskLimbo() {
-        // given - premium player had an ender pearl in flight before disconnecting; no in-memory limbo
-        Player player = newPlayer("Premium", false, 0.0f, false, 0.0f);
-        EnderPearl recreatedPearl = mock(EnderPearl.class);
-        mockPlayerWorlds(player, Collections.emptyList());
-
-        World pearlWorld = mock(World.class);
-        given(pearlWorld.spawnEntity(any(Location.class), eq(EntityType.ENDER_PEARL))).willReturn(recreatedPearl);
-        Location pearlLocation = new Location(pearlWorld, 5.0, 64.0, -2.5, 15.0f, 30.0f);
-        Vector pearlVelocity = new Vector(0.01, 0.2, -0.03);
-        UUID pearlUuid = UUID.nameUUIDFromBytes("premium-pearl".getBytes());
-        given(bukkitService.isOwnedByCurrentThread(pearlLocation)).willReturn(true);
-
-        LimboPlayer diskLimbo = new LimboPlayer(null, false, Collections.emptyList(), false, 0.2f, 0.1f);
-        diskLimbo.setEnderPearls(Collections.singletonList(new EnderPearlRestoreData(pearlUuid, pearlLocation, pearlVelocity)));
-        given(limboPersistence.getLimboPlayer(player)).willReturn(diskLimbo);
-        given(settings.getProperty(LimboSettings.RESTORE_ALLOW_FLIGHT)).willReturn(AllowFlightRestoreType.RESTORE);
-        given(settings.getProperty(LimboSettings.RESTORE_WALK_SPEED)).willReturn(WalkFlySpeedRestoreType.RESTORE);
-        given(settings.getProperty(LimboSettings.RESTORE_FLY_SPEED)).willReturn(WalkFlySpeedRestoreType.RESTORE);
-        given(settings.getProperty(LimboSettings.RECREATE_ENDER_PEARLS)).willReturn(true);
-
-        // when
-        limboService.restoreSpeedsForAutoLogin(player);
-
-        // then - ender pearl must be recreated from disk limbo even though no in-memory limbo exists
-        verify(pearlWorld).spawnEntity(pearlLocation, EntityType.ENDER_PEARL);
-        verify(recreatedPearl).setShooter(player);
-        verify(recreatedPearl).setVelocity(pearlVelocity);
-        assertThat(diskLimbo.getEnderPearls(), hasSize(0));
         verify(limboPersistence).removeLimboPlayer(player);
     }
 

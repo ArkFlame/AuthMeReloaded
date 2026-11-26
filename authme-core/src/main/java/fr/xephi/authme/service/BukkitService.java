@@ -112,13 +112,6 @@ public class BukkitService implements SettingsDependent {
         schedulingAdapter.runOnEntityThread(authMe, entity, task);
     }
 
-    /**
-     * Schedules a delayed task on the owning thread of the given entity.
-     *
-     * @param entity the entity whose scheduler should own the task
-     * @param task the task to run
-     * @param delay the delay in ticks
-     */
     public void scheduleSyncDelayedTask(Entity entity, Runnable task, long delay) {
         runTaskLater(entity, task, delay);
     }
@@ -432,14 +425,10 @@ public class BukkitService implements SettingsDependent {
      */
     public boolean dispatchConsoleCommand(String commandLine) {
         if (schedulingAdapter.isGlobalThread()) {
-            return dispatchConsoleCommandNow(commandLine);
+            return Bukkit.dispatchCommand(Bukkit.getConsoleSender(), commandLine);
         }
-        runOnGlobalRegion(() -> dispatchConsoleCommandNow(commandLine));
+        runOnGlobalRegion(() -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), commandLine));
         return true;
-    }
-
-    private boolean dispatchConsoleCommandNow(String commandLine) {
-        return Bukkit.dispatchCommand(Bukkit.getConsoleSender(), commandLine);
     }
 
     @Override
