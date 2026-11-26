@@ -38,11 +38,7 @@ public class AtomicIntervalCounter {
      */
     public synchronized boolean handle() {
         long now = System.currentTimeMillis();
-        if (now - lastInsert > interval) {
-            count = 1;
-        } else {
-            count++;
-        }
+        count = now - lastInsert > interval ? 1 : count + 1;
         if (count > threshold) {
             reset();
             return true;

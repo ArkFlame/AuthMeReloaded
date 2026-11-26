@@ -98,15 +98,12 @@ public class PermissionsManager implements Reloadable {
         }
 
         PermissionHandler newHandler;
-        switch (type) {
-            case LUCK_PERMS:
-                newHandler = new LuckPermsHandler();
-                break;
-            case VAULT:
-                newHandler = new VaultHandler(server);
-                break;
-            default:
-                throw new IllegalStateException("Unhandled permission type '" + type + "'");
+        if (type == PermissionsSystemType.VAULT) {
+            newHandler = new VaultHandler(server);
+        } else if (type == PermissionsSystemType.LUCK_PERMS) {
+            newHandler = new LuckPermsHandler();
+        } else {
+            throw new IllegalStateException("Unhandled permission type '" + type + "'");
         }
         this.handler = newHandler;
         logger.info("Hooked into " + type.getDisplayName() + "!");
@@ -182,11 +179,10 @@ public class PermissionsManager implements Reloadable {
         if (permissionNode == null) {
             return true;
         }
-        if (!isEnabled()) {
-            return permissionNode.getDefaultPermission().evaluate(player);
-        }
         // Resolve the name only after the handler is known to be available.
-        return handler.hasPermissionOffline(player != null ? player.getName() : name, permissionNode);
+        return isEnabled()
+            ? handler.hasPermissionOffline(player != null ? player.getName() : name, permissionNode)
+            : permissionNode.getDefaultPermission().evaluate(player);
     }
 
     /** @return true if the current permissions system supports groups. */
@@ -206,10 +202,8 @@ public class PermissionsManager implements Reloadable {
 
     /** Add the permission group of a player, if supported. */
     public boolean addGroup(OfflinePlayer player, UserGroup groupName) {
-        if (!isEnabled() || groupName == null || StringUtils.isBlank(groupName.getGroupName())) {
-            return false;
-        }
-        return handler.addToGroup(player, groupName);
+        return isEnabled() && groupName != null && !StringUtils.isBlank(groupName.getGroupName())
+            && handler.addToGroup(player, groupName);
     }
 
     /** Add the permission groups of a player, if supported. */

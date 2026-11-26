@@ -148,24 +148,19 @@ public class BungeeSender implements SettingsDependent {
         if (!isEnabled || !plugin.isEnabled()) {
             return;
         }
-        List<String> normalizedUsernames = premiumUsernames.stream()
-            .map(name -> name.toLowerCase(Locale.ROOT))
-            .collect(Collectors.toList());
-        int total = normalizedUsernames.size();
+        int total = premiumUsernames.size();
         int numChunks = Math.max(1, (total + PREMIUM_LIST_CHUNK_SIZE - 1) / PREMIUM_LIST_CHUNK_SIZE);
         for (int i = 0; i < numChunks; i++) {
             int fromIndex = i * PREMIUM_LIST_CHUNK_SIZE;
             int toIndex = Math.min(fromIndex + PREMIUM_LIST_CHUNK_SIZE, total);
-            String csv = String.join(",", normalizedUsernames.subList(fromIndex, toIndex));
-            sendPremiumListChunk(carrier, i, i == numChunks - 1, csv);
+            String csv = premiumUsernames.subList(fromIndex, toIndex).stream()
+                .map(name -> name.toLowerCase(Locale.ROOT))
+                .collect(Collectors.joining(","));
+            ByteArrayDataOutput out = ByteStreams.newDataOutput();
+            out.writeUTF(MessageType.PREMIUM_LIST_CHUNK.getId());
+            out.writeUTF(i + ":" + (i == numChunks - 1 ? "1" : "0") + ":" + csv);
+            bukkitService.sendAuthMePluginMessage(carrier, out.toByteArray());
         }
-    }
-
-    private void sendPremiumListChunk(Player carrier, int seq, boolean last, String csv) {
-        ByteArrayDataOutput out = ByteStreams.newDataOutput();
-        out.writeUTF(MessageType.PREMIUM_LIST_CHUNK.getId());
-        out.writeUTF(seq + ":" + (last ? "1" : "0") + ":" + csv);
-        bukkitService.sendAuthMePluginMessage(carrier, out.toByteArray());
     }
 
     private void sendPremiumNotification(MessageType type, String username) {

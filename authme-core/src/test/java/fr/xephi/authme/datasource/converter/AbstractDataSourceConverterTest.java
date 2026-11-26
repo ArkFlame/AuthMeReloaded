@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import static org.hamcrest.Matchers.containsString;
@@ -32,9 +31,8 @@ class AbstractDataSourceConverterTest extends AbstractConverterTest {
     @Test
     void shouldThrowForDestinationTypeMismatch() {
         DataSource destination = mockDestination(DataSourceType.MYSQL);
-        DataSourceType destinationType = DataSourceType.SQLITE;
         DataSource source = mock(DataSource.class);
-        Converter converter = new DataSourceConverterTestImpl<>(source, destination, destinationType);
+        Converter converter = new DataSourceConverterTestImpl<>(source, destination, DataSourceType.SQLITE);
         CommandSender sender = mock(CommandSender.class);
 
         converter.execute(sender);
@@ -47,10 +45,9 @@ class AbstractDataSourceConverterTest extends AbstractConverterTest {
     @Test
     void shouldHandleSourceThrowingException() {
         DataSource source = mock(DataSource.class);
-        DataSourceType destinationType = DataSourceType.SQLITE;
-        DataSource destination = mockDestination(destinationType);
+        DataSource destination = mockDestination(DataSourceType.SQLITE);
         DataSourceConverterTestImpl<DataSource> converter =
-            Mockito.spy(new DataSourceConverterTestImpl<>(source, destination, destinationType));
+            Mockito.spy(new DataSourceConverterTestImpl<>(source, destination, DataSourceType.SQLITE));
         doThrow(IllegalStateException.class).when(converter).getSource();
         CommandSender sender = mock(CommandSender.class);
 

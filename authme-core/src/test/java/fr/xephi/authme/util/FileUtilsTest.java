@@ -95,8 +95,9 @@ class FileUtilsTest {
     }
 
     @Test
-    void shouldDoNothingForNullFile() {
+    void shouldHandleNullInputs() {
         FileUtils.delete(null);
+        assertThat(FileUtils.createDirectory(null), equalTo(false));
     }
 
     @Test
@@ -124,11 +125,6 @@ class FileUtilsTest {
 
         assertThat(result, equalTo(!preCreateFile));
         assertThat(preCreateFile ? dir.isFile() : dir.isDirectory(), equalTo(true));
-    }
-
-    @Test
-    void shouldReturnFalseForNullDirectory() {
-        assertThat(FileUtils.createDirectory(null), equalTo(false));
     }
 
     @Test

@@ -216,10 +216,19 @@ public class CommandInitializer {
         return authmeBase;
     }
 
+    /**
+     * Creates a builder for a command that is a child of the given base command.
+     *
+     * @param parent the base command the new command belongs to
+     * @return the pre-configured command builder
+     */
+    private static CommandDescription.CommandBuilder childBuilder(CommandDescription parent) {
+        return CommandDescription.builder().parent(parent);
+    }
+
     /** Registers the /authme subcommands for adding, removing and updating accounts. */
     private void registerAccountCommands(CommandDescription parent) {
-        CommandDescription.builder()
-            .parent(parent)
+        childBuilder(parent)
             .labels("register", "reg", "r")
             .description("Register a player")
             .detailedDescription("Register the specified player with the specified password.")
@@ -229,8 +238,7 @@ public class CommandInitializer {
             .executableCommand(RegisterAdminCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(parent)
+        childBuilder(parent)
             .labels("unregister", "unreg", "unr")
             .description("Unregister a player")
             .detailedDescription("Unregister the specified player.")
@@ -239,8 +247,7 @@ public class CommandInitializer {
             .executableCommand(UnregisterAdminCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(parent)
+        childBuilder(parent)
             .labels("forcelogin", "login")
             .description("Enforce login player")
             .detailedDescription("Enforce the specified player to login.")
@@ -249,8 +256,7 @@ public class CommandInitializer {
             .executableCommand(ForceLoginCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(parent)
+        childBuilder(parent)
             .labels("password", "changepassword", "changepass", "cp")
             .description("Change a player's password")
             .detailedDescription("Change the password of a player.")
@@ -263,8 +269,7 @@ public class CommandInitializer {
 
     /** Registers the /authme subcommands that display information about players. */
     private void registerPlayerInfoCommands(CommandDescription parent) {
-        CommandDescription.builder()
-            .parent(parent)
+        childBuilder(parent)
             .labels("lastlogin", "ll")
             .description("Player's last login")
             .detailedDescription("View the date of the specified players last login.")
@@ -273,8 +278,7 @@ public class CommandInitializer {
             .executableCommand(LastLoginCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(parent)
+        childBuilder(parent)
             .labels("accounts", "account")
             .description("Display player accounts")
             .detailedDescription("Display all accounts of a player by his player name or IP.")
@@ -283,8 +287,7 @@ public class CommandInitializer {
             .executableCommand(AccountsCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(parent)
+        childBuilder(parent)
             .labels("email", "mail", "getemail", "getmail")
             .description("Display player's email")
             .detailedDescription("Display the email address of the specified player if set.")
@@ -293,8 +296,7 @@ public class CommandInitializer {
             .executableCommand(GetEmailCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(parent)
+        childBuilder(parent)
             .labels("setemail", "setmail", "chgemail", "chgmail")
             .description("Change player's email")
             .detailedDescription("Change the email address of the specified player.")
@@ -304,8 +306,7 @@ public class CommandInitializer {
             .executableCommand(SetEmailCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(parent)
+        childBuilder(parent)
             .labels("getip", "ip")
             .description("Get player's IP")
             .detailedDescription("Get the IP address of the specified online player.")
@@ -314,8 +315,7 @@ public class CommandInitializer {
             .executableCommand(GetIpCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(parent)
+        childBuilder(parent)
             .labels("uuid")
             .description("Show player's UUIDs")
             .detailedDescription("Show the offline, Mojang and Floodgate UUID of the specified player.")
@@ -324,8 +324,7 @@ public class CommandInitializer {
             .executableCommand(UuidCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(parent)
+        childBuilder(parent)
             .labels("totp", "2fa")
             .description("See if a player has enabled TOTP")
             .detailedDescription("Returns whether the specified player has enabled two-factor authentication.")
@@ -334,8 +333,7 @@ public class CommandInitializer {
             .executableCommand(TotpViewStatusCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(parent)
+        childBuilder(parent)
             .labels("disabletotp", "disable2fa", "deletetotp", "delete2fa")
             .description("Delete TOTP token of a player")
             .detailedDescription("Disable two-factor authentication for a player.")
@@ -347,8 +345,7 @@ public class CommandInitializer {
 
     /** Registers the /authme subcommands for teleporting to and changing spawns. */
     private void registerSpawnCommands(CommandDescription parent) {
-        CommandDescription.builder()
-            .parent(parent)
+        childBuilder(parent)
             .labels("spawn", "home")
             .description("Teleport to spawn")
             .detailedDescription("Teleport to the spawn.")
@@ -356,8 +353,7 @@ public class CommandInitializer {
             .executableCommand(SpawnCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(parent)
+        childBuilder(parent)
             .labels("setspawn", "chgspawn")
             .description("Change the spawn")
             .detailedDescription("Change the player's spawn to your current position.")
@@ -365,8 +361,7 @@ public class CommandInitializer {
             .executableCommand(SetSpawnCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(parent)
+        childBuilder(parent)
             .labels("firstspawn", "firsthome")
             .description("Teleport to first spawn")
             .detailedDescription("Teleport to the first spawn.")
@@ -374,8 +369,7 @@ public class CommandInitializer {
             .executableCommand(FirstSpawnCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(parent)
+        childBuilder(parent)
             .labels("setfirstspawn", "chgfirstspawn")
             .description("Change the first spawn")
             .detailedDescription("Change the first player's spawn to your current position.")
@@ -386,8 +380,7 @@ public class CommandInitializer {
 
     /** Registers the /authme subcommands for purging and backing up data. */
     private void registerDataCommands(CommandDescription parent) {
-        CommandDescription.builder()
-            .parent(parent)
+        childBuilder(parent)
             .labels("purge", "delete")
             .description("Purge old data")
             .detailedDescription("Purge old AuthMeRemastered data longer than the specified number of days ago.")
@@ -396,8 +389,7 @@ public class CommandInitializer {
             .executableCommand(PurgeCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(parent)
+        childBuilder(parent)
             .labels("purgeplayer")
             .description("Purges the data of one player")
             .detailedDescription("Purges data of the given player.")
@@ -407,8 +399,7 @@ public class CommandInitializer {
             .executableCommand(PurgePlayerCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(parent)
+        childBuilder(parent)
             .labels("backup")
             .description("Perform a backup")
             .detailedDescription("Creates a backup of the registered users.")
@@ -416,8 +407,7 @@ public class CommandInitializer {
             .executableCommand(BackupCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(parent)
+        childBuilder(parent)
             .labels("resetpos", "purgelastposition", "purgelastpos", "resetposition",
                 "resetlastposition", "resetlastpos")
             .description("Purge player's last position")
@@ -427,8 +417,7 @@ public class CommandInitializer {
             .executableCommand(PurgeLastPositionCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(parent)
+        childBuilder(parent)
             .labels("purgebannedplayers", "purgebannedplayer", "deletebannedplayers", "deletebannedplayer")
             .description("Purge banned players data")
             .detailedDescription("Purge all AuthMeRemastered data for banned players.")
@@ -439,8 +428,7 @@ public class CommandInitializer {
 
     /** Registers the remaining general-purpose /authme subcommands. */
     private void registerUtilityCommands(CommandDescription parent) {
-        CommandDescription.builder()
-            .parent(parent)
+        childBuilder(parent)
             .labels("switchantibot", "toggleantibot", "antibot")
             .description("Switch AntiBot mode")
             .detailedDescription("Switch or toggle the AntiBot mode to the specified state.")
@@ -449,8 +437,7 @@ public class CommandInitializer {
             .executableCommand(SwitchAntiBotCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(parent)
+        childBuilder(parent)
             .labels("reload", "rld")
             .description("Reload plugin")
             .detailedDescription("Reload the AuthMeRemastered plugin.")
@@ -458,8 +445,7 @@ public class CommandInitializer {
             .executableCommand(ReloadCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(parent)
+        childBuilder(parent)
             .labels("version", "ver", "v", "about", "info")
             .description("Version info")
             .detailedDescription("Show detailed information about the installed AuthMeRemastered version, the "
@@ -467,8 +453,7 @@ public class CommandInitializer {
             .executableCommand(VersionCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(parent)
+        childBuilder(parent)
             .labels("converter", "convert", "conv")
             .description("Converter command")
             .detailedDescription("Converter command for AuthMeReloaded.")
@@ -477,8 +462,7 @@ public class CommandInitializer {
             .executableCommand(ConverterCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(parent)
+        childBuilder(parent)
             .labels("messages", "msg")
             .description("Add missing help messages")
             .detailedDescription("Adds missing texts to the current help messages file.")
@@ -486,8 +470,7 @@ public class CommandInitializer {
             .executableCommand(UpdateHelpMessagesCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(parent)
+        childBuilder(parent)
             .labels("recent")
             .description("See players who have recently logged in")
             .detailedDescription("Shows the last players that have logged in.")
@@ -498,8 +481,7 @@ public class CommandInitializer {
 
     /** Registers the /authme subcommands for setting premium mode on a player. */
     private void registerPremiumCommands(CommandDescription parent) {
-        CommandDescription.builder()
-            .parent(parent)
+        childBuilder(parent)
             .labels("premium", "setpremium")
             .description("Enable premium for a player")
             .detailedDescription("Enables premium mode for the specified player.")
@@ -508,8 +490,7 @@ public class CommandInitializer {
             .executableCommand(SetPremiumAdminCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(parent)
+        childBuilder(parent)
             .labels("freemium", "setfreemium")
             .description("Disable premium for a player")
             .detailedDescription("Disables premium mode for the specified player.")
@@ -521,8 +502,7 @@ public class CommandInitializer {
 
     /** Registers the /authme debug subcommand. */
     private void registerDebugCommand(CommandDescription parent) {
-        CommandDescription.builder()
-            .parent(parent)
+        childBuilder(parent)
             .labels("debug", "dbg")
             .description("Debug features")
             .detailedDescription("Allows various operations for debugging.")
@@ -547,8 +527,7 @@ public class CommandInitializer {
             .executableCommand(EmailBaseCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(emailBase)
+        childBuilder(emailBase)
             .labels("show", "myemail")
             .description("Show Email")
             .detailedDescription("Show your current email address.")
@@ -556,8 +535,7 @@ public class CommandInitializer {
             .executableCommand(ShowEmailCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(emailBase)
+        childBuilder(emailBase)
             .labels("add", "addemail", "addmail")
             .description("Add Email")
             .detailedDescription("Add a new email address to your account.")
@@ -567,8 +545,7 @@ public class CommandInitializer {
             .executableCommand(AddEmailCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(emailBase)
+        childBuilder(emailBase)
             .labels("change", "changeemail", "changemail")
             .description("Change Email")
             .detailedDescription("Change an email address of your account.")
@@ -578,8 +555,7 @@ public class CommandInitializer {
             .executableCommand(ChangeEmailCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(emailBase)
+        childBuilder(emailBase)
             .labels("recover", "recovery", "recoveremail", "recovermail")
             .description("Recover password using email")
             .detailedDescription("Recover your account using an Email address by sending a mail containing "
@@ -589,8 +565,7 @@ public class CommandInitializer {
             .executableCommand(RecoverEmailCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(emailBase)
+        childBuilder(emailBase)
             .labels("code")
             .description("Submit code to recover password")
             .detailedDescription("Recover your account by submitting a code delivered to your email.")
@@ -599,8 +574,7 @@ public class CommandInitializer {
             .executableCommand(ProcessCodeCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(emailBase)
+        childBuilder(emailBase)
             .labels("setpassword")
             .description("Set new password after recovery")
             .detailedDescription("Set a new password after successfully recovering your account.")
@@ -609,8 +583,7 @@ public class CommandInitializer {
             .executableCommand(EmailSetPasswordCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(emailBase)
+        childBuilder(emailBase)
             .labels("confirm", "confirmemail")
             .description("Confirm new email address")
             .detailedDescription("Confirm a new email address by submitting the code sent to that address.")
@@ -635,8 +608,7 @@ public class CommandInitializer {
             .executableCommand(TotpBaseCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(totpBase)
+        childBuilder(totpBase)
             .labels("code", "c")
             .description("Command for logging in")
             .detailedDescription("Processes the two-factor authentication code during login.")
@@ -644,8 +616,7 @@ public class CommandInitializer {
             .executableCommand(TotpCodeCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(totpBase)
+        childBuilder(totpBase)
             .labels("add")
             .description("Enables TOTP")
             .detailedDescription("Enables two-factor authentication for your account.")
@@ -653,8 +624,7 @@ public class CommandInitializer {
             .executableCommand(AddTotpCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(totpBase)
+        childBuilder(totpBase)
             .labels("confirm")
             .description("Enables TOTP after successful code")
             .detailedDescription("Saves the generated TOTP secret after confirmation.")
@@ -663,8 +633,7 @@ public class CommandInitializer {
             .executableCommand(ConfirmTotpCommand.class)
             .register();
 
-        CommandDescription.builder()
-            .parent(totpBase)
+        childBuilder(totpBase)
             .labels("remove")
             .description("Removes TOTP")
             .detailedDescription("Disables two-factor authentication for your account.")
@@ -685,8 +654,7 @@ public class CommandInitializer {
         final List<String> helpCommandLabels = Arrays.asList("help", "hlp", "h", "sos", "?");
 
         for (CommandDescription base : commands) {
-            CommandDescription.builder()
-                .parent(base)
+        childBuilder(base)
                 .labels(helpCommandLabels)
                 .description("View help")
                 .detailedDescription("View detailed help for /" + base.getLabels().get(0) + " commands.")

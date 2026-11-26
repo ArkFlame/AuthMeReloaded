@@ -6,6 +6,8 @@ import fr.xephi.authme.security.crypts.HashedPassword;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Collections;
 
@@ -43,42 +45,27 @@ class CacheDataSourceConsistencyTest {
 
     @Test
     void shouldInvalidateEntryWhenUpdatePasswordFails() {
-        PlayerAuth stored = auth("playerone");
         PlayerAuth changed = auth("playerone");
-        when(source.getAuth("playerone")).thenReturn(stored, changed);
-        assertThat(dataSource.getAuth("PlayerOne"), sameInstance(stored));
+        seedCache(changed);
 
         when(source.updatePassword(eq("playerone"), any(HashedPassword.class))).thenReturn(false);
         boolean result = dataSource.updatePassword("PlayerOne", new HashedPassword("hash", "salt"));
 
         assertThat(result, is(false));
-        assertThat(dataSource.getCachedAuths().getIfPresent("playerone"), nullValue());
+        assertCacheInvalidated();
         assertThat(dataSource.getAuth("PlayerOne"), sameInstance(changed));
         verify(source, times(2)).getAuth("playerone");
     }
 
-    @Test
-    void shouldInvalidateEntryWhenRemoveAuthFails() {
-        PlayerAuth stored = auth("playerone");
-        when(source.getAuth("playerone")).thenReturn(stored);
-        assertThat(dataSource.getAuth("PlayerOne"), sameInstance(stored));
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldInvalidateEntryOnRemoveAuthRegardlessOfOutcome(boolean success) {
+        seedCache();
 
-        when(source.removeAuth("playerone")).thenReturn(false);
-        dataSource.removeAuth("PlayerOne");
+        when(source.removeAuth("playerone")).thenReturn(success);
 
-        assertThat(dataSource.getCachedAuths().getIfPresent("playerone"), nullValue());
-    }
-
-    @Test
-    void shouldRemoveEntryOnSuccessfulRemoveAuth() {
-        PlayerAuth stored = auth("playerone");
-        when(source.getAuth("playerone")).thenReturn(stored);
-        assertThat(dataSource.getAuth("PlayerOne"), sameInstance(stored));
-
-        when(source.removeAuth("playerone")).thenReturn(true);
-        assertThat(dataSource.removeAuth("PlayerOne"), is(true));
-
-        assertThat(dataSource.getCachedAuths().getIfPresent("playerone"), nullValue());
+        assertThat(dataSource.removeAuth("PlayerOne"), is(success));
+        assertCacheInvalidated();
     }
 
     @Test
@@ -94,23 +81,33 @@ class CacheDataSourceConsistencyTest {
 
     @Test
     void shouldInvalidateNormalizedNamesOnPurge() {
-        PlayerAuth stored = auth("playerone");
-        when(source.getAuth("playerone")).thenReturn(stored);
-        assertThat(dataSource.getAuth("PlayerOne"), sameInstance(stored));
+        seedCache();
 
         dataSource.purgeRecords(Collections.singletonList("PlayerOne"));
 
-        assertThat(dataSource.getCachedAuths().getIfPresent("playerone"), nullValue());
+        assertCacheInvalidated();
     }
 
     @Test
     void shouldNormalizeNameOnExplicitInvalidation() {
-        PlayerAuth stored = auth("playerone");
-        when(source.getAuth("playerone")).thenReturn(stored);
-        assertThat(dataSource.getAuth("PlayerOne"), sameInstance(stored));
+        seedCache();
 
         dataSource.invalidateCache("PlayerOne");
 
+        assertCacheInvalidated();
+    }
+
+    /**
+     * Seeds the cache with a stored auth for "playerone" fetched via "PlayerOne" and asserts it was cached.
+     * Extra arguments are returned by subsequent lookups of the same key.
+     */
+    private void seedCache(PlayerAuth... subsequentLookups) {
+        PlayerAuth stored = auth("playerone");
+        when(source.getAuth("playerone")).thenReturn(stored, subsequentLookups);
+        assertThat(dataSource.getAuth("PlayerOne"), sameInstance(stored));
+    }
+
+    private void assertCacheInvalidated() {
         assertThat(dataSource.getCachedAuths().getIfPresent("playerone"), nullValue());
     }
 

@@ -1,15 +1,12 @@
 package fr.xephi.authme.permission;
 
-import org.bukkit.Server;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.PluginManager;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.stream.Stream;
@@ -27,12 +24,6 @@ class PermissionsManagerTest {
 
     @InjectMocks
     private PermissionsManager permissionsManager;
-
-    @Mock
-    private Server server;
-
-    @Mock
-    private PluginManager pluginManager;
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("createParameters")

@@ -58,39 +58,38 @@ final class PaperBrigadierCommandRegistrar {
     List<PaperBrigadierCommandRegistration> buildRegistrations(Collection<CommandDescription> commands) {
         List<PaperBrigadierCommandRegistration> registrations = new ArrayList<>(commands.size());
         for (CommandDescription command : commands) {
-            registrations.add(buildRegistration(command));
+            List<String> labels = command.getLabels();
+            registrations.add(new PaperBrigadierCommandRegistration(
+                buildLiteralNode(labels.get(0), command).build(),
+                command.getDescription(),
+                labels.subList(1, labels.size())));
         }
         return registrations;
-    }
-
-    private PaperBrigadierCommandRegistration buildRegistration(CommandDescription command) {
-        return new PaperBrigadierCommandRegistration(
-            buildLiteralNode(command.getLabels().get(0), command).build(),
-            command.getDescription(),
-            command.getLabels().subList(1, command.getLabels().size()));
     }
 
     private LiteralArgumentBuilder<CommandSourceStack> buildLiteralNode(String label, CommandDescription command) {
         LiteralArgumentBuilder<CommandSourceStack> builder = LiteralArgumentBuilder.<CommandSourceStack>literal(label)
             .executes(this::executeInput);
 
-        if (!command.getChildren().isEmpty()) {
-            for (CommandDescription child : command.getChildren()) {
+        List<CommandDescription> children = command.getChildren();
+        if (!children.isEmpty()) {
+            for (CommandDescription child : children) {
                 for (String childLabel : child.getLabels()) {
                     builder.then(buildLiteralNode(childLabel, child));
                 }
             }
-            builder.then(createFallbackArgument(FALLBACK_ARGUMENT_NAME));
+            builder.then(createArgument(FALLBACK_ARGUMENT_NAME, StringArgumentType.greedyString()));
             return builder;
         }
 
+        List<CommandArgumentDescription> arguments = command.getArguments();
         if (isEmailAddCommand(command)) {
-            builder.then(createFallbackArgument(FALLBACK_ARGUMENT_NAME));
+            builder.then(createArgument(FALLBACK_ARGUMENT_NAME, StringArgumentType.greedyString()));
         } else {
-            addArgumentChain(builder, command.getArguments(), isForceLoginTarget(command));
+            addArgumentChain(builder, arguments, isForceLoginTarget(command));
         }
-        if (command.getArguments().isEmpty()) {
-            builder.then(createFallbackArgument(EXTRA_ARGUMENTS_NAME));
+        if (arguments.isEmpty()) {
+            builder.then(createArgument(EXTRA_ARGUMENTS_NAME, StringArgumentType.greedyString()));
         }
         return builder;
     }
@@ -115,10 +114,11 @@ final class PaperBrigadierCommandRegistrar {
         }
         // Build from innermost argument outward: then(ArgumentBuilder) calls build() immediately
         // in standard Brigadier, so intermediate nodes must have their children set before building.
+        int lastIndex = arguments.size() - 1;
         CommandNode<CommandSourceStack> innerChain = null;
-        for (int index = arguments.size() - 1; index >= 0; --index) {
+        for (int index = lastIndex; index >= 0; --index) {
             CommandArgumentDescription argument = arguments.get(index);
-            boolean isLastArgument = index == arguments.size() - 1;
+            boolean isLastArgument = index == lastIndex;
             RequiredArgumentBuilder<CommandSourceStack, String> argBuilder = createArgument(argument.getName(),
                 isLastArgument ? StringArgumentType.greedyString() : anyWord());
             if (isLastArgument && suggestOnlinePlayers) {
@@ -157,10 +157,6 @@ final class PaperBrigadierCommandRegistrar {
 
     private RequiredArgumentBuilder<CommandSourceStack, String> createArgument(String name, ArgumentType<String> type) {
         return RequiredArgumentBuilder.<CommandSourceStack, String>argument(name, type).executes(this::executeInput);
-    }
-
-    private RequiredArgumentBuilder<CommandSourceStack, String> createFallbackArgument(String name) {
-        return createArgument(name, StringArgumentType.greedyString());
     }
 
     /**

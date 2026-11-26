@@ -5,6 +5,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.Collections;
 import java.util.stream.Stream;
 
 import static fr.xephi.authme.data.limbo.LimboPlayer.DEFAULT_FLY_SPEED;
@@ -17,9 +18,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-/**
- * Test for {@link WalkFlySpeedRestoreType}.
- */
+/** Test for {@link WalkFlySpeedRestoreType}. */
 class WalkFlySpeedRestoreTypeTest {
 
     @ParameterizedTest
@@ -28,13 +27,13 @@ class WalkFlySpeedRestoreTypeTest {
                                       float givenLimboFlySpeed, float givenPlayerWalkSpeed, float givenPlayerFlySpeed,
                                       float expectedWalkSpeed, float expectedFlySpeed) {
         // given
-        LimboPlayer limbo = mock(LimboPlayer.class);
-        given(limbo.getWalkSpeed()).willReturn(givenLimboWalkSpeed);
-        given(limbo.getFlySpeed()).willReturn(givenLimboFlySpeed);
-
+        LimboPlayer limbo = new LimboPlayer(null, false, Collections.emptyList(), false,
+            givenLimboWalkSpeed, givenLimboFlySpeed);
         Player player = mock(Player.class);
-        given(player.getWalkSpeed()).willReturn(givenPlayerWalkSpeed);
-        given(player.getFlySpeed()).willReturn(givenPlayerFlySpeed);
+        if (type == MAX_RESTORE) {
+            given(player.getWalkSpeed()).willReturn(givenPlayerWalkSpeed);
+            given(player.getFlySpeed()).willReturn(givenPlayerFlySpeed);
+        }
 
         // when
         type.restoreWalkSpeed(player, limbo);
