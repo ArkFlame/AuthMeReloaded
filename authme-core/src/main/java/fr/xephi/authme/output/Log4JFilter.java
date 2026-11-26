@@ -25,14 +25,9 @@ public class Log4JFilter extends AbstractFilter {
      * @return the Result value
      */
     private static Result validateMessage(Object message) {
-        String text;
-        if (message == null) {
-            text = null;
-        } else if (message instanceof Message) {
-            text = ((Message) message).getFormattedMessage();
-        } else {
-            text = message.toString();
-        }
+        String text = message instanceof Message
+            ? ((Message) message).getFormattedMessage()
+            : message == null ? null : message.toString();
         return LogFilterHelper.isSensitiveAuthMeCommand(text)
             ? Result.DENY
             : Result.NEUTRAL;

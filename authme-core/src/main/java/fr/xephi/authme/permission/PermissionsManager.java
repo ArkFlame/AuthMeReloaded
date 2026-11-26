@@ -269,19 +269,6 @@ public class PermissionsManager implements Reloadable {
     }
 
     /**
-     * Check whether the player is in the specified group.
-     *
-     * @param player    The player.
-     * @param groupName The group name.
-     *
-     * @return True if the player is in the specified group, false otherwise.
-     *         False is also returned if groups aren't supported by the used permissions system.
-     */
-    public boolean isInGroup(OfflinePlayer player, UserGroup groupName) {
-        return isEnabled() && handler.isInGroup(player, groupName);
-    }
-
-    /**
      * Add the permission group of a player, if supported.
      *
      * @param player    The player

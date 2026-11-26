@@ -81,19 +81,8 @@ public class CaptchaCodeStorage {
     }
 
     /**
-     * Checks the given code against the existing one. Upon success, the saved captcha code is removed from storage.
-     * Upon failure, a new code is generated.
-     *
-     * @param name the name of the player to check
-     * @param code the supplied code
-     * @return true if the code matches, false otherwise
-     */
-    public boolean checkCode(String name, String code) {
-        return checkCodeForNormalizedName(normalize(name), code);
-    }
-
-    /**
-     * Checks a code against the entry for an already normalized name.
+     * Checks a code against the entry for an already normalized name. Upon success, the saved captcha code is
+     * removed from storage; upon failure, a new code is generated.
      *
      * @param key the normalized name of the player to check
      * @param code the supplied code

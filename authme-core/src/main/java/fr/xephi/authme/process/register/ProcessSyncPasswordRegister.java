@@ -44,8 +44,6 @@ public class ProcessSyncPasswordRegister implements SynchronousProcess {
 
     /**
      * Processes a player having registered with a password.
-     *
-     * @param player the newly registered player
      */
     public void processPasswordRegister(Player player) {
         service.send(player, MessageKey.REGISTER_SUCCESS);

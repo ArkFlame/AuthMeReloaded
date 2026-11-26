@@ -100,18 +100,14 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
             if (!resolved) {
                 synchronized (this) {
                     if (!resolved) {
-                        value = getBukkitScheduler(getterName);
+                        Method getter = findMethod(Bukkit.class, getterName);
+                        value = getter == null ? null : invoke(getter, null);
                         resolved = true;
                     }
                 }
             }
             return value;
         }
-    }
-
-    private static Object getBukkitScheduler(String getterName) {
-        Method getter = findMethod(Bukkit.class, getterName);
-        return getter == null ? null : invoke(getter, null);
     }
 
     /**
@@ -159,13 +155,9 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
     private static CancellableTask schedule(Plugin plugin, Object scheduler, Method method,
                                             String schedulerName, Object... arguments) {
         if (method == null) {
-            warnUnavailable(plugin, schedulerName);
+            plugin.getLogger().warning("Folia " + schedulerName + " is unavailable; skipping scheduled task");
             return NO_OP_TASK;
         }
         return asCancellable(invoke(method, scheduler, arguments));
-    }
-
-    private static void warnUnavailable(Plugin plugin, String schedulerName) {
-        plugin.getLogger().warning("Folia " + schedulerName + " is unavailable; skipping scheduled task");
     }
 }

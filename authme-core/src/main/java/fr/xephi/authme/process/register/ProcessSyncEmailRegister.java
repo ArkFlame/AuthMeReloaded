@@ -33,8 +33,6 @@ public class ProcessSyncEmailRegister implements SynchronousProcess {
 
     /**
      * Performs sync tasks for a player which has just registered by email.
-     *
-     * @param player the recently registered player
      */
     public void processEmailRegister(Player player) {
         service.send(player, MessageKey.ACCOUNT_NOT_ACTIVATED);

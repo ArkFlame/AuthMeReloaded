@@ -17,10 +17,6 @@ public class EmailRegisterParams extends RegistrationParameters {
 
     /**
      * Creates a params object for email registration.
-     *
-     * @param player the player to register
-     * @param email the player's email
-     * @return params object with the given data
      */
     public static EmailRegisterParams of(Player player, String email) {
         return new EmailRegisterParams(player, email);
@@ -34,9 +30,7 @@ public class EmailRegisterParams extends RegistrationParameters {
         this.password = password;
     }
 
-    /**
-     * @return the password generated for the player
-     */
+    /** @return the password generated for the player */
     String getPassword() {
         return password;
     }

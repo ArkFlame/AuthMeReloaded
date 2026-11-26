@@ -32,19 +32,15 @@ public class ShowEmailCommand extends PlayerCommand {
             return;
         }
 
-        if (commonService.getProperty(SecuritySettings.USE_EMAIL_MASKING)) {
-            commonService.send(player, MessageKey.EMAIL_SHOW, emailMask(email));
-        } else {
-            commonService.send(player, MessageKey.EMAIL_SHOW, email);
-        }
+        String emailToShow = commonService.getProperty(SecuritySettings.USE_EMAIL_MASKING)
+            ? emailMask(email) : email;
+        commonService.send(player, MessageKey.EMAIL_SHOW, emailToShow);
     }
 
     private String emailMask(String email) {
-        String[] parts = email.split("@"); // Split id and domain
-        int idLength = parts[0].length() / 3 + 1; // Define the id view (required length >= 1)
-        int domainStart = parts[1].length() / 3; // Define the domain view (required length >= 0)
-        String id = parts[0].substring(0, idLength) + "***"; // Build the id
-        String domain = "***" + parts[1].substring(domainStart); // Build the domain
-        return id + "@" + domain;
+        String[] parts = email.split("@");
+        int idLength = parts[0].length() / 3 + 1; // required length >= 1
+        int domainStart = parts[1].length() / 3; // required length >= 0
+        return parts[0].substring(0, idLength) + "***@***" + parts[1].substring(domainStart);
     }
 }

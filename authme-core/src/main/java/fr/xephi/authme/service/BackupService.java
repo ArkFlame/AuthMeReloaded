@@ -34,7 +34,6 @@ public class BackupService {
     private final File backupFolder;
     private final Settings settings;
 
-
     /**
      * Constructor.
      *
@@ -153,14 +152,13 @@ public class BackupService {
      */
     private boolean useWindowsCommand(String windowsPath) {
         String isWin = System.getProperty("os.name").toLowerCase(Locale.ROOT);
-        if (isWin.contains("win")) {
-            if (new File(windowsPath + "\\bin\\mysqldump.exe").exists()) {
-                return true;
-            } else {
-                logger.warning("Mysql Windows Path is incorrect. Please check it");
-                return false;
-            }
+        if (!isWin.contains("win")) {
+            return false;
         }
+        if (new File(windowsPath + "\\bin\\mysqldump.exe").exists()) {
+            return true;
+        }
+        logger.warning("Mysql Windows Path is incorrect. Please check it");
         return false;
     }
 

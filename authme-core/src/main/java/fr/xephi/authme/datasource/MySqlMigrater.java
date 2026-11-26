@@ -13,7 +13,7 @@ import java.sql.Types;
  * Performs migrations on the MySQL data source if necessary.
  */
 final class MySqlMigrater {
-    
+
     private static ConsoleLogger logger = ConsoleLoggerFactory.get(MySqlMigrater.class);
 
     private MySqlMigrater() {

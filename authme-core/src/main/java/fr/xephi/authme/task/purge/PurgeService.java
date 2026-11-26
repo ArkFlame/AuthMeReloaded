@@ -44,9 +44,6 @@ public class PurgeService {
     /** Keeps track of whether a purge task is currently running. */
     private boolean isPurging = false;
 
-    PurgeService() {
-    }
-
     /**
      * Purges players from the database. Runs on startup if enabled.
      */

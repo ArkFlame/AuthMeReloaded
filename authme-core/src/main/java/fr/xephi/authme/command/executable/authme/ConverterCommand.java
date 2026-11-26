@@ -35,7 +35,21 @@ import java.util.Map;
 public class ConverterCommand implements ExecutableCommand {
 
     @VisibleForTesting
-    static final Map<String, Class<? extends Converter>> CONVERTERS = getConverters();
+    static final Map<String, Class<? extends Converter>> CONVERTERS =
+        ImmutableSortedMap.<String, Class<? extends Converter>>naturalOrder()
+            .put("authplus", AuthPlusConverter.class)
+            .put("crazylogin", CrazyLoginConverter.class)
+            .put("librelogin", LibreLoginConverter.class)
+            .put("limboauth", LimboAuthConverter.class)
+            .put("loginsecurity", LoginSecurityConverter.class)
+            .put("nexauth", NexAuthConverter.class)
+            .put("nlogin", NLoginConverter.class)
+            .put("openlogin", OpeNLoginConverter.class)
+            .put("royalauth", RoyalAuthConverter.class)
+            .put("tiauth", TiAuthConverter.class)
+            .put("sqlitetosql", SqliteToSql.class)
+            .put("mysqltosqlite", MySqlToSqlite.class)
+            .build();
 
     private final ConsoleLogger logger = ConsoleLoggerFactory.get(ConverterCommand.class);
 
@@ -69,27 +83,5 @@ public class ConverterCommand implements ExecutableCommand {
         });
 
         sender.sendMessage("[AuthMe] Successfully started " + arguments.get(0));
-    }
-
-    /**
-     * Initializes a map with all available converters.
-     *
-     * @return map with all available converters
-     */
-    private static Map<String, Class<? extends Converter>> getConverters() {
-        return ImmutableSortedMap.<String, Class<? extends Converter>>naturalOrder()
-            .put("authplus", AuthPlusConverter.class)
-            .put("crazylogin", CrazyLoginConverter.class)
-            .put("librelogin", LibreLoginConverter.class)
-            .put("limboauth", LimboAuthConverter.class)
-            .put("loginsecurity", LoginSecurityConverter.class)
-            .put("nexauth", NexAuthConverter.class)
-            .put("nlogin", NLoginConverter.class)
-            .put("openlogin", OpeNLoginConverter.class)
-            .put("royalauth", RoyalAuthConverter.class)
-            .put("tiauth", TiAuthConverter.class)
-            .put("sqlitetosql", SqliteToSql.class)
-            .put("mysqltosqlite", MySqlToSqlite.class)
-            .build();
     }
 }

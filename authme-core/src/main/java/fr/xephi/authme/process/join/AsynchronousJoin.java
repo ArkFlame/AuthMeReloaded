@@ -183,7 +183,10 @@ public class AsynchronousJoin implements AsynchronousProcess {
         // must win over the dialog cancel kick.
 
         if (!validationService.fulfillsNameRestrictions(player)) {
-            handlePlayerWithUnmetNameRestriction(player, ip);
+            kickWithMessageKey(player, MessageKey.NOT_OWNER_ERROR);
+            if (service.getProperty(RestrictionSettings.BAN_UNKNOWN_IP)) {
+                bukkitService.runOnGlobalRegion(() -> server.banIP(ip));
+            }
             return;
         }
 
@@ -258,8 +261,10 @@ public class AsynchronousJoin implements AsynchronousProcess {
         }
         if (pendingRegistration == null && floodgateService.canAutoRegister(player.getUniqueId())) {
             logger.info("The Bedrock player " + player.getName() + " has been automatically registered (Floodgate).");
+            int length = Math.max(service.getProperty(SecuritySettings.MIN_PASSWORD_LENGTH),
+                Math.min(24, service.getProperty(SecuritySettings.MAX_PASSWORD_LENGTH)));
             asyncRegister.register(RegistrationMethod.API_REGISTRATION,
-                ApiPasswordRegisterParams.of(player, generateFloodgatePassword(), true));
+                ApiPasswordRegisterParams.of(player, RandomStringUtils.generate(length), true));
             return true;
         }
         if (!service.getProperty(RegistrationSettings.FORCE) && pendingRegistration == null) {
@@ -283,7 +288,14 @@ public class AsynchronousJoin implements AsynchronousProcess {
      * @return true if the join was fully handled and the caller must not continue
      */
     private boolean handleRegisteredPlayer(Player player, PlayerAuth auth, String name) {
-        protectInventory(player);
+        if (service.getProperty(PROTECT_INVENTORY_BEFORE_LOGIN)) {
+            ProtectInventoryEvent ev = bukkitService.createAndCallEvent(
+                isAsync -> new ProtectInventoryEvent(player, isAsync));
+            if (ev.isCancelled()) {
+                bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, player::updateInventory);
+                logger.fine("ProtectInventoryEvent has been cancelled for " + player.getName() + "...");
+            }
+        }
 
         // Bedrock players verified by Floodgate (Xbox account) — same idea as premium below
         if (floodgateService.canAutoLogin(player.getUniqueId())) {
@@ -323,18 +335,6 @@ public class AsynchronousJoin implements AsynchronousProcess {
             return true;
         }
         return false;
-    }
-
-    /** Protects the inventory of a registered player before authentication. */
-    private void protectInventory(Player player) {
-        if (service.getProperty(PROTECT_INVENTORY_BEFORE_LOGIN)) {
-            ProtectInventoryEvent ev = bukkitService.createAndCallEvent(
-                isAsync -> new ProtectInventoryEvent(player, isAsync));
-            if (ev.isCancelled()) {
-                bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, player::updateInventory);
-                logger.fine("ProtectInventoryEvent has been cancelled for " + player.getName() + "...");
-            }
-        }
     }
 
     /**
@@ -429,23 +429,6 @@ public class AsynchronousJoin implements AsynchronousProcess {
     }
 
     /**
-     * Generates a random password for a Bedrock player registered automatically through Floodgate.
-     * The player never types it; it only has to pass the configured password restrictions.
-     */
-    private String generateFloodgatePassword() {
-        int length = Math.max(service.getProperty(SecuritySettings.MIN_PASSWORD_LENGTH),
-            Math.min(24, service.getProperty(SecuritySettings.MAX_PASSWORD_LENGTH)));
-        return RandomStringUtils.generate(length);
-    }
-
-    private void handlePlayerWithUnmetNameRestriction(Player player, String ip) {
-        kickWithMessageKey(player, MessageKey.NOT_OWNER_ERROR);
-        if (service.getProperty(RestrictionSettings.BAN_UNKNOWN_IP)) {
-            bukkitService.runOnGlobalRegion(() -> server.banIP(ip));
-        }
-    }
-
-    /**
      * Runs a passwordless login off the calling thread. All auto-login branches go through this
      * helper so they schedule exactly one continuation task.
      *
@@ -526,7 +509,10 @@ public class AsynchronousJoin implements AsynchronousProcess {
             if (pluginHookService.isEssentialsAvailable() && service.getProperty(HooksSettings.USE_ESSENTIALS_MOTD)) {
                 player.performCommand("motd");
             }
-            applyJoinBlindEffect(player, registrationTimeout);
+            if (service.getProperty(RegistrationSettings.APPLY_BLIND_EFFECT)) {
+                int blindTimeOut = (registrationTimeout <= 0) ? 99999 : registrationTimeout;
+                player.addPotionEffect(bukkitService.createBlindnessEffect(blindTimeOut));
+            }
             commandManager.runCommandsOnJoin(player);
 
             // Pre-join dialog actions are mutually exclusive and all require the limbo created above.
@@ -543,14 +529,6 @@ public class AsynchronousJoin implements AsynchronousProcess {
                 bukkitService.runTaskLater(player, () -> showPostJoinDialogIfNecessary(player, isAuthAvailable), 1L);
             }
         });
-    }
-
-    /** Applies the blindness effect, allowing an effectively infinite duration for a non-positive timeout. */
-    private void applyJoinBlindEffect(Player player, int registrationTimeout) {
-        if (service.getProperty(RegistrationSettings.APPLY_BLIND_EFFECT)) {
-            int blindTimeOut = (registrationTimeout <= 0) ? 99999 : registrationTimeout;
-            player.addPotionEffect(bukkitService.createBlindnessEffect(blindTimeOut));
-        }
     }
 
     private void showPostJoinDialogIfNecessary(Player player, boolean isAuthAvailable) {
@@ -576,21 +554,21 @@ public class AsynchronousJoin implements AsynchronousProcess {
 
     private void processPendingEmailRecovery(Player player, String name, String submittedEmail) {
         if (!emailService.hasAllInformation()) {
-            kickFromPreJoinRecovery(player, MessageKey.INCOMPLETE_EMAIL_SETTINGS);
+            kickPlayer(player, service.retrieveSingleMessage(player, MessageKey.INCOMPLETE_EMAIL_SETTINGS));
             return;
         }
         if (!validationService.validateEmail(submittedEmail)) {
-            kickFromPreJoinRecovery(player, MessageKey.INVALID_EMAIL);
+            kickPlayer(player, service.retrieveSingleMessage(player, MessageKey.INVALID_EMAIL));
             return;
         }
         ch.jalu.datasourcecolumns.data.DataSourceValue<String> emailResult = database.getEmail(name);
         if (!emailResult.rowExists()) {
-            kickFromPreJoinRecovery(player, MessageKey.USAGE_REGISTER);
+            kickPlayer(player, service.retrieveSingleMessage(player, MessageKey.USAGE_REGISTER));
             return;
         }
         String registeredEmail = emailResult.getValue();
         if (Utils.isEmailEmpty(registeredEmail) || !registeredEmail.equalsIgnoreCase(submittedEmail)) {
-            kickFromPreJoinRecovery(player, MessageKey.INVALID_EMAIL);
+            kickPlayer(player, service.retrieveSingleMessage(player, MessageKey.INVALID_EMAIL));
             return;
         }
         if (recoveryCodeService.isRecoveryCodeNeeded()) {
@@ -599,10 +577,6 @@ public class AsynchronousJoin implements AsynchronousProcess {
             passwordRecoveryService.generateAndSendNewPassword(player, registeredEmail);
         }
         // Player stays in limbo to use the recovery code or new password
-    }
-
-    private void kickFromPreJoinRecovery(Player player, MessageKey messageKey) {
-        kickPlayer(player, service.retrieveSingleMessage(player, messageKey));
     }
 
     /**
@@ -647,12 +621,14 @@ public class AsynchronousJoin implements AsynchronousProcess {
      */
     private boolean validatePlayerCountForIp(Player player, String ip) {
         int maxPerIp = service.getProperty(RestrictionSettings.MAX_JOIN_PER_IP);
-        if (maxPerIp > 0
-            && !ProcessSharedActions.isExemptFromIpLimit(service, player, ip)
-            && exceedsMaxPlayersPerIp(ip, maxPerIp)) {
-
-            kickWithMessageKey(player, MessageKey.SAME_IP_ONLINE);
-            return false;
+        if (maxPerIp > 0 && !ProcessSharedActions.isExemptFromIpLimit(service, player, ip)) {
+            int count = 0;
+            for (Player online : bukkitService.getOnlinePlayers()) {
+                if (ip.equalsIgnoreCase(PlayerUtils.getPlayerIp(online)) && ++count > maxPerIp) {
+                    kickWithMessageKey(player, MessageKey.SAME_IP_ONLINE);
+                    return false;
+                }
+            }
         }
         return true;
     }
@@ -777,18 +753,4 @@ public class AsynchronousJoin implements AsynchronousProcess {
         service.send(player, MessageKey.PREMIUM_PENDING_FAIL);
     }
 
-    /**
-     * Counts online players sharing the given address, stopping as soon as the configured limit is
-     * exceeded. Only the "more than maxPerIp" outcome is relevant to the caller, so there is no need
-     * to keep resolving IP addresses once that outcome is known.
-     */
-    private boolean exceedsMaxPlayersPerIp(String ip, int maxPerIp) {
-        int count = 0;
-        for (Player player : bukkitService.getOnlinePlayers()) {
-            if (ip.equalsIgnoreCase(PlayerUtils.getPlayerIp(player)) && ++count > maxPerIp) {
-                return true;
-            }
-        }
-        return false;
-    }
 }

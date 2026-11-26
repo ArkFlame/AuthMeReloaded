@@ -10,32 +10,25 @@ public enum PermissionsSystemType {
     /**
      *  LuckPerms.
      */
-    LUCK_PERMS("LuckPerms", "LuckPerms"),
+    LUCK_PERMS("LuckPerms"),
 
     /**
      * Vault.
      */
-    VAULT("Vault", "Vault");
+    VAULT("Vault");
 
     /**
-     * The display name of the permissions system.
+     * The name of the permissions system (both display name and plugin name).
      */
-    private final String displayName;
-
-    /**
-     * The name of the permissions system plugin.
-     */
-    private final String pluginName;
+    private final String name;
 
     /**
      * Constructor for PermissionsSystemType.
      *
-     * @param displayName Display name of the permissions system.
-     * @param pluginName Name of the plugin.
+     * @param name Name of the permissions system.
      */
-    PermissionsSystemType(String displayName, String pluginName) {
-        this.displayName = displayName;
-        this.pluginName = pluginName;
+    PermissionsSystemType(String name) {
+        this.name = name;
     }
 
     /**
@@ -44,7 +37,7 @@ public enum PermissionsSystemType {
      * @return Display name.
      */
     public String getDisplayName() {
-        return this.displayName;
+        return name;
     }
 
     /**
@@ -53,7 +46,7 @@ public enum PermissionsSystemType {
      * @return Plugin name.
      */
     public String getPluginName() {
-        return this.pluginName;
+        return name;
     }
 
     /**
@@ -73,6 +66,6 @@ public enum PermissionsSystemType {
      * @return If the plugin is a valid permissions system.
      */
     public static boolean isPermissionSystem(String name) {
-        return Arrays.stream(values()).anyMatch(type -> type.pluginName.equals(name));
+        return Arrays.stream(values()).anyMatch(type -> type.name.equals(name));
     }
 }

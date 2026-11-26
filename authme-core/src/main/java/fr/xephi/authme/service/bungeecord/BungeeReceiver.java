@@ -236,16 +236,12 @@ public class BungeeReceiver implements PluginMessageListener, SettingsDependent 
             return false;
         }
         String expectedHmac = HashUtils.hmacSha256(proxySharedSecret,
-            buildPerformLoginPayload(playerName, timestamp, verifiedPremiumUuid));
+            playerName + ":" + timestamp + ":" + (verifiedPremiumUuid == null ? "" : verifiedPremiumUuid));
         if (!HashUtils.isEqual(expectedHmac, providedHmac)) {
             logger.warning("Rejected perform.login for " + playerName + ": invalid HMAC");
             return false;
         }
         return true;
-    }
-
-    private String buildPerformLoginPayload(String playerName, long timestamp, UUID verifiedPremiumUuid) {
-        return playerName + ":" + timestamp + ":" + (verifiedPremiumUuid == null ? "" : verifiedPremiumUuid);
     }
 
     private void performLogin(String name, UUID verifiedPremiumUuid) {

@@ -111,15 +111,18 @@ public class SettingsMigrationService extends PlainMigrationService {
             | migrateForceSpawnSettings(reader, configurationData)
             | migratePoolSizeSetting(reader, configurationData)
             | changeBooleanSettingToLogLevelProperty(reader, configurationData)
-            | hasOldHelpHeaderProperty(reader)
-            | hasSupportOldPasswordProperty(reader)
+            | warnIfOldPropertyPresent(reader, "settings.helpHeader",
+                "Help header setting is now in messages/help_xx.yml, please check the file to set it again")
+            | warnIfOldPropertyPresent(reader, "settings.security.supportOldPasswordHash",
+                "Property 'settings.security.supportOldPasswordHash' is no longer supported. Use '"
+                    + SecuritySettings.LEGACY_HASHES.getPath() + "' instead.")
             | convertToRegistrationType(reader, configurationData)
             | mergeAndMovePermissionGroupSettings(reader, configurationData)
             | moveDeprecatedHashAlgorithmIntoLegacySection(reader, configurationData)
             | moveSaltColumnConfigWithOtherColumnConfigs(reader, configurationData)
             | migrateTimeoutToLoginAndRegisterTimeout(reader, configurationData)
             | migrateDialogSettings(reader, configurationData)
-            || hasDeprecatedProperties(reader);
+            || Arrays.stream(DEPRECATED_PROPERTIES).anyMatch(reader::contains);
     }
 
     /**
@@ -173,10 +176,6 @@ public class SettingsMigrationService extends PlainMigrationService {
                 RegistrationSettings.PRE_JOIN_REGISTER_CANCEL_KICKS, reader, configData)
             | moveProperty(newProperty("settings.registration.preJoinDialog.loginCancelKicks", true),
                 RegistrationSettings.PRE_JOIN_LOGIN_CANCEL_KICKS, reader, configData);
-    }
-
-    private static boolean hasDeprecatedProperties(PropertyReader reader) {
-        return Arrays.stream(DEPRECATED_PROPERTIES).anyMatch(reader::contains);
     }
 
     // --------
@@ -298,18 +297,6 @@ public class SettingsMigrationService extends PlainMigrationService {
             return true;
         }
         return false;
-    }
-
-    private static boolean hasOldHelpHeaderProperty(PropertyReader reader) {
-        return warnIfOldPropertyPresent(reader, "settings.helpHeader",
-            "Help header setting is now in messages/help_xx.yml, please check the file to set it again");
-    }
-
-    private static boolean hasSupportOldPasswordProperty(PropertyReader reader) {
-        String path = "settings.security.supportOldPasswordHash";
-        return warnIfOldPropertyPresent(reader, path,
-            "Property '" + path + "' is no longer supported. Use '"
-                + SecuritySettings.LEGACY_HASHES.getPath() + "' instead.");
     }
 
     private static boolean warnIfOldPropertyPresent(PropertyReader reader, String path, String warning) {

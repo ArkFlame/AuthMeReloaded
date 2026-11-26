@@ -15,7 +15,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 
 import javax.inject.Inject;
-import java.lang.reflect.Method;
 
 /**
  * Moves players who log in inside a portal or underground to a safe location.
@@ -77,7 +76,7 @@ public class LoginLocationFixListener implements Listener {
 
         World world = player.getWorld();
         int maxHeight = world.getMaxHeight();
-        int minHeight = getMinHeight(world);
+        int minHeight = MIN_HEIGHT_AVAILABLE ? world.getMinHeight() : 0;
         for (int y = minHeight; y <= maxHeight; y++) {
             joinLocation.setY(y);
             Block block = joinLocation.getBlock();
@@ -99,10 +98,6 @@ public class LoginLocationFixListener implements Listener {
     private void teleportAndNotify(Player player, Block block, double yOffset, MessageKey message) {
         TeleportUtils.teleport(player, block.getLocation().add(0.5, yOffset, 0.5));
         commonService.send(player, message);
-    }
-
-    private static int getMinHeight(World world) {
-        return MIN_HEIGHT_AVAILABLE ? world.getMinHeight() : 0;
     }
 
     private static Material resolvePortalMaterial() {

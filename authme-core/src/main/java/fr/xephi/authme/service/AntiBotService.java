@@ -40,7 +40,6 @@ public class AntiBotService implements SettingsDependent {
         this.permissionsManager = permissionsManager;
         this.bukkitService = bukkitService;
         // Initial status
-        disableTask = null;
         antiBotStatus = AntiBotStatus.DISABLED;
         startup = true;
         // Load settings and start if required

@@ -13,9 +13,6 @@ public class TwoFactorRegisterParams extends AbstractPasswordRegisterParams {
 
     /**
      * Creates a parameters object.
-     *
-     * @param player the player to register
-     * @return params object with the given player
      */
     public static TwoFactorRegisterParams of(Player player) {
         return new TwoFactorRegisterParams(player);

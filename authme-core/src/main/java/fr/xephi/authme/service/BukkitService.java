@@ -131,11 +131,7 @@ public class BukkitService implements SettingsDependent {
      * @param task the task to be run
      */
     public void scheduleSyncTaskFromOptionallyAsyncTask(Runnable task) {
-        if (schedulingAdapter.isGlobalThread()) {
-            task.run();
-        } else {
-            runOnGlobalRegion(task);
-        }
+        runOnGlobalRegion(task);
     }
 
     /**
@@ -464,7 +460,7 @@ public class BukkitService implements SettingsDependent {
      * @param bytes the message
      */
     public void sendBungeeMessage(Player player, byte[] bytes) {
-        sendPluginMessage(player, MessageType.BUNGEE_CHANNEL, bytes);
+        player.sendPluginMessage(authMe, MessageType.BUNGEE_CHANNEL, bytes);
     }
 
     /**
@@ -474,11 +470,7 @@ public class BukkitService implements SettingsDependent {
      * @param bytes the message
      */
     public void sendAuthMePluginMessage(Player player, byte[] bytes) {
-        sendPluginMessage(player, MessageType.CHANNEL, bytes);
-    }
-
-    private void sendPluginMessage(Player player, String channel, byte[] bytes) {
-        player.sendPluginMessage(authMe, channel, bytes);
+        player.sendPluginMessage(authMe, MessageType.CHANNEL, bytes);
     }
 
     /**

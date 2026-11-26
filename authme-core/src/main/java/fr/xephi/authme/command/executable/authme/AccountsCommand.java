@@ -55,16 +55,13 @@ public class AccountsCommand extends AbstractPlayerAuthCommand {
         } else if (accountList.size() == 1) {
             getCommonService().send(sender, MessageKey.ACCOUNTS_SINGLE, playerName);
         } else {
-            outputAccountsList(sender, playerName, accountList);
+            if (playerName.equalsIgnoreCase(sender.getName())) {
+                getCommonService().send(sender, MessageKey.ACCOUNTS_OWNED_SELF, Integer.toString(accountList.size()));
+            } else {
+                getCommonService().send(sender, MessageKey.ACCOUNTS_OWNED_OTHER, playerName,
+                    Integer.toString(accountList.size()));
+            }
+            sender.sendMessage(String.join(", ", accountList));
         }
-    }
-
-    private void outputAccountsList(CommandSender sender, String playerName, List<String> accountList) {
-        if (playerName.equalsIgnoreCase(sender.getName())) {
-            getCommonService().send(sender, MessageKey.ACCOUNTS_OWNED_SELF, Integer.toString(accountList.size()));
-        } else {
-            getCommonService().send(sender, MessageKey.ACCOUNTS_OWNED_OTHER, playerName, Integer.toString(accountList.size()));
-        }
-        sender.sendMessage(String.join(", ", accountList));
     }
 }

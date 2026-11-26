@@ -83,15 +83,14 @@ public class TotpAuthenticator implements HasCleanup {
         // The otpauth label is "issuer:account", so the issuer must not contain a colon
         String issuer = settings.getProperty(PluginSettings.SERVER_NAME).replace(':', '-');
         String otpAuthUrl = GoogleAuthenticatorQRGenerator.getOtpAuthTotpURL(issuer, player.getName(), credentials);
-        String qrCodeUrl;
         try {
-            qrCodeUrl = "https://api.qrserver.com/v1/create-qr-code/?data="
-                + URLEncoder.encode(otpAuthUrl, StandardCharsets.UTF_8.name())
-                + "&size=200x200&ecc=M&margin=10";
+            return new TotpGenerationResult(credentials.getKey(),
+                "https://api.qrserver.com/v1/create-qr-code/?data="
+                    + URLEncoder.encode(otpAuthUrl, StandardCharsets.UTF_8.name())
+                    + "&size=200x200&ecc=M&margin=10");
         } catch (UnsupportedEncodingException e) {
             throw new IllegalStateException("UTF-8 encoding not supported", e);
         }
-        return new TotpGenerationResult(credentials.getKey(), qrCodeUrl);
     }
 
     @Override

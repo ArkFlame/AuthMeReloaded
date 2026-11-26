@@ -16,10 +16,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import javax.inject.Inject;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -355,21 +353,6 @@ public class LimboService {
         persistence.saveLimboPlayer(player, limbo);
         logger.debug("Saved {0} ender pearl(s) to disk for `{1}`",
             pearls.size(), player.getName().toLowerCase(Locale.ROOT));
-    }
-
-    /**
-     * Saves ender pearl UUIDs without detailed state. This legacy overload is kept so older
-     * callers and persisted data can still be handled even though recreation requires more data.
-     *
-     * @param player     the authenticated player who is quitting
-     * @param pearlUuids entity UUIDs of the player's in-flight ender pearls
-     */
-    public void saveEnderPearlsForPlayer(Player player, Set<UUID> pearlUuids) {
-        List<EnderPearlRestoreData> pearls = new ArrayList<>(pearlUuids.size());
-        for (UUID uuid : pearlUuids) {
-            pearls.add(new EnderPearlRestoreData(uuid, null, null));
-        }
-        saveEnderPearlsForPlayer(player, pearls);
     }
 
     /**

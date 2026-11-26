@@ -125,8 +125,7 @@ public final class FileUtils {
      */
     public static void create(File file) {
         try {
-            boolean result = file.createNewFile();
-            if (!result) {
+            if (!file.createNewFile()) {
                 throw new IllegalStateException("Could not create file '" + file + "'");
             }
         } catch (IOException e) {

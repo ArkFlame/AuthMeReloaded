@@ -44,9 +44,6 @@ class LimboPlayerTaskManager {
     @Inject
     private DataSource dataSource;
 
-    LimboPlayerTaskManager() {
-    }
-
     /**
      * Registers a {@link MessageTask} for the given player name.
      *

@@ -13,7 +13,7 @@ public final class SchedulerProviders {
     public static final String FOLIA_SCHEDULER_CLASS =
         "io.papermc.paper.threadedregions.scheduler.GlobalRegionScheduler";
 
-    private static final SchedulerProvider CURRENT = create();
+    private static final SchedulerProvider CURRENT = isFolia() ? folia() : bukkit();
 
     private SchedulerProviders() {
     }
@@ -23,15 +23,6 @@ public final class SchedulerProviders {
      */
     public static SchedulerProvider current() {
         return CURRENT;
-    }
-
-    /**
-     * Detects the running server and creates the matching provider.
-     *
-     * @return a Folia provider on region-threaded servers, otherwise a Bukkit provider
-     */
-    public static SchedulerProvider create() {
-        return isFolia() ? folia() : bukkit();
     }
 
     /**

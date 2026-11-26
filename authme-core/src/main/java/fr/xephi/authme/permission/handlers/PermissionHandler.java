@@ -42,19 +42,6 @@ public interface PermissionHandler {
     boolean hasPermissionOffline(String name, PermissionNode node);
 
     /**
-     * Check whether the player is in the specified group.
-     *
-     * @param player    The player.
-     * @param group The group name.
-     *
-     * @return True if the player is in the specified group, false otherwise.
-     *         False is also returned if groups aren't supported by the used permissions system.
-     */
-    default boolean isInGroup(OfflinePlayer player, UserGroup group) {
-        return getGroups(player).contains(group);
-    }
-
-    /**
      * Remove the permission group of a player, if supported.
      *
      * @param player    The player

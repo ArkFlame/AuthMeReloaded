@@ -47,10 +47,6 @@ class SegmentNameBuilder {
     }
 
     private String buildSegmentName(char[] chars) {
-        if (chars.length == 1) {
-            return String.valueOf(charToSegmentChar.get(chars[0]));
-        }
-
         StringBuilder sb = new StringBuilder(chars.length);
         for (char chr : chars) {
             sb.append(charToSegmentChar.get(chr));

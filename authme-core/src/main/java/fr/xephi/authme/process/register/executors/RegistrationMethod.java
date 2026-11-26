@@ -13,27 +13,19 @@ package fr.xephi.authme.process.register.executors;
  */
 public final class RegistrationMethod<P extends RegistrationParameters> {
 
-    /**
-     * Password registration.
-     */
+    /** Password registration. */
     public static final RegistrationMethod<PasswordRegisterParams> PASSWORD_REGISTRATION =
         new RegistrationMethod<>(PasswordRegisterExecutor.class);
 
-    /**
-     * Registration with two-factor authentication as login means.
-     */
+    /** Registration with two-factor authentication as login means. */
     public static final RegistrationMethod<TwoFactorRegisterParams> TWO_FACTOR_REGISTRATION =
         new RegistrationMethod<>(TwoFactorRegisterExecutor.class);
 
-    /**
-     * Email registration: an email address is provided, to which a generated password is sent.
-     */
+    /** Email registration: an email address is provided, to which a generated password is sent. */
     public static final RegistrationMethod<EmailRegisterParams> EMAIL_REGISTRATION =
         new RegistrationMethod<>(EmailRegisterExecutor.class);
 
-    /**
-     * API registration: player and password are provided via an API method.
-     */
+    /** API registration: player and password are provided via an API method. */
     public static final RegistrationMethod<ApiPasswordRegisterParams> API_REGISTRATION =
         new RegistrationMethod<>(ApiPasswordRegisterExecutor.class);
 
@@ -44,9 +36,7 @@ public final class RegistrationMethod<P extends RegistrationParameters> {
         this.executorClass = executorClass;
     }
 
-    /**
-     * @return the executor class to perform the registration method
-     */
+    /** @return the executor class to perform the registration method */
     public Class<? extends RegistrationExecutor<P>> getExecutorClass() {
         return executorClass;
     }

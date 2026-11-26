@@ -5,15 +5,11 @@ package fr.xephi.authme.process.register;
  */
 public enum RegistrationType {
 
-    /**
-     * Password registration: account is registered with a password supplied by the player.
-     */
+    /** Password registration: account is registered with a password supplied by the player. */
     PASSWORD,
 
-    /**
-     * Email registration: account is registered with an email supplied by the player. A password
-     * is generated and sent to the email address.
-     */
+    /** Email registration: account is registered with an email supplied by the player. A password
+     * is generated and sent to the email address. */
     EMAIL
 
 }

@@ -14,7 +14,6 @@ import org.bukkit.util.Vector;
 
 import java.lang.reflect.Type;
 import java.util.Collection;
-import java.util.UUID;
 
 /**
  * Converts a LimboPlayer to a JsonElement.

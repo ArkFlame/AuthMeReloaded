@@ -250,7 +250,7 @@ public class AsynchronousLogin implements AsynchronousProcess {
                                     String password) {
         // If captcha is required send a message to the player and deny to log in
         if (loginCaptchaManager.isCaptchaRequired(lowerCaseName)) {
-            sendCaptchaMessage(player, lowerCaseName);
+            service.send(player, MessageKey.USAGE_CAPTCHA, loginCaptchaManager.getCaptchaCodeOrGenerateNew(lowerCaseName));
             return false;
         }
 
@@ -288,15 +288,11 @@ public class AsynchronousLogin implements AsynchronousProcess {
             // If the authentication fails check if Captcha is required and send a message to the player
             if (loginCaptchaManager.isCaptchaRequired(name)) {
                 limboService.muteMessageTask(player);
-                sendCaptchaMessage(player, name);
+                service.send(player, MessageKey.USAGE_CAPTCHA, loginCaptchaManager.getCaptchaCodeOrGenerateNew(name));
             } else if (emailService.hasAllInformation() && !Utils.isEmailEmpty(auth.getEmail())) {
                 service.send(player, MessageKey.FORGOT_PASSWORD_MESSAGE);
             }
         }
-    }
-
-    private void sendCaptchaMessage(Player player, String name) {
-        service.send(player, MessageKey.USAGE_CAPTCHA, loginCaptchaManager.getCaptchaCodeOrGenerateNew(name));
     }
 
     private void showTotpDialogIfEnabled(Player player, String lowerCaseName) {
@@ -332,7 +328,22 @@ public class AsynchronousLogin implements AsynchronousProcess {
             return;
         }
         boolean isFirstLogin = (auth.getLastLogin() == null);
-        ip = updateAuthForLogin(player, name, ip, auth);
+        // Update auth to reflect this new login
+        if (ip == null) {
+            ip = PlayerUtils.getPlayerIp(player);
+        }
+        auth.setRealName(name);
+        auth.setLastLogin(System.currentTimeMillis());
+        auth.setLastIp(ip);
+        dataSource.updateSession(auth);
+
+        // TODO: send an update when a messaging service will be implemented (SESSION)
+
+        // Successful login, so reset the captcha & temp ban count
+        loginCaptchaManager.resetLoginFailureCount(name);
+        tempbanManager.resetCount(ip, name);
+
+        service.send(player, MessageKey.LOGIN_SUCCESS);
 
         // Other auths
         List<String> auths = dataSource.getAllAuthsByIp(ip);
@@ -351,47 +362,14 @@ public class AsynchronousLogin implements AsynchronousProcess {
         sessionService.grantSession(player);
 
         if (!player.isOnline()) {
-            revertLogin(name);
+            playerCache.removePlayer(name);
+            dataSource.setUnlogged(name);
+            sessionService.revokeSession(name);
+            logger.warning("Player '" + name + "' quit during the login process, login reverted");
             return;
         }
 
         ProcessSharedActions.sendLoginMessageToProxy(bukkitService, bungeeSender, player);
-        dispatchSyncLogin(player, isFirstLogin, auths, proxyInitiated);
-    }
-
-    /**
-     * Persists the new login state and notifies the player of success.
-     *
-     * @return the IP address used for the login, resolved if the caller did not supply one
-     */
-    private String updateAuthForLogin(Player player, String name, String ip, PlayerAuth auth) {
-        // Update auth to reflect this new login
-        if (ip == null) {
-            ip = PlayerUtils.getPlayerIp(player);
-        }
-        auth.setRealName(name);
-        auth.setLastLogin(System.currentTimeMillis());
-        auth.setLastIp(ip);
-        dataSource.updateSession(auth);
-
-        // TODO: send an update when a messaging service will be implemented (SESSION)
-
-        // Successful login, so reset the captcha & temp ban count
-        loginCaptchaManager.resetLoginFailureCount(name);
-        tempbanManager.resetCount(ip, name);
-
-        service.send(player, MessageKey.LOGIN_SUCCESS);
-        return ip;
-    }
-
-    private void revertLogin(String name) {
-        playerCache.removePlayer(name);
-        dataSource.setUnlogged(name);
-        sessionService.revokeSession(name);
-        logger.warning("Player '" + name + "' quit during the login process, login reverted");
-    }
-
-    private void dispatchSyncLogin(Player player, boolean isFirstLogin, List<String> auths, boolean proxyInitiated) {
         // As the scheduling executes the Task most likely after the current
         // task, we schedule it in the end
         // so that we can be sure, and have not to care if it might be

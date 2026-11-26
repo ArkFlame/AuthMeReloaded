@@ -1,7 +1,5 @@
 package fr.xephi.authme.util.expiring;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -22,9 +20,7 @@ import java.util.concurrent.TimeUnit;
  * @param <K> the key type
  * @param <V> the value type
  */
-public class ExpiringMap<K, V> extends AbstractExpiring {
-
-    private final Map<K, ExpiringEntry<V>> entries = new ConcurrentHashMap<>();
+public class ExpiringMap<K, V> extends AbstractExpiring<K, ExpiringMap.ExpiringEntry<V>> {
 
     /**
      * Constructor.
@@ -44,11 +40,11 @@ public class ExpiringMap<K, V> extends AbstractExpiring {
      * @return the associated value, or {@code null} if not available
      */
     public V get(K key) {
-        ExpiringEntry<V> value = entries.get(key);
+        ExpiringEntry<V> value = getEntries().get(key);
         if (value == null) {
             return null;
         } else if (isExpired(value.getExpiration(), System.currentTimeMillis())) {
-            entries.remove(key);
+            getEntries().remove(key);
             return null;
         }
         return value.getValue();
@@ -63,7 +59,7 @@ public class ExpiringMap<K, V> extends AbstractExpiring {
      */
     public void put(K key, V value) {
         long expiration = System.currentTimeMillis() + getExpirationMillis();
-        entries.put(key, new ExpiringEntry<>(value, expiration));
+        getEntries().put(key, new ExpiringEntry<>(value, expiration));
     }
 
     /**
@@ -73,7 +69,7 @@ public class ExpiringMap<K, V> extends AbstractExpiring {
      * @return the removed value, or {@code null} if it was not available or had expired
      */
     public V remove(K key) {
-        ExpiringEntry<V> value = entries.remove(key);
+        ExpiringEntry<V> value = getEntries().remove(key);
         if (value == null || isExpired(value.getExpiration(), System.currentTimeMillis())) {
             return null;
         }
@@ -84,25 +80,8 @@ public class ExpiringMap<K, V> extends AbstractExpiring {
      * Removes all entries which have expired from the internal structure.
      */
     public void removeExpiredEntries() {
-        entries.entrySet().removeIf(entry -> isExpired(entry.getValue().getExpiration(), System.currentTimeMillis()));
-    }
-
-    /**
-     * Returns whether this map is empty. This reflects the state of the
-     * internal map, which may contain expired entries only. The result
-     * may change after running {@link #removeExpiredEntries()}.
-     *
-     * @return true if map is really empty, false otherwise
-     */
-    public boolean isEmpty() {
-        return entries.isEmpty();
-    }
-
-    /**
-     * @return the internal map
-     */
-    protected Map<K, ExpiringEntry<V>> getEntries() {
-        return entries;
+        getEntries().entrySet().removeIf(
+            entry -> isExpired(entry.getValue().getExpiration(), System.currentTimeMillis()));
     }
 
     /**

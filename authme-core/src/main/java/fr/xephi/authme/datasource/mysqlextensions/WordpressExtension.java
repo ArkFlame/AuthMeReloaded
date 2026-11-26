@@ -41,7 +41,6 @@ class WordpressExtension extends MySqlExtension {
     private void saveSpecifics(PlayerAuth auth, int id, Connection con) throws SQLException {
         String sql = "INSERT INTO " + wordpressPrefix + "usermeta (user_id, meta_key, meta_value) VALUES (?,?,?)";
         try (PreparedStatement pst = con.prepareStatement(sql)) {
-
             new UserMetaBatchAdder(pst, id)
                 .addMetaRow("first_name", "")
                 .addMetaRow("last_name", "")

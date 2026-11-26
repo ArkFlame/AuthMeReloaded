@@ -185,17 +185,13 @@ public class EmailService {
         return content.replace("<image />", "<img src=\"cid:" + tag + "\">");
     }
 
-    private String replaceCommonTags(String mailText, String name) {
-        return mailText
-            .replace("<playername />", name)
-            .replace("<servername />", settings.getProperty(PluginSettings.SERVER_NAME));
-    }
-
     /**
      * Replaces the common tags and then each tag/value pair (in the given order).
      */
     private String replaceTags(String mailText, String name, String... tagValuePairs) {
-        String text = replaceCommonTags(mailText, name);
+        String text = mailText
+            .replace("<playername />", name)
+            .replace("<servername />", settings.getProperty(PluginSettings.SERVER_NAME));
         for (int i = 0; i < tagValuePairs.length; i += 2) {
             text = text.replace(tagValuePairs[i], tagValuePairs[i + 1]);
         }

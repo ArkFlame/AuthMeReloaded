@@ -32,7 +32,7 @@ public class GenerateTotpService implements HasCleanup {
      */
     public TotpGenerationResult generateTotpKey(Player player) {
         TotpGenerationResult credentials = totpAuthenticator.generateTotpKey(player);
-        totpKeys.put(keyFor(player), credentials);
+        totpKeys.put(TotpAuthenticator.normalizePlayerName(player.getName()), credentials);
         return credentials;
     }
 
@@ -43,11 +43,11 @@ public class GenerateTotpService implements HasCleanup {
      * @return TOTP generation result
      */
     public TotpGenerationResult getGeneratedTotpKey(Player player) {
-        return totpKeys.get(keyFor(player));
+        return totpKeys.get(TotpAuthenticator.normalizePlayerName(player.getName()));
     }
 
     public void removeGenerateTotpKey(Player player) {
-        totpKeys.remove(keyFor(player));
+        totpKeys.remove(TotpAuthenticator.normalizePlayerName(player.getName()));
     }
 
     /**
@@ -58,16 +58,12 @@ public class GenerateTotpService implements HasCleanup {
      * @return true if the input code is correct, false if the code is invalid or no unexpired totp key is available
      */
     public boolean isTotpCodeCorrectForGeneratedTotpKey(Player player, String totpCode) {
-        TotpGenerationResult totpDetails = totpKeys.get(keyFor(player));
+        TotpGenerationResult totpDetails = totpKeys.get(TotpAuthenticator.normalizePlayerName(player.getName()));
         return totpDetails != null && totpAuthenticator.checkCode(player.getName(), totpDetails.getTotpKey(), totpCode);
     }
 
     @Override
     public void performCleanup() {
         totpKeys.removeExpiredEntries();
-    }
-
-    private static String keyFor(Player player) {
-        return TotpAuthenticator.normalizePlayerName(player.getName());
     }
 }

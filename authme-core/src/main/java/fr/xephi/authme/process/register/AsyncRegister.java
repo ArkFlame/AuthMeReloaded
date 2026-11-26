@@ -43,10 +43,6 @@ public class AsyncRegister implements AsynchronousProcess {
 
     /**
      * Performs the registration process for the given player.
-     *
-     * @param variant    the registration method
-     * @param parameters the parameters
-     * @param <P>        parameters type
      */
     public <P extends RegistrationParameters> void register(RegistrationMethod<P> variant, P parameters) {
         Player player = parameters.getPlayer();
@@ -69,11 +65,6 @@ public class AsyncRegister implements AsynchronousProcess {
 
     /**
      * Checks if the player is able to register, in that case the {@link AuthMeAsyncPreRegisterEvent} is invoked.
-     *
-     * @param variant the registration type variant.
-     * @param player  the player which is trying to register.
-     *
-     * @return true if the checks are successful and the event hasn't marked the action as denied, false otherwise.
      */
     private boolean preRegisterCheck(RegistrationMethod<?> variant, Player player) {
         String name = player.getName().toLowerCase(Locale.ROOT);
@@ -99,10 +90,6 @@ public class AsyncRegister implements AsynchronousProcess {
 
     /**
      * Checks whether the registration threshold has been exceeded for the given player's IP address.
-     *
-     * @param player the player to check
-     *
-     * @return true if registration may take place, false otherwise (IP check failed)
      */
     private boolean isPlayerIpAllowedToRegister(Player player) {
         int maxRegPerIp = service.getProperty(RestrictionSettings.MAX_REGISTRATION_PER_IP);

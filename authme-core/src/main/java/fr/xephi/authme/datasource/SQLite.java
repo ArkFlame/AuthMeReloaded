@@ -200,7 +200,7 @@ public class SQLite extends AbstractSqlDataSource {
             pst.setString(1, user);
             try (ResultSet rs = pst.executeQuery()) {
                 if (rs.next()) {
-                    return buildAuthFromResultSet(rs);
+                    return SqlDataSourceUtils.buildAuthFromResultSet(rs, col, false);
                 }
             }
         } catch (SQLException ex) {
@@ -261,8 +261,7 @@ public class SQLite extends AbstractSqlDataSource {
         List<PlayerAuth> auths = new ArrayList<>();
         try (PreparedStatement pst = con.prepareStatement(findAllSql); ResultSet rs = pst.executeQuery()) {
             while (rs.next()) {
-                PlayerAuth auth = buildAuthFromResultSet(rs);
-                auths.add(auth);
+                auths.add(SqlDataSourceUtils.buildAuthFromResultSet(rs, col, false));
             }
         } catch (SQLException ex) {
             logSqlException(ex);
@@ -286,14 +285,13 @@ public class SQLite extends AbstractSqlDataSource {
         try (PreparedStatement pst = con.prepareStatement(findRecentLoginsSql);
              ResultSet rs = pst.executeQuery()) {
             while (rs.next()) {
-                players.add(buildAuthFromResultSet(rs));
+                players.add(SqlDataSourceUtils.buildAuthFromResultSet(rs, col, false));
             }
         } catch (SQLException e) {
             logSqlException(e);
         }
         return players;
     }
-
 
     @Override
     public synchronized boolean setTotpKey(String user, String totpKey) {
@@ -303,10 +301,6 @@ public class SQLite extends AbstractSqlDataSource {
             logSqlException(e);
         }
         return false;
-    }
-
-    private PlayerAuth buildAuthFromResultSet(ResultSet row) throws SQLException {
-        return SqlDataSourceUtils.buildAuthFromResultSet(row, col, false);
     }
 
     /**

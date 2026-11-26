@@ -16,9 +16,6 @@ final class RegisterLogHelper {
     /**
      * Logs that a player has registered, unless FINE logging is disabled. The message and the
      * player's IP are only resolved when the log entry will actually be written.
-     *
-     * @param logger the logger of the calling registration process
-     * @param player the newly registered player
      */
     static void logRegistration(ConsoleLogger logger, Player player) {
         if (logger.getLogLevel().includes(LogLevel.FINE)) {

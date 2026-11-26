@@ -15,7 +15,6 @@ import org.bukkit.plugin.messaging.Messenger;
 import javax.inject.Inject;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class BungeeSender implements SettingsDependent {
@@ -191,16 +190,15 @@ public class BungeeSender implements SettingsDependent {
         if (!isEnabled || !plugin.isEnabled()) {
             return;
         }
-        Optional<? extends Player> carrier = bukkitService.getOnlinePlayers().stream().findFirst();
-        if (!carrier.isPresent()) {
+        Player carrier = bukkitService.getOnlinePlayers().stream().findFirst().orElse(null);
+        if (carrier == null) {
             logger.warning("Cannot send premium notification to proxy: no online player available as carrier."
                 + " Premium state may be stale on the proxy until the next full resync.");
             return;
         }
-        Player p = carrier.get();
         byte[] payload = buildIdAndNameMessage(type, username);
         bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(() ->
-            bukkitService.sendAuthMePluginMessage(p, payload));
+            bukkitService.sendAuthMePluginMessage(carrier, payload));
     }
 
 }

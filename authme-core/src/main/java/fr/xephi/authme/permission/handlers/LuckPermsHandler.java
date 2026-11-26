@@ -12,7 +12,6 @@ import net.luckperms.api.context.ContextSetFactory;
 import net.luckperms.api.model.data.DataMutateResult;
 import net.luckperms.api.model.group.Group;
 import net.luckperms.api.model.user.User;
-import net.luckperms.api.node.NodeEqualityPredicate;
 import net.luckperms.api.node.types.InheritanceNode;
 import net.luckperms.api.query.QueryMode;
 import net.luckperms.api.query.QueryOptions;
@@ -87,16 +86,6 @@ public class LuckPermsHandler implements PermissionHandler {
         CachedPermissionData permissionData = user.getCachedData()
             .getPermissionData(QueryOptions.builder(QueryMode.CONTEXTUAL).build());
         return permissionData.checkPermission(node.getNode()).asBoolean();
-    }
-
-    @Override
-    public boolean isInGroup(OfflinePlayer player, UserGroup group) {
-        User user = getLoadedUser(player, "check group", true);
-        if (user == null) {
-            return false;
-        }
-
-        return user.data().contains(buildInheritanceNode(group), NodeEqualityPredicate.EXACT).asBoolean();
     }
 
     @Override

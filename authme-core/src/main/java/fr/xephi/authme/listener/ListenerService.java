@@ -71,7 +71,16 @@ public class ListenerService implements SettingsDependent {
      * @return true if the associated event should be canceled, false otherwise
      */
     public boolean shouldCancelEvent(Player player) {
-        return player != null && !checkAuth(player.getName()) && !PlayerUtils.isNpc(player);
+        if (player == null) {
+            return false;
+        }
+        String name = player.getName();
+        if (validationService.isUnrestricted(name)
+            || playerCache.isAuthenticated(name)
+            || (!isRegistrationForced && !dataSource.isAuthAvailable(name))) {
+            return false;
+        }
+        return !PlayerUtils.isNpc(player);
     }
 
     @Override
@@ -79,16 +88,4 @@ public class ListenerService implements SettingsDependent {
         isRegistrationForced = settings.getProperty(RegistrationSettings.FORCE);
     }
 
-    /**
-     * Checks whether the player is allowed to perform actions (i.e. whether he is logged in
-     * or if other settings permit playing).
-     *
-     * @param name the name of the player to verify
-     * @return true if the player may play, false otherwise
-     */
-    private boolean checkAuth(String name) {
-        return validationService.isUnrestricted(name)
-            || playerCache.isAuthenticated(name)
-            || (!isRegistrationForced && !dataSource.isAuthAvailable(name));
-    }
 }

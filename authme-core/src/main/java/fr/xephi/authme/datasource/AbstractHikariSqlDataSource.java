@@ -1,9 +1,9 @@
 package fr.xephi.authme.datasource;
 
-import com.zaxxer.hikari.HikariDataSource;
+import com.zaxxer.hikari.pool.HikariPool.PoolInitializationException;
+import fr.xephi.authme.ConsoleLogger;
 import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.datasource.columnshandler.AuthMeColumnsHandler;
-import fr.xephi.authme.datasource.mysqlextensions.MySqlExtension;
 import fr.xephi.authme.datasource.mysqlextensions.MySqlExtensionsFactory;
 import fr.xephi.authme.settings.Settings;
 import fr.xephi.authme.settings.properties.DatabaseSettings;
@@ -126,6 +126,33 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
         if (ds != null && !ds.isClosed()) {
             ds.close();
         }
+    }
+
+    /** Sets up the Hikari pool, logging configuration failures before rethrowing. */
+    protected void setupPool(Runnable poolSetup, ConsoleLogger logger) {
+        try {
+            poolSetup.run();
+        } catch (RuntimeException e) {
+            if (e instanceof IllegalArgumentException) {
+                logger.warning("Invalid database arguments! Please check your configuration!");
+                logger.warning("If this error persists, please report it to the developer!");
+            }
+            if (e instanceof PoolInitializationException) {
+                logger.warning("Can't initialize database connection! Please check your configuration!");
+                logger.warning("If this error persists, please report it to the developer!");
+            }
+            logger.warning("Can't use the Hikari Connection Pool! Please, report this error to the developer!");
+            throw e;
+        }
+    }
+
+    /** Closes and re-creates the Hikari pool with the given setup. */
+    protected void reloadPool(Runnable poolSetup, ConsoleLogger logger) {
+        if (ds != null) {
+            ds.close();
+        }
+        poolSetup.run();
+        logger.info("Hikari ConnectionPool arguments reloaded!");
     }
 
     @Override

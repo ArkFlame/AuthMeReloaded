@@ -90,23 +90,19 @@ public class PremiumLoginVerifier {
 
     /** Returns true if an in-flight verification exists for this connection. */
     public boolean hasPending(String connectionKey) {
-        return getPending(connectionKey) != null;
+        return pending.get(connectionKey) != null;
     }
 
     /** Returns the username associated with the pending verification, or {@code null}. */
     public String getPendingUsername(String connectionKey) {
-        PendingVerification pend = getPending(connectionKey);
+        PendingVerification pend = pending.get(connectionKey);
         return pend != null ? pend.username() : null;
     }
 
     /** Returns the player UUID from the pending LOGIN_START packet, or {@code null}. */
     public UUID getPendingPlayerUUID(String connectionKey) {
-        PendingVerification pend = getPending(connectionKey);
+        PendingVerification pend = pending.get(connectionKey);
         return pend != null ? pend.playerUUID() : null;
-    }
-
-    private PendingVerification getPending(String connectionKey) {
-        return pending.get(connectionKey);
     }
 
     /** Removes the pending verification for the given connection. */

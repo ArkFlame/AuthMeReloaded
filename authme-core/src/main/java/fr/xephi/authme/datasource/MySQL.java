@@ -3,7 +3,6 @@ package fr.xephi.authme.datasource;
 import com.google.common.annotations.VisibleForTesting;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import com.zaxxer.hikari.pool.HikariPool.PoolInitializationException;
 import fr.xephi.authme.ConsoleLogger;
 import fr.xephi.authme.datasource.mysqlextensions.MySqlExtensionsFactory;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
@@ -32,20 +31,7 @@ public class MySQL extends AbstractHikariSqlDataSource {
         setParameters(settings, extensionsFactory);
 
         // Set the connection arguments (and check if connection is ok)
-        try {
-            this.setConnectionArguments();
-        } catch (RuntimeException e) {
-            if (e instanceof IllegalArgumentException) {
-                logger.warning("Invalid database arguments! Please check your configuration!");
-                logger.warning("If this error persists, please report it to the developer!");
-            }
-            if (e instanceof PoolInitializationException) {
-                logger.warning("Can't initialize database connection! Please check your configuration!");
-                logger.warning("If this error persists, please report it to the developer!");
-            }
-            logger.warning("Can't use the Hikari Connection Pool! Please, report this error to the developer!");
-            throw e;
-        }
+        setupPool(this::setConnectionArguments, logger);
 
         // Initialize the database
         try {
@@ -104,7 +90,6 @@ public class MySQL extends AbstractHikariSqlDataSource {
         // Auth
         ds.setUsername(getUsername());
         ds.setPassword(getPassword());
-        
         // Driver
         String driverClassName = getDriverClassName();
         ds.setDriverClassName(driverClassName);
@@ -155,11 +140,7 @@ public class MySQL extends AbstractHikariSqlDataSource {
 
     @Override
     public void reload() {
-        if (ds != null) {
-            ds.close();
-        }
-        setConnectionArguments();
-        logger.info("Hikari ConnectionPool arguments reloaded!");
+        reloadPool(this::setConnectionArguments, logger);
     }
 
     @Override

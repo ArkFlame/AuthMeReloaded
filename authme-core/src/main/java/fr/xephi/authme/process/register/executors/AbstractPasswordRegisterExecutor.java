@@ -72,9 +72,6 @@ abstract class AbstractPasswordRegisterExecutor<P extends AbstractPasswordRegist
      * Creates the PlayerAuth object to store into the database, based on the registration parameters.
      * The default implementation registers the account without an email address; executors which
      * do have an email may override it.
-     *
-     * @param params the parameters
-     * @return the PlayerAuth representing the new account to register
      */
     protected PlayerAuth createPlayerAuthObject(P params) {
         return createPlayerAuth(params.getPlayer(), params.getHashedPassword(), null);
@@ -82,9 +79,6 @@ abstract class AbstractPasswordRegisterExecutor<P extends AbstractPasswordRegist
 
     /**
      * Returns whether the player should be automatically logged in after registration.
-     *
-     * @param params the registration parameters
-     * @return true if the player should be logged in, false otherwise
      */
     protected boolean performLoginAfterRegister(P params) {
         return !commonService.getProperty(RegistrationSettings.FORCE_LOGIN_AFTER_REGISTER);

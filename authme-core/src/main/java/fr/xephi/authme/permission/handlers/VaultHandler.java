@@ -69,11 +69,6 @@ public class VaultHandler implements PermissionHandler {
     }
 
     @Override
-    public boolean isInGroup(OfflinePlayer player, UserGroup group) {
-        return vaultProvider.playerInGroup(null, player, group.getGroupName());
-    }
-
-    @Override
     public boolean removeFromGroup(OfflinePlayer player, UserGroup group) {
         return vaultProvider.playerRemoveGroup(null, player, group.getGroupName());
     }

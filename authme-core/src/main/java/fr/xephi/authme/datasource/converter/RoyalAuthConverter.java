@@ -63,5 +63,4 @@ public class RoyalAuthConverter implements Converter {
             }
         }
     }
-
 }

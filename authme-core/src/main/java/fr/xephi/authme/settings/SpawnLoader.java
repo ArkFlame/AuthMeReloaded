@@ -146,7 +146,8 @@ public class SpawnLoader implements Reloadable {
             return;
         }
         cmiSpawn = loadSpawnFromFile(cmiFolder, "config.yml",
-            SpawnLoader::getLocationFromCmiConfiguration, "CMI config file");
+            config -> buildLocation(config, "Spawn.Main", "World", "X", "Y", "Z", "Yaw", "Pitch"),
+            "CMI config file");
     }
 
     /**
@@ -418,17 +419,6 @@ public class SpawnLoader implements Reloadable {
      */
     private static Location getLocationFromConfiguration(FileConfiguration configuration, String pathPrefix) {
         return buildLocation(configuration, pathPrefix, "world", "x", "y", "z", "yaw", "pitch");
-    }
-
-    /**
-     * Build a {@link Location} object based on the CMI configuration.
-     *
-     * @param configuration The CMI file configuration to read from
-     *
-     * @return Location corresponding to the values in the path
-     */
-    private static Location getLocationFromCmiConfiguration(FileConfiguration configuration) {
-        return buildLocation(configuration, "Spawn.Main", "World", "X", "Y", "Z", "Yaw", "Pitch");
     }
 
     /**

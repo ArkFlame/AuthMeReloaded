@@ -13,9 +13,6 @@ public class CleanupTask implements Runnable {
     @Inject
     private SingletonStore<HasCleanup> hasCleanupStore;
 
-    CleanupTask() {
-    }
-
     @Override
     public void run() {
         hasCleanupStore.retrieveAllOfType()

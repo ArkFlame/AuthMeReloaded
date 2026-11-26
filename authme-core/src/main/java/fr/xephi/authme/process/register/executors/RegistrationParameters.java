@@ -9,11 +9,7 @@ public abstract class RegistrationParameters {
 
     private final Player player;
 
-    /**
-     * Constructor.
-     *
-     * @param player the player to perform the registration for
-     */
+    /** Constructor. */
     public RegistrationParameters(Player player) {
         this.player = player;
     }

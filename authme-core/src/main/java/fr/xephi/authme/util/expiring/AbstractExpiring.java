@@ -1,14 +1,20 @@
 package fr.xephi.authme.util.expiring;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Base for expiring structures, holding the shared expiration configuration.
+ * Base for expiring structures, holding the shared expiration configuration and the entry storage.
  * The expiration is fixed once a structure is created; reconfiguring it only
  * affects entries added afterwards, as documented by the concrete structures.
+ *
+ * @param <E> the key/entry type
+ * @param <V> the stored value type
  */
-abstract class AbstractExpiring {
+abstract class AbstractExpiring<E, V> {
 
+    private final Map<E, V> entries = new ConcurrentHashMap<>();
     private long expirationMillis;
 
     AbstractExpiring(long duration, TimeUnit unit) {
@@ -33,6 +39,16 @@ abstract class AbstractExpiring {
      */
     protected final long getExpirationMillis() {
         return expirationMillis;
+    }
+
+    /** @return the internal map */
+    protected Map<E, V> getEntries() {
+        return entries;
+    }
+
+    /** @return true if the structure is really empty, false otherwise */
+    public boolean isEmpty() {
+        return entries.isEmpty();
     }
 
     /**

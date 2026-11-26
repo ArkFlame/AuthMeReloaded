@@ -69,14 +69,6 @@ public class ProcessSyncPlayerLogin implements SynchronousProcess {
     ProcessSyncPlayerLogin() {
     }
 
-    private void restoreInventory(Player player) {
-        RestoreInventoryEvent event = new RestoreInventoryEvent(player);
-        bukkitService.callEvent(event);
-        if (!event.isCancelled()) {
-            player.updateInventory();
-        }
-    }
-
     /**
      * Performs operations in sync mode for a player that has just logged in.
      *
@@ -121,7 +113,11 @@ public class ProcessSyncPlayerLogin implements SynchronousProcess {
         }
 
         if (commonService.getProperty(PROTECT_INVENTORY_BEFORE_LOGIN)) {
-            restoreInventory(player);
+            RestoreInventoryEvent event = new RestoreInventoryEvent(player);
+            bukkitService.callEvent(event);
+            if (!event.isCancelled()) {
+                player.updateInventory();
+            }
         }
 
         final PlayerAuth auth = playerCache.getAuth(name);

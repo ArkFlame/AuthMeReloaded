@@ -17,11 +17,6 @@ final class PlayerAuthBuilderHelper {
 
     /**
      * Creates a {@link PlayerAuth} object with the given data.
-     *
-     * @param player the player to create a PlayerAuth for
-     * @param hashedPassword the hashed password
-     * @param email the email address (nullable)
-     * @return the generated PlayerAuth object
      */
     static PlayerAuth createPlayerAuth(Player player, HashedPassword hashedPassword, String email) {
         String playerName = player.getName();

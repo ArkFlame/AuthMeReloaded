@@ -27,17 +27,13 @@ public class LastLoginCommand extends AbstractPlayerAuthCommand {
         // Show the player status
         sender.sendMessage("[AuthMe] " + playerName + " last login: " + lastLoginDate);
         if (lastLogin != null) {
+            long diff = System.currentTimeMillis() - lastLogin;
             sender.sendMessage("[AuthMe] The player " + playerName + " last logged in "
-                + createLastLoginIntervalMessage(lastLogin) + " ago");
+                + (int) (diff / 86400000) + " days "
+                + (int) (diff / 3600000 % 24) + " hours "
+                + (int) (diff / 60000 % 60) + " mins "
+                + (int) (diff / 1000 % 60) + " secs ago");
         }
         sender.sendMessage("[AuthMe] Last player's IP: " + auth.getLastIp());
-    }
-
-    private static String createLastLoginIntervalMessage(long lastLogin) {
-        final long diff = System.currentTimeMillis() - lastLogin;
-        return (int) (diff / 86400000) + " days "
-            + (int) (diff / 3600000 % 24) + " hours "
-            + (int) (diff / 60000 % 60) + " mins "
-            + (int) (diff / 1000 % 60) + " secs";
     }
 }

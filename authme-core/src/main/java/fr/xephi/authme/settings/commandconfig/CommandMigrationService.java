@@ -29,7 +29,8 @@ class CommandMigrationService implements MigrationService {
     @Override
     public boolean checkAndMigrate(PropertyReader reader, ConfigurationData configurationData) {
         CommandConfig commandConfig = CommandSettingsHolder.COMMANDS.determineValue(reader).getValue();
-        if (moveOtherAccountsConfig(commandConfig) || isAnyCommandMissing(reader)) {
+        if (moveOtherAccountsConfig(commandConfig)
+            || COMMAND_CONFIG_PROPERTIES.stream().anyMatch(property -> reader.getObject(property) == null)) {
             configurationData.setValue(CommandSettingsHolder.COMMANDS, commandConfig);
             return true;
         }
@@ -57,7 +58,4 @@ class CommandMigrationService implements MigrationService {
             .replace("%playerip%", "%ip");
     }
 
-    private static boolean isAnyCommandMissing(PropertyReader reader) {
-        return COMMAND_CONFIG_PROPERTIES.stream().anyMatch(property -> reader.getObject(property) == null);
-    }
 }

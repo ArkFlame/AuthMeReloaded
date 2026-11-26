@@ -55,11 +55,6 @@ public class PlayerAuth {
     private PlayerAuth() {
     }
 
-
-    public void setNickname(String nickname) {
-        this.nickname = nickname.toLowerCase(Locale.ROOT);
-    }
-
     public String getNickname() {
         return nickname;
     }
@@ -165,10 +160,6 @@ public class PlayerAuth {
         return registrationDate;
     }
 
-    public void setRegistrationDate(long registrationDate) {
-        this.registrationDate = registrationDate;
-    }
-
     public String getTotpKey() {
         return totpKey;
     }
@@ -179,10 +170,6 @@ public class PlayerAuth {
 
     public UUID getUuid() {
         return uuid;
-    }
-
-    public void setUuid(UUID uuid) {
-        this.uuid = uuid;
     }
 
     public UUID getPremiumUuid() {
@@ -257,12 +244,6 @@ public class PlayerAuth {
          */
         public PlayerAuth build() {
             PlayerAuth auth = new PlayerAuth();
-            applyAccountFields(auth);
-            applyLocationFields(auth);
-            return auth;
-        }
-
-        private void applyAccountFields(PlayerAuth auth) {
             auth.nickname = checkNotNull(name).toLowerCase(Locale.ROOT);
             auth.realName = realName == null ? "Player" : realName;
             // Use a null check rather than Optional.orElse: orElse would allocate a default
@@ -277,15 +258,13 @@ public class PlayerAuth {
             auth.registrationDate = registrationDate == null ? System.currentTimeMillis() : registrationDate;
             auth.uuid = uuid;
             auth.premiumUuid = premiumUuid;
-        }
-
-        private void applyLocationFields(PlayerAuth auth) {
             auth.x = x;
             auth.y = y;
             auth.z = z;
             auth.world = world == null ? "world" : world;
             auth.yaw = yaw;
             auth.pitch = pitch;
+            return auth;
         }
 
         public Builder name(String name) {

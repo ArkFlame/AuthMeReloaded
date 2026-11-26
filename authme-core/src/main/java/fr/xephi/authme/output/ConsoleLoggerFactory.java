@@ -24,8 +24,7 @@ public final class ConsoleLoggerFactory {
      * @return logger for the given class
      */
     public static ConsoleLogger get(Class<?> owningClass) {
-        String name = owningClass.getCanonicalName();
-        return consoleLoggers.computeIfAbsent(name, ConsoleLoggerFactory::createLogger);
+        return consoleLoggers.computeIfAbsent(owningClass.getCanonicalName(), ConsoleLoggerFactory::createLogger);
     }
 
     /**
@@ -37,8 +36,7 @@ public final class ConsoleLoggerFactory {
         ConsoleLoggerFactory.settings = settings;
         ConsoleLogger.initializeSharedSettings(settings);
 
-        consoleLoggers.values()
-            .forEach(logger -> logger.initializeSettings(settings));
+        consoleLoggers.values().forEach(logger -> logger.initializeSettings(settings));
     }
 
     public static int getTotalLoggers() {

@@ -58,17 +58,13 @@ public class ReloadCommand implements ExecutableCommand {
                 logger.info("Note: cannot change database type during /authme reload");
                 commonService.send(sender, MessageKey.RELOAD_DB_TYPE_CHANGE);
             }
-            performReloadOnServices();
+            reloadableStore.retrieveAllOfType().forEach(Reloadable::reload);
+            settingsDependentStore.retrieveAllOfType().forEach(s -> s.reload(settings));
             commonService.send(sender, MessageKey.CONFIG_RELOAD_SUCCESS);
         } catch (Exception e) {
             commonService.send(sender, MessageKey.RELOAD_ERROR);
             logger.logException("Aborting! Encountered exception during reload of AuthMe:", e);
             plugin.stopOrUnload();
         }
-    }
-
-    private void performReloadOnServices() {
-        reloadableStore.retrieveAllOfType().forEach(Reloadable::reload);
-        settingsDependentStore.retrieveAllOfType().forEach(s -> s.reload(settings));
     }
 }

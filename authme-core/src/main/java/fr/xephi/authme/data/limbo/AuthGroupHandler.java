@@ -40,9 +40,6 @@ class AuthGroupHandler implements Reloadable {
     private UserGroup unregisteredGroup;
     private UserGroup registeredGroup;
 
-    AuthGroupHandler() {
-    }
-
     /**
      * Sets the group of a player by its authentication status.
      *

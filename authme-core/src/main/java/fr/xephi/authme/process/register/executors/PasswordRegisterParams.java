@@ -16,11 +16,6 @@ public class PasswordRegisterParams extends AbstractPasswordRegisterParams {
 
     /**
      * Creates a params object.
-     *
-     * @param player the player to register
-     * @param password the password to register with
-     * @param email the email of the player (may be null)
-     * @return params object with the given data
      */
     public static PasswordRegisterParams of(Player player, String password, String email) {
         return new PasswordRegisterParams(player, password, email);

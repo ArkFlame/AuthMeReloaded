@@ -117,8 +117,9 @@ public class PremiumAutoRegisterService {
             return;
         }
         try {
-            UUID verifiedUuid = recheckVerifiedPremiumUuid(player, name, premiumUuid);
-            if (verifiedUuid == null) {
+            // Re-check inside the saving task so an expired or consumed session cannot register.
+            UUID verifiedUuid = resolveVerifiedPremiumUuid(player, name, true);
+            if (!premiumUuid.equals(verifiedUuid)) {
                 return;
             }
 
@@ -162,12 +163,4 @@ public class PremiumAutoRegisterService {
         }
     }
 
-    /**
-     * Re-checks the verification inside the task that saves the account, so an expired or
-     * consumed session can no longer trigger registration.
-     */
-    private UUID recheckVerifiedPremiumUuid(Player player, String name, UUID expectedUuid) {
-        UUID verified = resolveVerifiedPremiumUuid(player, name, true);
-        return expectedUuid.equals(verified) ? verified : null;
-    }
 }

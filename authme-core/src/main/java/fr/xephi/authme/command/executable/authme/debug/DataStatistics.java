@@ -51,30 +51,21 @@ class DataStatistics implements DebugSection {
         sendTitle(sender, "statistics");
         sender.sendMessage("LimboPlayers in memory: " + applyToLimboPlayersMap(limboService, Map::size));
         sender.sendMessage("PlayerCache size: " + playerCache.getLogged() + " (= logged in players)");
-
-        outputDatabaseStats(sender);
-        outputInjectorStats(sender);
+        sender.sendMessage("Total players in DB: " + dataSource.getAccountsRegistered());
+        if (dataSource instanceof CacheDataSource) {
+            CacheDataSource cacheDataSource = (CacheDataSource) this.dataSource;
+            sender.sendMessage("Cached PlayerAuth objects: " + cacheDataSource.getCachedAuths().size());
+        }
+        sender.sendMessage("Singleton Java classes: " + singletonStore.retrieveAllOfType().size());
+        sender.sendMessage(String.format("(Reloadable: %d / SettingsDependent: %d / HasCleanup: %d)",
+            singletonStore.retrieveAllOfType(Reloadable.class).size(),
+            singletonStore.retrieveAllOfType(SettingsDependent.class).size(),
+            singletonStore.retrieveAllOfType(HasCleanup.class).size()));
         sender.sendMessage("Total logger instances: " + ConsoleLoggerFactory.getTotalLoggers());
     }
 
     @Override
     public PermissionNode getRequiredPermission() {
         return DebugSectionPermissions.DATA_STATISTICS;
-    }
-
-    private void outputDatabaseStats(CommandSender sender) {
-        sender.sendMessage("Total players in DB: " + dataSource.getAccountsRegistered());
-        if (dataSource instanceof CacheDataSource) {
-            CacheDataSource cacheDataSource = (CacheDataSource) this.dataSource;
-            sender.sendMessage("Cached PlayerAuth objects: " + cacheDataSource.getCachedAuths().size());
-        }
-    }
-
-    private void outputInjectorStats(CommandSender sender) {
-        sender.sendMessage("Singleton Java classes: " + singletonStore.retrieveAllOfType().size());
-        sender.sendMessage(String.format("(Reloadable: %d / SettingsDependent: %d / HasCleanup: %d)",
-            singletonStore.retrieveAllOfType(Reloadable.class).size(),
-            singletonStore.retrieveAllOfType(SettingsDependent.class).size(),
-            singletonStore.retrieveAllOfType(HasCleanup.class).size()));
     }
 }

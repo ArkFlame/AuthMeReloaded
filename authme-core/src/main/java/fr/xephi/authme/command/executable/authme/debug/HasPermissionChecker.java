@@ -116,13 +116,8 @@ class HasPermissionChecker implements DebugSection {
             .findFirst();
         if (permNode.isPresent()) {
             return permNode.get();
-        } else {
-            sender.sendMessage("Did not detect AuthMe permission; using default permission = DENIED");
-            return createPermNode(node);
         }
-    }
-
-    private static PermissionNode createPermNode(String node) {
+        sender.sendMessage("Did not detect AuthMe permission; using default permission = DENIED");
         return new PermissionNode() {
             @Override
             public String getNode() {

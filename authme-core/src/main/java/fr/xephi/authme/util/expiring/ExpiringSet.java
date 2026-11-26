@@ -1,7 +1,5 @@
 package fr.xephi.authme.util.expiring;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -16,9 +14,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @param <E> the type of the entries
  */
-public class ExpiringSet<E> extends AbstractExpiring {
-
-    private final Map<E, Long> entries = new ConcurrentHashMap<>();
+public class ExpiringSet<E> extends AbstractExpiring<E, Long> {
 
     /**
      * Constructor.
@@ -36,7 +32,7 @@ public class ExpiringSet<E> extends AbstractExpiring {
      * @param entry the entry to add
      */
     public void add(E entry) {
-        entries.put(entry, System.currentTimeMillis() + getExpirationMillis());
+        getEntries().put(entry, System.currentTimeMillis() + getExpirationMillis());
     }
 
     /**
@@ -46,14 +42,14 @@ public class ExpiringSet<E> extends AbstractExpiring {
      * @return true if the entry is present and not expired, false otherwise
      */
     public boolean contains(E entry) {
-        Long expiration = entries.get(entry);
+        Long expiration = getEntries().get(entry);
         if (expiration == null) {
             return false;
         }
         if (expiration > System.currentTimeMillis()) {
             return true;
         }
-        entries.remove(entry);
+        getEntries().remove(entry);
         return false;
     }
 
@@ -63,21 +59,21 @@ public class ExpiringSet<E> extends AbstractExpiring {
      * @param entry the entry to remove
      */
     public void remove(E entry) {
-        entries.remove(entry);
+        getEntries().remove(entry);
     }
 
     /**
      * Removes all entries from the set.
      */
     public void clear() {
-        entries.clear();
+        getEntries().clear();
     }
 
     /**
      * Removes all entries which have expired from the internal structure.
      */
     public void removeExpiredEntries() {
-        entries.entrySet().removeIf(entry -> isExpired(entry.getValue(), System.currentTimeMillis()));
+        getEntries().entrySet().removeIf(entry -> isExpired(entry.getValue(), System.currentTimeMillis()));
     }
 
     /**
@@ -88,26 +84,15 @@ public class ExpiringSet<E> extends AbstractExpiring {
      * @return duration the entry will remain in the set (if there are not modifications)
      */
     public Duration getExpiration(E entry) {
-        Long expiration = entries.get(entry);
+        Long expiration = getEntries().get(entry);
         if (expiration == null) {
             return new Duration(-1, TimeUnit.SECONDS);
         }
         long stillPresentMillis = expiration - System.currentTimeMillis();
         if (stillPresentMillis < 0) {
-            entries.remove(entry);
+            getEntries().remove(entry);
             return new Duration(-1, TimeUnit.SECONDS);
         }
         return Duration.createWithSuitableUnit(stillPresentMillis, TimeUnit.MILLISECONDS);
-    }
-
-    /**
-     * Returns whether this set is empty. This reflects the state of the
-     * internal map, which may contain expired entries only. The result
-     * may change after running {@link #removeExpiredEntries()}.
-     *
-     * @return true if the set is really empty, false otherwise
-     */
-    public boolean isEmpty() {
-        return entries.isEmpty();
     }
 }

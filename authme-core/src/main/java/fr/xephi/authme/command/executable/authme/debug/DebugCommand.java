@@ -38,8 +38,10 @@ public class DebugCommand implements ExecutableCommand {
             : getSections().get(arguments.get(0).toLowerCase(Locale.ROOT));
         if (debugSection == null) {
             sendAvailableSections(sender);
+        } else if (permissionsManager.hasPermission(sender, debugSection.getRequiredPermission())) {
+            debugSection.execute(sender, arguments.subList(1, arguments.size()));
         } else {
-            executeSection(debugSection, sender, arguments);
+            sender.sendMessage(ChatColor.RED + "You don't have permission for this section. See /authme debug");
         }
     }
 
@@ -53,14 +55,6 @@ public class DebugCommand implements ExecutableCommand {
 
         if (availableSections == 0) {
             sender.sendMessage(ChatColor.RED + "You don't have permission to view any debug section");
-        }
-    }
-
-    private void executeSection(DebugSection section, CommandSender sender, List<String> arguments) {
-        if (permissionsManager.hasPermission(sender, section.getRequiredPermission())) {
-            section.execute(sender, arguments.subList(1, arguments.size()));
-        } else {
-            sender.sendMessage(ChatColor.RED + "You don't have permission for this section. See /authme debug");
         }
     }
 
