@@ -40,7 +40,6 @@ public enum DebugSectionPermissions implements PermissionNode {
 
     private final String node;
 
-    /** Constructs an instance with the given permission node. */
     DebugSectionPermissions(String node) {
         this.node = node;
     }

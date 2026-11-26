@@ -1,7 +1,5 @@
 package fr.xephi.authme.permission;
 
-import java.util.Arrays;
-
 /**
  * Enum representing the permissions systems AuthMe supports.
  */
@@ -46,7 +44,7 @@ public enum PermissionsSystemType {
      * @return Plugin name.
      */
     public String getPluginName() {
-        return getDisplayName();
+        return name;
     }
 
     /**
@@ -56,7 +54,7 @@ public enum PermissionsSystemType {
      */
     @Override
     public String toString() {
-        return getDisplayName();
+        return name;
     }
 
     /**
@@ -66,6 +64,11 @@ public enum PermissionsSystemType {
      * @return If the plugin is a valid permissions system.
      */
     public static boolean isPermissionSystem(String name) {
-        return Arrays.stream(values()).anyMatch(type -> type.name.equals(name));
+        for (PermissionsSystemType type : values()) {
+            if (type.name.equals(name)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
