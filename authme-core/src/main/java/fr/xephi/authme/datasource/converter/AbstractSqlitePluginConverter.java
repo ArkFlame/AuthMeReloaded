@@ -5,7 +5,6 @@ import fr.xephi.authme.datasource.DataSource;
 import org.bukkit.command.CommandSender;
 
 import java.io.File;
-import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
@@ -25,22 +24,6 @@ abstract class AbstractSqlitePluginConverter implements Converter {
     }
 
     /**
-     * Opens a JDBC connection to the given SQLite database file.
-     *
-     * @param dbFile the SQLite database file
-     * @return an open connection
-     * @throws SQLException if the driver is unavailable or the connection cannot be established
-     */
-    protected Connection openConnection(File dbFile) throws SQLException {
-        try {
-            Class.forName("org.sqlite.JDBC");
-        } catch (ClassNotFoundException e) {
-            throw new SQLException("SQLite JDBC driver not available", e);
-        }
-        return DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath());
-    }
-
-    /**
      * Runs the given query on the SQLite file and hands the result rows to the importer.
      * SQL errors are reported to the sender and the log instead of being propagated.
      *
@@ -53,6 +36,13 @@ abstract class AbstractSqlitePluginConverter implements Converter {
      */
     protected void queryAndImport(File dbFile, CommandSender sender, String query, String pluginName,
                                   ConsoleLogger logger, ResultSetImporter importer) {
-        ConverterUtils.runQuery(() -> openConnection(dbFile), sender, query, pluginName, logger, importer);
+        ConverterUtils.runQuery(() -> {
+            try {
+                Class.forName("org.sqlite.JDBC");
+            } catch (ClassNotFoundException e) {
+                throw new SQLException("SQLite JDBC driver not available", e);
+            }
+            return DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath());
+        }, sender, query, pluginName, logger, importer);
     }
 }

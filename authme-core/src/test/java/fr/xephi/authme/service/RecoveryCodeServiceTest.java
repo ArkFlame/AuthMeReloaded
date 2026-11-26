@@ -52,10 +52,12 @@ class RecoveryCodeServiceTest {
     }
 
     @Test
-    void shouldGenerateAndStoreCode() {
-        recoveryCodeService.generateCode("Bobbers");
+    void shouldGenerateStoreAndRecognizeCode() {
+        String player = "dragon";
+        String code = recoveryCodeService.generateCode(player);
 
-        assertThat(getCodeMap().get("Bobbers"), stringWithLength(5));
+        assertThat(getCodeMap().get(player), stringWithLength(5));
+        assertThat(recoveryCodeService.isCodeValid(player, code), equalTo(true));
     }
 
     @ParameterizedTest
@@ -68,14 +70,6 @@ class RecoveryCodeServiceTest {
         }
 
         assertThat(recoveryCodeService.hasTriesLeft(player), equalTo(invalidAttempts == 0));
-    }
-
-    @Test
-    void shouldRecognizeCorrectCode() {
-        String player = "dragon";
-        String code = recoveryCodeService.generateCode(player);
-
-        assertThat(recoveryCodeService.isCodeValid(player, code), equalTo(true));
     }
 
     @Test

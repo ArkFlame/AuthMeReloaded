@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The JoinMessageService class.
+ * Holds join messages until they can be broadcast.
  */
 public class JoinMessageService {
 

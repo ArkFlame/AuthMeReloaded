@@ -15,6 +15,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
@@ -45,27 +46,20 @@ class UtilsTest {
     }
 
     @ParameterizedTest
-    @MethodSource("commandSenders")
-    void shouldLogAndSendMessage(CommandSender sender, boolean shouldReceiveMessage) {
+    @MethodSource("logAndSendCases")
+    void shouldLogAndSendMessage(BiConsumer<CommandSender, String> logMethod, boolean isWarning,
+                                 CommandSender sender, boolean shouldReceiveMessage) {
         Logger logger = TestHelper.setupLogger();
         String message = "Finished adding foo to the bar";
 
-        Utils.logAndSendMessage(sender, message);
+        logMethod.accept(sender, message);
 
-        verify(logger).info(message);
-        verifyMessageHandling(sender, message, shouldReceiveMessage);
-    }
-
-    @ParameterizedTest
-    @MethodSource("commandSenders")
-    void shouldLogAndSendWarning(CommandSender sender, boolean shouldReceiveMessage) {
-        Logger logger = TestHelper.setupLogger();
-        String message = "Error while performing action";
-
-        Utils.logAndSendWarning(sender, message);
-
-        verify(logger).warning(message);
-        verifyMessageHandling(sender, ChatColor.RED + message, shouldReceiveMessage);
+        if (isWarning) {
+            verify(logger).warning(message);
+        } else {
+            verify(logger).info(message);
+        }
+        verifyMessageHandling(sender, isWarning ? ChatColor.RED + message : message, shouldReceiveMessage);
     }
 
     private static void verifyMessageHandling(CommandSender sender, String message, boolean shouldReceiveMessage) {
@@ -76,11 +70,16 @@ class UtilsTest {
         }
     }
 
-    private static Stream<Arguments> commandSenders() {
+    private static Stream<Arguments> logAndSendCases() {
+        BiConsumer<CommandSender, String> info = Utils::logAndSendMessage;
+        BiConsumer<CommandSender, String> warning = Utils::logAndSendWarning;
         return Stream.of(
-            Arguments.of(mock(CommandSender.class), true),
-            Arguments.of(null, false),
-            Arguments.of(mock(ConsoleCommandSender.class), false));
+            Arguments.of(info, false, mock(CommandSender.class), true),
+            Arguments.of(info, false, null, false),
+            Arguments.of(info, false, mock(ConsoleCommandSender.class), false),
+            Arguments.of(warning, true, mock(CommandSender.class), true),
+            Arguments.of(warning, true, null, false),
+            Arguments.of(warning, true, mock(ConsoleCommandSender.class), false));
     }
 
     @Test

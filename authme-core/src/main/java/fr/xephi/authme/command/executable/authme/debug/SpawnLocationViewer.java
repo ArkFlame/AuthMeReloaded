@@ -29,7 +29,6 @@ class SpawnLocationViewer implements DebugSection {
     @Inject
     private BukkitService bukkitService;
 
-
     @Override
     public String getName() {
         return "spawn";

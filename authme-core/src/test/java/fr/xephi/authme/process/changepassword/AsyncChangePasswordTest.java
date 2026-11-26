@@ -10,7 +10,7 @@ import fr.xephi.authme.security.crypts.HashedPassword;
 import fr.xephi.authme.service.CommonService;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -24,6 +24,7 @@ import org.mockito.verification.VerificationMode;
 
 import java.util.stream.Stream;
 
+import static fr.xephi.authme.listener.TestPlayerUtils.mockPlayerWithName;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -50,8 +51,8 @@ class AsyncChangePasswordTest {
     @Mock
     private PasswordSecurity passwordSecurity;
 
-    @BeforeEach
-    void setUpLogger() {
+    @BeforeAll
+    static void setUpLogger() {
         TestHelper.setupLogger();
     }
 
@@ -70,7 +71,7 @@ class AsyncChangePasswordTest {
 
     @Test
     void shouldDoNothingIfPlayerIsNoLongerLoggedIn() {
-        Player player = mockPlayer("Bobby");
+        Player player = mockPlayerWithName("Bobby");
         given(playerCache.getAuth("bobby")).willReturn(null);
 
         asyncChangePassword.changePassword(player, "old", "new");
@@ -81,7 +82,7 @@ class AsyncChangePasswordTest {
     @ParameterizedTest(name = "save successful={0}")
     @ValueSource(booleans = {true, false})
     void shouldOnlyUpdateCacheAfterSuccessfulSave(boolean saveSuccessful) {
-        Player player = mockPlayer("Bobby");
+        Player player = mockPlayerWithName("Bobby");
         PlayerAuth auth = mock(PlayerAuth.class);
         HashedPassword hashedPassword = new HashedPassword("new_hash");
         given(playerCache.getAuth("bobby")).willReturn(auth);
@@ -144,11 +145,5 @@ class AsyncChangePasswordTest {
             Arguments.of(true, true, MessageKey.PASSWORD_CHANGED_SUCCESS),
             Arguments.of(false, true, MessageKey.PASSWORD_CHANGED_SUCCESS),
             Arguments.of(true, false, MessageKey.ERROR));
-    }
-
-    private static Player mockPlayer(String name) {
-        Player player = mock(Player.class);
-        given(player.getName()).willReturn(name);
-        return player;
     }
 }

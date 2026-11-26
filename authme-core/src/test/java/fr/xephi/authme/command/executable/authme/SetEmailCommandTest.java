@@ -49,13 +49,14 @@ class SetEmailCommandTest {
     @Mock
     private ValidationService validationService;
 
+    private final CommandSender sender = mock(CommandSender.class);
+
     @Test
     void shouldRejectInvalidMail() {
         // given
         String user = "somebody";
         String email = "some.test@example.org";
         given(validationService.validateEmail(email)).willReturn(false);
-        CommandSender sender = mock(CommandSender.class);
 
         // when
         command.executeCommand(sender, Arrays.asList(user, email));
@@ -73,7 +74,6 @@ class SetEmailCommandTest {
         String email = "mail@example.com";
         given(validationService.validateEmail(email)).willReturn(true);
         given(dataSource.getAuth(user)).willReturn(null);
-        CommandSender sender = mock(CommandSender.class);
         setBukkitServiceToRunTaskOptionallyAsync(bukkitService);
 
         // when
@@ -94,7 +94,6 @@ class SetEmailCommandTest {
         given(validationService.validateEmail(email)).willReturn(true);
         PlayerAuth auth = mock(PlayerAuth.class);
         given(dataSource.getAuth(user)).willReturn(auth);
-        CommandSender sender = mock(CommandSender.class);
         given(validationService.isEmailFreeForRegistration(email, sender)).willReturn(false);
         setBukkitServiceToRunTaskOptionallyAsync(bukkitService);
 
@@ -119,7 +118,6 @@ class SetEmailCommandTest {
         given(validationService.validateEmail(email)).willReturn(true);
         PlayerAuth auth = mock(PlayerAuth.class);
         given(dataSource.getAuth(user)).willReturn(auth);
-        CommandSender sender = mock(CommandSender.class);
         given(validationService.isEmailFreeForRegistration(email, sender)).willReturn(true);
         given(dataSource.updateEmail(auth)).willReturn(updateSuccessful);
         setBukkitServiceToRunTaskOptionallyAsync(bukkitService);

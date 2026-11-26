@@ -19,7 +19,6 @@ import java.util.Collections;
 
 import static java.util.Arrays.asList;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -56,14 +55,11 @@ class SwitchAntiBotCommandTest {
         command.executeCommand(sender, Collections.emptyList());
 
         // then
-        verify(messages).send(eq(sender), eq(MessageKey.ANTIBOT_STATUS), eq("ACTIVE"));
+        verify(messages).send(sender, MessageKey.ANTIBOT_STATUS, "ACTIVE");
     }
 
     @ParameterizedTest
-    @CsvSource({
-        "on, true, ANTIBOT_OVERRIDE_ENABLED",
-        "Off, false, ANTIBOT_OVERRIDE_DISABLED"
-    })
+    @CsvSource({"on, true, ANTIBOT_OVERRIDE_ENABLED", "Off, false, ANTIBOT_OVERRIDE_DISABLED"})
     void shouldOverrideAntiBotState(String input, boolean expectedStatus, MessageKey expectedMessage) {
         // given
         CommandSender sender = mock(CommandSender.class);
@@ -90,6 +86,6 @@ class SwitchAntiBotCommandTest {
         verify(antiBot, never()).overrideAntiBotStatus(anyBoolean());
         verify(messages).send(sender, MessageKey.ANTIBOT_INVALID_MODE);
         verify(helpProvider).outputHelp(sender, foundCommandResult, HelpProvider.SHOW_ARGUMENTS);
-        verify(messages).send(eq(sender), eq(MessageKey.COMMAND_DETAILED_HELP), eq("authme help antibot"));
+        verify(messages).send(sender, MessageKey.COMMAND_DETAILED_HELP, "authme help antibot");
     }
 }

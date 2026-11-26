@@ -11,6 +11,8 @@ import fr.xephi.authme.settings.properties.RegistrationSettings;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -21,7 +23,10 @@ import static fr.xephi.authme.service.BukkitServiceTestHelper.setBukkitServiceTo
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -66,19 +71,21 @@ class EmailRecoveryDialogServiceTest {
     @Mock
     private BukkitService bukkitService;
 
-    @Test
-    void shouldRequestRecoveryOnceAndOfferCodeDialog() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldSendRecoveryCodeAndOnlyOfferDialogWhenAllowed(boolean rateLimited) {
         // given
         Player player = mockPlayer();
-        givenDialogFlowEnabled(true);
-        given(dialogAdapter.isDialogSupported()).willReturn(true);
         givenValidEmailInput();
         given(recoveryCodeService.isRecoveryCodeNeeded()).willReturn(true);
-        given(passwordRecoveryService.isOnEmailCooldown(player)).willReturn(false);
-        givenDialogTextStubs(player);
-        stubCodeDialog();
+        given(passwordRecoveryService.isOnEmailCooldown(player)).willReturn(rateLimited);
         setBukkitServiceToRunTaskAsynchronously(bukkitService);
-        setBukkitServiceToScheduleSyncEntityTaskFromOptionallyAsyncTask(bukkitService);
+        if (!rateLimited) {
+            givenDialogFlowEnabled(true);
+            given(dialogAdapter.isDialogSupported()).willReturn(true);
+            givenDialogTextStubs(player);
+            setBukkitServiceToScheduleSyncEntityTaskFromOptionallyAsyncTask(bukkitService);
+        }
 
         // when
         service.requestRecovery(player, EMAIL);
@@ -86,26 +93,11 @@ class EmailRecoveryDialogServiceTest {
         // then
         verify(passwordRecoveryService).createAndSendRecoveryCode(player, EMAIL);
         verify(passwordRecoveryService, never()).generateAndSendNewPassword(player, EMAIL);
-        verify(dialogAdapter).showRecoveryCodeDialog(org.mockito.ArgumentMatchers.eq(player),
-            org.mockito.ArgumentMatchers.any(DialogWindowSpec.class));
-    }
-
-    @Test
-    void shouldOnlySendMessageWhenRateLimited() {
-        // given
-        Player player = mockPlayer();
-        givenValidEmailInput();
-        given(recoveryCodeService.isRecoveryCodeNeeded()).willReturn(true);
-        given(passwordRecoveryService.isOnEmailCooldown(player)).willReturn(true);
-        setBukkitServiceToRunTaskAsynchronously(bukkitService);
-
-        // when
-        service.requestRecovery(player, EMAIL);
-
-        // then
-        verify(passwordRecoveryService).createAndSendRecoveryCode(player, EMAIL);
-        verify(dialogAdapter, never()).showRecoveryCodeDialog(org.mockito.ArgumentMatchers.eq(player),
-            org.mockito.ArgumentMatchers.any(DialogWindowSpec.class));
+        if (rateLimited) {
+            verify(dialogAdapter, never()).showRecoveryCodeDialog(eq(player), any(DialogWindowSpec.class));
+        } else {
+            verify(dialogAdapter).showRecoveryCodeDialog(eq(player), any(DialogWindowSpec.class));
+        }
     }
 
     @Test
@@ -151,7 +143,6 @@ class EmailRecoveryDialogServiceTest {
         given(recoveryCodeService.hasTriesLeft(NAME)).willReturn(true);
         given(recoveryCodeService.isCodeValid(NAME, "123abc")).willReturn(true);
         givenDialogTextStubs(player);
-        stubPasswordDialog();
 
         // when
         service.submitCode(player, "123abc");
@@ -160,8 +151,7 @@ class EmailRecoveryDialogServiceTest {
         verify(commonService).send(player, MessageKey.RECOVERY_CODE_CORRECT);
         verify(passwordRecoveryService).addSuccessfulRecovery(player);
         verify(recoveryCodeService).removeCode(NAME);
-        verify(dialogAdapter).showNewPasswordDialog(org.mockito.ArgumentMatchers.eq(player),
-            org.mockito.ArgumentMatchers.any(DialogWindowSpec.class));
+        verify(dialogAdapter).showNewPasswordDialog(eq(player), any(DialogWindowSpec.class));
     }
 
     @Test
@@ -220,8 +210,6 @@ class EmailRecoveryDialogServiceTest {
         // given
         Player player = mockPlayer();
         givenDialogTextStubs(player);
-        stubCodeDialog();
-        stubPasswordDialog();
 
         // when
         service.showCodeDialog(player);
@@ -229,8 +217,8 @@ class EmailRecoveryDialogServiceTest {
 
         // then
         ArgumentCaptor<DialogWindowSpec> specs = ArgumentCaptor.forClass(DialogWindowSpec.class);
-        verify(dialogAdapter).showRecoveryCodeDialog(org.mockito.ArgumentMatchers.eq(player), specs.capture());
-        verify(dialogAdapter).showNewPasswordDialog(org.mockito.ArgumentMatchers.eq(player), specs.capture());
+        verify(dialogAdapter).showRecoveryCodeDialog(eq(player), specs.capture());
+        verify(dialogAdapter).showNewPasswordDialog(eq(player), specs.capture());
         assertThat(specs.getAllValues().get(0).title(), is(MessageKey.DIALOG_RECOVERY_CODE_TITLE.getKey()));
         assertThat(specs.getAllValues().get(0).body(), is(MessageKey.DIALOG_RECOVERY_CODE_BODY.getKey()));
         assertThat(specs.getAllValues().get(0).inputs().stream().map(input -> input.id()).toList(), contains("code"));
@@ -240,28 +228,15 @@ class EmailRecoveryDialogServiceTest {
 
     private Player mockPlayer() {
         Player player = mock(Player.class);
-        org.mockito.Mockito.lenient().when(player.getName()).thenReturn(NAME);
+        lenient().when(player.getName()).thenReturn(NAME);
         return player;
     }
 
     private void givenDialogTextStubs(Player player) {
-        given(commonService.retrieveSingleMessage(org.mockito.ArgumentMatchers.eq(player),
-            org.mockito.ArgumentMatchers.any(MessageKey.class)))
+        given(commonService.retrieveSingleMessage(eq(player), any(MessageKey.class)))
             .willAnswer(invocation -> invocation.getArgument(1, MessageKey.class).getKey());
         given(commonService.getProperty(RegistrationSettings.DIALOG_SHOW_BODY)).willReturn(true);
         given(commonService.getProperty(RegistrationSettings.DIALOG_STACK_BUTTONS_VERTICALLY)).willReturn(false);
-    }
-
-    private void stubCodeDialog() {
-        org.mockito.Mockito.doAnswer(invocation -> null).when(dialogAdapter)
-            .showRecoveryCodeDialog(org.mockito.ArgumentMatchers.any(Player.class),
-                org.mockito.ArgumentMatchers.any(DialogWindowSpec.class));
-    }
-
-    private void stubPasswordDialog() {
-        org.mockito.Mockito.doAnswer(invocation -> null).when(dialogAdapter)
-            .showNewPasswordDialog(org.mockito.ArgumentMatchers.any(Player.class),
-                org.mockito.ArgumentMatchers.any(DialogWindowSpec.class));
     }
 
     private void givenDialogFlowEnabled(boolean enabled) {
