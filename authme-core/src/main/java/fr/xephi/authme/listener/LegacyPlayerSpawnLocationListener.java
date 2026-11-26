@@ -2,7 +2,6 @@ package fr.xephi.authme.listener;
 
 import fr.xephi.authme.service.TeleportationService;
 import org.bukkit.Location;
-import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -21,9 +20,8 @@ public class LegacyPlayerSpawnLocationListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH)
     public void onPlayerSpawn(PlayerSpawnLocationEvent event) {
         SpawnLocationTracker.markEventCalled();
-        final Player player = event.getPlayer();
-
-        Location customSpawnLocation = teleportationService.prepareOnJoinSpawnLocation(player, event.getSpawnLocation());
+        Location customSpawnLocation =
+            teleportationService.prepareOnJoinSpawnLocation(event.getPlayer(), event.getSpawnLocation());
         if (customSpawnLocation != null) {
             event.setSpawnLocation(customSpawnLocation);
         }

@@ -30,9 +30,11 @@ final class SpigotDialogHelper {
 
     static void showLoginDialog(Player player, DialogWindowSpec dialog) {
         List<ActionButton> buttons = new ArrayList<>(2);
-        buttons.add(newActionButton(dialog.primaryButtonLabel(), "login $(password)"));
+        buttons.add(new ActionButton(toTextComponent(dialog.primaryButtonLabel()),
+            new RunCommandAction("login $(password)")));
         if (dialog.showSecondaryButton() && dialog.secondaryButtonCommand() != null) {
-            buttons.add(newActionButton(dialog.secondaryButtonLabel(), dialog.secondaryButtonCommand()));
+            buttons.add(new ActionButton(toTextComponent(dialog.secondaryButtonLabel()),
+                new RunCommandAction(dialog.secondaryButtonCommand())));
         }
         player.showDialog(new MultiActionDialog(newDialogBase(dialog), buttons.toArray(new ActionButton[0]))
             .columns(dialog.buttonColumns()));
@@ -58,11 +60,7 @@ final class SpigotDialogHelper {
     /** Builds the common single-button dialog used by every dialog except the multi-button login dialog. */
     private static MultiActionDialog newSingleActionDialog(DialogWindowSpec dialog, String commandTemplate) {
         return new MultiActionDialog(newDialogBase(dialog),
-            newActionButton(dialog.primaryButtonLabel(), commandTemplate));
-    }
-
-    private static ActionButton newActionButton(String label, String command) {
-        return new ActionButton(toTextComponent(label), new RunCommandAction(command));
+            new ActionButton(toTextComponent(dialog.primaryButtonLabel()), new RunCommandAction(commandTemplate)));
     }
 
     static void closeDialog(Player player) {
@@ -92,12 +90,11 @@ final class SpigotDialogHelper {
     }
 
     private static String createRegisterTemplate(RegistrationType type, RegisterSecondaryArgument secondArg) {
-        boolean email = type == RegistrationType.EMAIL;
-        String field = email ? "$(email)" : "$(password)";
+        String field = type == RegistrationType.EMAIL ? "$(email)" : "$(password)";
         if (secondArg == RegisterSecondaryArgument.CONFIRMATION) {
             return "register " + field + " $(confirm)";
         }
-        if (!email && (secondArg == RegisterSecondaryArgument.EMAIL_MANDATORY
+        if (type != RegistrationType.EMAIL && (secondArg == RegisterSecondaryArgument.EMAIL_MANDATORY
             || secondArg == RegisterSecondaryArgument.EMAIL_OPTIONAL)) {
             return "register " + field + " $(email)";
         }

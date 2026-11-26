@@ -89,11 +89,9 @@ class InputValidator implements DebugSection {
     private void validateEmail(CommandSender sender, String email) {
         boolean isValidEmail = validationService.validateEmail(email);
         sender.sendMessage(ChatColor.BLUE + "Validation of email '" + email + "'");
-        if (isValidEmail) {
-            sender.sendMessage(ChatColor.DARK_GREEN + "Valid email!");
-        } else {
-            sender.sendMessage(ChatColor.DARK_RED + "Email is not valid!");
-        }
+        sender.sendMessage(isValidEmail
+            ? ChatColor.DARK_GREEN + "Valid email!"
+            : ChatColor.DARK_RED + "Email is not valid!");
     }
 
     private void validateUsername(CommandSender sender, String username) {

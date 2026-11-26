@@ -51,8 +51,7 @@ final class PreJoinDialogGate {
             return false;
         }
         ProxySessionManager.ProxyLoginRequest request = proxySessionManager.getLoginRequest(normalizedName);
-        return request != null && (request.verifiedPremiumUuid() == null
-            || isProxyPremiumRequestValid(normalizedName, request, dataSource, pendingPremiumCache));
+        return request != null && isProxyPremiumRequestValid(normalizedName, request, dataSource, pendingPremiumCache);
     }
 
     static boolean isProxyPremiumRequestValid(String normalizedName, ProxySessionManager.ProxyLoginRequest request,

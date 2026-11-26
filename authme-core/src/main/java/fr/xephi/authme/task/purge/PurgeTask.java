@@ -127,13 +127,11 @@ class PurgeTask implements Runnable {
     }
 
     private void sendMessage(String message) {
-        if (sender == null) {
+        Player player = sender == null ? null : Bukkit.getPlayer(sender);
+        if (player != null) {
+            player.sendMessage(message);
+        } else if (sender == null) {
             Bukkit.getConsoleSender().sendMessage(message);
-        } else {
-            Player player = Bukkit.getPlayer(sender);
-            if (player != null) {
-                player.sendMessage(message);
-            }
         }
     }
 
@@ -143,10 +141,9 @@ class PurgeTask implements Runnable {
             handle = taskHandle;
             if (handle == null) {
                 cancellationRequested = true;
+                return;
             }
         }
-        if (handle != null) {
-            handle.cancel();
-        }
+        handle.cancel();
     }
 }

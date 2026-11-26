@@ -81,11 +81,15 @@ class TotpCodeCommandTest {
         given(limboService.getLimboPlayer(player)).willReturn(limbo);
     }
 
+    private void givenInvalidTotpCode() {
+        TestHelper.mockIpAddressToPlayer(player, IP);
+        given(totpAuthenticator.checkCode(auth, "000000")).willReturn(false);
+    }
+
     @Test
     void shouldCountWrongCodeAndKeepPlayerBeforeThirdAttempt() {
         // given
-        TestHelper.mockIpAddressToPlayer(player, IP);
-        given(totpAuthenticator.checkCode(auth, "000000")).willReturn(false);
+        givenInvalidTotpCode();
 
         // when
         command.executeCommand(player, singletonList("000000"));
@@ -101,8 +105,7 @@ class TotpCodeCommandTest {
     @Test
     void shouldKickPlayerAfterThirdWrongCode() {
         // given
-        TestHelper.mockIpAddressToPlayer(player, IP);
-        given(totpAuthenticator.checkCode(auth, "000000")).willReturn(false);
+        givenInvalidTotpCode();
         given(messages.retrieveSingle(player, MessageKey.TWO_FACTOR_INVALID_CODE)).willReturn("Invalid code!");
         setBukkitServiceToScheduleSyncEntityTaskFromOptionallyAsyncTask(bukkitService);
 
@@ -119,8 +122,7 @@ class TotpCodeCommandTest {
     @Test
     void shouldTempbanWhenThresholdIsReached() {
         // given
-        TestHelper.mockIpAddressToPlayer(player, IP);
-        given(totpAuthenticator.checkCode(auth, "000000")).willReturn(false);
+        givenInvalidTotpCode();
         given(tempbanManager.shouldTempban(IP)).willReturn(true);
 
         // when

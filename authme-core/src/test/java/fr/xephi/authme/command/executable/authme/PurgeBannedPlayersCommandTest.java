@@ -11,8 +11,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Collections;
-import java.util.HashSet;
-import java.util.Locale;
 import java.util.Set;
 
 import static com.google.common.collect.Sets.newHashSet;
@@ -41,8 +39,8 @@ class PurgeBannedPlayersCommandTest {
     @Test
     void shouldForwardRequestToService() {
         // given
-        String[] names = {"bannedPlayer", "other_banned", "evilplayer", "Someone"};
-        OfflinePlayer[] players = offlinePlayersWithNames(names);
+        OfflinePlayer[] players = offlinePlayersWithNames(
+            "bannedPlayer", "other_banned", "evilplayer", "Someone");
         given(bukkitService.getBannedPlayers()).willReturn(newHashSet(players));
         CommandSender sender = mock(CommandSender.class);
 
@@ -51,15 +49,15 @@ class PurgeBannedPlayersCommandTest {
 
         // then
         verify(bukkitService).getBannedPlayers();
-        verify(purgeService).purgePlayers(eq(sender), eq(asLowerCaseSet(names)),
+        verify(purgeService).purgePlayers(eq(sender),
+            eq(newHashSet("bannedplayer", "other_banned", "evilplayer", "someone")),
             argThat(arrayContainingInAnyOrder(players)));
     }
 
     @Test
     void shouldSkipPlayersWithNullNameButStillPurgeThem() {
         // given
-        OfflinePlayer namedPlayer = mock(OfflinePlayer.class);
-        given(namedPlayer.getName()).willReturn("BannedPlayer");
+        OfflinePlayer namedPlayer = offlinePlayersWithNames("BannedPlayer")[0];
         OfflinePlayer unnamedPlayer = mock(OfflinePlayer.class);
         given(unnamedPlayer.getName()).willReturn(null);
         Set<OfflinePlayer> players = newHashSet(namedPlayer, unnamedPlayer);
@@ -82,13 +80,5 @@ class PurgeBannedPlayersCommandTest {
             players[i] = player;
         }
         return players;
-    }
-
-    private static Set<String> asLowerCaseSet(String... items) {
-        Set<String> result = new HashSet<>(items.length);
-        for (String item : items) {
-            result.add(item.toLowerCase(Locale.ROOT));
-        }
-        return result;
     }
 }

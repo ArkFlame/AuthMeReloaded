@@ -27,13 +27,10 @@ class BackupCommandTest {
 
     @Test
     void shouldStartBackup() {
-        // given
         CommandSender sender = mock(CommandSender.class);
 
-        // when
         command.executeCommand(sender, Collections.emptyList());
 
-        // then
         verify(backupService).doBackup(BackupService.BackupCause.COMMAND, sender);
     }
 }

@@ -30,8 +30,6 @@ class PlayerUtilsLoopbackIpTest {
         Player player = mock(Player.class);
         TestHelper.mockIpAddressToPlayer(player, ip);
 
-        boolean result = PlayerUtils.isPlayerIpLoopback(player);
-
-        assertThat(result, equalTo(expected));
+        assertThat(PlayerUtils.isPlayerIpLoopback(player), equalTo(expected));
     }
 }

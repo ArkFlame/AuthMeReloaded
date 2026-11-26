@@ -11,17 +11,13 @@ import fr.xephi.authme.service.PendingEmailVerificationCache;
 import fr.xephi.authme.util.RandomStringUtils;
 import org.bukkit.entity.Player;
 
-/**
- * Steps shared by the email-related asynchronous processes.
- */
+/** Steps shared by the email-related asynchronous processes. */
 final class EmailProcessHelper {
 
     private EmailProcessHelper() {
     }
 
-    /**
-     * Sends a confirmation code to the new address and holds the address pending until it is confirmed.
-     */
+    /** Sends a confirmation code to the new address and holds it pending until confirmed. */
     static void sendConfirmationCode(CommonService service, EmailService emailService,
                                      PendingEmailVerificationCache pendingCache, ConsoleLogger logger,
                                      Player player, String email) {
@@ -35,11 +31,7 @@ final class EmailProcessHelper {
         }
     }
 
-    /**
-     * Persists the new address to the database and the player cache and informs the player.
-     *
-     * @return true if the address was saved successfully
-     */
+    /** Persists the new address and informs the player; returns true if it was saved successfully. */
     static boolean persistEmail(CommonService service, DataSource dataSource, PlayerCache playerCache,
                                 PlayerAuth auth, Player player, String email, MessageKey successKey) {
         String previousEmail = auth.getEmail();
@@ -55,9 +47,7 @@ final class EmailProcessHelper {
         return true;
     }
 
-    /**
-     * Tells a player who is not logged in to log in or to register, based on his account status.
-     */
+    /** Tells a player who is not logged in to log in or to register, based on his account status. */
     static void sendUnloggedMessage(CommonService service, DataSource dataSource, Player player) {
         service.send(player, dataSource.isAuthAvailable(player.getName())
             ? MessageKey.LOGIN_MESSAGE

@@ -4,10 +4,8 @@ import org.bukkit.entity.Player;
 
 /**
  * Message shown to a player in a regular interval as long as he is not logged in.
- *
- * <p>Scheduling is owned by {@link fr.xephi.authme.service.BukkitService}, which dispatches
- * through the platform's scheduler provider. This task is a plain {@link Runnable} and does
- * not hold any Bukkit scheduler state itself.
+ * Scheduling is owned by {@link fr.xephi.authme.service.BukkitService}; this task is a
+ * plain {@link Runnable} and holds no Bukkit scheduler state itself.
  */
 public class MessageTask implements Runnable {
 

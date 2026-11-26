@@ -46,7 +46,6 @@ public enum HashAlgorithm {
 
     private final Class<? extends EncryptionMethod> clazz;
 
-    // Constructor for HashAlgorithm: the class of the hash implementation.
     HashAlgorithm(Class<? extends EncryptionMethod> clazz) {
         this.clazz = clazz;
     }

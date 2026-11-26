@@ -1,6 +1,5 @@
 package fr.xephi.authme.proxy;
 
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -114,10 +113,9 @@ public class PremiumNames {
     }
 
     private void loadCache() {
-        Set<String> loaded = ConcurrentHashMap.newKeySet();
-        try (BufferedReader reader = Files.newBufferedReader(cacheFile, StandardCharsets.UTF_8)) {
-            String line;
-            while ((line = reader.readLine()) != null) {
+        try {
+            Set<String> loaded = ConcurrentHashMap.newKeySet();
+            for (String line : Files.readAllLines(cacheFile, StandardCharsets.UTF_8)) {
                 String name = line.trim();
                 if (!name.isEmpty()) {
                     loaded.add(name);
