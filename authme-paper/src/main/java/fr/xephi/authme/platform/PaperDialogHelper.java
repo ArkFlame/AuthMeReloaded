@@ -88,9 +88,7 @@ public final class PaperDialogHelper {
             .action(DialogAction.customClick(submitKey, null))
             .build();
 
-        return Dialog.create(factory -> factory.empty()
-            .base(base)
-            .type(createButtonDialogType(dialog, createPreJoinButtons(dialog, submitButton, cancelKey))));
+        return createButtonDialog(dialog, base, createPreJoinButtons(dialog, submitButton, cancelKey));
     }
 
     private static Dialog createInGameCommandDialog(DialogWindowSpec dialog, String commandTemplate) {
@@ -112,13 +110,13 @@ public final class PaperDialogHelper {
                 .build());
         }
 
-        return Dialog.create(factory -> factory.empty()
-            .base(base)
-            .type(createButtonDialogType(dialog, buttons)));
+        return createButtonDialog(dialog, base, buttons);
     }
 
-    private static DialogType createButtonDialogType(DialogWindowSpec dialog, List<ActionButton> buttons) {
-        return DialogType.multiAction(buttons).columns(dialog.buttonColumns()).build();
+    private static Dialog createButtonDialog(DialogWindowSpec dialog, DialogBase base, List<ActionButton> buttons) {
+        return Dialog.create(factory -> factory.empty()
+            .base(base)
+            .type(DialogType.multiAction(buttons).columns(dialog.buttonColumns()).build()));
     }
 
     private static List<ActionButton> createPreJoinButtons(DialogWindowSpec dialog,

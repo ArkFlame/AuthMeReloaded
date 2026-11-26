@@ -98,7 +98,7 @@ public class PreJoinDialogEvent extends AbstractCancellableEvent {
      * @return the unique id of the player, or {@code null} if the profile has none
      */
     public UUID getUuid() {
-        return playerId;
+        return getPlayerId();
     }
 
     /**
@@ -116,7 +116,7 @@ public class PreJoinDialogEvent extends AbstractCancellableEvent {
      * @return the client address, or {@code null} if it was not available during the configuration phase
      */
     public InetAddress getInetAddress() {
-        return address;
+        return getAddress();
     }
 
     /**
@@ -134,7 +134,7 @@ public class PreJoinDialogEvent extends AbstractCancellableEvent {
      * @return the dialog AuthMe is about to show
      */
     public DialogType getType() {
-        return dialogType;
+        return getDialogType();
     }
 
     /**

@@ -77,7 +77,7 @@ public class ExpiringSet<E> extends AbstractExpiring {
      * Removes all entries which have expired from the internal structure.
      */
     public void removeExpiredEntries() {
-        entries.entrySet().removeIf(entry -> System.currentTimeMillis() > entry.getValue());
+        entries.entrySet().removeIf(entry -> isExpired(entry.getValue(), System.currentTimeMillis()));
     }
 
     /**

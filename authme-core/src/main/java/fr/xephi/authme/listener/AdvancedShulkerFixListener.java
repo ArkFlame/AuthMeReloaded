@@ -29,7 +29,8 @@ public class AdvancedShulkerFixListener implements Listener {
         }
 
         Block block = event.getBlock();
-        if (block.getY() <= 0 || block.getY() >= block.getWorld().getMaxHeight() - 1) {
+        int y = block.getY();
+        if (y <= 0 || y >= block.getWorld().getMaxHeight() - 1) {
             event.setCancelled(true);
         }
     }

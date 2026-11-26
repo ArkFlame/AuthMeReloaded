@@ -6,10 +6,9 @@ import fr.xephi.authme.velocity.config.VelocityConfigProperties;
 
 import java.util.Collection;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.function.Function;
 
 final class VelocityProxyConfiguration {
 
@@ -51,7 +50,8 @@ final class VelocityProxyConfiguration {
 
     static VelocityProxyConfiguration from(SettingsManager settingsManager) {
         return new VelocityProxyConfiguration(
-            normalizeServerNames(settingsManager.getProperty(VelocityConfigProperties.AUTH_SERVERS)),
+            normalizeAndCollect(settingsManager.getProperty(VelocityConfigProperties.AUTH_SERVERS),
+                VelocityProxyConfiguration::normalizeServerName),
             settingsManager.getProperty(VelocityConfigProperties.ALL_SERVERS_ARE_AUTH_SERVERS),
             settingsManager.getProperty(VelocityConfigProperties.SERVER_SWITCH_REQUIRES_AUTH),
             settingsManager.getProperty(VelocityConfigProperties.SERVER_SWITCH_KICK_MESSAGE),
@@ -59,7 +59,8 @@ final class VelocityProxyConfiguration {
             settingsManager.getProperty(VelocityConfigProperties.ENABLE_SEND_ON_LOGOUT),
             settingsManager.getProperty(VelocityConfigProperties.SEND_ON_LOGOUT_TARGET),
             settingsManager.getProperty(VelocityConfigProperties.COMMANDS_REQUIRE_AUTH),
-            normalizeCommandAliases(settingsManager.getProperty(VelocityConfigProperties.COMMANDS_WHITELIST)),
+            normalizeAndCollect(settingsManager.getProperty(VelocityConfigProperties.COMMANDS_WHITELIST),
+                VelocityProxyConfiguration::normalizeCommandAlias),
             settingsManager.getProperty(VelocityConfigProperties.CHAT_REQUIRES_AUTH),
             settingsManager.getProperty(VelocityConfigProperties.LOGIN_SERVER),
             settingsManager.getProperty(VelocityConfigProperties.PROXY_SHARED_SECRET),
@@ -122,15 +123,16 @@ final class VelocityProxyConfiguration {
         return commandWhitelist.contains(normalizeCommandAlias(command));
     }
 
-    private static Set<String> normalizeServerNames(Collection<String> serverNames) {
-        LinkedHashSet<String> normalizedServers = new LinkedHashSet<>();
-        for (String serverName : serverNames) {
-            String normalizedServerName = normalizeServerName(serverName);
-            if (!normalizedServerName.isEmpty()) {
-                normalizedServers.add(normalizedServerName);
+    /** Normalizes a collection of values, dropping empty results while preserving input order. */
+    private static Set<String> normalizeAndCollect(Collection<String> values, Function<String, String> normalizer) {
+        LinkedHashSet<String> normalizedValues = new LinkedHashSet<>();
+        for (String value : values) {
+            String normalizedValue = normalizer.apply(value);
+            if (!normalizedValue.isEmpty()) {
+                normalizedValues.add(normalizedValue);
             }
         }
-        return Set.copyOf(normalizedServers);
+        return Set.copyOf(normalizedValues);
     }
 
     private static String normalizeServerName(String serverName) {
@@ -148,12 +150,5 @@ final class VelocityProxyConfiguration {
             commandAlias = "/" + commandAlias;
         }
         return commandAlias.toLowerCase(Locale.ROOT);
-    }
-
-    private static Set<String> normalizeCommandAliases(List<String> aliases) {
-        return aliases.stream()
-            .map(VelocityProxyConfiguration::normalizeCommandAlias)
-            .filter(s -> !s.isEmpty())
-            .collect(Collectors.toUnmodifiableSet());
     }
 }

@@ -26,12 +26,12 @@ public class ShowEmailCommand extends PlayerCommand {
     @Override
     public void runCommand(Player player, List<String> arguments) {
         PlayerAuth auth = playerCache.getAuth(player.getName());
-        if (auth == null || Utils.isEmailEmpty(auth.getEmail())) {
+        final String email = auth == null ? null : auth.getEmail();
+        if (Utils.isEmailEmpty(email)) {
             commonService.send(player, MessageKey.SHOW_NO_EMAIL);
             return;
         }
 
-        String email = auth.getEmail();
         if (commonService.getProperty(SecuritySettings.USE_EMAIL_MASKING)) {
             commonService.send(player, MessageKey.EMAIL_SHOW, emailMask(email));
         } else {

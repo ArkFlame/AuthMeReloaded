@@ -8,7 +8,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -145,8 +144,8 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
     @Override
     public List<PlayerAuth> getAllAuths() {
         List<PlayerAuth> auths = new ArrayList<>();
-        try (Connection con = getConnection(); Statement st = con.createStatement()) {
-            try (ResultSet rs = st.executeQuery(findAllSql)) {
+        try (Connection con = getConnection(); PreparedStatement pst = con.prepareStatement(findAllSql)) {
+            try (ResultSet rs = pst.executeQuery()) {
                 while (rs.next()) {
                     PlayerAuth auth = SqlDataSourceUtils.buildAuthFromResultSet(rs, col, true);
                     sqlExtension.extendAuth(auth, rs.getInt(col.ID), con);
@@ -163,8 +162,8 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
     public List<String> getLoggedPlayersWithEmptyMail() {
         List<String> players = new ArrayList<>();
         try (Connection con = getConnection();
-             Statement st = con.createStatement();
-             ResultSet rs = st.executeQuery(findLoggedWithEmptyEmailSql)) {
+             PreparedStatement pst = con.prepareStatement(findLoggedWithEmptyEmailSql);
+             ResultSet rs = pst.executeQuery()) {
             while (rs.next()) {
                 players.add(rs.getString(1));
             }
@@ -178,8 +177,8 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
     public List<PlayerAuth> getRecentlyLoggedInPlayers() {
         List<PlayerAuth> players = new ArrayList<>();
         try (Connection con = getConnection();
-             Statement st = con.createStatement();
-             ResultSet rs = st.executeQuery(findRecentLoginsSql)) {
+             PreparedStatement pst = con.prepareStatement(findRecentLoginsSql);
+             ResultSet rs = pst.executeQuery()) {
             while (rs.next()) {
                 players.add(SqlDataSourceUtils.buildAuthFromResultSet(rs, col, true));
             }

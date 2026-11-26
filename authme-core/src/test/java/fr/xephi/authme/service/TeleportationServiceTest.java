@@ -352,39 +352,19 @@ class TeleportationServiceTest {
         verifyNoInteractions(bukkitService, spawnLoader);
     }
 
-    @Test
-    void shouldTeleportBackToPlayerAuthLocation() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldTeleportToPlayerAuthLocation(boolean worldFound) {
         // given
         PlayerAuth auth = createAuthWithQuitLocation();
         World world = mock(World.class);
-        given(bukkitService.getWorld("myWorld")).willReturn(world);
+        given(bukkitService.getWorld("myWorld")).willReturn(worldFound ? world : null);
 
         Player player = mock(Player.class);
         given(player.isOnline()).willReturn(true);
-        LimboPlayer limbo = mock(LimboPlayer.class);
-        Location limboLocation = mockLocation();
-        given(limbo.getLocation()).willReturn(limboLocation);
-        setBukkitServiceToScheduleSyncEntityTaskFromOptionallyAsyncTask(bukkitService);
-
-        // when
-        teleportationService.teleportOnLogin(player, auth, limbo);
-
-        // then
-        ArgumentCaptor<Location> locationCaptor = ArgumentCaptor.forClass(Location.class);
-        verify(platformAdapter).teleportPlayer(eq(player), locationCaptor.capture());
-        assertCorrectLocation(locationCaptor.getValue(), auth, world);
-    }
-
-    @Test
-    void shouldTeleportAccordingToPlayerAuthAndPlayerWorldAsFallback() {
-        // given
-        PlayerAuth auth = createAuthWithQuitLocation();
-        given(bukkitService.getWorld("myWorld")).willReturn(null);
-
-        Player player = mock(Player.class);
-        given(player.isOnline()).willReturn(true);
-        World world = mock(World.class);
-        given(player.getWorld()).willReturn(world);
+        if (!worldFound) {
+            given(player.getWorld()).willReturn(world);
+        }
         LimboPlayer limbo = mock(LimboPlayer.class);
         Location limboLocation = mockLocation();
         given(limbo.getLocation()).willReturn(limboLocation);

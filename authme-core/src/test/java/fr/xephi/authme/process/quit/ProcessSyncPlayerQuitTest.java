@@ -5,6 +5,8 @@ import fr.xephi.authme.settings.commandconfig.CommandManager;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -29,33 +31,25 @@ class ProcessSyncPlayerQuitTest {
     @Mock
     private CommandManager commandManager;
 
-    @Test
-    void shouldRestoreLimboWithoutTouchingVehicleOfPlayerWhoLeft() {
+    @ParameterizedTest(name = "online={0}")
+    @ValueSource(booleans = {true, false})
+    void shouldHandleQuitForOnlineState(boolean isOnline) {
         // given
         Player player = mock(Player.class);
-        given(player.isOnline()).willReturn(false);
+        given(player.isOnline()).willReturn(isOnline);
 
         // when
-        processSyncPlayerQuit.processSyncQuit(player, false);
+        processSyncPlayerQuit.processSyncQuit(player, isOnline);
 
         // then
-        verify(limboService).restoreData(player);
-        verify(player, never()).leaveVehicle();
-        verifyNoInteractions(commandManager);
-    }
-
-    @Test
-    void shouldRunLogoutCommandsAndLeaveVehicleForOnlinePlayer() {
-        // given
-        Player player = mock(Player.class);
-        given(player.isOnline()).willReturn(true);
-
-        // when
-        processSyncPlayerQuit.processSyncQuit(player, true);
-
-        // then
-        verify(commandManager).runCommandsOnLogout(player);
-        verify(player).leaveVehicle();
-        verifyNoInteractions(limboService);
+        if (isOnline) {
+            verify(commandManager).runCommandsOnLogout(player);
+            verify(player).leaveVehicle();
+            verifyNoInteractions(limboService);
+        } else {
+            verify(limboService).restoreData(player);
+            verify(player, never()).leaveVehicle();
+            verifyNoInteractions(commandManager);
+        }
     }
 }

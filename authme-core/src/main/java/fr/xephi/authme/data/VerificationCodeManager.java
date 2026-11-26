@@ -81,6 +81,10 @@ public class VerificationCodeManager implements SettingsDependent, HasCleanup {
         return canSendMail && hasCode(name) && !isPlayerVerified(name);
     }
 
+    private static String normalize(String name) {
+        return name.toLowerCase(Locale.ROOT);
+    }
+
     /**
      * Returns whether the given player has been verified or not
      *
@@ -88,7 +92,7 @@ public class VerificationCodeManager implements SettingsDependent, HasCleanup {
      * @return true if the player has been verified, false otherwise
      */
     private boolean isPlayerVerified(String name) {
-        return verifiedPlayers.contains(name.toLowerCase(Locale.ROOT));
+        return verifiedPlayers.contains(normalize(name));
     }
 
     /**
@@ -98,7 +102,7 @@ public class VerificationCodeManager implements SettingsDependent, HasCleanup {
      * @return true if the code exists, false otherwise
      */
     public boolean hasCode(String name) {
-        return (verificationCodes.get(name.toLowerCase(Locale.ROOT)) != null);
+        return verificationCodes.get(normalize(name)) != null;
     }
 
     /**
@@ -125,7 +129,7 @@ public class VerificationCodeManager implements SettingsDependent, HasCleanup {
      * @param name the player's name
      */
     public void codeExistOrGenerateNew(String name) {
-        String lowerName = name.toLowerCase(Locale.ROOT);
+        String lowerName = normalize(name);
         if (verificationCodes.get(lowerName) == null && pendingCodeGenerations.add(lowerName)) {
             boolean scheduled = false;
             try {
@@ -171,7 +175,7 @@ public class VerificationCodeManager implements SettingsDependent, HasCleanup {
      */
     public boolean checkCode(String name, String code) {
         boolean correct = false;
-        if (code.equals(verificationCodes.get(name.toLowerCase(Locale.ROOT)))) {
+        if (code.equals(verificationCodes.get(normalize(name)))) {
             verify(name);
             correct = true;
         }
@@ -184,7 +188,7 @@ public class VerificationCodeManager implements SettingsDependent, HasCleanup {
      * @param name the name of the player to generate a code for
      */
     public void verify(String name) {
-        verifiedPlayers.add(name.toLowerCase(Locale.ROOT));
+        verifiedPlayers.add(normalize(name));
     }
 
     /**
@@ -192,8 +196,8 @@ public class VerificationCodeManager implements SettingsDependent, HasCleanup {
      *
      * @param name the name of the player to generate a code for
      */
-    public void unverify(String name){
-        verifiedPlayers.remove(name.toLowerCase(Locale.ROOT));
+    public void unverify(String name) {
+        verifiedPlayers.remove(normalize(name));
     }
 
     @Override

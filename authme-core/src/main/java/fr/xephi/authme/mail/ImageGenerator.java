@@ -30,12 +30,15 @@ public class ImageGenerator {
     public BufferedImage generateImage() {
         BufferedImage image = new BufferedImage(200, 60, BufferedImage.TYPE_BYTE_INDEXED);
         Graphics2D graphics = image.createGraphics();
-        graphics.setColor(Color.BLACK);
-        graphics.fillRect(0, 0, 200, 40);
-        graphics.setPaint(new GradientPaint(10, 5, Color.WHITE, 20, 10, Color.WHITE, true));
-        graphics.setFont(new Font("Comic Sans MS", Font.BOLD, 30));
-        graphics.drawString(pass, 5, 30);
-        graphics.dispose();
+        try {
+            graphics.setColor(Color.BLACK);
+            graphics.fillRect(0, 0, 200, 40);
+            graphics.setPaint(new GradientPaint(10, 5, Color.WHITE, 20, 10, Color.WHITE, true));
+            graphics.setFont(new Font("Comic Sans MS", Font.BOLD, 30));
+            graphics.drawString(pass, 5, 30);
+        } finally {
+            graphics.dispose();
+        }
         image.flush();
         return image;
     }

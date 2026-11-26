@@ -181,8 +181,9 @@ public class PlayerListener extends AbstractCancelListener implements Listener {
     @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerJoinLowest(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        playerCache.removePlayer(player.getName());
-        if (!validationService.isUnrestricted(player.getName())) {
+        String name = player.getName();
+        playerCache.removePlayer(name);
+        if (!validationService.isUnrestricted(name)) {
             limboService.revokeOperatorOnJoin(player);
         }
     }

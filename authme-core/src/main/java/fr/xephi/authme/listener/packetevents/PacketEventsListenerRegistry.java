@@ -1,6 +1,7 @@
 package fr.xephi.authme.listener.packetevents;
 
 import com.github.retrooper.packetevents.PacketEvents;
+import com.github.retrooper.packetevents.event.PacketListenerCommon;
 import fr.xephi.authme.data.auth.PlayerCache;
 import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.platform.PacketInterceptionAdapter;
@@ -24,13 +25,13 @@ public final class PacketEventsListenerRegistry implements PacketInterceptionAda
         if (inventoryPacketListener == null) {
             inventoryPacketListener = new InventoryPacketListener(playerCache, dataSource);
         }
-        PacketEvents.getAPI().getEventManager().registerListener(inventoryPacketListener);
+        register(inventoryPacketListener);
     }
 
     @Override
     public void unregisterInventoryProtection() {
         if (inventoryPacketListener != null) {
-            PacketEvents.getAPI().getEventManager().unregisterListener(inventoryPacketListener);
+            unregister(inventoryPacketListener);
             inventoryPacketListener = null;
         }
     }
@@ -47,13 +48,13 @@ public final class PacketEventsListenerRegistry implements PacketInterceptionAda
         if (tabCompletePacketListener == null) {
             tabCompletePacketListener = new TabCompletePacketListener(playerCache);
         }
-        PacketEvents.getAPI().getEventManager().registerListener(tabCompletePacketListener);
+        register(tabCompletePacketListener);
     }
 
     @Override
     public void unregisterTabCompleteBlock() {
         if (tabCompletePacketListener != null) {
-            PacketEvents.getAPI().getEventManager().unregisterListener(tabCompletePacketListener);
+            unregister(tabCompletePacketListener);
             tabCompletePacketListener = null;
         }
     }
@@ -65,14 +66,22 @@ public final class PacketEventsListenerRegistry implements PacketInterceptionAda
             premiumVerificationPacketListener =
                 new PremiumVerificationPacketListener(dataSource, verifier, pendingPremiumCache, bukkitService);
         }
-        PacketEvents.getAPI().getEventManager().registerListener(premiumVerificationPacketListener);
+        register(premiumVerificationPacketListener);
     }
 
     @Override
     public void unregisterPremiumVerification() {
         if (premiumVerificationPacketListener != null) {
-            PacketEvents.getAPI().getEventManager().unregisterListener(premiumVerificationPacketListener);
+            unregister(premiumVerificationPacketListener);
             premiumVerificationPacketListener = null;
         }
+    }
+
+    private static void register(PacketListenerCommon listener) {
+        PacketEvents.getAPI().getEventManager().registerListener(listener);
+    }
+
+    private static void unregister(PacketListenerCommon listener) {
+        PacketEvents.getAPI().getEventManager().unregisterListener(listener);
     }
 }

@@ -1,5 +1,6 @@
 package fr.xephi.authme.util.message;
 
+import fr.xephi.authme.util.Utils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -83,10 +84,12 @@ public final class MiniMessageConverter {
     private static boolean detectAdventure() {
         try {
             for (String className : ADVENTURE_CLASSES) {
-                Class.forName(className);
+                if (!Utils.isClassLoaded(className)) {
+                    return false;
+                }
             }
             return true;
-        } catch (ClassNotFoundException | LinkageError e) {
+        } catch (LinkageError e) {
             return false;
         }
     }

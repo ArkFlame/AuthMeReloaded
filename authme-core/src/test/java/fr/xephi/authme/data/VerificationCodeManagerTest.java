@@ -17,6 +17,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import static fr.xephi.authme.listener.TestPlayerUtils.mockPlayerWithName;
 import static fr.xephi.authme.service.BukkitServiceTestHelper.setBukkitServiceToRunTaskAsynchronously;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -34,6 +35,9 @@ import static org.mockito.Mockito.verifyNoInteractions;
  */
 @ExtendWith(MockitoExtension.class)
 class VerificationCodeManagerTest {
+
+    private static final String PLAYER = "ILoveTests";
+    private static final String EMAIL = "ilovetests@test.com";
 
     @Mock
     private Settings settings;
@@ -62,9 +66,9 @@ class VerificationCodeManagerTest {
     void shouldRequireVerification() {
         // given
         given(emailService.hasAllInformation()).willReturn(true);
-        String name1 = "ILoveTests";
+        String name1 = PLAYER;
         Player player1 = mockPlayerWithName(name1);
-        given(dataSource.getEmail(name1)).willReturn(DataSourceValueImpl.of("ilovetests@test.com"));
+        given(dataSource.getEmail(name1)).willReturn(DataSourceValueImpl.of(EMAIL));
         given(permissionsManager.hasPermission(player1, PlayerPermission.VERIFICATION_CODE)).willReturn(true);
         String name2 = "StillLovingTests";
         Player player2 = mockPlayerWithName(name2);
@@ -102,7 +106,7 @@ class VerificationCodeManagerTest {
     void shouldNotRequireVerificationForMissingPermission() {
         // given
         given(emailService.hasAllInformation()).willReturn(true);
-        Player player = mockPlayerWithName("ILoveTests");
+        Player player = mockPlayerWithName(PLAYER);
         given(permissionsManager.hasPermission(player, PlayerPermission.VERIFICATION_CODE)).willReturn(false);
         VerificationCodeManager codeManager = createCodeManager();
 
@@ -119,8 +123,8 @@ class VerificationCodeManagerTest {
     void shouldGenerateAndRequireCode() {
         // given
         given(emailService.hasAllInformation()).willReturn(true);
-        String player = "ILoveTests";
-        String email = "ilovetests@test.com";
+        String player = PLAYER;
+        String email = EMAIL;
         given(dataSource.getEmail(player)).willReturn(DataSourceValueImpl.of(email));
         given(emailService.sendVerificationMail(eq(player), eq(email), anyString())).willReturn(true);
         setBukkitServiceToRunTaskAsynchronously(bukkitService);
@@ -145,9 +149,9 @@ class VerificationCodeManagerTest {
     void shouldVerifyCode() {
         // given
         given(emailService.hasAllInformation()).willReturn(true);
-        String player = "ILoveTests";
+        String player = PLAYER;
         String code = "193458";
-        String email = "ilovetests@test.com";
+        String email = EMAIL;
         given(dataSource.getEmail(player)).willReturn(DataSourceValueImpl.of(email));
         setBukkitServiceToRunTaskAsynchronously(bukkitService);
         VerificationCodeManager codeManager1 = createCodeManager();
@@ -166,8 +170,8 @@ class VerificationCodeManagerTest {
     @Test
     void shouldLookupEmailOnlyInAsyncTask() {
         // given
-        String player = "ILoveTests";
-        String email = "ilovetests@test.com";
+        String player = PLAYER;
+        String email = EMAIL;
         VerificationCodeManager codeManager = createCodeManager();
 
         // when
@@ -190,8 +194,8 @@ class VerificationCodeManagerTest {
     @Test
     void shouldNotStoreCodeIfEmailSendFails() {
         // given
-        String player = "ILoveTests";
-        String email = "ilovetests@test.com";
+        String player = PLAYER;
+        String email = EMAIL;
         given(dataSource.getEmail(player)).willReturn(DataSourceValueImpl.of(email));
         given(emailService.sendVerificationMail(eq(player), eq(email), anyString())).willReturn(false);
         setBukkitServiceToRunTaskAsynchronously(bukkitService);
@@ -207,7 +211,7 @@ class VerificationCodeManagerTest {
     @Test
     void shouldNotScheduleDuplicateCodeGenerationWhilePending() {
         // given
-        String player = "ILoveTests";
+        String player = PLAYER;
         VerificationCodeManager codeManager = createCodeManager();
 
         // when
@@ -222,11 +226,5 @@ class VerificationCodeManagerTest {
 
     private VerificationCodeManager createCodeManager() {
         return new VerificationCodeManager(settings, dataSource, emailService, permissionsManager, bukkitService);
-    }
-
-    private static Player mockPlayerWithName(String name) {
-        Player player = mock(Player.class);
-        given(player.getName()).willReturn(name);
-        return player;
     }
 }

@@ -43,13 +43,14 @@ public class TranslationsGatherer {
 
     private void processMessagesFile(String code, File file) {
         PropertyReader reader = new YamlFileReader(file);
+        MessageKey[] keys = MessageKey.values();
         int availableMessages = 0;
-        for (MessageKey key : MessageKey.values()) {
+        for (MessageKey key : keys) {
             if (reader.contains(key.getKey())) {
                 ++availableMessages;
             }
         }
-        translationInfo.add(new TranslationInfo(code, (double) availableMessages / MessageKey.values().length));
+        translationInfo.add(new TranslationInfo(code, (double) availableMessages / keys.length));
     }
 
     /**

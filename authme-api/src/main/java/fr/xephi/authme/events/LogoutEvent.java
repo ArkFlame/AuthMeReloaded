@@ -29,7 +29,7 @@ public class LogoutEvent extends CustomEvent {
      * @return The player
      */
     public Player getPlayer() {
-        return this.player;
+        return player;
     }
 
     /**

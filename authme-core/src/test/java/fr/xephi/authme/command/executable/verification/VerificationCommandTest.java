@@ -11,10 +11,14 @@ import fr.xephi.authme.service.CommonService;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 
 import java.util.Collections;
+import java.util.stream.Stream;
 
 import static fr.xephi.authme.listener.TestPlayerUtils.mockPlayerWithName;
 import static org.hamcrest.Matchers.equalTo;
@@ -57,16 +61,16 @@ public class VerificationCommandTest {
         verify(commonService).send(player, MessageKey.INCOMPLETE_EMAIL_SETTINGS);
     }
 
-    @Test
-    public void shouldRequireAndAcceptCode() {
+    @ParameterizedTest(name = "code {0} valid={1}")
+    @MethodSource("codeCases")
+    public void shouldCheckVerificationCode(String code, boolean codeValid, MessageKey expectedMessage) {
         // given
         String name = "Duck";
-        String code = "123932";
         Player player = mockPlayerWithName(name);
         given(codeManager.canSendMail()).willReturn(true);
         given(codeManager.isVerificationRequired(player)).willReturn(true);
         given(codeManager.isCodeRequired(name)).willReturn(true);
-        given(codeManager.checkCode(name, code)).willReturn(true);
+        given(codeManager.checkCode(name, code)).willReturn(codeValid);
 
         // when
         command.executeCommand(player, Collections.singletonList(code));
@@ -75,28 +79,13 @@ public class VerificationCommandTest {
         verify(codeManager).isVerificationRequired(player);
         verify(codeManager).isCodeRequired(name);
         verify(codeManager).checkCode(name, code);
-        verify(commonService).send(player, MessageKey.VERIFICATION_CODE_VERIFIED);
+        verify(commonService).send(player, expectedMessage);
     }
 
-    @Test
-    public void shouldRejectCode() {
-        // given
-        String name = "Spider";
-        String code = "98345222";   // more than 6 digits
-        Player player = mockPlayerWithName(name);
-        given(codeManager.canSendMail()).willReturn(true);
-        given(codeManager.isVerificationRequired(player)).willReturn(true);
-        given(codeManager.isCodeRequired(name)).willReturn(true);
-        given(codeManager.checkCode(name, code)).willReturn(false);
-
-        // when
-        command.executeCommand(player, Collections.singletonList(code));
-
-        // then
-        verify(codeManager).isVerificationRequired(player);
-        verify(codeManager).isCodeRequired(name);
-        verify(codeManager).checkCode(name, code);
-        verify(commonService).send(player, MessageKey.INCORRECT_VERIFICATION_CODE);
+    private static Stream<Arguments> codeCases() {
+        return Stream.of(
+            Arguments.of("123932", true, MessageKey.VERIFICATION_CODE_VERIFIED),
+            Arguments.of("98345222", false, MessageKey.INCORRECT_VERIFICATION_CODE));
     }
 
     @Test

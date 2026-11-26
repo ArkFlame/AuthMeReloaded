@@ -43,7 +43,7 @@ public class EmailChangedEvent extends AbstractCancellableEvent {
      * @return The old email stored on file, or {@code null} when the user never had an email and adds a new one
      */
     public String getOldEmail() {
-        return this.oldEmail;
+        return oldEmail;
     }
 
     /**
@@ -53,7 +53,7 @@ public class EmailChangedEvent extends AbstractCancellableEvent {
      *         never had one before, this is where that email can be found
      */
     public String getNewEmail() {
-        return this.newEmail;
+        return newEmail;
     }
 
     @Override

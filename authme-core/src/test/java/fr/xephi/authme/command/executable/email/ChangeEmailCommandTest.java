@@ -6,6 +6,9 @@ import fr.xephi.authme.message.MessageKey;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -13,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 import java.util.Arrays;
+import java.util.stream.Stream;
 
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
@@ -74,35 +78,30 @@ public class ChangeEmailCommandTest extends AbstractEmailCommandTest {
         verify(management).performChangeEmail(sender, "old_mail@example.org", "new.mail@example.org");
     }
 
-    @Test
-    public void shouldFailForInvalidOldEmail() {
+    @ParameterizedTest(name = "{4}")
+    @MethodSource("invalidEmailCases")
+    public void shouldRejectInvalidEmail(String oldEmail, String newEmail, boolean oldEmailValid,
+                                         boolean newEmailValid, MessageKey expectedMessage) {
         // given
         Player sender = initPlayerWithName("AmATest");
         given(codeManager.isVerificationRequired(sender)).willReturn(false);
-        given(validationService.validateEmail("notanemail")).willReturn(false);
+        given(validationService.validateEmail(oldEmail)).willReturn(oldEmailValid);
+        if (oldEmailValid) {
+            given(validationService.validateEmail(newEmail)).willReturn(newEmailValid);
+        }
 
         // when
-        command.executeCommand(sender, Arrays.asList("notanemail", "new@example.org"));
+        command.executeCommand(sender, Arrays.asList(oldEmail, newEmail));
 
         // then
         verifyNoInteractions(management);
-        verify(commonService).send(sender, MessageKey.INVALID_OLD_EMAIL);
+        verify(commonService).send(sender, expectedMessage);
     }
 
-    @Test
-    public void shouldFailForInvalidNewEmail() {
-        // given
-        Player sender = initPlayerWithName("AmATest");
-        given(codeManager.isVerificationRequired(sender)).willReturn(false);
-        given(validationService.validateEmail("old@example.org")).willReturn(true);
-        given(validationService.validateEmail("notanemail")).willReturn(false);
-
-        // when
-        command.executeCommand(sender, Arrays.asList("old@example.org", "notanemail"));
-
-        // then
-        verifyNoInteractions(management);
-        verify(commonService).send(sender, MessageKey.INVALID_NEW_EMAIL);
+    private static Stream<Arguments> invalidEmailCases() {
+        return Stream.of(
+            Arguments.of("notanemail", "new@example.org", false, false, MessageKey.INVALID_OLD_EMAIL),
+            Arguments.of("old@example.org", "notanemail", true, false, MessageKey.INVALID_NEW_EMAIL));
     }
 
     private Player initPlayerWithName(String name) {

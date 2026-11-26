@@ -34,4 +34,16 @@ abstract class AbstractExpiring {
     protected final long getExpirationMillis() {
         return expirationMillis;
     }
+
+    /**
+     * Returns whether an entry with the given expiration timestamp has expired at {@code now}.
+     * Shared by all expiring structures so the comparison is defined in a single place.
+     *
+     * @param expiration the expiration timestamp in milliseconds
+     * @param now the current time in milliseconds
+     * @return true if the entry has expired, false otherwise
+     */
+    protected static boolean isExpired(long expiration, long now) {
+        return now > expiration;
+    }
 }

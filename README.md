@@ -57,7 +57,7 @@ The reactor builds **nine modules**: five by default and four through the `java2
 | `authme-spigot-1.21` | `-Spigot-1.21.jar` | Spigot 1.20–1.21, Java 21 |
 | `authme-paper` | `-Paper.jar` | merged Paper/Folia 1.21.11+, Java 21 |
 | `authme-bungee` | `-Bungee.jar` | BungeeCord/Waterfall, Java 21 |
-| `authme-velocity` | `-Velocity.jar` | Velocity 3.4+, Java 25 |
+| `authme-velocity` | `-Velocity.jar` | Velocity 4.x (built against 4.3.1), Java 25 |
 
 ## Description
 
@@ -74,7 +74,7 @@ You can also create your own translation file and, if you want, you can share it
 
 #### Features:
 <ul>
-  <li>Dedicated builds for <strong>Spigot Legacy</strong> (1.16–1.19), <strong>Spigot 1.21</strong> (1.20–1.21), and one <strong>Paper/Folia 1.21.11+</strong> jar</li>
+  <li>Dedicated builds for <strong>Spigot 1.8</strong> (1.8.8–1.15.2), <strong>Spigot Legacy</strong> (1.16–1.19), <strong>Spigot 1.21</strong> (1.20–1.21), and one <strong>Paper/Folia 1.21.11+</strong> jar</li>
   <li>Native proxy plugins for <strong>BungeeCord</strong> and <strong>Velocity</strong></li>
   <li><strong>E-Mail Recovery System!</strong></li>
   <li>Username spoofing protection.</li>
@@ -177,16 +177,17 @@ Minecraft login phase — no password prompt is ever shown.
 ## Requirements
 
 ##### Compiling requirements:
->- JDK 17+ for `authme-core`, `authme-tools`, and `authme-spigot-legacy`
->- JDK 21+ for the full multi-module build (`authme-bungee`, `authme-spigot-1.21`, `authme-paper` (Paper and Folia), `authme-velocity`)
+>- JDK 17+ for the default modules: `authme-api`, `authme-core`, `authme-tools`, `authme-spigot-1.8` and `authme-spigot-legacy`
+>- JDK 21+ for the `java21-modules` profile (`authme-bungee`, `authme-spigot-1.21`, `authme-paper` (Paper and Folia))
+>- JDK 25+ for `authme-velocity` (Java 25 bytecode), so the full reactor requires JDK 25+
 >- Maven (3.8.8+)
 >- Git/GitHub (Optional)
 
 ##### How to compile the project:
 >- Clone the project with Git/GitHub
 >- Execute command `mvn clean package`
->- With JDK 17, Maven builds only the Java 17-compatible modules
->- With JDK 21+, Maven builds the full reactor
+>- With JDK 17, Maven builds only the five default modules
+>- With JDK 21+, Maven also builds the `java21-modules` profile; the full reactor requires JDK 25+ for `authme-velocity`
 >- Build and tooling command reference: [docs/build.md](docs/build.md)
 
 ##### Running requirements:
@@ -195,8 +196,8 @@ Minecraft login phase — no password prompt is ever shown.
 >  - Java 17+: `AuthMeRemastered-*-Spigot-Legacy.jar` — Spigot 1.16.x–1.19.x
 >  - Java 21+: `AuthMeRemastered-*-Spigot-1.21.jar` — Spigot 1.20.x – 1.21.x
 >  - Java 21+: `AuthMeRemastered-*-Paper.jar` — one merged jar for Paper and Folia 1.21.11+ (Folia detected at startup)
->  - Java 21+: `AuthMeRemastered-*-Bungee.jar` — BungeeCord / Waterfall proxy (1.19 API)
->  - Java 25+: `AuthMeRemastered-*-Velocity.jar` — Velocity 3.4+ proxy
+>  - Java 21+: `AuthMeRemastered-*-Bungee.jar` — BungeeCord / Waterfall proxy (built against the 1.21 API)
+>  - Java 25+: `AuthMeRemastered-*-Velocity.jar` — Velocity 4.x proxy (built against 4.3.1)
 >- [PacketEvents](https://github.com/retrooper/packetevents) 2.x (optional plugin; required for inventory protection, tab-complete blocking, and premium bypass in direct-connection mode)
 
 ## Credits

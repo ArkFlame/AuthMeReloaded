@@ -14,6 +14,7 @@ import org.bukkit.Location;
 import org.bukkit.Server;
 import org.bukkit.World;
 import org.bukkit.entity.EnderPearl;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
@@ -32,6 +33,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -403,12 +405,8 @@ class LimboServiceTest {
     void shouldRecreateMissingEnderPearls() {
         // given
         Player player = newPlayer("Pearlie");
-        Server server = mock(Server.class);
-        World world = mock(World.class);
         EnderPearl recreatedPearl = mock(EnderPearl.class);
-        given(player.getServer()).willReturn(server);
-        given(server.getWorlds()).willReturn(Collections.singletonList(world));
-        given(world.getEntities()).willReturn(Collections.emptyList());
+        mockPlayerWorlds(player, Collections.emptyList());
 
         World pearlWorld = mock(World.class);
         given(pearlWorld.spawnEntity(any(Location.class), eq(EntityType.ENDER_PEARL))).willReturn(recreatedPearl);
@@ -439,12 +437,8 @@ class LimboServiceTest {
         given(settings.getProperty(LimboSettings.RECREATE_ENDER_PEARLS)).willReturn(false);
 
         Player player = newPlayer("Pearlie");
-        Server server = mock(Server.class);
-        World world = mock(World.class);
         World pearlWorld = mock(World.class);
-        given(player.getServer()).willReturn(server);
-        given(server.getWorlds()).willReturn(Collections.singletonList(world));
-        given(world.getEntities()).willReturn(Collections.emptyList());
+        mockPlayerWorlds(player, Collections.emptyList());
 
         Location pearlLocation = new Location(pearlWorld, 5.0, 64.0, -2.5, 15.0f, 30.0f);
         Vector pearlVelocity = new Vector(0.01, 0.2, -0.03);
@@ -466,13 +460,9 @@ class LimboServiceTest {
     void shouldNotAccessEnderPearlsOfAnotherRegion() {
         // given
         Player player = newPlayer("Pearlie");
-        Server server = mock(Server.class);
-        World world = mock(World.class);
         World pearlWorld = mock(World.class);
         EnderPearl pearlEntity = mock(EnderPearl.class);
-        given(player.getServer()).willReturn(server);
-        given(server.getWorlds()).willReturn(Collections.singletonList(world));
-        given(world.getEntities()).willReturn(Collections.singletonList(pearlEntity));
+        mockPlayerWorlds(player, Collections.singletonList(pearlEntity));
         given(bukkitService.isOwnedByCurrentThread(pearlEntity)).willReturn(false);
 
         Location pearlLocation = new Location(pearlWorld, 5.0, 64.0, -2.5, 15.0f, 30.0f);
@@ -531,12 +521,8 @@ class LimboServiceTest {
     void shouldRestoreEnderPearlsForAutoLoginFromDiskLimbo() {
         // given - premium player had an ender pearl in flight before disconnecting; no in-memory limbo
         Player player = newPlayer("Premium", false, 0.0f, false, 0.0f);
-        Server server = mock(Server.class);
-        World world = mock(World.class);
         EnderPearl recreatedPearl = mock(EnderPearl.class);
-        given(player.getServer()).willReturn(server);
-        given(server.getWorlds()).willReturn(Collections.singletonList(world));
-        given(world.getEntities()).willReturn(Collections.emptyList());
+        mockPlayerWorlds(player, Collections.emptyList());
 
         World pearlWorld = mock(World.class);
         given(pearlWorld.spawnEntity(any(Location.class), eq(EntityType.ENDER_PEARL))).willReturn(recreatedPearl);
@@ -592,6 +578,14 @@ class LimboServiceTest {
         verify(player, Mockito.never()).setWalkSpeed(Mockito.anyFloat());
         verify(player, Mockito.never()).setFlySpeed(Mockito.anyFloat());
         verify(limboPersistence).removeLimboPlayer(player);
+    }
+
+    private static void mockPlayerWorlds(Player player, List<Entity> entities) {
+        Server server = mock(Server.class);
+        World world = mock(World.class);
+        given(player.getServer()).willReturn(server);
+        given(server.getWorlds()).willReturn(Collections.singletonList(world));
+        given(world.getEntities()).willReturn(entities);
     }
 
     private static Player newPlayer(String name) {

@@ -1,7 +1,6 @@
 package fr.xephi.authme.listener;
 
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -72,9 +71,7 @@ public class EntityListener extends AbstractCancelListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onProjectileLaunch(ProjectileLaunchEvent event) {
-        final Projectile projectile = event.getEntity();
-
-        ProjectileSource shooter = projectile.getShooter();
+        ProjectileSource shooter = event.getEntity().getShooter();
         if (shooter instanceof Player) {
             cancelIfUnauthorized((Player) shooter, event);
         }

@@ -14,15 +14,20 @@ import org.bukkit.command.CommandSender;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import static fr.xephi.authme.service.BukkitServiceTestHelper.setBukkitServiceToRunTaskAsynchronously;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -60,13 +65,14 @@ class ConverterCommandTest {
         TestHelper.setupLogger();
     }
 
-    @Test
-    void shouldHandleUnknownConversionType() {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("invalidArguments")
+    void shouldShowAvailableConvertersForInvalidInput(String caseName, List<String> arguments) {
         // given
         CommandSender sender = mock(CommandSender.class);
 
         // when
-        command.executeCommand(sender, Collections.singletonList("invalid"));
+        command.executeCommand(sender, arguments);
 
         // then
         String converters = String.join(", ", ConverterCommand.CONVERTERS.keySet());
@@ -74,18 +80,10 @@ class ConverterCommandTest {
         verifyNoInteractions(commonService, converterFactory, bukkitService);
     }
 
-    @Test
-    void shouldHandleCommandWithNoArgs() {
-        // given
-        CommandSender sender = mock(CommandSender.class);
-
-        // when
-        command.executeCommand(sender, Collections.emptyList());
-
-        // then
-        String converters = String.join(", ", ConverterCommand.CONVERTERS.keySet());
-        verify(sender).sendMessage(argThat(containsString(converters)));
-        verifyNoInteractions(commonService, converterFactory, bukkitService);
+    private static Stream<Arguments> invalidArguments() {
+        return Stream.of(
+            Arguments.of("no arguments", Collections.emptyList()),
+            Arguments.of("unknown conversion type", Collections.singletonList("invalid")));
     }
 
     @Test

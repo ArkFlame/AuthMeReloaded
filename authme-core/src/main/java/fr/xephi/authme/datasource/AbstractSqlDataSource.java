@@ -12,7 +12,9 @@ import fr.xephi.authme.datasource.mysqlextensions.MySqlExtension;
 import fr.xephi.authme.datasource.columnshandler.AuthMeColumnsHandler;
 import fr.xephi.authme.security.crypts.HashedPassword;
 
+import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Collections;
 import java.util.List;
 
@@ -199,6 +201,36 @@ public abstract class AbstractSqlDataSource implements DataSource {
             return DataSourceValueImpl.unknownRow();
         }
     }
+
+    /**
+     * Adds a column with the given definition to this data source's table.
+     */
+    protected void addColumn(Statement st, String column, String definition) throws SQLException {
+        alterTable(st, "ADD COLUMN " + column + " " + definition);
+    }
+
+    /**
+     * Adds a column with the given definition to this data source's table if it is not there yet.
+     */
+    protected void addColumnIfAbsent(DatabaseMetaData md, Statement st, String column, String definition)
+        throws SQLException {
+        if (isColumnMissing(md, column)) {
+            addColumn(st, column, definition);
+        }
+    }
+
+    /**
+     * Executes an ALTER TABLE statement against this data source's table.
+     */
+    protected void alterTable(Statement st, String alteration) throws SQLException {
+        st.executeUpdate("ALTER TABLE " + tableName + " " + alteration);
+    }
+
+    /**
+     * Returns whether the given column is absent from the table metadata. Each database decides
+     * which catalog to inspect and how to normalize the column name before the lookup.
+     */
+    protected abstract boolean isColumnMissing(DatabaseMetaData metaData, String columnName) throws SQLException;
 
     /**
      * Returns whether the given integer flag column is set to 1 for the user.

@@ -107,9 +107,8 @@ class LimboPlayerViewer implements DebugSection {
             if (memoryLimbo == null) {
                 sender.sendMessage("Note: no Limbo information available");
             }
-            if (player == null) {
-                sender.sendMessage("Note: player is not online");
-            } else if (diskLimbo == null) {
+            // A null player is already rejected by execute(), so only the disk fallback remains.
+            if (diskLimbo == null) {
                 sender.sendMessage("Note: no Limbo on disk available");
             }
         }

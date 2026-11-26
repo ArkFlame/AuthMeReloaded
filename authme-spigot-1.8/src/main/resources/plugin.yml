@@ -96,6 +96,7 @@ permissions:
       authme.admin.totpviewstatus: true
       authme.admin.unregister: true
       authme.admin.updatemessages: true
+      authme.admin.uuid: true
   authme.admin.accounts:
     description: Administrator command to see all accounts associated with a user.
     default: op
@@ -183,6 +184,9 @@ permissions:
     default: op
   authme.admin.updatemessages:
     description: Permission to use the update messages command.
+    default: op
+  authme.admin.uuid:
+    description: Administrator command to view the UUIDs of a player.
     default: op
   authme.allowchatbeforelogin:
     description: Permission to send chat messages before being logged in.
@@ -341,6 +345,10 @@ permissions:
   authme.player.unregister:
     description: Command permission to unregister.
     default: true
+  authme.session.disable:
+    description: Disables sessions for the player, requiring authentication on every
+      join.
+    default: false
   authme.vip:
     description: When the server is full and someone with this permission joins the
       server, someone will be kicked.

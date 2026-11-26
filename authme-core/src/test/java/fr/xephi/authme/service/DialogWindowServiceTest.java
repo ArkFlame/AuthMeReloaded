@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 
 /**
  * Test for {@link DialogWindowService}.
@@ -41,12 +42,22 @@ class DialogWindowServiceTest {
     @Mock
     private EmailService emailService;
 
+    private Player mockPlayerWithRetrievedMessages() {
+        Player player = mock(Player.class);
+        given(commonService.retrieveSingleMessage(eq(player), any(MessageKey.class)))
+            .willAnswer(invocation -> invocation.getArgument(1, MessageKey.class).getKey());
+        return player;
+    }
+
+    private void givenPreJoinMessages() {
+        given(messages.retrieveSingle(eq("Bobby"), any(MessageKey.class)))
+            .willAnswer(invocation -> invocation.getArgument(1, MessageKey.class).getKey());
+    }
+
     @Test
     void shouldBuildPostJoinLoginDialogWithForgotPasswordButtonWhenEmailServiceConfigured() {
         // given
-        Player player = org.mockito.Mockito.mock(Player.class);
-        given(commonService.retrieveSingleMessage(eq(player), any(MessageKey.class)))
-            .willAnswer(invocation -> invocation.getArgument(1, MessageKey.class).getKey());
+        Player player = mockPlayerWithRetrievedMessages();
         given(commonService.getProperty(RegistrationSettings.DIALOG_SHOW_FORGOT_PASSWORD_BUTTON)).willReturn(true);
         given(commonService.getProperty(RegistrationSettings.DIALOG_SHOW_BODY)).willReturn(true);
         given(commonService.getProperty(RegistrationSettings.DIALOG_STACK_BUTTONS_VERTICALLY)).willReturn(false);
@@ -69,9 +80,7 @@ class DialogWindowServiceTest {
     @Test
     void shouldNotShowForgotPasswordButtonWhenEmailServiceNotConfigured() {
         // given
-        Player player = org.mockito.Mockito.mock(Player.class);
-        given(commonService.retrieveSingleMessage(eq(player), any(MessageKey.class)))
-            .willAnswer(invocation -> invocation.getArgument(1, MessageKey.class).getKey());
+        Player player = mockPlayerWithRetrievedMessages();
         given(commonService.getProperty(RegistrationSettings.DIALOG_SHOW_FORGOT_PASSWORD_BUTTON)).willReturn(true);
         given(commonService.getProperty(RegistrationSettings.DIALOG_SHOW_BODY)).willReturn(false);
         given(commonService.getProperty(RegistrationSettings.DIALOG_STACK_BUTTONS_VERTICALLY)).willReturn(false);
@@ -89,9 +98,7 @@ class DialogWindowServiceTest {
     @Test
     void shouldBuildPostJoinLoginDialogWithoutForgotPasswordButtonWhenDisabledByConfig() {
         // given
-        Player player = org.mockito.Mockito.mock(Player.class);
-        given(commonService.retrieveSingleMessage(eq(player), any(MessageKey.class)))
-            .willAnswer(invocation -> invocation.getArgument(1, MessageKey.class).getKey());
+        Player player = mockPlayerWithRetrievedMessages();
         given(commonService.getProperty(RegistrationSettings.DIALOG_SHOW_FORGOT_PASSWORD_BUTTON)).willReturn(false);
         given(commonService.getProperty(RegistrationSettings.DIALOG_SHOW_BODY)).willReturn(false);
         given(commonService.getProperty(RegistrationSettings.DIALOG_STACK_BUTTONS_VERTICALLY)).willReturn(false);
@@ -109,9 +116,7 @@ class DialogWindowServiceTest {
     @Test
     void shouldBuildPostJoinRegisterDialogWithEmailBeforePasswordForMandatoryEmailFlow() {
         // given
-        Player player = org.mockito.Mockito.mock(Player.class);
-        given(commonService.retrieveSingleMessage(eq(player), any(MessageKey.class)))
-            .willAnswer(invocation -> invocation.getArgument(1, MessageKey.class).getKey());
+        Player player = mockPlayerWithRetrievedMessages();
         given(commonService.getProperty(RegistrationSettings.DIALOG_SHOW_BODY)).willReturn(false);
         given(commonService.getProperty(RegistrationSettings.DIALOG_STACK_BUTTONS_VERTICALLY)).willReturn(false);
 
@@ -126,9 +131,7 @@ class DialogWindowServiceTest {
     @Test
     void shouldBuildPostJoinRegisterDialogForOptionalEmailFlow() {
         // given
-        Player player = org.mockito.Mockito.mock(Player.class);
-        given(commonService.retrieveSingleMessage(eq(player), any(MessageKey.class)))
-            .willAnswer(invocation -> invocation.getArgument(1, MessageKey.class).getKey());
+        Player player = mockPlayerWithRetrievedMessages();
         given(commonService.getProperty(RegistrationSettings.DIALOG_SHOW_BODY)).willReturn(false);
         given(commonService.getProperty(RegistrationSettings.DIALOG_STACK_BUTTONS_VERTICALLY)).willReturn(false);
 
@@ -147,8 +150,7 @@ class DialogWindowServiceTest {
     @Test
     void shouldBuildPreJoinLoginDialogWithCancelButtonWhenEmailServiceNotConfigured() {
         // given
-        given(messages.retrieveSingle(eq("Bobby"), any(MessageKey.class)))
-            .willAnswer(invocation -> invocation.getArgument(1, MessageKey.class).getKey());
+        givenPreJoinMessages();
         given(commonService.getProperty(RegistrationSettings.DIALOG_SHOW_FORGOT_PASSWORD_BUTTON)).willReturn(true);
         given(commonService.getProperty(RegistrationSettings.PRE_JOIN_DIALOG_SHOW_CANCEL_BUTTON)).willReturn(true);
         given(commonService.getProperty(RegistrationSettings.PRE_JOIN_DIALOG_ALLOW_CLOSE_WITH_ESCAPE)).willReturn(true);
@@ -174,8 +176,7 @@ class DialogWindowServiceTest {
     @Test
     void shouldBuildPreJoinLoginDialogWithRecoveryButtonWhenEmailServiceConfigured() {
         // given
-        given(messages.retrieveSingle(eq("Bobby"), any(MessageKey.class)))
-            .willAnswer(invocation -> invocation.getArgument(1, MessageKey.class).getKey());
+        givenPreJoinMessages();
         given(commonService.getProperty(RegistrationSettings.DIALOG_SHOW_FORGOT_PASSWORD_BUTTON)).willReturn(true);
         given(commonService.getProperty(RegistrationSettings.DIALOG_SHOW_BODY)).willReturn(false);
         given(commonService.getProperty(RegistrationSettings.DIALOG_STACK_BUTTONS_VERTICALLY)).willReturn(false);
@@ -195,8 +196,7 @@ class DialogWindowServiceTest {
     @Test
     void shouldKeepStackedButtonsInPreJoinRegisterDialogWhenBodyIsReplaced() {
         // given
-        given(messages.retrieveSingle(eq("Bobby"), any(MessageKey.class)))
-            .willAnswer(invocation -> invocation.getArgument(1, MessageKey.class).getKey());
+        givenPreJoinMessages();
         given(commonService.getProperty(RegistrationSettings.PRE_JOIN_DIALOG_SHOW_CANCEL_BUTTON)).willReturn(true);
         given(commonService.getProperty(RegistrationSettings.PRE_JOIN_DIALOG_ALLOW_CLOSE_WITH_ESCAPE)).willReturn(true);
         given(commonService.getProperty(RegistrationSettings.DIALOG_SHOW_BODY)).willReturn(false);

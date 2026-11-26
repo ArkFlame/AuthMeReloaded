@@ -11,11 +11,16 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import static fr.xephi.authme.command.TestCommandsUtil.getCommandWithLabel;
 import static java.util.Arrays.asList;
@@ -100,38 +105,37 @@ class CommandMapperTest {
         assertThat(result.getDifference(), equalTo(0.0));
     }
 
-    @Test
-    void shouldRejectCommandWithTooManyArguments() {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("incorrectArgumentsCases")
+    void shouldRejectCommandWithIncorrectArguments(List<String> parts, String parentLabel, String childLabel,
+                                                   List<String> expectedLabels, List<String> expectedArguments) {
         // given
-        List<String> parts = asList("authme", "register", "pass123", "pass123", "pass123");
+        CommandDescription expectedCommand = childLabel == null
+            ? getCommandWithLabel(commands, parentLabel)
+            : getCommandWithLabel(commands, parentLabel, childLabel);
 
         // when
         FoundCommandResult result = mapper.mapPartsToCommand(sender, parts);
 
         // then
         verifyNoInteractions(permissionsManager);
-        assertThat(result.getCommandDescription(), equalTo(getCommandWithLabel(commands, "authme", "register")));
+        assertThat(result.getCommandDescription(), equalTo(expectedCommand));
         assertThat(result.getResultStatus(), equalTo(FoundResultStatus.INCORRECT_ARGUMENTS));
         assertThat(result.getDifference(), equalTo(0.0));
-        assertThat(result.getLabels(), equalTo(parts.subList(0, 2)));
-        assertThat(result.getArguments(), equalTo(parts.subList(2, 5)));
+        assertThat(result.getLabels(), equalTo(expectedLabels));
+        assertThat(result.getArguments(), equalTo(expectedArguments));
     }
 
-    @Test
-    void shouldRejectCommandWithTooFewArguments() {
-        // given
-        List<String> parts = asList("authme", "Reg");
-
-        // when
-        FoundCommandResult result = mapper.mapPartsToCommand(sender, parts);
-
-        // then
-        verifyNoInteractions(permissionsManager);
-        assertThat(result.getCommandDescription(), equalTo(getCommandWithLabel(commands, "authme", "register")));
-        assertThat(result.getResultStatus(), equalTo(FoundResultStatus.INCORRECT_ARGUMENTS));
-        assertThat(result.getDifference(), equalTo(0.0));
-        assertThat(result.getLabels(), equalTo(parts));
-        assertThat(result.getArguments(), empty());
+    static Stream<Arguments> incorrectArgumentsCases() {
+        return Stream.of(
+            Arguments.of(asList("authme", "register", "pass123", "pass123", "pass123"),
+                "authme", "register", asList("authme", "register"), asList("pass123", "pass123", "pass123")),
+            Arguments.of(asList("authme", "Reg"),
+                "authme", "register", asList("authme", "Reg"), Collections.emptyList()),
+            Arguments.of(singletonList("unregister"),
+                "unregister", null, singletonList("unregister"), Collections.emptyList()),
+            Arguments.of(asList("unregistER", "player1", "wrongArg"),
+                "unregister", null, singletonList("unregistER"), asList("player1", "wrongArg")));
     }
 
     @Test
@@ -167,23 +171,6 @@ class CommandMapperTest {
         assertThat(result.getDifference() > 0.75, equalTo(true));
         assertThat(result.getLabels(), equalTo(parts));
         assertThat(result.getArguments(), empty());
-    }
-
-    @Test
-    void shouldHandleBaseWithWrongArguments() {
-        // given
-        List<String> parts = singletonList("unregister");
-
-        // when
-        FoundCommandResult result = mapper.mapPartsToCommand(sender, parts);
-
-        // then
-        verifyNoInteractions(permissionsManager);
-        assertThat(result.getResultStatus(), equalTo(FoundResultStatus.INCORRECT_ARGUMENTS));
-        assertThat(result.getCommandDescription(), equalTo(getCommandWithLabel(commands, "unregister")));
-        assertThat(result.getDifference(), equalTo(0.0));
-        assertThat(result.getArguments(), empty());
-        assertThat(result.getLabels(), equalTo(parts));
     }
 
     @Test
@@ -225,23 +212,6 @@ class CommandMapperTest {
         assertThat(result.getDifference(), equalTo(0.0));
         assertThat(result.getArguments(), contains("player1"));
         assertThat(result.getLabels(), contains("Unreg"));
-    }
-
-    @Test
-    void shouldReturnChildlessBaseCommandWithArgCountError() {
-        // given
-        List<String> parts = asList("unregistER", "player1", "wrongArg");
-
-        // when
-        FoundCommandResult result = mapper.mapPartsToCommand(sender, parts);
-
-        // then
-        verifyNoInteractions(permissionsManager);
-        assertThat(result.getResultStatus(), equalTo(FoundResultStatus.INCORRECT_ARGUMENTS));
-        assertThat(result.getCommandDescription(), equalTo(getCommandWithLabel(commands, "unregister")));
-        assertThat(result.getDifference(), equalTo(0.0));
-        assertThat(result.getArguments(), contains("player1", "wrongArg"));
-        assertThat(result.getLabels(), contains("unregistER"));
     }
 
     @Test

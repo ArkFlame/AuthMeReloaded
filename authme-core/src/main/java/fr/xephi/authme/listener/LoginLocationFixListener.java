@@ -24,6 +24,7 @@ import java.lang.reflect.Method;
  */
 public class LoginLocationFixListener implements Listener {
 
+    private static final String[] PORTAL_MATERIAL_NAMES = {"PORTAL", "PORTAL_BLOCK", "NETHER_PORTAL"};
     private static final Material PORTAL_MATERIAL = resolvePortalMaterial();
     private static final boolean MIN_HEIGHT_AVAILABLE = hasMinHeight();
     private static final BlockFace[] NEIGHBOR_FACES = {
@@ -105,14 +106,13 @@ public class LoginLocationFixListener implements Listener {
     }
 
     private static Material resolvePortalMaterial() {
-        Material material = Material.matchMaterial("PORTAL");
-        if (material == null) {
-            material = Material.matchMaterial("PORTAL_BLOCK");
+        for (String name : PORTAL_MATERIAL_NAMES) {
+            Material material = Material.matchMaterial(name);
+            if (material != null) {
+                return material;
+            }
         }
-        if (material == null) {
-            material = Material.matchMaterial("NETHER_PORTAL");
-        }
-        return material;
+        return null;
     }
 
     private static boolean hasMinHeight() {

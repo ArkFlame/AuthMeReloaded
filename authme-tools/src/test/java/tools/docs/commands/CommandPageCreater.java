@@ -52,11 +52,7 @@ public class CommandPageCreater implements AutoToolTask {
     }
 
     private static String formatPermissions(PermissionNode permission) {
-        if (permission == null) {
-            return "";
-        } else {
-            return permission.getNode();
-        }
+        return permission == null ? "" : permission.getNode();
     }
 
     private static String formatArguments(Iterable<CommandArgumentDescription> arguments) {

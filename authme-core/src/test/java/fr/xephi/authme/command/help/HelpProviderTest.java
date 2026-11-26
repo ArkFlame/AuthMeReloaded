@@ -14,6 +14,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.internal.stubbing.answers.ReturnsArgumentAt;
@@ -25,6 +29,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static fr.xephi.authme.command.TestCommandsUtil.getCommandWithLabel;
 import static fr.xephi.authme.command.TestCommandsUtil.removeColors;
@@ -37,7 +42,6 @@ import static fr.xephi.authme.command.help.HelpProvider.SHOW_DESCRIPTION;
 import static fr.xephi.authme.command.help.HelpProvider.SHOW_LONG_DESCRIPTION;
 import static fr.xephi.authme.command.help.HelpProvider.SHOW_PERMISSIONS;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -150,14 +154,17 @@ class HelpProviderTest {
         assertThat(lines, hasSize(1)); // only has the help banner
     }
 
-    @Test
-    void shouldShowAndEvaluatePermissions() {
+    @ParameterizedTest(name = "{0} ({4})")
+    @CsvSource({"unreg, true, true, true, Has permission",
+        "unregister, false, false, false, No permission"})
+    void shouldShowAndEvaluatePermissions(String label, boolean isOp, boolean hasNodePermission,
+                                          boolean hasDefaultPermission, String expectedResult) {
         // given
         CommandDescription command = getCommandWithLabel(commands, "unregister");
-        FoundCommandResult result = newFoundResult(command, Collections.singletonList("unreg"));
-        given(sender.isOp()).willReturn(true);
-        given(permissionsManager.hasPermission(sender, AdminPermission.UNREGISTER)).willReturn(true);
-        given(permissionsManager.hasPermission(sender, command.getPermission())).willReturn(true);
+        FoundCommandResult result = newFoundResult(command, Collections.singletonList(label));
+        given(sender.isOp()).willReturn(isOp);
+        given(permissionsManager.hasPermission(sender, AdminPermission.UNREGISTER)).willReturn(hasNodePermission);
+        given(permissionsManager.hasPermission(sender, command.getPermission())).willReturn(hasDefaultPermission);
 
         // when
         helpProvider.outputHelp(sender, result, SHOW_PERMISSIONS);
@@ -166,32 +173,9 @@ class HelpProviderTest {
         List<String> lines = getLines(sender);
         assertThat(lines, hasSize(5));
         assertThat(lines.get(1), containsString("Permissions:"));
-        assertThat(lines.get(2),
-            containsString(AdminPermission.UNREGISTER.getNode() + " (Has permission)"));
-        assertThat(lines.get(3), containsString("Default: Op only (Has permission)"));
-        assertThat(lines.get(4), containsString("Result: Has permission"));
-    }
-
-    @Test
-    void shouldShowAndEvaluateForbiddenPermissions() {
-        // given
-        CommandDescription command = getCommandWithLabel(commands, "unregister");
-        FoundCommandResult result = newFoundResult(command, Collections.singletonList("unregister"));
-        given(sender.isOp()).willReturn(false);
-        given(permissionsManager.hasPermission(sender, AdminPermission.UNREGISTER)).willReturn(false);
-        given(permissionsManager.hasPermission(sender, command.getPermission())).willReturn(false);
-
-        // when
-        helpProvider.outputHelp(sender, result, SHOW_PERMISSIONS);
-
-        // then
-        List<String> lines = getLines(sender);
-        assertThat(lines, hasSize(5));
-        assertThat(lines.get(1), containsString("Permissions:"));
-        assertThat(lines.get(2),
-            containsString(AdminPermission.UNREGISTER.getNode() + " (No permission)"));
-        assertThat(lines.get(3), containsString("Default: Op only (No permission)"));
-        assertThat(lines.get(4), containsString("Result: No permission"));
+        assertThat(lines.get(2), containsString(AdminPermission.UNREGISTER.getNode() + " (" + expectedResult + ")"));
+        assertThat(lines.get(3), containsString("Default: Op only (" + expectedResult + ")"));
+        assertThat(lines.get(4), containsString("Result: " + expectedResult));
     }
 
     @Test
@@ -325,30 +309,23 @@ class HelpProviderTest {
         assertThat(lines.get(1), containsString("Command: /authme register <password> <confirmation>"));
     }
 
-    @Test
-    void shouldRetainCorrectLabels() {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("filterCorrectLabelsCases")
+    void shouldFilterCorrectLabels(List<String> labels, List<String> expectedLabels) {
         // given
-        List<String> labels = Arrays.asList("authme", "reg");
         CommandDescription command = getCommandWithLabel(commands, "authme", "register");
 
         // when
         List<String> result = HelpProvider.filterCorrectLabels(command, labels);
 
         // then
-        assertThat(result, equalTo(labels));
+        assertThat(result, equalTo(expectedLabels));
     }
 
-    @Test
-    void shouldReplaceIncorrectLabels() {
-        // given
-        List<String> labels = Arrays.asList("authme", "wrong");
-        CommandDescription command = getCommandWithLabel(commands, "authme", "register");
-
-        // when
-        List<String> result = HelpProvider.filterCorrectLabels(command, labels);
-
-        // then
-        assertThat(result, contains("authme", "register"));
+    static Stream<Arguments> filterCorrectLabelsCases() {
+        return Stream.of(
+            Arguments.of(Arrays.asList("authme", "reg"), Arrays.asList("authme", "reg")),
+            Arguments.of(Arrays.asList("authme", "wrong"), Arrays.asList("authme", "register")));
     }
 
     @Test

@@ -41,6 +41,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.InjectMocks;
@@ -286,35 +288,11 @@ public class AsynchronousJoinTest {
         verify(database, never()).isAuthAvailable(anyString());
     }
 
-    @Test
-    public void shouldWaitForSignedProxyPremiumLoginWithoutFailingPendingEnrollment() {
-        // given
-        Player player = givenRegisteredPlayer();
-        given(service.getProperty(PremiumSettings.ENABLE_PREMIUM)).willReturn(true);
-        given(bungeeSender.isEnabled()).willReturn(true);
-        UUID offlineUuid = UUID.fromString("f0647d73-8421-3979-bdb6-6b88dc3d03d4");
-        given(player.getUniqueId()).willReturn(offlineUuid);
-
-        given(auth.isPremium()).willReturn(false);
-        // No signed perform.login queued yet -> defer instead of failing the enrollment
-        given(proxySessionManager.getLoginRequest("Bobby")).willReturn(null);
-
-        // when
-        asynchronousJoin.processJoin(player);
-
-        // then
-        verify(pendingPremiumCache, never()).removePending("Bobby");
-        verify(bungeeSender, never()).sendPremiumUnset("Bobby");
-        verify(service, never()).send(eq(player), eq(fr.xephi.authme.message.MessageKey.PREMIUM_PENDING_FAIL));
-        verify(premiumService, never()).finalizePendingPremium(any(), any());
-        verify(limboService).createLimboPlayer(player, true);
-    }
-
-    @Test
-    public void shouldFinalizePendingPremiumInJoinFromQueuedProxyRequest() {
-        // given — keepOfflineUuidCompatibility=true: backend player is offline v3, but the signed
-        // perform.login carrying the proxy-verified Mojang UUID is already queued. The enrollment
-        // must finalize in-join (mirrors the v4 path) instead of dropping the player to limbo.
+    @ParameterizedTest(name = "queued proxy premium request={0}")
+    @ValueSource(booleans = {true, false})
+    public void shouldHandlePendingPremiumEnrollmentOnJoin(boolean hasQueuedRequest) {
+        // given — with a queued signed perform.login carrying the proxy-verified Mojang UUID the
+        // enrollment must finalize in-join; without one the player is deferred to limbo
         Player player = givenRegisteredPlayer();
         given(service.getProperty(PremiumSettings.ENABLE_PREMIUM)).willReturn(true);
         given(bungeeSender.isEnabled()).willReturn(true);
@@ -324,19 +302,27 @@ public class AsynchronousJoinTest {
         given(auth.isPremium()).willReturn(false);
 
         UUID mojangUuid = UUID.randomUUID();
-        given(proxySessionManager.getLoginRequest("Bobby"))
-            .willReturn(new ProxySessionManager.ProxyLoginRequest("bobby", mojangUuid));
-        given(pendingPremiumCache.removePending("Bobby")).willReturn(mojangUuid);
+        given(proxySessionManager.getLoginRequest("Bobby")).willReturn(
+            hasQueuedRequest ? new ProxySessionManager.ProxyLoginRequest("bobby", mojangUuid) : null);
+        if (hasQueuedRequest) {
+            given(pendingPremiumCache.removePending("Bobby")).willReturn(mojangUuid);
+        }
 
         // when
         asynchronousJoin.processJoin(player);
 
         // then
-        verify(premiumService).finalizePendingPremium(player, mojangUuid);
-        verify(asynchronousLogin).forceLoginFromProxy(player);
-        verify(limboService, never()).createLimboPlayer(player, true);
         verify(service, never()).send(eq(player), eq(fr.xephi.authme.message.MessageKey.PREMIUM_PENDING_FAIL));
         verify(bungeeSender, never()).sendPremiumUnset("Bobby");
+        if (hasQueuedRequest) {
+            verify(premiumService).finalizePendingPremium(player, mojangUuid);
+            verify(asynchronousLogin).forceLoginFromProxy(player);
+            verify(limboService, never()).createLimboPlayer(player, true);
+        } else {
+            verify(pendingPremiumCache, never()).removePending("Bobby");
+            verify(premiumService, never()).finalizePendingPremium(any(), any());
+            verify(limboService).createLimboPlayer(player, true);
+        }
     }
 
     @Test

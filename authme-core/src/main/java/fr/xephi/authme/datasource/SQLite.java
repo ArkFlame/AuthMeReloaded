@@ -163,17 +163,6 @@ public class SQLite extends AbstractSqlDataSource {
         logger.info("SQLite Setup finished");
     }
 
-    private void addColumn(Statement st, String column, String definition) throws SQLException {
-        st.executeUpdate("ALTER TABLE " + tableName + " ADD COLUMN " + column + " " + definition);
-    }
-
-    private void addColumnIfAbsent(DatabaseMetaData md, Statement st, String column, String definition)
-        throws SQLException {
-        if (isColumnMissing(md, column)) {
-            addColumn(st, column, definition);
-        }
-    }
-
     /**
      * Migrates the database if necessary. See {@link SqLiteMigrater} for details.
      */
@@ -188,7 +177,8 @@ public class SQLite extends AbstractSqlDataSource {
         }
     }
 
-    private boolean isColumnMissing(DatabaseMetaData metaData, String columnName) throws SQLException {
+    @Override
+    protected boolean isColumnMissing(DatabaseMetaData metaData, String columnName) throws SQLException {
         return SqlDataSourceUtils.isColumnMissing(metaData, null, tableName, columnName);
     }
 
@@ -294,7 +284,8 @@ public class SQLite extends AbstractSqlDataSource {
     @Override
     public synchronized List<String> getLoggedPlayersWithEmptyMail() {
         List<String> players = new ArrayList<>();
-        try (Statement st = con.createStatement(); ResultSet rs = st.executeQuery(findLoggedWithEmptyEmailSql)) {
+        try (PreparedStatement pst = con.prepareStatement(findLoggedWithEmptyEmailSql);
+             ResultSet rs = pst.executeQuery()) {
             while (rs.next()) {
                 players.add(rs.getString(1));
             }
@@ -307,7 +298,8 @@ public class SQLite extends AbstractSqlDataSource {
     @Override
     public synchronized List<PlayerAuth> getRecentlyLoggedInPlayers() {
         List<PlayerAuth> players = new ArrayList<>();
-        try (Statement st = con.createStatement(); ResultSet rs = st.executeQuery(findRecentLoginsSql)) {
+        try (PreparedStatement pst = con.prepareStatement(findRecentLoginsSql);
+             ResultSet rs = pst.executeQuery()) {
             while (rs.next()) {
                 players.add(buildAuthFromResultSet(rs));
             }

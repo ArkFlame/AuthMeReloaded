@@ -29,7 +29,7 @@ class OAuth2SaslClient implements SaslClient {
   private final String oauthToken;
   private final CallbackHandler callbackHandler;
 
-  private boolean isComplete = false;
+  private boolean isComplete;
 
   /**
    * Creates a new instance of the OAuth2SaslClient. This will ordinarily only
@@ -41,18 +41,21 @@ class OAuth2SaslClient implements SaslClient {
     this.callbackHandler = callbackHandler;
   }
 
+  @Override
   public String getMechanismName() {
     return "XOAUTH2";
   }
 
+  @Override
   public boolean hasInitialResponse() {
     return true;
   }
 
+  @Override
   public byte[] evaluateChallenge(byte[] challenge) throws SaslException {
     if (isComplete) {
       // Empty final response from server, just ignore it.
-      return new byte[] { };
+      return new byte[0];
     }
 
     NameCallback nameCallback = new NameCallback("Enter name");
@@ -72,20 +75,24 @@ class OAuth2SaslClient implements SaslClient {
     return response;
   }
 
+  @Override
   public boolean isComplete() {
     return isComplete;
   }
 
+  @Override
   public byte[] unwrap(byte[] incoming, int offset, int len)
       throws SaslException {
     throw new IllegalStateException();
   }
 
+  @Override
   public byte[] wrap(byte[] outgoing, int offset, int len)
       throws SaslException {
     throw new IllegalStateException();
   }
 
+  @Override
   public Object getNegotiatedProperty(String propName) {
     if (!isComplete()) {
       throw new IllegalStateException();
@@ -93,6 +100,7 @@ class OAuth2SaslClient implements SaslClient {
     return null;
   }
 
+  @Override
   public void dispose() throws SaslException {
   }
 }

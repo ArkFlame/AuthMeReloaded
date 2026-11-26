@@ -11,7 +11,7 @@ public abstract class CustomEvent extends Event {
      * Constructor.
      */
     public CustomEvent() {
-        super(false);
+        this(false);
     }
 
     /**

@@ -26,6 +26,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -73,6 +75,11 @@ public abstract class AbstractResourceClosingTest {
     }
 
     protected abstract Object getObjectUnderTest();
+
+    /** Builds the (method, name) argument arrays consumed by the parameterized resource-closing test. */
+    protected static List<Object[]> parametersFor(Stream<Method> methods) {
+        return methods.map(method -> new Object[]{method, method.getName()}).collect(Collectors.toList());
+    }
 
     /**
      * Verify that all AutoCloseables that have been created during the method execution have been closed.

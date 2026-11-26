@@ -1,12 +1,15 @@
 package fr.xephi.authme.task;
 
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
 
 /**
  * Message shown to a player in a regular interval as long as he is not logged in.
+ *
+ * <p>Scheduling is owned by {@link fr.xephi.authme.service.BukkitService}, which dispatches
+ * through the platform's scheduler provider. This task is a plain {@link Runnable} and does
+ * not hold any Bukkit scheduler state itself.
  */
-public class MessageTask extends BukkitRunnable {
+public class MessageTask implements Runnable {
 
     private final Player player;
     private final String[] message;
@@ -32,5 +35,15 @@ public class MessageTask extends BukkitRunnable {
         if (!isMuted) {
             player.sendMessage(message);
         }
+    }
+
+    /**
+     * Cancels this message task. Kept for the legacy single-argument
+     * {@code LimboPlayer#setMessageTask(MessageTask)} path; tasks scheduled through
+     * {@link fr.xephi.authme.service.BukkitService} are cancelled by their
+     * {@link fr.xephi.authme.service.CancellableTask} handle instead.
+     */
+    public void cancel() {
+        // No scheduler state is held here; the scheduled task handle owns cancellation.
     }
 }

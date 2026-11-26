@@ -106,7 +106,10 @@ public class ProxySessionManager implements HasCleanup {
 
         @Override
         public int hashCode() {
-            return Objects.hash(playerName, verifiedPremiumUuid);
+            // Objects.hash would allocate a varargs array on every call.
+            int result = playerName.hashCode();
+            result = 31 * result + (verifiedPremiumUuid != null ? verifiedPremiumUuid.hashCode() : 0);
+            return result;
         }
 
         @Override

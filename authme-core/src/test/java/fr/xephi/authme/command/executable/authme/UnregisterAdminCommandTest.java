@@ -9,6 +9,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -56,12 +58,13 @@ class UnregisterAdminCommandTest {
         verify(commandService).send(sender, MessageKey.UNKNOWN_USER);
     }
 
-    @Test
-    void shouldInvokeUnregisterProcess() {
+    @ParameterizedTest(name = "online player: {0}")
+    @ValueSource(booleans = {true, false})
+    void shouldInvokeUnregisterProcess(boolean playerFound) {
         // given
         String user = "personaNonGrata";
         given(dataSource.isAuthAvailable(user)).willReturn(true);
-        Player player = mock(Player.class);
+        Player player = playerFound ? mock(Player.class) : null;
         given(bukkitService.getPlayerExact(user)).willReturn(player);
         CommandSender sender = mock(CommandSender.class);
 
@@ -72,23 +75,6 @@ class UnregisterAdminCommandTest {
         verify(dataSource, only()).isAuthAvailable(user);
         verify(bukkitService).getPlayerExact(user);
         verify(management).performUnregisterByAdmin(sender, user, player);
-    }
-
-    @Test
-    void shouldInvokeUnregisterProcessWithNullPlayer() {
-        // given
-        String user = "personaNonGrata";
-        given(dataSource.isAuthAvailable(user)).willReturn(true);
-        given(bukkitService.getPlayerExact(user)).willReturn(null);
-        CommandSender sender = mock(CommandSender.class);
-
-        // when
-        command.executeCommand(sender, Collections.singletonList(user));
-
-        // then
-        verify(dataSource, only()).isAuthAvailable(user);
-        verify(bukkitService).getPlayerExact(user);
-        verify(management).performUnregisterByAdmin(sender, user, null);
     }
 
 }

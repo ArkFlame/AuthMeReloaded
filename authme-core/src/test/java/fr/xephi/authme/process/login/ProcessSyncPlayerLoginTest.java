@@ -18,6 +18,8 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -72,30 +74,23 @@ class ProcessSyncPlayerLoginTest {
         given(commonService.getProperty(RestrictionSettings.PROTECT_INVENTORY_BEFORE_LOGIN)).willReturn(false);
     }
 
-    @Test
-    void shouldRestoreRevokedOperatorWhenLoggedInWithoutLimbo() {
+    @ParameterizedTest(name = "limbo player present={0}")
+    @ValueSource(booleans = {true, false})
+    void shouldRestoreLimboStateWhenLoggedIn(boolean hasLimboPlayer) {
         // given
-        given(limboService.getLimboPlayer(player)).willReturn(null);
+        given(limboService.getLimboPlayer(player)).willReturn(hasLimboPlayer ? mock(LimboPlayer.class) : null);
 
         // when
         processSyncPlayerLogin.processPlayerLogin(player, false, Collections.emptyList());
 
         // then
-        verify(limboService).restorePendingOperator(player);
-        verify(limboService).restoreSpeedsForAutoLogin(player);
-        verify(limboService, never()).restoreData(player);
-    }
-
-    @Test
-    void shouldRestoreDataFromLimboWhenLoggedInWithLimbo() {
-        // given
-        given(limboService.getLimboPlayer(player)).willReturn(mock(LimboPlayer.class));
-
-        // when
-        processSyncPlayerLogin.processPlayerLogin(player, false, Collections.emptyList());
-
-        // then
-        verify(limboService).restoreData(player);
-        verify(limboService, never()).restorePendingOperator(player);
+        if (hasLimboPlayer) {
+            verify(limboService).restoreData(player);
+            verify(limboService, never()).restorePendingOperator(player);
+        } else {
+            verify(limboService).restorePendingOperator(player);
+            verify(limboService).restoreSpeedsForAutoLogin(player);
+            verify(limboService, never()).restoreData(player);
+        }
     }
 }

@@ -54,13 +54,15 @@ public class SendMailSsl {
      * @throws EmailException if the mail is invalid
      */
     public HtmlEmail initializeMail(String emailAddress) throws EmailException {
-        String senderMail = StringUtils.isBlank(settings.getProperty(EmailSettings.MAIL_ADDRESS))
+        String mailAddress = settings.getProperty(EmailSettings.MAIL_ADDRESS);
+        String senderMail = StringUtils.isBlank(mailAddress)
             ? settings.getProperty(EmailSettings.MAIL_ACCOUNT)
-            : settings.getProperty(EmailSettings.MAIL_ADDRESS);
+            : mailAddress;
 
-        String senderName = StringUtils.isBlank(settings.getProperty(EmailSettings.MAIL_SENDER_NAME))
+        String senderNameSetting = settings.getProperty(EmailSettings.MAIL_SENDER_NAME);
+        String senderName = StringUtils.isBlank(senderNameSetting)
             ? senderMail
-            : settings.getProperty(EmailSettings.MAIL_SENDER_NAME);
+            : senderNameSetting;
         String mailPassword = settings.getProperty(EmailSettings.MAIL_PASSWORD);
         int port = settings.getProperty(EmailSettings.SMTP_PORT);
 
@@ -89,17 +91,7 @@ public class SendMailSsl {
      */
     public boolean sendEmail(String content, HtmlEmail email) {
         Thread.currentThread().setContextClassLoader(SendMailSsl.class.getClassLoader());
-        // Issue #999: Prevent UnsupportedDataTypeException: no object DCH for MIME type multipart/alternative
-        // cf. http://stackoverflow.com/questions/21856211/unsupporteddatatypeexception-no-object-dch-for-mime-type
-        // Registered once per JVM to avoid concurrent mutations on the global singleton CommandMap.
-        if (MAILCAP_INITIALIZED.compareAndSet(false, true)) {
-            MailcapCommandMap mc = (MailcapCommandMap) CommandMap.getDefaultCommandMap();
-            mc.addMailcap("text/html;; x-java-content-handler=com.sun.mail.handlers.text_html");
-            mc.addMailcap("text/xml;; x-java-content-handler=com.sun.mail.handlers.text_xml");
-            mc.addMailcap("text/plain;; x-java-content-handler=com.sun.mail.handlers.text_plain");
-            mc.addMailcap("multipart/*;; x-java-content-handler=com.sun.mail.handlers.multipart_mixed");
-            mc.addMailcap("message/rfc822;; x-java-content- handler=com.sun.mail.handlers.message_rfc822");
-        }
+        registerMailcapHandlers();
 
         try {
             email.setHtmlMsg(content);
@@ -118,6 +110,24 @@ public class SendMailSsl {
     }
 
     /**
+     * Registers the mailcap handlers needed by JavaMail once per JVM. The global
+     * CommandMap is a singleton, so it must not be mutated by concurrent mail threads.
+     */
+    private static void registerMailcapHandlers() {
+        // Issue #999: Prevent UnsupportedDataTypeException: no object DCH for MIME type multipart/alternative
+        // cf. http://stackoverflow.com/questions/21856211/unsupporteddatatypeexception-no-object-dch-for-mime-type
+        // Registered once per JVM to avoid concurrent mutations on the global singleton CommandMap.
+        if (MAILCAP_INITIALIZED.compareAndSet(false, true)) {
+            MailcapCommandMap mc = (MailcapCommandMap) CommandMap.getDefaultCommandMap();
+            mc.addMailcap("text/html;; x-java-content-handler=com.sun.mail.handlers.text_html");
+            mc.addMailcap("text/xml;; x-java-content-handler=com.sun.mail.handlers.text_xml");
+            mc.addMailcap("text/plain;; x-java-content-handler=com.sun.mail.handlers.text_plain");
+            mc.addMailcap("multipart/*;; x-java-content-handler=com.sun.mail.handlers.multipart_mixed");
+            mc.addMailcap("message/rfc822;; x-java-content- handler=com.sun.mail.handlers.message_rfc822");
+        }
+    }
+
+    /**
      * Sets properties to the given HtmlEmail object based on the port from which it will be sent.
      *
      * @param email the email object to configure
@@ -129,19 +139,7 @@ public class SendMailSsl {
             case 587:
                 String oAuth2Token = settings.getProperty(EmailSettings.OAUTH2_TOKEN);
                 if (!oAuth2Token.isEmpty()) {
-                    if (Security.getProvider("Google OAuth2 Provider") == null) {
-                        Security.addProvider(new OAuth2Provider());
-                    }
-                    Properties mailProperties = email.getMailSession().getProperties();
-                    mailProperties.setProperty("mail.smtp.starttls.enable", "true");
-                    mailProperties.setProperty("mail.smtp.starttls.required", "true");
-                    mailProperties.setProperty("mail.smtp.auth.mechanisms", "XOAUTH2");
-                    mailProperties.setProperty("mail.smtp.sasl.enable", "true");
-                    mailProperties.setProperty("mail.smtp.sasl.mechanisms", "XOAUTH2");
-                    mailProperties.setProperty("mail.smtp.auth.login.disable", "true");
-                    mailProperties.setProperty("mail.smtp.auth.plain.disable", "true");
-                    mailProperties.setProperty(OAuth2SaslClientFactory.OAUTH_TOKEN_PROP, oAuth2Token);
-                    email.setMailSession(Session.getInstance(mailProperties));
+                    configureOAuth2(email, oAuth2Token);
                 } else {
                     enableStartTls(email, checkServerIdentity);
                 }
@@ -160,6 +158,22 @@ public class SendMailSsl {
             default:
                 enableStartTls(email, checkServerIdentity);
         }
+    }
+
+    private static void configureOAuth2(HtmlEmail email, String oAuth2Token) throws EmailException {
+        if (Security.getProvider("Google OAuth2 Provider") == null) {
+            Security.addProvider(new OAuth2Provider());
+        }
+        Properties mailProperties = email.getMailSession().getProperties();
+        mailProperties.setProperty("mail.smtp.starttls.enable", "true");
+        mailProperties.setProperty("mail.smtp.starttls.required", "true");
+        mailProperties.setProperty("mail.smtp.auth.mechanisms", "XOAUTH2");
+        mailProperties.setProperty("mail.smtp.sasl.enable", "true");
+        mailProperties.setProperty("mail.smtp.sasl.mechanisms", "XOAUTH2");
+        mailProperties.setProperty("mail.smtp.auth.login.disable", "true");
+        mailProperties.setProperty("mail.smtp.auth.plain.disable", "true");
+        mailProperties.setProperty(OAuth2SaslClientFactory.OAUTH_TOKEN_PROP, oAuth2Token);
+        email.setMailSession(Session.getInstance(mailProperties));
     }
 
     private static void enableStartTls(HtmlEmail email, boolean checkServerIdentity) {

@@ -8,6 +8,8 @@ import fr.xephi.authme.service.CommonService;
 import org.bukkit.command.CommandSender;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -75,29 +77,14 @@ class AccountsCommandTest {
         org.mockito.Mockito.verifyNoInteractions(dataSource, service);
     }
 
-    @Test
-    void shouldReturnUnknownUserForNullAuth() {
+    @ParameterizedTest(name = "auth present: {0}")
+    @ValueSource(booleans = {true, false})
+    void shouldReturnUnknownUserForUnknownAccount(boolean authPresent) {
         // given
         CommandSender sender = mock(CommandSender.class);
         List<String> arguments = Collections.singletonList("SomeUser");
-        given(dataSource.getAuth("someuser")).willReturn(null);
-        setBukkitServiceToRunTaskAsynchronously(bukkitService);
-
-        // when
-        command.executeCommand(sender, arguments);
-
-        // then
-        verify(service).send(sender, MessageKey.UNKNOWN_USER);
-        verify(sender, never()).sendMessage(anyString());
-    }
-
-    @Test
-    void shouldReturnUnregisteredMessageForEmptyAuthList() {
-        // given
-        CommandSender sender = mock(CommandSender.class);
-        List<String> arguments = Collections.singletonList("SomeUser");
-        PlayerAuth auth = authWithIp("144.56.77.88");
-        given(dataSource.getAuth("someuser")).willReturn(auth);
+        given(dataSource.getAuth("someuser")).willReturn(
+            authPresent ? authWithIp("144.56.77.88") : null);
         setBukkitServiceToRunTaskAsynchronously(bukkitService);
 
         // when

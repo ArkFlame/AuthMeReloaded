@@ -61,11 +61,9 @@ public final class VerifyMessagesTask implements ToolTask {
         for (File file : messageFiles) {
             System.out.println("Verifying '" + file.getName() + "'");
             MessageFileVerifier verifier = new MessageFileVerifier(file);
+            outputVerificationResults(verifier);
             if (addMissingKeys) {
-                outputVerificationResults(verifier);
                 updateMessagesFile(file, verifier, defaultFileConfiguration);
-            } else {
-                outputVerificationResults(verifier);
             }
         }
 

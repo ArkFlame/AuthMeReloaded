@@ -25,13 +25,13 @@ public class GetIpCommand implements ExecutableCommand {
         Player player = bukkitService.getPlayerExact(playerName);
         PlayerAuth auth = dataSource.getAuth(playerName);
 
+        final String displayName = player == null ? playerName : player.getName();
         if (player != null) {
-            sender.sendMessage("Current IP of " + player.getName() + " is " + PlayerUtils.getPlayerIp(player)
+            sender.sendMessage("Current IP of " + displayName + " is " + PlayerUtils.getPlayerIp(player)
                 + ":" + player.getAddress().getPort());
         }
 
         if (auth == null) {
-            String displayName = player == null ? playerName : player.getName();
             sender.sendMessage(displayName + " is not registered in the database");
         } else {
             sender.sendMessage("Database: last IP: " + auth.getLastIp() + ", registration IP: "

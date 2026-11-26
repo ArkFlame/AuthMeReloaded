@@ -16,6 +16,8 @@ import fr.xephi.authme.settings.properties.RegistrationSettings;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -55,12 +57,16 @@ class PasswordRegisterExecutorTest {
     @Mock
     private AsynchronousLogin asynchronousLogin;
 
-    @Test
-    void shouldCheckPasswordValidity() {
+    @ParameterizedTest(name = "valid password={0}")
+    @ValueSource(booleans = {true, false})
+    void shouldCheckPasswordValidity(boolean valid) {
         // given
         String password = "myPass";
         String name = "player040";
-        given(validationService.validatePassword(password, name)).willReturn(new ValidationResult());
+        ValidationResult validationResult = valid
+            ? new ValidationResult()
+            : new ValidationResult(MessageKey.PASSWORD_CHARACTERS_ERROR, "[a-z]");
+        given(validationService.validatePassword(password, name)).willReturn(validationResult);
         Player player = mockPlayerWithName(name);
         PasswordRegisterParams params = PasswordRegisterParams.of(player, password, null);
 
@@ -68,27 +74,11 @@ class PasswordRegisterExecutorTest {
         boolean result = executor.isRegistrationAdmitted(params);
 
         // then
-        assertThat(result, equalTo(true));
+        assertThat(result, equalTo(valid));
         verify(validationService).validatePassword(password, name);
-    }
-
-    @Test
-    void shouldDetectInvalidPasswordAndInformPlayer() {
-        // given
-        String password = "myPass";
-        String name = "player040";
-        given(validationService.validatePassword(password, name)).willReturn(
-            new ValidationResult(MessageKey.PASSWORD_CHARACTERS_ERROR, "[a-z]"));
-        Player player = mockPlayerWithName(name);
-        PasswordRegisterParams params = PasswordRegisterParams.of(player, password, null);
-
-        // when
-        boolean result = executor.isRegistrationAdmitted(params);
-
-        // then
-        assertThat(result, equalTo(false));
-        verify(validationService).validatePassword(password, name);
-        verify(commonService).send(player, MessageKey.PASSWORD_CHARACTERS_ERROR, "[a-z]");
+        if (!valid) {
+            verify(commonService).send(player, MessageKey.PASSWORD_CHARACTERS_ERROR, "[a-z]");
+        }
     }
 
     @Test
@@ -110,35 +100,27 @@ class PasswordRegisterExecutorTest {
         assertThat(auth.getPassword(), equalToHash("pass"));
     }
 
-    @Test
-    void shouldLogPlayerIn() {
+    @ParameterizedTest(name = "force login after register={0}")
+    @ValueSource(booleans = {true, false})
+    void shouldHandleForceLoginAfterRegistration(boolean forceLogin) {
         // given
-        given(commonService.getProperty(RegistrationSettings.FORCE_LOGIN_AFTER_REGISTER)).willReturn(false);
-        given(commonService.getProperty(PluginSettings.USE_ASYNC_TASKS)).willReturn(false);
+        given(commonService.getProperty(RegistrationSettings.FORCE_LOGIN_AFTER_REGISTER)).willReturn(forceLogin);
         Player player = mock(Player.class);
         PasswordRegisterParams params = PasswordRegisterParams.of(player, "pass", "mail@example.org");
-        setBukkitServiceToScheduleSyncDelayedTaskWithEntityAndDelay(bukkitService);
+        if (!forceLogin) {
+            given(commonService.getProperty(PluginSettings.USE_ASYNC_TASKS)).willReturn(false);
+            setBukkitServiceToScheduleSyncDelayedTaskWithEntityAndDelay(bukkitService);
+        }
 
         // when
         executor.executePostPersistAction(params);
 
         // then
-        verify(asynchronousLogin).forceLogin(player);
-        verify(syncProcessManager).processSyncPasswordRegister(player);
-    }
-
-    @Test
-    void shouldNotLogPlayerIn() {
-        // given
-        given(commonService.getProperty(RegistrationSettings.FORCE_LOGIN_AFTER_REGISTER)).willReturn(true);
-        Player player = mock(Player.class);
-        PasswordRegisterParams params = PasswordRegisterParams.of(player, "pass", "mail@example.org");
-
-        // when
-        executor.executePostPersistAction(params);
-
-        // then
-        verifyNoInteractions(bukkitService, asynchronousLogin);
+        if (forceLogin) {
+            verifyNoInteractions(bukkitService, asynchronousLogin);
+        } else {
+            verify(asynchronousLogin).forceLogin(player);
+        }
         verify(syncProcessManager).processSyncPasswordRegister(player);
     }
 

@@ -16,6 +16,8 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -71,12 +73,13 @@ class AsyncChangeEmailTest {
         TestHelper.setupLogger();
     }
 
-    @Test
-    void shouldChangeEmail() {
+    @ParameterizedTest(name = "save successful={0}")
+    @CsvSource({"true, EMAIL_CHANGED_SUCCESS", "false, ERROR"})
+    void shouldChangeEmail(boolean saveSuccessful, MessageKey expectedMessage) {
         // given
         String newEmail = "new@mail.tld";
         PlayerAuth auth = givenAuthenticatedPlayerWithEmail("Bobby", "old@mail.tld");
-        given(dataSource.updateEmail(auth)).willReturn(true);
+        given(dataSource.updateEmail(auth)).willReturn(saveSuccessful);
         given(validationService.validateEmail(newEmail)).willReturn(true);
         given(validationService.isEmailFreeForRegistration(newEmail, player)).willReturn(true);
         given(emailService.hasAllInformation()).willReturn(false);
@@ -88,8 +91,12 @@ class AsyncChangeEmailTest {
 
         // then
         verify(dataSource).updateEmail(auth);
-        verify(playerCache).updatePlayerIfPresent(auth);
-        verify(service).send(player, MessageKey.EMAIL_CHANGED_SUCCESS);
+        if (saveSuccessful) {
+            verify(playerCache).updatePlayerIfPresent(auth);
+        } else {
+            verify(playerCache, never()).updatePlayerIfPresent(auth);
+        }
+        verify(service).send(player, expectedMessage);
     }
 
     @Test
@@ -115,27 +122,6 @@ class AsyncChangeEmailTest {
         verify(dataSource).updateEmail(auth);
         verify(playerCache).updatePlayerIfPresent(auth);
         verify(service).send(player, MessageKey.EMAIL_CHANGED_SUCCESS);
-    }
-
-    @Test
-    void shouldShowErrorIfSaveFails() {
-        // given
-        String newEmail = "new@mail.tld";
-        PlayerAuth auth = givenAuthenticatedPlayerWithEmail("Bobby", "old@mail.tld");
-        given(dataSource.updateEmail(auth)).willReturn(false);
-        given(validationService.validateEmail(newEmail)).willReturn(true);
-        given(validationService.isEmailFreeForRegistration(newEmail, player)).willReturn(true);
-        given(emailService.hasAllInformation()).willReturn(false);
-        EmailChangedEvent event = spy(new EmailChangedEvent(player, "old@mail.tld", newEmail, false));
-        given(bukkitService.createAndCallEvent(any(Function.class))).willReturn(event);
-
-        // when
-        process.changeEmail(player, "old@mail.tld", newEmail);
-
-        // then
-        verify(dataSource).updateEmail(auth);
-        verify(playerCache, never()).updatePlayerIfPresent(auth);
-        verify(service).send(player, MessageKey.ERROR);
     }
 
     @Test
@@ -206,23 +192,18 @@ class AsyncChangeEmailTest {
         verify(service).send(player, MessageKey.EMAIL_ALREADY_USED_ERROR);
     }
 
-    @Test
-    void shouldSendLoginMessage() {
-        assertUnauthenticatedOutcome(true, MessageKey.LOGIN_MESSAGE);
-    }
-
-    @Test
-    void shouldShowRegistrationMessage() {
-        assertUnauthenticatedOutcome(false, MessageKey.REGISTER_MESSAGE);
-    }
-
-    private void assertUnauthenticatedOutcome(boolean isRegistered, MessageKey expectedMessage) {
+    @ParameterizedTest(name = "registered={0}")
+    @CsvSource({"true, LOGIN_MESSAGE", "false, REGISTER_MESSAGE"})
+    void shouldShowLoginOrRegisterMessageForUnauthenticatedPlayer(boolean isRegistered, MessageKey expectedMessage) {
+        // given
         given(player.getName()).willReturn("Bobby");
         given(playerCache.isAuthenticated("bobby")).willReturn(false);
         given(dataSource.isAuthAvailable("Bobby")).willReturn(isRegistered);
 
+        // when
         process.changeEmail(player, "old@mail.tld", "new@mail.tld");
 
+        // then
         verifyEmailNotUpdated();
         verify(service).send(player, expectedMessage);
     }

@@ -6,6 +6,9 @@ import com.google.common.collect.Lists;
 import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.security.crypts.HashedPassword;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -51,30 +54,25 @@ public abstract class AbstractDataSourceIntegrationTest {
         assertThat(isUserAvailable, equalTo(true));
     }
 
-    @Test
-    void shouldReturnPassword() {
-        DataSource dataSource = getDataSource();
+    @ParameterizedTest(name = "salt column ''{0}'', name ''{1}''")
+    @MethodSource("passwordCases")
+    void shouldReturnPassword(String saltColumn, String userName, HashedPassword expectedUserPassword) {
+        DataSource dataSource = getDataSource(saltColumn);
 
         HashedPassword bobbyPassword = dataSource.getPassword("bobby");
         HashedPassword invalidPassword = dataSource.getPassword("doesNotExist");
-        HashedPassword userPassword = dataSource.getPassword("User");
+        HashedPassword userPassword = dataSource.getPassword(userName);
 
         assertThat(bobbyPassword, equalToHash("$SHA$11aa0706173d7272$dbba966"));
         assertThat(invalidPassword, nullValue());
-        assertThat(userPassword, equalToHash("b28c32f624a4eb161d6adc9acb5bfc5b", "f750ba32"));
+        assertThat(userPassword, equalToHash(expectedUserPassword));
     }
 
-    @Test
-    void shouldReturnPasswordWithEmptySaltColumn() {
-        DataSource dataSource = getDataSource("");
-
-        HashedPassword bobbyPassword = dataSource.getPassword("bobby");
-        HashedPassword invalidPassword = dataSource.getPassword("doesNotExist");
-        HashedPassword userPassword = dataSource.getPassword("user");
-
-        assertThat(bobbyPassword, equalToHash("$SHA$11aa0706173d7272$dbba966"));
-        assertThat(invalidPassword, nullValue());
-        assertThat(userPassword, equalToHash("b28c32f624a4eb161d6adc9acb5bfc5b"));
+    private static Stream<Arguments> passwordCases() {
+        String hash = "b28c32f624a4eb161d6adc9acb5bfc5b";
+        return Stream.of(
+            Arguments.of("salt", "User", new HashedPassword(hash, "f750ba32")),
+            Arguments.of("", "user", new HashedPassword(hash)));
     }
 
     @Test
@@ -134,30 +132,25 @@ public abstract class AbstractDataSourceIntegrationTest {
         assertThat(newAuthList, hasItem(hasAuthBasicData("bobby", "Bobby", null, "123.45.67.89")));
     }
 
-    @Test
-    void shouldUpdatePassword() {
-        DataSource dataSource = getDataSource();
-        HashedPassword newHash = new HashedPassword("new_hash");
+    @ParameterizedTest(name = "salt column ''{0}''")
+    @MethodSource("updatePasswordCases")
+    void shouldUpdatePassword(String saltColumn, HashedPassword newHash, HashedPassword invalidHash,
+                              String expectedHash) {
+        DataSource dataSource = getDataSource(saltColumn);
 
         boolean response1 = dataSource.updatePassword("user", newHash);
-        boolean response2 = dataSource.updatePassword("non-existent-name", new HashedPassword("sd"));
+        boolean response2 = dataSource.updatePassword("non-existent-name", invalidHash);
 
         assertThat(response1, equalTo(true));
         assertThat(response2, equalTo(false)); // no record modified
-        assertThat(dataSource.getPassword("user"), equalToHash(newHash));
+        assertThat(dataSource.getPassword("user"), equalToHash(expectedHash));
     }
 
-    @Test
-    void shouldUpdatePasswordWithNoSalt() {
-        DataSource dataSource = getDataSource("");
-        HashedPassword newHash = new HashedPassword("new_hash", "1241");
-
-        boolean response1 = dataSource.updatePassword("user", newHash);
-        boolean response2 = dataSource.updatePassword("non-existent-name", new HashedPassword("asdfasdf", "a1f34ec"));
-
-        assertThat(response1, equalTo(true));
-        assertThat(response2, equalTo(false)); // no record modified
-        assertThat(dataSource.getPassword("user"), equalToHash("new_hash"));
+    private static Stream<Arguments> updatePasswordCases() {
+        return Stream.of(
+            Arguments.of("salt", new HashedPassword("new_hash"), new HashedPassword("sd"), "new_hash"),
+            Arguments.of("", new HashedPassword("new_hash", "1241"),
+                new HashedPassword("asdfasdf", "a1f34ec"), "new_hash"));
     }
 
     @Test

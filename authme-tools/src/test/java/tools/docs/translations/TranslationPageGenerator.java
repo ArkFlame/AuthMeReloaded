@@ -10,7 +10,6 @@ import tools.utils.ToolsConstants;
 
 import java.util.Arrays;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -46,7 +45,7 @@ public class TranslationPageGenerator implements AutoToolTask {
 
         for (TranslationInfo translation : gatherer.getTranslationInfo()) {
             int percentage = (int) Math.round(translation.getPercentTranslated() * 100);
-            String name = Optional.ofNullable(LANGUAGE_NAMES.get(translation.getCode())).orElse("?");
+            String name = LANGUAGE_NAMES.getOrDefault(translation.getCode(), "?");
             TagValueHolder valueHolder = TagValueHolder.create()
                 .put("code", translation.getCode())
                 .put("name", name)
@@ -66,7 +65,7 @@ public class TranslationPageGenerator implements AutoToolTask {
      * @param percentage the percentage to generate a color for
      * @return the color
      */
-    private String computeColor(int percentage) {
+    private static String computeColor(int percentage) {
         int[] color;
         if (percentage < COLOR_1_PERCENTAGE) {
             color = computeColor(percentage, COLOR_0, COLOR_1, 0, COLOR_1_PERCENTAGE);
@@ -94,11 +93,11 @@ public class TranslationPageGenerator implements AutoToolTask {
         double max = rangeMax - rangeMin;
         double n = percentage - rangeMin;
 
-        return new int[]{
-            (int) (colorA[0] + n / max * (colorB[0] - colorA[0])),
-            (int) (colorA[1] + n / max * (colorB[1] - colorA[1])),
-            (int) (colorA[2] + n / max * (colorB[2] - colorA[2]))
-        };
+        int[] result = new int[colorA.length];
+        for (int i = 0; i < result.length; ++i) {
+            result[i] = (int) (colorA[i] + n / max * (colorB[i] - colorA[i]));
+        }
+        return result;
     }
 
     /**

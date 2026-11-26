@@ -93,7 +93,7 @@ public class CheckTestMocks implements AutoToolTask {
     }
 
     private static boolean isTestClassWithMocks(Class<?> clazz) {
-        return Arrays.stream(clazz.getDeclaredFields()).anyMatch(field -> field.isAnnotationPresent(Mock.class));
+        return !getMocks(clazz).isEmpty();
     }
 
     private static String formatClassList(Collection<Class<?>> coll) {

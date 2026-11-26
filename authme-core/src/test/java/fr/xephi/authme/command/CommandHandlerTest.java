@@ -13,6 +13,9 @@ import org.bukkit.command.CommandSender;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
@@ -116,36 +119,25 @@ class CommandHandlerTest {
     }
 
 
-    @Test
-    void shouldCallMappedCommandWithArgs() {
+    @ParameterizedTest(name = "pre-split parts: {0}")
+    @ValueSource(booleans = {false, true})
+    void shouldCallMappedCommandWithArgs(boolean preSplitParts) {
         // given
         givenMapping(asList("Authme", "Login"), asList("myPass"), 0.0, SUCCESS);
         doReturn(TestLoginCommand.class).when(command).getExecutableCommand();
 
         // when
-        handler.processCommand(sender, "Authme", new String[]{"Login", "myPass"});
+        if (preSplitParts) {
+            handler.processCommand(sender, asList("Authme", "Login", "myPass"));
+        } else {
+            handler.processCommand(sender, "Authme", new String[]{"Login", "myPass"});
+        }
 
         // then
         ExecutableCommand executableCommand = mockedCommands.get(TestLoginCommand.class);
         verifyMappedParts("Authme", "Login", "myPass");
         verify(executableCommand).executeCommand(sender, asList("myPass"));
         // Ensure that no error message was issued to the command sender
-        verify(sender, never()).sendMessage(anyString());
-    }
-
-    @Test
-    void shouldCallMappedCommandWithPreSplitParts() {
-        // given
-        givenMapping(asList("Authme", "Login"), asList("myPass"), 0.0, SUCCESS);
-        doReturn(TestLoginCommand.class).when(command).getExecutableCommand();
-
-        // when
-        handler.processCommand(sender, asList("Authme", "Login", "myPass"));
-
-        // then
-        ExecutableCommand executableCommand = mockedCommands.get(TestLoginCommand.class);
-        verifyMappedParts("Authme", "Login", "myPass");
-        verify(executableCommand).executeCommand(sender, asList("myPass"));
         verify(sender, never()).sendMessage(anyString());
     }
 
@@ -229,11 +221,14 @@ class CommandHandlerTest {
         verify(sender, never()).sendMessage(anyString());
     }
 
-    @Test
-    void shouldNotCallExecutableForUnknownLabelAndHaveSuggestion() {
+    @ParameterizedTest(name = "suggestion: {1}")
+    @CsvSource({"0.01, true", "1.0, false"})
+    void shouldNotCallExecutableForUnknownLabel(double difference, boolean hasSuggestion) {
         // given
-        given(command.getLabels()).willReturn(Collections.singletonList("test_cmd"));
-        givenMapping(asList("unreg"), asList("testPlayer"), 0.01, UNKNOWN_LABEL);
+        if (hasSuggestion) {
+            given(command.getLabels()).willReturn(Collections.singletonList("test_cmd"));
+        }
+        givenMapping(asList("unreg"), asList("testPlayer"), difference, UNKNOWN_LABEL);
 
         // when
         handler.processCommand(sender, "unreg", new String[]{"testPlayer"});
@@ -242,25 +237,11 @@ class CommandHandlerTest {
         verifyMappedParts("unreg", "testPlayer");
         verify(command, never()).getExecutableCommand();
         verify(messages).send(sender, MessageKey.UNKNOWN_COMMAND);
-        ArgumentCaptor<String> cmdCaptor = ArgumentCaptor.forClass(String.class);
-        verify(messages).send(eq(sender), eq(MessageKey.COMMAND_DID_YOU_MEAN), cmdCaptor.capture());
-        assertThat(cmdCaptor.getValue(), containsString("test_cmd"));
-        verify(messages).send(eq(sender), eq(MessageKey.COMMAND_SEE_HELP), anyString());
-        verify(sender, never()).sendMessage(anyString());
-    }
-
-    @Test
-    void shouldNotCallExecutableForUnknownLabelAndNotSuggestCommand() {
-        // given
-        givenMapping(asList("unreg"), asList("testPlayer"), 1.0, UNKNOWN_LABEL);
-
-        // when
-        handler.processCommand(sender, "unreg", new String[]{"testPlayer"});
-
-        // then
-        verifyMappedParts("unreg", "testPlayer");
-        verify(command, never()).getExecutableCommand();
-        verify(messages).send(sender, MessageKey.UNKNOWN_COMMAND);
+        if (hasSuggestion) {
+            ArgumentCaptor<String> cmdCaptor = ArgumentCaptor.forClass(String.class);
+            verify(messages).send(eq(sender), eq(MessageKey.COMMAND_DID_YOU_MEAN), cmdCaptor.capture());
+            assertThat(cmdCaptor.getValue(), containsString("test_cmd"));
+        }
         verify(messages).send(eq(sender), eq(MessageKey.COMMAND_SEE_HELP), anyString());
         verify(sender, never()).sendMessage(anyString());
     }

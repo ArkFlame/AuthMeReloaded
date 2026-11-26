@@ -181,10 +181,7 @@ public abstract class AbstractPaperPlatformAdapter extends AbstractSpigotPlatfor
 
     @Override
     public boolean isProxyForwardingEnabled() {
-        if (super.isProxyForwardingEnabled()) {
-            return true;
-        }
-        return isPaperVelocityForwardingEnabled();
+        return super.isProxyForwardingEnabled() || isPaperVelocityForwardingEnabled();
     }
 
     private static boolean hasDialogApi() {

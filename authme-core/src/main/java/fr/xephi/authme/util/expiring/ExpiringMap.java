@@ -47,7 +47,7 @@ public class ExpiringMap<K, V> extends AbstractExpiring {
         ExpiringEntry<V> value = entries.get(key);
         if (value == null) {
             return null;
-        } else if (System.currentTimeMillis() > value.getExpiration()) {
+        } else if (isExpired(value.getExpiration(), System.currentTimeMillis())) {
             entries.remove(key);
             return null;
         }
@@ -74,7 +74,7 @@ public class ExpiringMap<K, V> extends AbstractExpiring {
      */
     public V remove(K key) {
         ExpiringEntry<V> value = entries.remove(key);
-        if (value == null || System.currentTimeMillis() > value.getExpiration()) {
+        if (value == null || isExpired(value.getExpiration(), System.currentTimeMillis())) {
             return null;
         }
         return value.getValue();
@@ -84,7 +84,7 @@ public class ExpiringMap<K, V> extends AbstractExpiring {
      * Removes all entries which have expired from the internal structure.
      */
     public void removeExpiredEntries() {
-        entries.entrySet().removeIf(entry -> System.currentTimeMillis() > entry.getValue().getExpiration());
+        entries.entrySet().removeIf(entry -> isExpired(entry.getValue().getExpiration(), System.currentTimeMillis()));
     }
 
     /**

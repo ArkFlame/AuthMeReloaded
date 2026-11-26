@@ -84,12 +84,8 @@ public final class MessagesFileWriter {
         }
         // Small fix: so we can keep running this writer and get the same result, we need to make sure that any ending
         // empty lines are removed
-        for (int i = initialComments.size() - 1; i >= 0; --i) {
-            if (initialComments.get(i).isEmpty()) {
-                initialComments.remove(i);
-            } else {
-                break;
-            }
+        while (!initialComments.isEmpty() && initialComments.get(initialComments.size() - 1).isEmpty()) {
+            initialComments.remove(initialComments.size() - 1);
         }
         return initialComments;
     }

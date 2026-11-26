@@ -9,6 +9,8 @@ import fr.xephi.authme.service.AntiBotService;
 import org.bukkit.command.CommandSender;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -57,30 +59,21 @@ class SwitchAntiBotCommandTest {
         verify(messages).send(eq(sender), eq(MessageKey.ANTIBOT_STATUS), eq("ACTIVE"));
     }
 
-    @Test
-    void shouldActivateAntiBot() {
+    @ParameterizedTest
+    @CsvSource({
+        "on, true, ANTIBOT_OVERRIDE_ENABLED",
+        "Off, false, ANTIBOT_OVERRIDE_DISABLED"
+    })
+    void shouldOverrideAntiBotState(String input, boolean expectedStatus, MessageKey expectedMessage) {
         // given
         CommandSender sender = mock(CommandSender.class);
 
         // when
-        command.executeCommand(sender, Collections.singletonList("on"));
+        command.executeCommand(sender, Collections.singletonList(input));
 
         // then
-        verify(antiBot).overrideAntiBotStatus(true);
-        verify(messages).send(sender, MessageKey.ANTIBOT_OVERRIDE_ENABLED);
-    }
-
-    @Test
-    void shouldDeactivateAntiBot() {
-        // given
-        CommandSender sender = mock(CommandSender.class);
-
-        // when
-        command.executeCommand(sender, Collections.singletonList("Off"));
-
-        // then
-        verify(antiBot).overrideAntiBotStatus(false);
-        verify(messages).send(sender, MessageKey.ANTIBOT_OVERRIDE_DISABLED);
+        verify(antiBot).overrideAntiBotStatus(expectedStatus);
+        verify(messages).send(sender, expectedMessage);
     }
 
     @Test

@@ -16,12 +16,16 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Collections;
 import java.util.Locale;
+import java.util.stream.Stream;
 
 import static fr.xephi.authme.service.BukkitServiceTestHelper.setBukkitServiceToRunTaskAsynchronously;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -145,42 +149,30 @@ class RecoverEmailCommandTest {
         verify(commonService).send(sender, MessageKey.USAGE_REGISTER);
     }
 
-    @Test
-    void shouldHandleDefaultEmail() {
+    @ParameterizedTest(name = "requested {0}, stored {1}")
+    @MethodSource("invalidEmailCases")
+    void shouldRejectInvalidEmail(String requestedEmail, String storedEmail) {
         // given
         String name = "Tract0r";
         Player sender = mock(Player.class);
         given(sender.getName()).willReturn(name);
         given(emailService.hasAllInformation()).willReturn(true);
         given(playerCache.isAuthenticated(name)).willReturn(false);
-        given(validationService.validateEmail(DEFAULT_EMAIL)).willReturn(true);
-        given(dataSource.getEmail(name)).willReturn(DataSourceValueImpl.of(DEFAULT_EMAIL));
+        given(validationService.validateEmail(requestedEmail)).willReturn(true);
+        given(dataSource.getEmail(name)).willReturn(DataSourceValueImpl.of(storedEmail));
 
         // when
-        command.executeCommand(sender, Collections.singletonList(DEFAULT_EMAIL));
+        command.executeCommand(sender, Collections.singletonList(requestedEmail));
 
         // then
         verifyNoMoreInteractions(dataSource);
         verify(commonService).send(sender, MessageKey.INVALID_EMAIL);
     }
 
-    @Test
-    void shouldHandleInvalidEmailInput() {
-        // given
-        String name = "Rapt0r";
-        Player sender = mock(Player.class);
-        given(sender.getName()).willReturn(name);
-        given(emailService.hasAllInformation()).willReturn(true);
-        given(playerCache.isAuthenticated(name)).willReturn(false);
-        given(validationService.validateEmail("wrong-email@example.com")).willReturn(true);
-        given(dataSource.getEmail(name)).willReturn(DataSourceValueImpl.of("raptor@example.org"));
-
-        // when
-        command.executeCommand(sender, Collections.singletonList("wrong-email@example.com"));
-
-        // then
-        verifyNoMoreInteractions(dataSource);
-        verify(commonService).send(sender, MessageKey.INVALID_EMAIL);
+    private static Stream<Arguments> invalidEmailCases() {
+        return Stream.of(
+            Arguments.of(DEFAULT_EMAIL, DEFAULT_EMAIL),
+            Arguments.of("wrong-email@example.com", "raptor@example.org"));
     }
 
     @Test

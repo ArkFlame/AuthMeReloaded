@@ -62,8 +62,7 @@ final class PreJoinRegisterProcessor {
         // Registration through the dialog must not bypass the registration captcha requirement
         if (registrationCaptchaManager != null && registrationCaptchaManager.isCaptchaRequired(playerName)) {
             String code = registrationCaptchaManager.getCaptchaCodeOrGenerateNew(playerName);
-            showRegisterDialogWithError(connection, playerName,
-                messages.retrieveSingle(playerName, MessageKey.CAPTCHA_FOR_REGISTRATION_REQUIRED, code));
+            showError(connection, playerName, MessageKey.CAPTCHA_FOR_REGISTRATION_REQUIRED, code);
             return;
         }
 
@@ -107,13 +106,11 @@ final class PreJoinRegisterProcessor {
         String email = view.getText("email");
         String confirm = view.getText("confirm");
         if (email == null || email.isBlank() || !validationService.validateEmail(email)) {
-            showRegisterDialogWithError(connection, playerName,
-                messages.retrieveSingle(playerName, MessageKey.INVALID_EMAIL));
+            showError(connection, playerName, MessageKey.INVALID_EMAIL);
             return;
         }
         if (secondArg == RegisterSecondaryArgument.CONFIRMATION && !email.equals(confirm)) {
-            showRegisterDialogWithError(connection, playerName,
-                messages.retrieveSingle(playerName, MessageKey.PASSWORD_MATCH_ERROR));
+            showError(connection, playerName, MessageKey.PASSWORD_MATCH_ERROR);
             return;
         }
         preJoinDialogService.storePendingEmailRegistration(sessionId, email);
@@ -125,19 +122,16 @@ final class PreJoinRegisterProcessor {
                                            DialogResponseView view) {
         String password = view.getText("password");
         if (password == null || password.isBlank()) {
-            showRegisterDialogWithError(connection, playerName,
-                messages.retrieveSingle(playerName, MessageKey.INVALID_PASSWORD_LENGTH));
+            showError(connection, playerName, MessageKey.INVALID_PASSWORD_LENGTH);
             return;
         }
         if (secondArg == RegisterSecondaryArgument.CONFIRMATION && !password.equals(view.getText("confirm"))) {
-            showRegisterDialogWithError(connection, playerName,
-                messages.retrieveSingle(playerName, MessageKey.PASSWORD_MATCH_ERROR));
+            showError(connection, playerName, MessageKey.PASSWORD_MATCH_ERROR);
             return;
         }
         ValidationService.ValidationResult passwordResult = validationService.validatePassword(password, playerName);
         if (passwordResult.hasError()) {
-            showRegisterDialogWithError(connection, playerName,
-                messages.retrieveSingle(playerName, passwordResult.getMessageKey(), passwordResult.getArgs()));
+            showError(connection, playerName, passwordResult.getMessageKey(), passwordResult.getArgs());
             return;
         }
         String email = null;
@@ -145,13 +139,11 @@ final class PreJoinRegisterProcessor {
             || secondArg == RegisterSecondaryArgument.EMAIL_OPTIONAL) {
             email = view.getText("email");
             if (secondArg == RegisterSecondaryArgument.EMAIL_MANDATORY && (email == null || email.isBlank())) {
-                showRegisterDialogWithError(connection, playerName,
-                    messages.retrieveSingle(playerName, MessageKey.INVALID_EMAIL));
+                showError(connection, playerName, MessageKey.INVALID_EMAIL);
                 return;
             }
             if (email != null && !email.isBlank() && !validationService.validateEmail(email)) {
-                showRegisterDialogWithError(connection, playerName,
-                    messages.retrieveSingle(playerName, MessageKey.INVALID_EMAIL));
+                showError(connection, playerName, MessageKey.INVALID_EMAIL);
                 return;
             }
         }
@@ -165,5 +157,10 @@ final class PreJoinRegisterProcessor {
         RegisterSecondaryArgument secondArg = commonService.getProperty(RegistrationSettings.REGISTER_SECOND_ARGUMENT);
         DialogWindowSpec spec = dialogWindowService.createPreJoinRegisterDialog(playerName, registrationType, secondArg);
         connection.getAudience().showDialog(PaperDialogHelper.createPreJoinRegisterDialog(spec.withBody(errorMessage)));
+    }
+
+    private void showError(PlayerConfigurationConnection connection, String playerName,
+                           MessageKey key, String... args) {
+        showRegisterDialogWithError(connection, playerName, messages.retrieveSingle(playerName, key, args));
     }
 }

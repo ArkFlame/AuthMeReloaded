@@ -107,21 +107,20 @@ public class RegisterCommand extends PlayerCommand {
     }
 
     private void handlePasswordRegistration(Player player, List<String> arguments) {
-        if (isSecondArgValid(player, arguments, false)) {
+        RegisterSecondaryArgument secondArgType = commonService.getProperty(REGISTER_SECOND_ARGUMENT);
+        if (isSecondArgValid(player, arguments, false, secondArgType)) {
             final String password = arguments.get(0);
-            final String email = getEmailIfAvailable(arguments);
+            final String email = getEmailIfAvailable(arguments, secondArgType);
 
             management.performRegister(RegistrationMethod.PASSWORD_REGISTRATION,
                 PasswordRegisterParams.of(player, password, email));
         }
     }
 
-    private String getEmailIfAvailable(List<String> arguments) {
-        if (arguments.size() >= 2) {
-            RegisterSecondaryArgument secondArgType = commonService.getProperty(REGISTER_SECOND_ARGUMENT);
-            if (secondArgType == EMAIL_MANDATORY || secondArgType == EMAIL_OPTIONAL) {
-                return arguments.get(1);
-            }
+    private static String getEmailIfAvailable(List<String> arguments,
+                                              RegisterSecondaryArgument secondArgType) {
+        if (arguments.size() >= 2 && (secondArgType == EMAIL_MANDATORY || secondArgType == EMAIL_OPTIONAL)) {
+            return arguments.get(1);
         }
         return null;
     }
@@ -142,10 +141,11 @@ public class RegisterCommand extends PlayerCommand {
      * @param player the player to register
      * @param arguments the provided arguments
      * @param emailRegistration whether this is an email registration rather than a password registration
+     * @param secondArgType the configured secondary argument type, looked up by the caller
      * @return true if valid, false otherwise
      */
-    private boolean isSecondArgValid(Player player, List<String> arguments, boolean emailRegistration) {
-        RegisterSecondaryArgument secondArgType = commonService.getProperty(REGISTER_SECOND_ARGUMENT);
+    private boolean isSecondArgValid(Player player, List<String> arguments, boolean emailRegistration,
+                                     RegisterSecondaryArgument secondArgType) {
         if (isSecondArgNotRequired(arguments, secondArgType)) {
             return true;
         }
@@ -190,7 +190,8 @@ public class RegisterCommand extends PlayerCommand {
         final String email = arguments.get(0);
         if (!validationService.validateEmail(email)) {
             commonService.send(player, MessageKey.INVALID_EMAIL);
-        } else if (isSecondArgValid(player, arguments, true)) {
+        } else if (isSecondArgValid(player, arguments, true,
+            commonService.getProperty(REGISTER_SECOND_ARGUMENT))) {
             management.performRegister(RegistrationMethod.EMAIL_REGISTRATION,
                 EmailRegisterParams.of(player, email));
             if (commonService.getProperty(RegistrationSettings.UNREGISTER_ON_EMAIL_VERIFICATION_FAILURE)

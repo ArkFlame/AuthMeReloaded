@@ -109,13 +109,7 @@ public abstract class MySqlExtension {
      */
     protected void setIntColumns(String fullTableName, String qualifiedTableName, String[] columns,
                                  int value, String name, Connection con) throws SQLException {
-        for (String column : columns) {
-            try (PreparedStatement pst = prepareColumnUpdate(fullTableName, qualifiedTableName, column, con)) {
-                pst.setInt(1, value);
-                pst.setString(2, name);
-                pst.executeUpdate();
-            }
-        }
+        setColumns(fullTableName, qualifiedTableName, columns, pst -> pst.setInt(1, value), name, con);
     }
 
     /**
@@ -131,13 +125,7 @@ public abstract class MySqlExtension {
      */
     protected void setLongColumns(String fullTableName, String qualifiedTableName, String[] columns,
                                   long value, String name, Connection con) throws SQLException {
-        for (String column : columns) {
-            try (PreparedStatement pst = prepareColumnUpdate(fullTableName, qualifiedTableName, column, con)) {
-                pst.setLong(1, value);
-                pst.setString(2, name);
-                pst.executeUpdate();
-            }
-        }
+        setColumns(fullTableName, qualifiedTableName, columns, pst -> pst.setLong(1, value), name, con);
     }
 
     /**
@@ -153,9 +141,17 @@ public abstract class MySqlExtension {
      */
     protected void setStringColumns(String fullTableName, String qualifiedTableName, String[] columns,
                                     String value, String name, Connection con) throws SQLException {
+        setColumns(fullTableName, qualifiedTableName, columns, pst -> pst.setString(1, value), name, con);
+    }
+
+    /**
+     * Updates every listed column to the value bound by the given setter.
+     */
+    private void setColumns(String fullTableName, String qualifiedTableName, String[] columns,
+                            ValueSetter valueSetter, String name, Connection con) throws SQLException {
         for (String column : columns) {
             try (PreparedStatement pst = prepareColumnUpdate(fullTableName, qualifiedTableName, column, con)) {
-                pst.setString(1, value);
+                valueSetter.set(pst);
                 pst.setString(2, name);
                 pst.executeUpdate();
             }
@@ -167,5 +163,11 @@ public abstract class MySqlExtension {
         String sql = "UPDATE " + fullTableName + " SET " + qualifiedTableName + "." + column
             + "=? WHERE " + col.NAME + "=?;";
         return con.prepareStatement(sql);
+    }
+
+    @FunctionalInterface
+    private interface ValueSetter {
+
+        void set(PreparedStatement pst) throws SQLException;
     }
 }

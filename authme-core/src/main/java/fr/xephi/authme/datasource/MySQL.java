@@ -262,22 +262,8 @@ public class MySQL extends AbstractHikariSqlDataSource {
         logger.info("MySQL setup finished");
     }
 
-    private void addColumn(Statement st, String column, String definition) throws SQLException {
-        alterTable(st, "ADD COLUMN " + column + " " + definition);
-    }
-
-    private void addColumnIfAbsent(DatabaseMetaData md, Statement st, String column, String definition)
-        throws SQLException {
-        if (isColumnMissing(md, column)) {
-            addColumn(st, column, definition);
-        }
-    }
-
-    private void alterTable(Statement st, String alteration) throws SQLException {
-        st.executeUpdate("ALTER TABLE " + tableName + " " + alteration);
-    }
-
-    private boolean isColumnMissing(DatabaseMetaData metaData, String columnName) throws SQLException {
+    @Override
+    protected boolean isColumnMissing(DatabaseMetaData metaData, String columnName) throws SQLException {
         return SqlDataSourceUtils.isColumnMissing(metaData, database, tableName, columnName);
     }
 

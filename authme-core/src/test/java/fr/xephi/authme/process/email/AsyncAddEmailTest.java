@@ -16,6 +16,8 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -88,12 +90,13 @@ class AsyncAddEmailTest {
         return event;
     }
 
-    @Test
-    void shouldAddEmail() {
+    @ParameterizedTest(name = "save successful={0}")
+    @CsvSource({"true, EMAIL_ADDED_SUCCESS", "false, ERROR"})
+    void shouldSaveEmail(boolean saveSuccessful, MessageKey expectedMessage) {
         // given
         String email = "my.mail@example.org";
         PlayerAuth auth = givenAuthenticatedPlayerWithoutEmail("testEr");
-        given(dataSource.updateEmail(any(PlayerAuth.class))).willReturn(true);
+        given(dataSource.updateEmail(any(PlayerAuth.class))).willReturn(saveSuccessful);
         given(validationService.validateEmail(email)).willReturn(true);
         given(validationService.isEmailFreeForRegistration(email, player)).willReturn(true);
         given(emailService.hasAllInformation()).willReturn(false);
@@ -104,9 +107,11 @@ class AsyncAddEmailTest {
 
         // then
         verify(dataSource).updateEmail(auth);
-        verify(service).send(player, MessageKey.EMAIL_ADDED_SUCCESS);
-        verify(auth).setEmail(email);
-        verify(playerCache).updatePlayerIfPresent(auth);
+        verify(service).send(player, expectedMessage);
+        if (saveSuccessful) {
+            verify(auth).setEmail(email);
+            verify(playerCache).updatePlayerIfPresent(auth);
+        }
     }
 
     @Test
@@ -127,25 +132,6 @@ class AsyncAddEmailTest {
         verify(dataSource, never()).updateEmail(any());
         verify(pendingEmailVerificationCache).addPending(eq("testEr"), eq(email), anyString());
         verify(service).send(player, MessageKey.EMAIL_CONFIRM_CODE_SENT, email);
-    }
-
-    @Test
-    void shouldReturnErrorWhenMailCannotBeSaved() {
-        // given
-        String email = "my.mail@example.org";
-        PlayerAuth auth = givenAuthenticatedPlayerWithoutEmail("testEr");
-        given(dataSource.updateEmail(any(PlayerAuth.class))).willReturn(false);
-        given(validationService.validateEmail(email)).willReturn(true);
-        given(validationService.isEmailFreeForRegistration(email, player)).willReturn(true);
-        given(emailService.hasAllInformation()).willReturn(false);
-        givenEmailChangedEvent(email);
-
-        // when
-        asyncAddEmail.addEmail(player, email);
-
-        // then
-        verify(dataSource).updateEmail(auth);
-        verify(service).send(player, MessageKey.ERROR);
     }
 
     @Test
@@ -196,23 +182,19 @@ class AsyncAddEmailTest {
         verify(playerCache, never()).updatePlayerIfPresent(any(PlayerAuth.class));
     }
 
-    @Test
-    void shouldShowLoginMessage() {
-        assertUnauthenticatedOutcome("Username12", true, MessageKey.LOGIN_MESSAGE);
-    }
-
-    @Test
-    void shouldShowRegisterMessage() {
-        assertUnauthenticatedOutcome("user", false, MessageKey.REGISTER_MESSAGE);
-    }
-
-    private void assertUnauthenticatedOutcome(String name, boolean isRegistered, MessageKey expectedMessage) {
+    @ParameterizedTest(name = "{0}, registered={1}")
+    @CsvSource({"Username12, true, LOGIN_MESSAGE", "user, false, REGISTER_MESSAGE"})
+    void shouldShowLoginOrRegisterMessageForUnauthenticatedPlayer(
+        String name, boolean isRegistered, MessageKey expectedMessage) {
+        // given
         given(player.getName()).willReturn(name);
         given(playerCache.isAuthenticated(name.toLowerCase())).willReturn(false);
         given(dataSource.isAuthAvailable(name)).willReturn(isRegistered);
 
+        // when
         asyncAddEmail.addEmail(player, "test@mail.com");
 
+        // then
         verify(service).send(player, expectedMessage);
         verify(playerCache, never()).updatePlayerIfPresent(any(PlayerAuth.class));
     }

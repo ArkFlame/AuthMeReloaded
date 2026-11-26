@@ -51,8 +51,14 @@ public class TempbanManager implements SettingsDependent, HasCleanup {
      */
     public void increaseCount(String address, String name) {
         if (isEnabled) {
-            TimedCounter<String> countsByName = ipLoginFailureCounts.computeIfAbsent(
-                address, k -> new TimedCounter<>(resetThreshold, TimeUnit.MINUTES));
+            // Avoid computeIfAbsent's capturing lambda: it would be allocated on every failed login,
+            // even when a counter for the address already exists.
+            TimedCounter<String> countsByName = ipLoginFailureCounts.get(address);
+            if (countsByName == null) {
+                TimedCounter<String> created = new TimedCounter<>(resetThreshold, TimeUnit.MINUTES);
+                TimedCounter<String> existing = ipLoginFailureCounts.putIfAbsent(address, created);
+                countsByName = existing == null ? created : existing;
+            }
             countsByName.increment(name.toLowerCase(Locale.ROOT));
         }
     }

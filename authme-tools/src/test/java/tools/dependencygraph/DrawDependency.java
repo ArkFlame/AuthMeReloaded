@@ -4,7 +4,6 @@ import ch.jalu.injector.context.ObjectIdentifier;
 import ch.jalu.injector.factory.Factory;
 import ch.jalu.injector.factory.SingletonStore;
 import ch.jalu.injector.handlers.instantiation.Resolution;
-import ch.jalu.injector.handlers.instantiation.StandardInjectionProvider;
 import ch.jalu.injector.utils.ReflectionUtils;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -139,7 +138,7 @@ public class DrawDependency implements ToolTask {
     }
 
     private List<String> getDependencies(Class<?> clazz) {
-        Resolution<?> instantiation = new StandardInjectionProvider().safeGet(clazz);
+        Resolution<?> instantiation = InjectorUtils.getResolution(clazz);
         return instantiation == null ? null : formatInjectionDependencies(instantiation);
     }
 

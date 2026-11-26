@@ -116,7 +116,7 @@ public abstract class AbstractEncryptionMethodTest {
         for (int i = start; i < GIVEN_PASSWORDS.length - 1; ++i) {
             String password = GIVEN_PASSWORDS[i];
             assertThat("Hash for password '" + password + "' should match",
-                doesGivenHashMatch(password, method), equalTo(true));
+                doesGivenHashMatch(password), equalTo(true));
         }
 
         // Note #375: Windows console seems to use its own character encoding (Windows-1252?) and it seems impossible to
@@ -125,7 +125,7 @@ public abstract class AbstractEncryptionMethodTest {
         // problems), we will check the last password in GIVEN_PASSWORDS in a non-failing way; if the hash doesn't match
         // we'll just issue a message to System.err
         String lastPassword = GIVEN_PASSWORDS[GIVEN_PASSWORDS.length - 1];
-        if (!doesGivenHashMatch(lastPassword, method)) {
+        if (!doesGivenHashMatch(lastPassword)) {
             System.err.println("Note: Hash for password '" + lastPassword + "' does not match for method " + method);
         }
     }
@@ -174,7 +174,7 @@ public abstract class AbstractEncryptionMethodTest {
         }
     }
 
-    private boolean doesGivenHashMatch(String password, EncryptionMethod method) {
+    private boolean doesGivenHashMatch(String password) {
         return method.comparePassword(password, hashes.get(password), USERNAME);
     }
 

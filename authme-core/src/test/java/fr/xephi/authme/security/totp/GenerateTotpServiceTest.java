@@ -12,11 +12,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.concurrent.TimeUnit;
 
+import static fr.xephi.authme.listener.TestPlayerUtils.mockPlayerWithName;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
 
 /**
  * Test for {@link GenerateTotpService}.
@@ -89,11 +89,5 @@ class GenerateTotpServiceTest {
 
         assertThat(generateTotpService.getGeneratedTotpKey(mockPlayerWithName("Ezra")), equalTo(generationResult));
         assertThat(generateTotpService.getGeneratedTotpKey(mockPlayerWithName("ghost")), nullValue());
-    }
-
-    private static Player mockPlayerWithName(String name) {
-        Player player = mock(Player.class);
-        given(player.getName()).willReturn(name);
-        return player;
     }
 }

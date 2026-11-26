@@ -8,6 +8,8 @@ import fr.xephi.authme.service.bungeecord.BungeeSender;
 import org.bukkit.command.CommandSender;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -39,39 +41,30 @@ class PurgeLastPositionCommandTest {
     @Mock
     private BungeeSender bungeeSender;
 
-    @Test
-    void shouldPurgeLastPosOfUser() {
-        // given
-        String player = "_Bobby";
-        PlayerAuth auth = mock(PlayerAuth.class);
-        given(dataSource.getAuth(player)).willReturn(auth);
-        CommandSender sender = mock(CommandSender.class);
-
-        // when
-        command.executeCommand(sender, Collections.singletonList(player));
-
-        // then
-        verify(dataSource).getAuth(player);
-        verifyPositionWasReset(auth);
-        verify(sender).sendMessage(argThat(containsString("last position location is now reset")));
-    }
-
-    @Test
-    void shouldPurgePositionOfCommandSender() {
+    @ParameterizedTest
+    @CsvSource({
+        "false, last position location is now reset",
+        "true, position location is now reset"
+    })
+    void shouldPurgeLastPosition(boolean isCommandSender, String expectedMessage) {
         // given
         String player = "_Bobby";
         CommandSender sender = mock(CommandSender.class);
-        given(sender.getName()).willReturn(player);
+        if (isCommandSender) {
+            given(sender.getName()).willReturn(player);
+        }
         PlayerAuth auth = mock(PlayerAuth.class);
         given(dataSource.getAuth(player)).willReturn(auth);
 
         // when
-        command.executeCommand(sender, Collections.emptyList());
+        command.executeCommand(sender, isCommandSender
+            ? Collections.emptyList()
+            : Collections.singletonList(player));
 
         // then
         verify(dataSource).getAuth(player);
         verifyPositionWasReset(auth);
-        verify(sender).sendMessage(argThat(containsString("position location is now reset")));
+        verify(sender).sendMessage(argThat(containsString(expectedMessage)));
     }
 
     @Test

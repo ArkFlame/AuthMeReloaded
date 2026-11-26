@@ -44,31 +44,21 @@ public class DataSourceProvider implements Provider<DataSource> {
     @Override
     public DataSource get() {
         try {
-            return createDataSource();
+            DataSourceType dataSourceType = settings.getProperty(DatabaseSettings.BACKEND);
+            DataSource dataSource = createBaseDataSource(dataSourceType);
+
+            if (settings.getProperty(DatabaseSettings.USE_CACHING)) {
+                dataSource = new CacheDataSource(dataSource, playerCache,
+                    settings.getProperty(DatabaseSettings.USE_VIRTUAL_THREADS));
+            }
+            if (DataSourceType.SQLITE.equals(dataSourceType)) {
+                checkDataSourceSize(dataSource);
+            }
+            return dataSource;
         } catch (Exception e) {
             logger.logException("Could not create data source:", e);
             throw new IllegalStateException("Error during initialization of data source", e);
         }
-    }
-
-    /**
-     * Sets up the data source.
-     *
-     * @return the constructed data source
-     * @throws SQLException when initialization of a SQL data source failed
-     */
-    private DataSource createDataSource() throws SQLException {
-        DataSourceType dataSourceType = settings.getProperty(DatabaseSettings.BACKEND);
-        DataSource dataSource = createBaseDataSource(dataSourceType);
-
-        if (settings.getProperty(DatabaseSettings.USE_CACHING)) {
-            dataSource = new CacheDataSource(dataSource, playerCache,
-                settings.getProperty(DatabaseSettings.USE_VIRTUAL_THREADS));
-        }
-        if (DataSourceType.SQLITE.equals(dataSourceType)) {
-            checkDataSourceSize(dataSource);
-        }
-        return dataSource;
     }
 
     private DataSource createBaseDataSource(DataSourceType dataSourceType) throws SQLException {

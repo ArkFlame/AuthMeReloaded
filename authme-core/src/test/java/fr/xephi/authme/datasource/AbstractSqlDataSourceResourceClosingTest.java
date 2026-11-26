@@ -7,7 +7,6 @@ import org.junit.jupiter.api.BeforeAll;
 
 import java.lang.reflect.Method;
 import java.sql.Connection;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -50,12 +49,7 @@ public abstract class AbstractSqlDataSourceResourceClosingTest extends AbstractR
      * @return Test parameters
      */
     public static Collection<Object[]> createParameters() {
-        List<Method> methods = getDataSourceMethods();
-        List<Object[]> data = new ArrayList<>();
-        for (Method method : methods) {
-            data.add(new Object[]{method, method.getName()});
-        }
-        return data;
+        return parametersFor(getDataSourceMethods().stream());
     }
 
     /* Get all methods of the DataSource interface, minus the ones in the ignored list. */

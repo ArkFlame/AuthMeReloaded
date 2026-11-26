@@ -94,16 +94,20 @@ public class OnStartupTasks {
         if (!settings.getProperty(RECALL_PLAYERS)) {
             return;
         }
-        bukkitService.runTaskTimerAsynchronously(() -> {
-            List<String> loggedPlayersWithEmptyMail = dataSource.getLoggedPlayersWithEmptyMail();
-            bukkitService.runOnGlobalRegion(() -> {
-                for (String playerWithoutMail : loggedPlayersWithEmptyMail) {
-                    Player player = bukkitService.getPlayerExact(playerWithoutMail);
-                    if (player != null) {
-                        messages.send(player, MessageKey.ADD_EMAIL_MESSAGE);
-                    }
+        bukkitService.runTaskTimerAsynchronously(this::sendRecallEmailReminders,
+            1, (long) TICKS_PER_MINUTE * settings.getProperty(DELAY_RECALL));
+    }
+
+    /** Reminds all logged players who still have no email address set. */
+    private void sendRecallEmailReminders() {
+        List<String> loggedPlayersWithEmptyMail = dataSource.getLoggedPlayersWithEmptyMail();
+        bukkitService.runOnGlobalRegion(() -> {
+            for (String playerWithoutMail : loggedPlayersWithEmptyMail) {
+                Player player = bukkitService.getPlayerExact(playerWithoutMail);
+                if (player != null) {
+                    messages.send(player, MessageKey.ADD_EMAIL_MESSAGE);
                 }
-            });
-        }, 1, (long) TICKS_PER_MINUTE * settings.getProperty(DELAY_RECALL));
+            }
+        });
     }
 }

@@ -13,7 +13,10 @@ import org.bukkit.plugin.PluginManager;
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumMap;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * Manager class for password-related operations.
@@ -34,6 +37,7 @@ public class PasswordSecurity implements Reloadable {
 
     private volatile EncryptionMethod encryptionMethod;
     private volatile Collection<HashAlgorithm> legacyAlgorithms;
+    private volatile Map<HashAlgorithm, EncryptionMethod> legacyEncryptionMethods;
 
     /**
      * Load or reload the configuration.
@@ -44,6 +48,7 @@ public class PasswordSecurity implements Reloadable {
         HashAlgorithm algorithm = settings.getProperty(SecuritySettings.PASSWORD_HASH);
         this.encryptionMethod = initializeEncryptionMethodWithEvent(algorithm);
         this.legacyAlgorithms = settings.getProperty(SecuritySettings.LEGACY_HASHES);
+        this.legacyEncryptionMethods = createLegacyEncryptionMethods(this.legacyAlgorithms);
     }
 
     /**
@@ -99,14 +104,28 @@ public class PasswordSecurity implements Reloadable {
      * @return True if there was a password match with a configured legacy encryption method, false otherwise
      */
     private boolean compareWithLegacyHashes(String password, HashedPassword hashedPassword, String playerName) {
+        Map<HashAlgorithm, EncryptionMethod> methods = legacyEncryptionMethods;
         for (HashAlgorithm algorithm : legacyAlgorithms) {
-            EncryptionMethod method = initializeEncryptionMethod(algorithm);
-            if (methodMatches(method, password, hashedPassword, playerName)) {
+            if (methodMatches(methods.get(algorithm), password, hashedPassword, playerName)) {
                 hashAndSavePasswordWithNewAlgorithm(password, playerName);
                 return true;
             }
         }
         return false;
+    }
+
+    /**
+     * Instantiate the legacy encryption methods once per configuration instead of once per password check.
+     *
+     * @param algorithms The configured legacy algorithms
+     * @return An immutable mapping of algorithm to its encryption method (null for unsupported algorithms)
+     */
+    private Map<HashAlgorithm, EncryptionMethod> createLegacyEncryptionMethods(Collection<HashAlgorithm> algorithms) {
+        Map<HashAlgorithm, EncryptionMethod> methods = new EnumMap<>(HashAlgorithm.class);
+        for (HashAlgorithm algorithm : algorithms) {
+            methods.put(algorithm, initializeEncryptionMethod(algorithm));
+        }
+        return Collections.unmodifiableMap(methods);
     }
 
     /**

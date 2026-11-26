@@ -10,6 +10,8 @@ import fr.xephi.authme.service.ValidationService;
 import org.bukkit.command.CommandSender;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -108,8 +110,9 @@ class SetEmailCommandTest {
         verifyNoInteractions(auth);
     }
 
-    @Test
-    void shouldHandlePersistenceError() {
+    @ParameterizedTest
+    @CsvSource({"false, ERROR", "true, EMAIL_CHANGED_SUCCESS"})
+    void shouldHandleEmailUpdateResult(boolean updateSuccessful, MessageKey expectedMessage) {
         // given
         String user = "Bobby";
         String email = "new-addr@example.org";
@@ -118,7 +121,7 @@ class SetEmailCommandTest {
         given(dataSource.getAuth(user)).willReturn(auth);
         CommandSender sender = mock(CommandSender.class);
         given(validationService.isEmailFreeForRegistration(email, sender)).willReturn(true);
-        given(dataSource.updateEmail(auth)).willReturn(false);
+        given(dataSource.updateEmail(auth)).willReturn(updateSuccessful);
         setBukkitServiceToRunTaskOptionallyAsync(bukkitService);
 
         // when
@@ -128,34 +131,11 @@ class SetEmailCommandTest {
         verify(validationService).validateEmail(email);
         verify(dataSource).getAuth(user);
         verify(validationService).isEmailFreeForRegistration(email, sender);
-        verify(commandService).send(sender, MessageKey.ERROR);
+        verify(commandService).send(sender, expectedMessage);
         verify(dataSource).updateEmail(auth);
-        verifyNoMoreInteractions(dataSource);
-    }
-
-    @Test
-    void shouldUpdateEmailAndPlayerCache() {
-        // given
-        String user = "Bobby";
-        String email = "new-addr@example.org";
-        given(validationService.validateEmail(email)).willReturn(true);
-        PlayerAuth auth = mock(PlayerAuth.class);
-        given(dataSource.getAuth(user)).willReturn(auth);
-        CommandSender sender = mock(CommandSender.class);
-        given(validationService.isEmailFreeForRegistration(email, sender)).willReturn(true);
-        given(dataSource.updateEmail(auth)).willReturn(true);
-        setBukkitServiceToRunTaskOptionallyAsync(bukkitService);
-
-        // when
-        command.executeCommand(sender, Arrays.asList(user, email));
-
-        // then
-        verify(validationService).validateEmail(email);
-        verify(dataSource).getAuth(user);
-        verify(validationService).isEmailFreeForRegistration(email, sender);
-        verify(commandService).send(sender, MessageKey.EMAIL_CHANGED_SUCCESS);
-        verify(dataSource).updateEmail(auth);
-        verify(playerCache).updatePlayerIfPresent(auth);
+        if (updateSuccessful) {
+            verify(playerCache).updatePlayerIfPresent(auth);
+        }
         verifyNoMoreInteractions(dataSource);
     }
 

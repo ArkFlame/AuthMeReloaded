@@ -5,6 +5,8 @@ import fr.xephi.authme.data.auth.PlayerAuth;
 import org.bukkit.command.CommandSender;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -30,13 +32,17 @@ class TotpViewStatusCommandTest extends AbstractTotpAdminCommandTest {
         return command;
     }
 
-    @Test
-    void shouldInformForUserWithoutTotp() {
+    @ParameterizedTest
+    @CsvSource(value = {
+        "NULL, does NOT have two-factor auth enabled",
+        "92841575, has enabled two-factor authentication"
+    }, nullValues = "NULL")
+    void shouldInformForUserWithTotpStatus(String totpKey, String expectedMessage) {
         // given
         CommandSender sender = mock(CommandSender.class);
         PlayerAuth auth = PlayerAuth.builder()
             .name("billy")
-            .totpKey(null)
+            .totpKey(totpKey)
             .build();
         given(dataSource.getAuth("Billy")).willReturn(auth);
 
@@ -44,23 +50,6 @@ class TotpViewStatusCommandTest extends AbstractTotpAdminCommandTest {
         command.executeCommand(sender, Collections.singletonList("Billy"));
 
         // then
-        verify(sender).sendMessage(argThat(containsString("'Billy' does NOT have two-factor auth enabled")));
-    }
-
-    @Test
-    void shouldInformForUserWithTotpEnabled() {
-        // given
-        CommandSender sender = mock(CommandSender.class);
-        PlayerAuth auth = PlayerAuth.builder()
-            .name("billy")
-            .totpKey("92841575")
-            .build();
-        given(dataSource.getAuth("Billy")).willReturn(auth);
-
-        // when
-        command.executeCommand(sender, Collections.singletonList("Billy"));
-
-        // then
-        verify(sender).sendMessage(argThat(containsString("'Billy' has enabled two-factor authentication")));
+        verify(sender).sendMessage(argThat(containsString("'Billy' " + expectedMessage)));
     }
 }

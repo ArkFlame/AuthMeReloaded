@@ -11,6 +11,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -47,30 +49,12 @@ class ForceLoginCommandTest {
     @Mock
     private PreJoinDialogService preJoinDialogService;
 
-    @Test
-    void shouldRejectOfflinePlayer() {
+    @ParameterizedTest(name = "{0}")
+    @CsvSource({"Bobby, true", "us3rname01, false"})
+    void shouldRejectOfflinePlayer(String playerName, boolean existingPlayer) {
         // given
-        String playerName = "Bobby";
-        Player player = mockPlayer(false);
+        Player player = existingPlayer ? mockPlayer(false) : null;
         given(bukkitService.getPlayerExact(playerName)).willReturn(player);
-        given(permissionsManager.hasPermissionOffline(playerName, PlayerPermission.CAN_LOGIN_BE_FORCED))
-            .willReturn(true);
-        CommandSender sender = mock(CommandSender.class);
-
-        // when
-        command.executeCommand(sender, Collections.singletonList(playerName));
-
-        // then
-        verify(bukkitService).getPlayerExact(playerName);
-        verify(messages).send(sender, MessageKey.FORCE_LOGIN_PLAYER_OFFLINE);
-        verifyNoInteractions(management);
-    }
-
-    @Test
-    void shouldRejectInexistentPlayer() {
-        // given
-        String playerName = "us3rname01";
-        given(bukkitService.getPlayerExact(playerName)).willReturn(null);
         given(permissionsManager.hasPermissionOffline(playerName, PlayerPermission.CAN_LOGIN_BE_FORCED))
             .willReturn(true);
         CommandSender sender = mock(CommandSender.class);

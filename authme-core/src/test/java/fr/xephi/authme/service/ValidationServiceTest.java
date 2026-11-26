@@ -227,38 +227,27 @@ class ValidationServiceTest {
         assertThat(validationService.validateEmail(email), equalTo(false));
     }
 
-    @Test
-    void shouldAllowRegistration() {
+    @ParameterizedTest(name = "{0}: {1}")
+    @MethodSource("emailRegistrationCounts")
+    void shouldCheckEmailFreeForRegistration(String email, int count, boolean expected) {
         // given
         CommandSender sender = mock(CommandSender.class);
-        String email = "my.address@example.org";
         given(permissionsManager.hasPermission(sender, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS))
             .willReturn(false);
-        given(dataSource.countAuthsByEmail(email)).willReturn(2);
+        given(dataSource.countAuthsByEmail(email)).willReturn(count);
         given(settings.getProperty(EmailSettings.MAX_REG_PER_EMAIL)).willReturn(3);
 
         // when
         boolean result = validationService.isEmailFreeForRegistration(email, sender);
 
         // then
-        assertThat(result, equalTo(true));
+        assertThat(result, equalTo(expected));
     }
 
-    @Test
-    void shouldRejectEmailWithTooManyAccounts() {
-        // given
-        CommandSender sender = mock(CommandSender.class);
-        String email = "mail@example.org";
-        given(permissionsManager.hasPermission(sender, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS))
-            .willReturn(false);
-        given(dataSource.countAuthsByEmail(email)).willReturn(5);
-        given(settings.getProperty(EmailSettings.MAX_REG_PER_EMAIL)).willReturn(3);
-
-        // when
-        boolean result = validationService.isEmailFreeForRegistration(email, sender);
-
-        // then
-        assertThat(result, equalTo(false));
+    private static Stream<Arguments> emailRegistrationCounts() {
+        return Stream.of(
+            Arguments.of("my.address@example.org", 2, true),
+            Arguments.of("mail@example.org", 5, false));
     }
 
     @Test
@@ -308,63 +297,46 @@ class ValidationServiceTest {
         verifyNoInteractions(geoIpService);
     }
 
-    @Test
-    void shouldAcceptCountryInWhitelist() {
+    @ParameterizedTest(name = "{0}: {1}")
+    @MethodSource("whitelistCountries")
+    void shouldCheckCountryAgainstWhitelist(String ip, String countryCode, boolean expected) {
         // given
         given(settings.getProperty(ProtectionSettings.COUNTRIES_WHITELIST)).willReturn(asList("ch", "it"));
-        String ip = "127.0.0.1";
-        given(geoIpService.getCountryCode(ip)).willReturn("CH");
+        given(geoIpService.getCountryCode(ip)).willReturn(countryCode);
 
         // when
         boolean result = validationService.isCountryAdmitted(ip);
 
         // then
-        assertThat(result, equalTo(true));
+        assertThat(result, equalTo(expected));
     }
 
-    @Test
-    void shouldRejectCountryMissingFromWhitelist() {
-        // given
-        given(settings.getProperty(ProtectionSettings.COUNTRIES_WHITELIST)).willReturn(asList("ch", "it"));
-        String ip = "123.45.67.89";
-        given(geoIpService.getCountryCode(ip)).willReturn("BR");
-
-        // when
-        boolean result = validationService.isCountryAdmitted(ip);
-
-        // then
-        assertThat(result, equalTo(false));
+    private static Stream<Arguments> whitelistCountries() {
+        return Stream.of(
+            Arguments.of("127.0.0.1", "CH", true),
+            Arguments.of("123.45.67.89", "BR", false));
     }
 
-    @Test
-    void shouldAcceptCountryAbsentFromBlacklist() {
+    @ParameterizedTest(name = "{0}: {1}")
+    @MethodSource("blacklistCountries")
+    void shouldCheckCountryAgainstBlacklist(String ip, String countryCode, boolean expected) {
         // given
         given(settings.getProperty(ProtectionSettings.COUNTRIES_WHITELIST)).willReturn(Collections.emptyList());
         given(settings.getProperty(ProtectionSettings.COUNTRIES_BLACKLIST)).willReturn(asList("ch", "it"));
-        String ip = "127.0.0.1";
-        given(geoIpService.getCountryCode(ip)).willReturn("BR");
+        given(geoIpService.getCountryCode(ip)).willReturn(countryCode);
 
         // when
         boolean result = validationService.isCountryAdmitted(ip);
 
         // then
-        assertThat(result, equalTo(true));
+        assertThat(result, equalTo(expected));
         verify(geoIpService).getCountryCode(ip);
     }
 
-    @Test
-    void shouldRejectCountryInBlacklist() {
-        // given
-        given(settings.getProperty(ProtectionSettings.COUNTRIES_WHITELIST)).willReturn(Collections.emptyList());
-        given(settings.getProperty(ProtectionSettings.COUNTRIES_BLACKLIST)).willReturn(asList("ch", "it"));
-        String ip = "123.45.67.89";
-        given(geoIpService.getCountryCode(ip)).willReturn("IT");
-
-        // when
-        boolean result = validationService.isCountryAdmitted(ip);
-
-        // then
-        assertThat(result, equalTo(false));
+    private static Stream<Arguments> blacklistCountries() {
+        return Stream.of(
+            Arguments.of("127.0.0.1", "BR", true),
+            Arguments.of("123.45.67.89", "IT", false));
     }
 
     @Test

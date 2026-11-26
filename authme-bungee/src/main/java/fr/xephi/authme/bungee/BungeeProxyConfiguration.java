@@ -8,6 +8,7 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Set;
+import java.util.function.Function;
 
 final class BungeeProxyConfiguration {
 
@@ -49,10 +50,12 @@ final class BungeeProxyConfiguration {
 
     static BungeeProxyConfiguration from(SettingsManager settingsManager) {
         return new BungeeProxyConfiguration(
-            normalizeServerNames(settingsManager.getProperty(BungeeConfigProperties.AUTH_SERVERS)),
+            normalizeAndCollect(settingsManager.getProperty(BungeeConfigProperties.AUTH_SERVERS),
+                BungeeProxyConfiguration::normalizeServerName),
             settingsManager.getProperty(BungeeConfigProperties.ALL_SERVERS_ARE_AUTH_SERVERS),
             settingsManager.getProperty(BungeeConfigProperties.COMMANDS_REQUIRE_AUTH),
-            normalizeCommandAliases(settingsManager.getProperty(BungeeConfigProperties.COMMANDS_WHITELIST)),
+            normalizeAndCollect(settingsManager.getProperty(BungeeConfigProperties.COMMANDS_WHITELIST),
+                BungeeProxyConfiguration::normalizeCommandAlias),
             settingsManager.getProperty(BungeeConfigProperties.CHAT_REQUIRES_AUTH),
             settingsManager.getProperty(BungeeConfigProperties.SERVER_SWITCH_REQUIRES_AUTH),
             settingsManager.getProperty(BungeeConfigProperties.SERVER_SWITCH_KICK_MESSAGE),
@@ -133,26 +136,16 @@ final class BungeeProxyConfiguration {
         return commandAlias.toLowerCase(Locale.ROOT);
     }
 
-    private static Set<String> normalizeServerNames(Collection<String> serverNames) {
-        LinkedHashSet<String> normalizedServers = new LinkedHashSet<>();
-        for (String serverName : serverNames) {
-            String normalizedServerName = normalizeServerName(serverName);
-            if (!normalizedServerName.isEmpty()) {
-                normalizedServers.add(normalizedServerName);
+    /** Normalizes a collection of values, dropping empty results while preserving input order. */
+    private static Set<String> normalizeAndCollect(Collection<String> values, Function<String, String> normalizer) {
+        LinkedHashSet<String> normalizedValues = new LinkedHashSet<>();
+        for (String value : values) {
+            String normalizedValue = normalizer.apply(value);
+            if (!normalizedValue.isEmpty()) {
+                normalizedValues.add(normalizedValue);
             }
         }
-        return Set.copyOf(normalizedServers);
-    }
-
-    private static Set<String> normalizeCommandAliases(Collection<String> commands) {
-        LinkedHashSet<String> normalizedCommands = new LinkedHashSet<>();
-        for (String command : commands) {
-            String normalizedCommand = normalizeCommandAlias(command);
-            if (!normalizedCommand.isEmpty()) {
-                normalizedCommands.add(normalizedCommand);
-            }
-        }
-        return Set.copyOf(normalizedCommands);
+        return Set.copyOf(normalizedValues);
     }
 
     private static String normalizeServerName(String serverName) {

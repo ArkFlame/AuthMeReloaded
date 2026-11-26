@@ -12,6 +12,8 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -48,14 +50,16 @@ class TotpAuthenticatorTest {
         totpAuthenticator = new TotpAuthenticatorTestImpl(settings);
     }
 
-    @Test
-    void shouldGenerateTotpKey() {
+    @ParameterizedTest
+    @ValueSource(strings = {"MCtopia", "UT:Rebirth"})
+    void shouldGenerateTotpKey(String serverName) {
         // Use the GoogleAuthenticator instance the TotpAuthenticator normally creates to test its parameters
         totpAuthenticator = new TotpAuthenticator(settings);
 
         Player player = mock(Player.class);
         given(player.getName()).willReturn("Bobby");
-        given(settings.getProperty(PluginSettings.SERVER_NAME)).willReturn("MCtopia");
+        given(settings.getProperty(PluginSettings.SERVER_NAME)).willReturn(serverName);
+        String issuer = serverName.replace(':', '-');
 
         TotpGenerationResult key1 = totpAuthenticator.generateTotpKey(player);
         TotpGenerationResult key2 = totpAuthenticator.generateTotpKey(player);
@@ -63,25 +67,12 @@ class TotpAuthenticatorTest {
         assertThat(key1.getTotpKey(), stringWithLength(32));
         assertThat(key2.getTotpKey(), stringWithLength(32));
         assertThat(key1.getAuthenticatorQrCodeUrl(), startsWith("https://api.qrserver.com/v1/create-qr-code/?data="));
-        assertThat(key1.getAuthenticatorQrCodeUrl(), containsString("MCtopia"));
+        assertThat(key1.getAuthenticatorQrCodeUrl(), containsString(issuer));
         assertThat(key1.getAuthenticatorQrCodeUrl(), containsString("margin=10"));
         assertThat(key2.getAuthenticatorQrCodeUrl(), startsWith("https://api.qrserver.com/v1/create-qr-code/?data="));
         assertThat(key1.getTotpKey(), not(equalTo(key2.getTotpKey())));
-    }
-
-    @Test
-    void shouldGenerateTotpKeyForServerNameWithColon() {
-        totpAuthenticator = new TotpAuthenticator(settings);
-
-        Player player = mock(Player.class);
-        given(player.getName()).willReturn("Bobby");
-        given(settings.getProperty(PluginSettings.SERVER_NAME)).willReturn("UT:Rebirth");
-
-        TotpGenerationResult key = totpAuthenticator.generateTotpKey(player);
-
-        assertThat(key.getTotpKey(), stringWithLength(32));
-        assertThat(key.getAuthenticatorQrCodeUrl(), containsString(URLEncoder.encode(
-            "otpauth://totp/UT-Rebirth:Bobby?secret=" + key.getTotpKey() + "&issuer=UT-Rebirth&",
+        assertThat(key1.getAuthenticatorQrCodeUrl(), containsString(URLEncoder.encode(
+            "otpauth://totp/" + issuer + ":Bobby?secret=" + key1.getTotpKey() + "&issuer=" + issuer + "&",
             StandardCharsets.UTF_8)));
     }
 

@@ -32,7 +32,9 @@ public class PlayerAuth {
     private String email;
     private String lastIp;
     private int groupId;
-    private Long lastLogin;
+    // 0 (DB_LAST_LOGIN_DEFAULT) means "never logged in". Keeping this primitive avoids a boxed
+    // Long object for every player held in the cache; the public getter still returns null for 0.
+    private long lastLogin;
     private String registrationIp;
     private long registrationDate;
     // Fields storing the player's quit location
@@ -132,7 +134,7 @@ public class PlayerAuth {
     }
 
     public Long getLastLogin() {
-        return lastLogin;
+        return lastLogin == DB_LAST_LOGIN_DEFAULT ? null : Long.valueOf(lastLogin);
     }
 
     public void setLastLogin(long lastLogin) {
@@ -216,7 +218,7 @@ public class PlayerAuth {
     public String toString() {
         return "Player : " + nickname + " | " + realName
             + " ! IP : " + lastIp
-            + " ! LastLogin : " + lastLogin
+            + " ! LastLogin : " + getLastLogin()
             + " ! LastPosition : " + x + "," + y + "," + z + "," + world
             + " ! Email : " + email
             + " ! Password : {" + password.getHash() + ", " + password.getSalt() + "}"
@@ -235,7 +237,7 @@ public class PlayerAuth {
         private String lastIp;
         private String email;
         private int groupId = -1;
-        private Long lastLogin;
+        private long lastLogin;
         private String registrationIp;
         private Long registrationDate;
 
@@ -264,7 +266,7 @@ public class PlayerAuth {
             auth.email = DB_EMAIL_DEFAULT.equals(email) ? null : email;
             auth.lastIp = lastIp; // Don't check against default value 127.0.0.1 as it may be a legit value
             auth.groupId = groupId;
-            auth.lastLogin = Long.valueOf(DB_LAST_LOGIN_DEFAULT).equals(lastLogin) ? null : lastLogin;
+            auth.lastLogin = lastLogin;
             auth.registrationIp = registrationIp;
             auth.registrationDate = registrationDate == null ? System.currentTimeMillis() : registrationDate;
 
@@ -355,7 +357,7 @@ public class PlayerAuth {
         }
 
         public Builder lastLogin(Long lastLogin) {
-            this.lastLogin = lastLogin;
+            this.lastLogin = lastLogin == null ? DB_LAST_LOGIN_DEFAULT : lastLogin;
             return this;
         }
 

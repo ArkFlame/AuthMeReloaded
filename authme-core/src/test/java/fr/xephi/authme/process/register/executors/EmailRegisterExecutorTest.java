@@ -14,6 +14,8 @@ import fr.xephi.authme.settings.properties.EmailSettings;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -124,10 +126,11 @@ class EmailRegisterExecutorTest {
         assertThat(auth.getPassword().getHash(), stringWithLength(12));
     }
 
-    @Test
-    void shouldPerformActionAfterDataSourceSave() {
+    @ParameterizedTest(name = "mail sent={0}")
+    @ValueSource(booleans = {true, false})
+    void shouldPerformActionAfterDataSourceSave(boolean mailSent) {
         // given
-        given(emailService.sendPasswordMail(anyString(), anyString(), anyString())).willReturn(true);
+        given(emailService.sendPasswordMail(anyString(), anyString(), anyString())).willReturn(mailSent);
         Player player = mock(Player.class);
         given(player.getName()).willReturn("Laleh");
         EmailRegisterParams params = EmailRegisterParams.of(player, "test@example.com");
@@ -139,26 +142,12 @@ class EmailRegisterExecutorTest {
 
         // then
         verify(emailService).sendPasswordMail("Laleh", "test@example.com", password);
-        verify(syncProcessManager).processSyncEmailRegister(player);
-    }
-
-    @Test
-    void shouldHandleEmailSendingFailure() {
-        // given
-        given(emailService.sendPasswordMail(anyString(), anyString(), anyString())).willReturn(false);
-        Player player = mock(Player.class);
-        given(player.getName()).willReturn("Laleh");
-        EmailRegisterParams params = EmailRegisterParams.of(player, "test@example.com");
-        String password = "A892C#@";
-        params.setPassword(password);
-
-        // when
-        executor.executePostPersistAction(params);
-
-        // then
-        verify(emailService).sendPasswordMail("Laleh", "test@example.com", password);
-        verify(commonService).send(player, MessageKey.EMAIL_SEND_FAILURE);
-        verifyNoInteractions(syncProcessManager);
+        if (mailSent) {
+            verify(syncProcessManager).processSyncEmailRegister(player);
+        } else {
+            verify(commonService).send(player, MessageKey.EMAIL_SEND_FAILURE);
+            verifyNoInteractions(syncProcessManager);
+        }
     }
 
     private static void assertIsCloseTo(long value1, long value2, long tolerance) {

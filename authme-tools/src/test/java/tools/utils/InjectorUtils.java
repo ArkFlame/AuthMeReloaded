@@ -24,7 +24,7 @@ public final class InjectorUtils {
      * @return the class' dependencies, or null if no instantiation method found
      */
     public static Set<Class<?>> getDependencies(Class<?> clazz) {
-        Resolution<?> instantiation = new StandardInjectionProvider().safeGet(clazz);
+        Resolution<?> instantiation = getResolution(clazz);
         if (instantiation == null) {
             return null;
         }
@@ -36,6 +36,16 @@ public final class InjectorUtils {
     }
 
     /**
+     * Returns the injector's instantiation resolution for the given class, or null if there is none.
+     *
+     * @param clazz the class to process
+     * @return the resolution, or null if no instantiation method was found
+     */
+    public static Resolution<?> getResolution(Class<?> clazz) {
+        return new StandardInjectionProvider().safeGet(clazz);
+    }
+
+    /**
      * Returns the given type as a {@link Class}.
      *
      * @param type the type to convert
@@ -44,14 +54,14 @@ public final class InjectorUtils {
     public static Class<?> convertToClass(Type type) {
         if (type instanceof Class<?>) {
             return (Class<?>) type;
-        } else if (type instanceof ParameterizedType) {
+        }
+        if (type instanceof ParameterizedType) {
             Type rawType = ((ParameterizedType) type).getRawType();
             if (rawType instanceof Class<?>) {
                 return (Class<?>) rawType;
-            } else {
-                throw new IllegalStateException("Got raw type '" + rawType + "' of type '"
-                    + rawType.getClass() + "' for genericType '" + type + "'");
             }
+            throw new IllegalStateException("Got raw type '" + rawType + "' of type '"
+                + rawType.getClass() + "' for genericType '" + type + "'");
         }
         Class<?> typeClass = type == null ? null : type.getClass();
         throw new IllegalStateException("Unknown type implementation '" + typeClass + "' for '" + type + "'");
