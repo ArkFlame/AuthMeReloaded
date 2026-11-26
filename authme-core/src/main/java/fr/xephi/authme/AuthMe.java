@@ -383,20 +383,22 @@ public class AuthMe extends JavaPlugin {
     @Override
     public void onDisable() {
         // onDisable is also called when we prematurely abort, so any field may be null
-        OnShutdownPlayerSaver onShutdownPlayerSaver = injector == null
-            ? null
-            : injector.createIfHasDependencies(OnShutdownPlayerSaver.class);
-        if (onShutdownPlayerSaver != null) {
-            onShutdownPlayerSaver.saveAllPlayers();
-        }
+        try {
+            OnShutdownPlayerSaver onShutdownPlayerSaver = injector == null
+                ? null
+                : injector.createIfHasDependencies(OnShutdownPlayerSaver.class);
+            if (onShutdownPlayerSaver != null) {
+                onShutdownPlayerSaver.saveAllPlayers();
+            }
 
-        // Do backup on stop if enabled
-        if (backupService != null) {
-            backupService.doBackup(BackupService.BackupCause.STOP);
+            // Do backup on stop if enabled
+            if (backupService != null) {
+                backupService.doBackup(BackupService.BackupCause.STOP);
+            }
+        } finally {
+            // Wait for tasks and close data source, even if saving or the backup failed
+            new TaskCloser(this, database).run();
         }
-
-        // Wait for tasks and close data source
-        new TaskCloser(this, database).run();
 
         // Disabled correctly
         String disabledMessage = "AuthMe " + this.getDescription().getVersion() + " disabled!";
