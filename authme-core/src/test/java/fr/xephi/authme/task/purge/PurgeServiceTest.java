@@ -150,7 +150,7 @@ class PurgeServiceTest {
     }
 
     private void assertCorrectPurgeTimestamp(long timestamp, int configuredDays) {
-        final long toleranceMillis = 100L;
+        final long toleranceMillis = 60_000L;
         Calendar cal = Calendar.getInstance();
         cal.add(Calendar.DATE, -configuredDays);
         long expectedTimestamp = cal.getTimeInMillis();

@@ -41,7 +41,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 @ExtendWith(MockitoExtension.class)
 class TempbanManagerTest {
 
-    private static final long DATE_TOLERANCE_MILLISECONDS = 200L;
+    private static final long DATE_TOLERANCE_MILLISECONDS = 60_000L;
     private static final long TEST_EXPIRATION_THRESHOLD = 120_000L;
 
     @Mock

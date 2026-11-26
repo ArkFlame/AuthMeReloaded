@@ -16,8 +16,9 @@ import java.util.Collections;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -60,21 +61,20 @@ class PurgeCommandTest {
         CommandSender sender = mock(CommandSender.class);
 
         // when
+        long before = daysAgo(Integer.parseInt(interval));
         command.executeCommand(sender, Collections.singletonList(interval));
+        long after = daysAgo(Integer.parseInt(interval));
 
-        // then
+        // then: the timestamp lies between the two reference points, independent of machine load
         ArgumentCaptor<Long> captor = ArgumentCaptor.forClass(Long.class);
         verify(purgeService).runPurge(eq(sender), captor.capture());
-
-        // Check the timestamp with a certain tolerance
-        int toleranceMillis = 100;
-        Calendar calendar = Calendar.getInstance();
-        calendar.add(Calendar.DATE, -Integer.valueOf(interval));
-        assertIsCloseTo(captor.getValue(), calendar.getTimeInMillis(), toleranceMillis);
+        assertThat(captor.getValue(), allOf(greaterThanOrEqualTo(before), lessThanOrEqualTo(after)));
     }
 
-    private static void assertIsCloseTo(long value1, long value2, long tolerance) {
-        assertThat(Math.abs(value1 - value2), not(greaterThan(tolerance)));
+    private static long daysAgo(int days) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.DATE, -days);
+        return calendar.getTimeInMillis();
     }
 
 }

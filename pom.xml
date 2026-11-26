@@ -399,7 +399,7 @@
                 <configuration>
                     <forkCount>${surefire.forkCount}</forkCount>
                     <reuseForks>true</reuseForks>
-                    <argLine>-XX:TieredStopAtLevel=1 -XX:+UseSerialGC -javaagent:${dependencies.mockito.javaagent} -Dfile.encoding=${project.build.sourceEncoding} -Duser.language=en</argLine>
+                    <argLine>-XX:+UseSerialGC -javaagent:${dependencies.mockito.javaagent} -Dfile.encoding=${project.build.sourceEncoding} -Duser.language=en</argLine>
                 </configuration>
             </plugin>
         </plugins>
