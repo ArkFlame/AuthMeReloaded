@@ -4,7 +4,6 @@ import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.process.SyncProcessManager;
 import fr.xephi.authme.process.login.AsynchronousLogin;
 import fr.xephi.authme.security.PasswordSecurity;
-import fr.xephi.authme.security.crypts.HashedPassword;
 import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.service.CommonService;
 import fr.xephi.authme.service.ValidationService;
@@ -63,8 +62,7 @@ abstract class AbstractPasswordRegisterExecutor<P extends AbstractPasswordRegist
 
     @Override
     public PlayerAuth buildPlayerAuth(P params) {
-        HashedPassword hashedPassword = passwordSecurity.computeHash(params.getPassword(), params.getPlayerName());
-        params.setHashedPassword(hashedPassword);
+        params.setHashedPassword(passwordSecurity.computeHash(params.getPassword(), params.getPlayerName()));
         return createPlayerAuthObject(params);
     }
 
@@ -87,14 +85,14 @@ abstract class AbstractPasswordRegisterExecutor<P extends AbstractPasswordRegist
     @Override
     public void executePostPersistAction(P params) {
         Player player = params.getPlayer();
-        if (performLoginAfterRegister(params)) {
-            if (commonService.getProperty(PluginSettings.USE_ASYNC_TASKS)) {
-                // Already on a worker thread: log in directly instead of dispatching another task.
-                // Schedule the sync continuation first to preserve its order relative to the login's.
-                syncProcessManager.processSyncPasswordRegister(player);
-                asynchronousLogin.forceLogin(player);
-                return;
-            }
+        boolean loginAfterRegister = performLoginAfterRegister(params);
+        if (loginAfterRegister && commonService.getProperty(PluginSettings.USE_ASYNC_TASKS)) {
+            // Already on a worker thread: log in directly, after the sync continuation to preserve order.
+            syncProcessManager.processSyncPasswordRegister(player);
+            asynchronousLogin.forceLogin(player);
+            return;
+        }
+        if (loginAfterRegister) {
             // The sync path needs a short delay so the saved account is visible to the login lookup.
             bukkitService.scheduleSyncDelayedTask(player, () -> asynchronousLogin.forceLogin(player), SYNC_LOGIN_DELAY);
         }

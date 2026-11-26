@@ -5,7 +5,6 @@ import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.datasource.SqlConnectionSource;
 import org.bukkit.command.CommandSender;
 
-import java.sql.Connection;
 import java.sql.SQLException;
 
 /**
@@ -24,24 +23,9 @@ abstract class AbstractSqlPluginConverter implements Converter {
     }
 
     /**
-     * Returns a connection from AuthMe's existing HikariCP pool.
-     *
-     * @return an open connection
-     * @throws SQLException if the data source does not support SQL connections (e.g. SQLite)
-     */
-    protected Connection openConnection() throws SQLException {
-        if (dataSource instanceof SqlConnectionSource) {
-            SqlConnectionSource sqlSource = (SqlConnectionSource) dataSource;
-            return sqlSource.getConnection();
-        }
-        throw new SQLException(
-            "This converter requires AuthMe to be configured with MySQL or MariaDB. "
-                + "SQLite is not supported as a shared data source for plugin converters.");
-    }
-
-    /**
      * Runs the given query on the shared connection pool and hands the result rows to the importer.
      * SQL errors are reported to the sender and the log instead of being propagated.
+     * The query requires AuthMe to be configured with MySQL or MariaDB.
      *
      * @param sender the command sender to report errors to
      * @param query the query to execute
@@ -51,6 +35,13 @@ abstract class AbstractSqlPluginConverter implements Converter {
      */
     protected void queryAndImport(CommandSender sender, String query, String pluginName,
                                   ConsoleLogger logger, ResultSetImporter importer) {
-        ConverterUtils.runQuery(this::openConnection, sender, query, pluginName, logger, importer);
+        ConverterUtils.runQuery(() -> {
+            if (dataSource instanceof SqlConnectionSource) {
+                return ((SqlConnectionSource) dataSource).getConnection();
+            }
+            throw new SQLException(
+                "This converter requires AuthMe to be configured with MySQL or MariaDB. "
+                    + "SQLite is not supported as a shared data source for plugin converters.");
+        }, sender, query, pluginName, logger, importer);
     }
 }

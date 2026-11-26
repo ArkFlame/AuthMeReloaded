@@ -45,15 +45,12 @@ public abstract class AbstractPaperAsyncChatListener implements Listener {
         boolean mayPlayerSendChat = !listenerService.shouldCancelEvent(player)
             || permissionsManager.hasPermission(player, PlayerStatePermission.ALLOW_CHAT_BEFORE_LOGIN);
 
-        if (mayPlayerSendChat) {
-            removeUnauthorizedViewers(event);
-        } else {
+        if (!mayPlayerSendChat) {
             event.setCancelled(true);
             messages.send(player, MessageKey.DENIED_CHAT);
+            return;
         }
-    }
 
-    private void removeUnauthorizedViewers(AsyncChatEvent event) {
         if (settings.getProperty(RestrictionSettings.HIDE_CHAT)) {
             event.viewers().removeIf(
                 viewer -> viewer instanceof Player p && listenerService.shouldCancelEvent(p));

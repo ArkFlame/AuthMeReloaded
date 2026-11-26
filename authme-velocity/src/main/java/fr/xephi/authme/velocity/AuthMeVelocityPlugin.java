@@ -39,13 +39,9 @@ public final class AuthMeVelocityPlugin extends AbstractAuthMeVelocityPlugin {
     public AuthMeVelocityPlugin(ProxyServer server, Logger logger, @DataDirectory Path dataDirectory) {
         super(server, logger, dataDirectory);
         this.server = server;
-        this.proxyBridge = createProxyBridge(server, logger, dataDirectory);
-    }
-
-    protected VelocityProxyBridge createProxyBridge(ProxyServer server, Logger logger, Path dataDirectory) {
         this.configManager = new VelocityConfigManager(dataDirectory);
-        VelocityAuthenticationStore authenticationStore = new VelocityAuthenticationStore();
-        return new VelocityProxyBridge(server, logger, configManager.getConfiguration(), authenticationStore, dataDirectory);
+        this.proxyBridge = new VelocityProxyBridge(server, logger, configManager.getConfiguration(),
+            new VelocityAuthenticationStore(), dataDirectory);
     }
 
     @Subscribe

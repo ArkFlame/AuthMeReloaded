@@ -71,26 +71,18 @@ public class CommandInitializer {
     private static final boolean OPTIONAL = true;
     private static final boolean MANDATORY = false;
 
-    private List<CommandDescription> commands;
+    private final List<CommandDescription> commands;
 
     public CommandInitializer() {
-        CommandDescription authMeBase = buildAuthMeBaseCommand();
-        CommandDescription emailBase = buildEmailBaseCommand();
-
-        List<CommandDescription> accountBaseCommands = buildAccountBaseCommands();
-        CommandDescription totpBase = buildTotpBaseCommand();
-        List<CommandDescription> miscBaseCommands = buildMiscBaseCommands();
-
-        List<CommandDescription> baseCommands = ImmutableList.<CommandDescription>builder()
-            .add(authMeBase)
-            .add(emailBase)
-            .addAll(accountBaseCommands)
-            .add(totpBase)
-            .addAll(miscBaseCommands)
+        commands = ImmutableList.<CommandDescription>builder()
+            .add(buildAuthMeBaseCommand())
+            .add(buildEmailBaseCommand())
+            .addAll(buildAccountBaseCommands())
+            .add(buildTotpBaseCommand())
+            .addAll(buildMiscBaseCommands())
             .build();
 
-        setHelpOnAllBases(baseCommands);
-        commands = baseCommands;
+        setHelpOnAllBases(commands);
     }
 
     /**

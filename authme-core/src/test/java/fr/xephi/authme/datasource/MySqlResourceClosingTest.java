@@ -14,5 +14,4 @@ class MySqlResourceClosingTest extends AbstractSqlDataSourceResourceClosingTest 
         return new MySQL(settings, SqlDataSourceTestUtil.mockHikariDataSource(connection),
             SqlDataSourceTestUtil.mockExtensionsFactory());
     }
-
 }

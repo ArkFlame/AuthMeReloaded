@@ -126,11 +126,8 @@ public class AuthMeApi {
      */
     public Location getLastLocation(Player player) {
         PlayerAuth auth = playerCache.getAuth(player.getName());
-        if (auth != null) {
-            return new Location(Bukkit.getWorld(auth.getWorld()),
-                auth.getQuitLocX(), auth.getQuitLocY(), auth.getQuitLocZ(), auth.getYaw(), auth.getPitch());
-        }
-        return null;
+        return auth == null ? null : new Location(Bukkit.getWorld(auth.getWorld()),
+            auth.getQuitLocX(), auth.getQuitLocY(), auth.getQuitLocZ(), auth.getYaw(), auth.getPitch());
     }
 
     /**

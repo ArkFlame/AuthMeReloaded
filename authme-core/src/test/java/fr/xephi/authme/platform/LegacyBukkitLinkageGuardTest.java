@@ -4,6 +4,8 @@ import fr.xephi.authme.listener.PlayerListener;
 import fr.xephi.authme.message.PlayerLocaleResolver;
 import fr.xephi.authme.settings.SpawnLoader;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -14,6 +16,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -26,28 +29,21 @@ import static org.junit.jupiter.api.Assertions.fail;
  */
 class LegacyBukkitLinkageGuardTest {
 
+    private static final Map<Class<?>, BytecodeInfo> PARSED = new ConcurrentHashMap<>();
+
     // --- PlayerListener ---
 
-    @Test
-    void playerListenerMustNotLinkToOptionalEvents() throws IOException {
+    @ParameterizedTest
+    @ValueSource(strings = {"PlayerSwapHandItemsEvent", "EntityAirChangeEvent", "EntityPickupItemEvent"})
+    void playerListenerMustNotLinkToOptionalEvents(String eventName) throws IOException {
         BytecodeInfo info = parse(PlayerListener.class);
 
-        assertNoClassName(info, "PlayerSwapHandItemsEvent",
-            "PlayerListener must not have direct class reference to PlayerSwapHandItemsEvent");
-        assertNoClassName(info, "EntityAirChangeEvent",
-            "PlayerListener must not have direct class reference to EntityAirChangeEvent");
-        assertNoClassName(info, "EntityPickupItemEvent",
-            "PlayerListener must not have direct class reference to EntityPickupItemEvent");
-
-        assertNoMethodRef(info, "PlayerSwapHandItemsEvent");
-        assertNoMethodRef(info, "EntityAirChangeEvent");
-        assertNoMethodRef(info, "EntityPickupItemEvent");
-
+        assertNoClassName(info, eventName,
+            "PlayerListener must not have direct class reference to " + eventName);
+        assertNoMethodRef(info, eventName);
         // Also ensure raw Utf8 pool does not contain those event names at all
         // (PlayerListener should be clean; even String constants would be wrong here)
-        assertNoUtf8(info, "PlayerSwapHandItemsEvent");
-        assertNoUtf8(info, "EntityAirChangeEvent");
-        assertNoUtf8(info, "EntityPickupItemEvent");
+        assertNoUtf8(info, eventName);
     }
 
     // --- SpawnLoader ---
@@ -63,14 +59,8 @@ class LegacyBukkitLinkageGuardTest {
 
         // Direct Block.isPassable must not appear as Methodref/InterfaceMethodref;
         // SpawnLoader must delegate via BukkitCompatibilityAdapter.isBlockPassable instead.
-        boolean hasDirectIsPassable = false;
-        for (MemberRef ref : info.memberRefs) {
-            if ("org/bukkit/block/Block".equals(ref.className) && "isPassable".equals(ref.name)) {
-                hasDirectIsPassable = true;
-                break;
-            }
-        }
-        assertFalse(hasDirectIsPassable,
+        assertFalse(info.memberRefs.stream().anyMatch(
+                r -> "org/bukkit/block/Block".equals(r.className) && "isPassable".equals(r.name)),
             "SpawnLoader must not have direct Methodref to org/bukkit/block/Block.isPassable; "
                 + "use BukkitCompatibilityAdapter.isBlockPassable instead. Refs: " + info.memberRefs);
 
@@ -89,14 +79,8 @@ class LegacyBukkitLinkageGuardTest {
     void playerLocaleResolverMustNotDirectlyCallGetLocale() throws IOException {
         BytecodeInfo info = parse(PlayerLocaleResolver.class);
 
-        boolean hasDirectGetLocale = false;
-        for (MemberRef ref : info.memberRefs) {
-            if ("org/bukkit/entity/Player".equals(ref.className) && "getLocale".equals(ref.name)) {
-                hasDirectGetLocale = true;
-                break;
-            }
-        }
-        assertFalse(hasDirectGetLocale,
+        assertFalse(info.memberRefs.stream().anyMatch(
+                r -> "org/bukkit/entity/Player".equals(r.className) && "getLocale".equals(r.name)),
             "PlayerLocaleResolver must not have direct Methodref to org/bukkit/entity/Player.getLocale; "
                 + "use BukkitCompatibilityAdapter.getPlayerLocale instead. Refs: " + info.memberRefs);
 
@@ -116,30 +100,28 @@ class LegacyBukkitLinkageGuardTest {
         BytecodeInfo info = parse(AbstractSpigotPlatformAdapter.class);
 
         // May contain modern API names as String constants (Utf8/String pool)
-        assertHasUtf8(info, "org.bukkit.event.player.PlayerSwapHandItemsEvent");
-        assertHasUtf8(info, "org.bukkit.event.entity.EntityAirChangeEvent");
-        assertHasUtf8(info, "org.bukkit.event.entity.EntityPickupItemEvent");
-        assertHasUtf8(info, "org.spigotmc.event.player.PlayerSpawnLocationEvent");
+        for (String expected : new String[]{
+            "org.bukkit.event.player.PlayerSwapHandItemsEvent",
+            "org.bukkit.event.entity.EntityAirChangeEvent",
+            "org.bukkit.event.entity.EntityPickupItemEvent",
+            "org.spigotmc.event.player.PlayerSpawnLocationEvent"}) {
+            assertHasUtf8(info, expected);
+        }
 
-        // Must NOT have direct Class entries for optional listener APIs
-        assertNoClassName(info, "org/bukkit/event/player/PlayerSwapHandItemsEvent",
-            "AbstractSpigotPlatformAdapter must not have direct Class for PlayerSwapHandItemsEvent; use String + Class.forName indirection");
-        assertNoClassName(info, "org/bukkit/event/entity/EntityAirChangeEvent",
-            "AbstractSpigotPlatformAdapter must not have direct Class for EntityAirChangeEvent");
-        assertNoClassName(info, "org/bukkit/event/entity/EntityPickupItemEvent",
-            "AbstractSpigotPlatformAdapter must not have direct Class for EntityPickupItemEvent");
-        assertNoClassName(info, "org/spigotmc/event/player/PlayerSpawnLocationEvent",
-            "AbstractSpigotPlatformAdapter must not have direct Class for PlayerSpawnLocationEvent");
-
-        // Must NOT have direct Class entries for optional listener implementations
-        assertNoClassName(info, "fr/xephi/authme/listener/PlayerSwapHandItemsListener",
-            "AbstractSpigotPlatformAdapter must not have direct Class for PlayerSwapHandItemsListener");
-        assertNoClassName(info, "fr/xephi/authme/listener/EntityAirChangeListener",
-            "AbstractSpigotPlatformAdapter must not have direct Class for EntityAirChangeListener");
-        assertNoClassName(info, "fr/xephi/authme/listener/EntityPickupItemListener",
-            "AbstractSpigotPlatformAdapter must not have direct Class for EntityPickupItemListener");
-        assertNoClassName(info, "fr/xephi/authme/listener/LegacyPlayerSpawnLocationListener",
-            "AbstractSpigotPlatformAdapter must not have direct Class for LegacyPlayerSpawnLocationListener");
+        // Must NOT have direct Class entries for optional listener APIs or implementations;
+        // use String + Class.forName indirection instead.
+        for (String name : new String[]{
+            "org/bukkit/event/player/PlayerSwapHandItemsEvent",
+            "org/bukkit/event/entity/EntityAirChangeEvent",
+            "org/bukkit/event/entity/EntityPickupItemEvent",
+            "org/spigotmc/event/player/PlayerSpawnLocationEvent",
+            "fr/xephi/authme/listener/PlayerSwapHandItemsListener",
+            "fr/xephi/authme/listener/EntityAirChangeListener",
+            "fr/xephi/authme/listener/EntityPickupItemListener",
+            "fr/xephi/authme/listener/LegacyPlayerSpawnLocationListener"}) {
+            assertNoClassName(info, name,
+                "AbstractSpigotPlatformAdapter must not have direct Class for " + name);
+        }
 
         // Must NOT have Methodref/Fieldref directly referencing those optional event classes
         assertNoMethodRef(info, "PlayerSwapHandItemsEvent");
@@ -171,66 +153,48 @@ class LegacyBukkitLinkageGuardTest {
     // --- Helpers ---
 
     private static void assertNoClassName(BytecodeInfo info, String substring, String message) {
-        for (String cn : info.classNames) {
-            if (cn.contains(substring)) {
-                fail(message + " — found Class entry: " + cn + " allClasses: " + info.classNames);
-            }
-        }
+        info.classNames.stream().filter(cn -> cn.contains(substring)).findFirst()
+            .ifPresent(cn -> fail(message + " — found Class entry: " + cn + " allClasses: " + info.classNames));
     }
 
     private static void assertHasClassName(BytecodeInfo info, String expected, String message) {
-        boolean found = false;
-        for (String cn : info.classNames) {
-            if (cn.equals(expected) || cn.contains(expected)) {
-                found = true;
-                break;
-            }
-        }
-        assertTrue(found, message + " — expected Class entry containing: " + expected + " but got: " + info.classNames);
+        assertTrue(info.classNames.stream().anyMatch(cn -> cn.equals(expected) || cn.contains(expected)),
+            message + " — expected Class entry containing: " + expected + " but got: " + info.classNames);
     }
 
     private static void assertNoUtf8(BytecodeInfo info, String substring) {
-        for (String s : info.utf8Values) {
-            if (s.contains(substring)) {
-                fail("Unexpected Utf8 constant containing '" + substring + "' found: " + s);
-            }
-        }
+        info.utf8Values.stream().filter(s -> s.contains(substring)).findFirst()
+            .ifPresent(s -> fail("Unexpected Utf8 constant containing '" + substring + "' found: " + s));
     }
 
     private static void assertHasUtf8(BytecodeInfo info, String expected) {
-        boolean found = false;
-        for (String s : info.utf8Values) {
-            if (s.equals(expected) || s.contains(expected)) {
-                found = true;
-                break;
-            }
-        }
-        assertTrue(found, "Expected Utf8/String constant '" + expected + "' not found in " + info.utf8Values);
+        assertTrue(info.utf8Values.stream().anyMatch(s -> s.equals(expected) || s.contains(expected)),
+            "Expected Utf8/String constant '" + expected + "' not found in " + info.utf8Values);
     }
 
     private static void assertNoMethodRef(BytecodeInfo info, String substring) {
-        for (MemberRef ref : info.memberRefs) {
-            if (ref.className != null && ref.className.contains(substring)) {
-                fail("Unexpected Methodref/Fieldref class containing '" + substring + "': " + ref);
-            }
-        }
+        info.memberRefs.stream()
+            .filter(ref -> ref.className != null && ref.className.contains(substring)).findFirst()
+            .ifPresent(ref -> fail("Unexpected Methodref/Fieldref class containing '" + substring + "': " + ref));
     }
 
     private static BytecodeInfo parse(Class<?> clazz) throws IOException {
-        String resource = "/" + clazz.getName().replace('.', '/') + ".class";
-        try (InputStream is = clazz.getResourceAsStream(resource)) {
-            if (is == null) {
-                // fallback via classloader
-                InputStream is2 = clazz.getClassLoader().getResourceAsStream(clazz.getName().replace('.', '/') + ".class");
-                if (is2 == null) {
-                    throw new IOException("Cannot locate class bytes for " + clazz.getName());
-                }
-                byte[] bytes = is2.readAllBytes();
-                is2.close();
-                return parseBytes(bytes, clazz.getName());
-            }
-            byte[] bytes = is.readAllBytes();
-            return parseBytes(bytes, clazz.getName());
+        BytecodeInfo cached = PARSED.get(clazz);
+        if (cached != null) {
+            return cached;
+        }
+        String path = clazz.getName().replace('.', '/') + ".class";
+        InputStream in = clazz.getResourceAsStream("/" + path);
+        if (in == null) {
+            in = clazz.getClassLoader().getResourceAsStream(path);
+        }
+        if (in == null) {
+            throw new IOException("Cannot locate class bytes for " + clazz.getName());
+        }
+        try (InputStream is = in) {
+            BytecodeInfo info = parseBytes(is.readAllBytes(), clazz.getName());
+            PARSED.put(clazz, info);
+            return info;
         }
     }
 

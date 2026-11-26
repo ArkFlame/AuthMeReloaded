@@ -1,10 +1,8 @@
 package fr.xephi.authme.util.lazytags;
 
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -50,18 +48,18 @@ public final class TagReplacer<A> {
      * @return the adapted messages
      */
     public List<String> getAdaptedMessages(A argument) {
-        // Note ljacqu 20170121: Using a Map might seem more natural here but we avoid doing so for performance
-        // Although the performance gain here is probably minimal...
-        List<Map.Entry<String, String>> tagValues = new ArrayList<>();
+        List<String> tagNames = new ArrayList<>(tags.size());
+        List<String> tagValues = new ArrayList<>(tags.size());
         for (Tag<A> tag : tags) {
-            tagValues.add(new AbstractMap.SimpleImmutableEntry<>(tag.getName(), tag.getValue(argument)));
+            tagNames.add(tag.getName());
+            tagValues.add(tag.getValue(argument));
         }
 
-        List<String> adaptedMessages = new ArrayList<>();
+        List<String> adaptedMessages = new ArrayList<>(messages.size());
         for (String line : messages) {
             String adaptedLine = line;
-            for (Map.Entry<String, String> tagValue : tagValues) {
-                adaptedLine = adaptedLine.replace(tagValue.getKey(), tagValue.getValue());
+            for (int i = 0; i < tagNames.size(); i++) {
+                adaptedLine = adaptedLine.replace(tagNames.get(i), tagValues.get(i));
             }
             adaptedMessages.add(adaptedLine);
         }

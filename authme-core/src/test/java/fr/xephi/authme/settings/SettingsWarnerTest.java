@@ -4,8 +4,9 @@ import fr.xephi.authme.TestHelper;
 import fr.xephi.authme.settings.properties.EmailSettings;
 import fr.xephi.authme.settings.properties.PluginSettings;
 import fr.xephi.authme.settings.properties.RestrictionSettings;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -14,9 +15,9 @@ import java.util.logging.Logger;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.times;
 
 /**
  * Test for {@link SettingsWarner}.
@@ -30,36 +31,28 @@ class SettingsWarnerTest {
     @Mock
     private Settings settings;
 
-    @Test
-    void shouldLogWarnings() {
-        // given
+    @ParameterizedTest
+    @CsvSource({
+        "false, 44, false, true,  -5, 3",
+        "true,  25, false, false,  0, 0"
+    })
+    void shouldLogExpectedWarnings(boolean forceSingleSession, int smtpPort, boolean useTls,
+                                   boolean sessionsEnabled, int sessionsTimeout, int expectedWarnings) {
         Logger logger = TestHelper.setupLogger();
-        given(settings.getProperty(RestrictionSettings.FORCE_SINGLE_SESSION)).willReturn(false);
-        given(settings.getProperty(EmailSettings.SMTP_PORT)).willReturn(44);
-        given(settings.getProperty(EmailSettings.PORT25_USE_TLS)).willReturn(false);
-        given(settings.getProperty(PluginSettings.SESSIONS_ENABLED)).willReturn(true);
-        given(settings.getProperty(PluginSettings.SESSIONS_TIMEOUT)).willReturn(-5);
+        given(settings.getProperty(RestrictionSettings.FORCE_SINGLE_SESSION)).willReturn(forceSingleSession);
+        given(settings.getProperty(EmailSettings.SMTP_PORT)).willReturn(smtpPort);
+        given(settings.getProperty(EmailSettings.PORT25_USE_TLS)).willReturn(useTls);
+        given(settings.getProperty(PluginSettings.SESSIONS_ENABLED)).willReturn(sessionsEnabled);
+        if (sessionsEnabled) {
+            given(settings.getProperty(PluginSettings.SESSIONS_TIMEOUT)).willReturn(sessionsTimeout);
+        }
 
-        // when
         settingsWarner.logWarningsForMisconfigurations();
 
-        // then
-        verify(logger, times(3)).warning(anyString());
-    }
-
-    @Test
-    void shouldNotLogAnyWarning() {
-        // given
-        Logger logger = TestHelper.setupLogger();
-        given(settings.getProperty(RestrictionSettings.FORCE_SINGLE_SESSION)).willReturn(true);
-        given(settings.getProperty(EmailSettings.SMTP_PORT)).willReturn(25);
-        given(settings.getProperty(EmailSettings.PORT25_USE_TLS)).willReturn(false);
-        given(settings.getProperty(PluginSettings.SESSIONS_ENABLED)).willReturn(false);
-
-        // when
-        settingsWarner.logWarningsForMisconfigurations();
-
-        // then
-        verifyNoInteractions(logger);
+        if (expectedWarnings == 0) {
+            verifyNoInteractions(logger);
+        } else {
+            verify(logger, times(expectedWarnings)).warning(anyString());
+        }
     }
 }

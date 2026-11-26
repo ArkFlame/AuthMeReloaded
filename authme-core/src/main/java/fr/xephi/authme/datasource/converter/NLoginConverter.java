@@ -26,6 +26,7 @@ public class NLoginConverter extends AbstractYamlPluginConverter {
     private static final String CONFIG_PATH = "plugins/nLogin/config.yml";
     private static final String SQLITE_DB_PATH = "plugins/nLogin/nlogin.db";
     private static final String DEFAULT_TABLE = "nlogin";
+    private static final String DEFAULT_DB_TYPE = "SQLite";
     private static final Pattern SAFE_TABLE_NAME = Pattern.compile("[A-Za-z_][A-Za-z0-9_]*");
 
     private static final ConsoleLogger logger = ConsoleLoggerFactory.get(NLoginConverter.class);
@@ -37,7 +38,7 @@ public class NLoginConverter extends AbstractYamlPluginConverter {
 
     @Override
     protected Backend getBackend(YamlConfiguration config) {
-        return "SQLite".equalsIgnoreCase(config.getString("database.type", "SQLite"))
+        return DEFAULT_DB_TYPE.equalsIgnoreCase(config.getString("database.type", DEFAULT_DB_TYPE))
             ? Backend.SQLITE
             : Backend.SQL;
     }
@@ -55,7 +56,7 @@ public class NLoginConverter extends AbstractYamlPluginConverter {
 
     @Override
     protected String unsupportedMessage(YamlConfiguration config) {
-        return "nLogin conversion: database type '" + config.getString("database.type", "SQLite")
+        return "nLogin conversion: database type '" + config.getString("database.type", DEFAULT_DB_TYPE)
             + "' is not supported.";
     }
 
@@ -92,11 +93,8 @@ public class NLoginConverter extends AbstractYamlPluginConverter {
             return null;
         }
         if (value.length() == 32) {
-            value = value.substring(0, 8) + "-"
-                + value.substring(8, 12) + "-"
-                + value.substring(12, 16) + "-"
-                + value.substring(16, 20) + "-"
-                + value.substring(20);
+            value = value.substring(0, 8) + "-" + value.substring(8, 12) + "-"
+                + value.substring(12, 16) + "-" + value.substring(16, 20) + "-" + value.substring(20);
         }
         return UuidUtils.parseUuidSafely(value);
     }
