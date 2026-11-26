@@ -17,7 +17,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -84,8 +83,8 @@ class CommandMigrationServiceTest {
         given(settingsMigrationService.getOldOtherAccountsCommand())
             .willReturn("helpop %playername% (%playerip%) has other accounts!");
         given(settingsMigrationService.getOldOtherAccountsCommandThreshold()).willReturn(3);
-        File commandFile = TestHelper.getJarFile(TestHelper.PROJECT_ROOT + "settings/commandconfig/commands.complete.yml");
-        PropertyResource resource = new YamlFileResource(commandFile);
+        PropertyResource resource = new YamlFileResource(
+            TestHelper.getJarFile(TestHelper.PROJECT_ROOT + "settings/commandconfig/commands.complete.yml"));
         ConfigurationData configurationData = ConfigurationDataBuilder.createConfiguration(CommandSettingsHolder.class);
 
         // when
@@ -117,10 +116,9 @@ class CommandMigrationServiceTest {
         List<String> unknownKeys = onLoginCommands.keySet().stream()
             .filter(key -> !knownKeys.contains(key))
             .collect(Collectors.toList());
-        if (unknownKeys.size() == 1) {
-            return onLoginCommands.get(unknownKeys.get(0));
-        } else {
+        if (unknownKeys.size() != 1) {
             throw new IllegalStateException("Expected 1 unknown key but found " + unknownKeys.size() + ": " + unknownKeys);
         }
+        return onLoginCommands.get(unknownKeys.get(0));
     }
 }

@@ -13,11 +13,9 @@ import org.bukkit.command.CommandSender;
 
 import javax.inject.Inject;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.Locale;
 
 import static fr.xephi.authme.util.Utils.logAndSendMessage;
@@ -70,13 +68,13 @@ public class BackupService {
                     "Can't perform a backup: disabled in configuration. Cause of the backup: " + cause.name());
             }
             return;
-        } else if (BackupCause.START == cause && !settings.getProperty(BackupSettings.ON_SERVER_START)
+        }
+        // Don't perform backup on start or stop if so configured
+        if (BackupCause.START == cause && !settings.getProperty(BackupSettings.ON_SERVER_START)
                 || BackupCause.STOP == cause && !settings.getProperty(BackupSettings.ON_SERVER_STOP)) {
-            // Don't perform backup on start or stop if so configured
             return;
         }
 
-        // Do backup and check return value!
         if (doBackup()) {
             logAndSendMessage(sender,
                 "A backup has been performed successfully. Cause of the backup: " + cause.name());
@@ -91,13 +89,11 @@ public class BackupService {
             case MYSQL:
                 return performMySqlBackup();
             case SQLITE:
-                String dbName = settings.getProperty(DatabaseSettings.MYSQL_DATABASE);
-                return performFileBackup(dbName + ".db");
+                return performFileBackup(settings.getProperty(DatabaseSettings.MYSQL_DATABASE) + ".db");
             default:
                 logger.warning("Unknown data source type '" + dataSourceType + "' for backup");
+                return false;
         }
-
-        return false;
     }
 
     /**
@@ -117,13 +113,11 @@ public class BackupService {
 
         try {
             Process runtimeProcess = Runtime.getRuntime().exec(backupCommand);
-            int processComplete = runtimeProcess.waitFor();
-            if (processComplete == 0) {
+            if (runtimeProcess.waitFor() == 0) {
                 logger.info("Backup created successfully. (Using Windows = " + isUsingWindows + ")");
                 return true;
-            } else {
-                logger.warning("Could not create the backup! (Using Windows = " + isUsingWindows + ")");
             }
+            logger.warning("Could not create the backup! (Using Windows = " + isUsingWindows + ")");
         } catch (IOException | InterruptedException e) {
             logger.logException("Error during backup (using Windows = " + isUsingWindows + "):", e);
         }
@@ -135,7 +129,8 @@ public class BackupService {
         File backupFile = constructBackupFile("db");
 
         try {
-            copy(new File(dataFolder, filename), backupFile);
+            Files.copy(new File(dataFolder, filename).toPath(), backupFile.toPath(),
+                StandardCopyOption.REPLACE_EXISTING);
             return true;
         } catch (IOException ex) {
             logger.logException("Encountered an error during file backup:", ex);
@@ -151,8 +146,7 @@ public class BackupService {
      * @return True if the path is correct, false if it is incorrect or the OS is not Windows
      */
     private boolean useWindowsCommand(String windowsPath) {
-        String isWin = System.getProperty("os.name").toLowerCase(Locale.ROOT);
-        if (!isWin.contains("win")) {
+        if (!System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win")) {
             return false;
         }
         if (new File(windowsPath + "\\bin\\mysqldump.exe").exists()) {
@@ -169,13 +163,11 @@ public class BackupService {
      * @return the mysqldump command line arguments
      */
     private String buildMysqlDumpArguments(File sqlBackupFile) {
-        String dbUsername = settings.getProperty(DatabaseSettings.MYSQL_USERNAME);
-        String dbPassword = settings.getProperty(DatabaseSettings.MYSQL_PASSWORD);
-        String dbName     = settings.getProperty(DatabaseSettings.MYSQL_DATABASE);
-        String tableName  = settings.getProperty(DatabaseSettings.MYSQL_TABLE);
-
-        return " -u " + dbUsername + " -p" + dbPassword + " " + dbName
-            + " --tables " + tableName + " -r " + sqlBackupFile.getPath() + ".sql";
+        return " -u " + settings.getProperty(DatabaseSettings.MYSQL_USERNAME)
+            + " -p" + settings.getProperty(DatabaseSettings.MYSQL_PASSWORD)
+            + " " + settings.getProperty(DatabaseSettings.MYSQL_DATABASE)
+            + " --tables " + settings.getProperty(DatabaseSettings.MYSQL_TABLE)
+            + " -r " + sqlBackupFile.getPath() + ".sql";
     }
 
     /**
@@ -185,20 +177,7 @@ public class BackupService {
      * @return the file to back up the data to
      */
     private File constructBackupFile(String fileExtension) {
-        String dateString = FileUtils.createCurrentTimeString();
-        return new File(backupFolder, "backup" + dateString + "." + fileExtension);
-    }
-
-    private static void copy(File src, File dst) throws IOException {
-        try (InputStream in = new FileInputStream(src);
-             OutputStream out = new FileOutputStream(dst)) {
-            // Transfer bytes from in to out
-            byte[] buf = new byte[1024];
-            int len;
-            while ((len = in.read(buf)) > 0) {
-                out.write(buf, 0, len);
-            }
-        }
+        return new File(backupFolder, "backup" + FileUtils.createCurrentTimeString() + "." + fileExtension);
     }
 
     /**

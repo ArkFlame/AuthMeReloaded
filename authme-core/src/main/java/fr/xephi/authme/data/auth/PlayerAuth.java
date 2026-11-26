@@ -128,7 +128,7 @@ public class PlayerAuth {
     }
 
     public Long getLastLogin() {
-        return lastLogin == DB_LAST_LOGIN_DEFAULT ? null : Long.valueOf(lastLogin);
+        return lastLogin == DB_LAST_LOGIN_DEFAULT ? null : lastLogin;
     }
 
     public void setLastLogin(long lastLogin) {
@@ -192,10 +192,7 @@ public class PlayerAuth {
 
     @Override
     public int hashCode() {
-        int hashCode = 7;
-        hashCode = 71 * hashCode + (this.nickname != null ? this.nickname.hashCode() : 0);
-        hashCode = 71 * hashCode + (this.lastIp != null ? this.lastIp.hashCode() : 0);
-        return hashCode;
+        return 71 * (71 * 7 + Objects.hashCode(nickname)) + Objects.hashCode(lastIp);
     }
 
     @Override

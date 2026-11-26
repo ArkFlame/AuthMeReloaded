@@ -33,28 +33,23 @@ class FileUtilsTest {
     @TempDir
     File temporaryFolder;
 
-    @Test
-    void shouldNotCopyFile() throws IOException {
-        File file = new File(temporaryFolder, "config.yml");
-        // purposely don't copy config.yml to verify that config.yml isn't copied by the method
-        File emailJarFile = TestHelper.getJarFile("/email.html");
-        Files.copy(emailJarFile, file);
+    @ParameterizedTest
+    @CsvSource({
+        "config.yml, config.yml, email.html, true",
+        "some/folders/welcome.txt, welcome.txt, welcome.txt, false"})
+    void shouldCopyFileFromJar(String target, String resource, String source, boolean copyExisting)
+            throws IOException {
+        File file = new File(temporaryFolder, target);
+        File jarFile = TestHelper.getJarFile("/" + source);
+        if (copyExisting) {
+            // purposely don't copy a resource named like the target to verify it isn't copied
+            Files.copy(jarFile, file);
+        }
 
-        boolean result = FileUtils.copyFileFromResource(file, "config.yml");
-
-        assertThat(result, equalTo(true));
-        assertThat(file.length(), equalTo(emailJarFile.length()));
-    }
-
-    @Test
-    void shouldCopyFileFromJar() {
-        File file = new File(temporaryFolder, "some/folders/welcome.txt");
-
-        boolean result = FileUtils.copyFileFromResource(file, "welcome.txt");
+        boolean result = FileUtils.copyFileFromResource(file, resource);
 
         assertThat(result, equalTo(true));
-        File configJarFile = TestHelper.getJarFile("/welcome.txt");
-        assertThat(file.length(), equalTo(configJarFile.length()));
+        assertThat(file.length(), equalTo(jarFile.length()));
     }
 
     @ParameterizedTest
@@ -101,11 +96,7 @@ class FileUtilsTest {
 
     @Test
     void shouldDoNothingForNullFile() {
-        File file = null;
-
-        FileUtils.delete(file);
-
-        // Nothing happens
+        FileUtils.delete(null);
     }
 
     @Test
@@ -121,25 +112,18 @@ class FileUtilsTest {
         assertThat(result, equalTo("path" + File.separator + "to" + File.separator + "test-file.txt"));
     }
 
-    @Test
-    void shouldCreateDirectory() {
-        File dir = new File(temporaryFolder, "folder/folder2/myFolder");
+    @ParameterizedTest
+    @CsvSource({"folder/folder2/myFolder, false", "file, true"})
+    void shouldCreateDirectory(String path, boolean preCreateFile) throws IOException {
+        File dir = new File(temporaryFolder, path);
+        if (preCreateFile) {
+            dir.createNewFile();
+        }
 
         boolean result = FileUtils.createDirectory(dir);
 
-        assertThat(result, equalTo(true));
-        assertThat(dir.isDirectory(), equalTo(true));
-    }
-
-    @Test
-    void shouldReturnFalseOnDirectoryCreateFail() throws IOException {
-        File dirAsFile = new File(temporaryFolder, "file");
-        dirAsFile.createNewFile();
-
-        boolean result = FileUtils.createDirectory(dirAsFile);
-
-        assertThat(result, equalTo(false));
-        assertThat(dirAsFile.isFile(), equalTo(true));
+        assertThat(result, equalTo(!preCreateFile));
+        assertThat(preCreateFile ? dir.isFile() : dir.isDirectory(), equalTo(true));
     }
 
     @Test

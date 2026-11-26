@@ -58,57 +58,52 @@ class PurgeTask implements Runnable {
     @Override
     public void run() {
         try {
-            runPurgeIteration();
+            if (toPurge.isEmpty()) {
+                //everything was removed
+                finish();
+                return;
+            }
+
+            Set<OfflinePlayer> playerPortion = new HashSet<>(INTERVAL_CHECK);
+            Set<String> namePortion = new HashSet<>(INTERVAL_CHECK);
+            for (int i = 0; i < INTERVAL_CHECK && nextPlayerIndex + i < offlinePlayers.length; i++) {
+                OfflinePlayer offlinePlayer = offlinePlayers[nextPlayerIndex + i];
+                String name = offlinePlayer.getName();
+                if (name != null && toPurge.remove(name.toLowerCase(Locale.ROOT))) {
+                    if (!permissionsManager.loadUserData(offlinePlayer)) {
+                        logger.warning("Unable to check if the user " + name + " can be purged!");
+                    } else if (!permissionsManager.hasPermissionOffline(
+                            offlinePlayer, PlayerStatePermission.BYPASS_PURGE)) {
+                        playerPortion.add(offlinePlayer);
+                        namePortion.add(name);
+                    }
+                }
+            }
+
+            if (!toPurge.isEmpty() && playerPortion.isEmpty()) {
+                logger.info("Finished lookup of offlinePlayers. Begin looking purging player names only");
+
+                //we went through all offlineplayers but there are still names remaining
+                for (String name : toPurge) {
+                    if (!permissionsManager.hasPermissionOffline(name, PlayerStatePermission.BYPASS_PURGE)) {
+                        namePortion.add(name);
+                    }
+                }
+                toPurge.clear();
+            }
+
+            nextPlayerIndex += INTERVAL_CHECK;
+            purgeService.executePurge(playerPortion, namePortion);
+            if ((nextPlayerIndex / INTERVAL_CHECK) % 20 == 0) {
+                int completed = totalPurgeCount - toPurge.size();
+                sendMessage("[AuthMe] Purge progress " + completed + '/' + totalPurgeCount);
+            }
         } catch (RuntimeException e) {
             // An exception escaping a repeating task makes Bukkit cancel it. Since finish() is
             // then never called, isPurging would stay true and reject every future purge request.
             logger.logException("Unexpected error while purging; cancelling the purge task", e);
             cancelTask();
             purgeService.setPurging(false);
-        }
-    }
-
-    private void runPurgeIteration() {
-        if (toPurge.isEmpty()) {
-            //everything was removed
-            finish();
-            return;
-        }
-
-        Set<OfflinePlayer> playerPortion = new HashSet<>(INTERVAL_CHECK);
-        Set<String> namePortion = new HashSet<>(INTERVAL_CHECK);
-        for (int i = 0; i < INTERVAL_CHECK && nextPlayerIndex + i < offlinePlayers.length; i++) {
-            OfflinePlayer offlinePlayer = offlinePlayers[nextPlayerIndex + i];
-            String name = offlinePlayer.getName();
-            if (name != null && toPurge.remove(name.toLowerCase(Locale.ROOT))) {
-                if (!permissionsManager.loadUserData(offlinePlayer)) {
-                    logger.warning("Unable to check if the user " + name + " can be purged!");
-                    continue;
-                }
-                if (!permissionsManager.hasPermissionOffline(offlinePlayer, PlayerStatePermission.BYPASS_PURGE)) {
-                    playerPortion.add(offlinePlayer);
-                    namePortion.add(name);
-                }
-            }
-        }
-
-        if (!toPurge.isEmpty() && playerPortion.isEmpty()) {
-            logger.info("Finished lookup of offlinePlayers. Begin looking purging player names only");
-
-            //we went through all offlineplayers but there are still names remaining
-            for (String name : toPurge) {
-                if (!permissionsManager.hasPermissionOffline(name, PlayerStatePermission.BYPASS_PURGE)) {
-                    namePortion.add(name);
-                }
-            }
-            toPurge.clear();
-        }
-
-        nextPlayerIndex += INTERVAL_CHECK;
-        purgeService.executePurge(playerPortion, namePortion);
-        if ((nextPlayerIndex / INTERVAL_CHECK) % 20 == 0) {
-            int completed = totalPurgeCount - toPurge.size();
-            sendMessage("[AuthMe] Purge progress " + completed + '/' + totalPurgeCount);
         }
     }
 

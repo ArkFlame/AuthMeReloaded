@@ -15,7 +15,6 @@ import org.bukkit.command.CommandSender;
 
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
-import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -81,33 +80,32 @@ class MySqlDefaultChanger implements DebugSection {
         }
 
         Operation operation = matchToEnum(arguments, 0, Operation.class);
-        Columns column = matchToEnum(arguments, 1, Columns.class);
         if (operation == Operation.DETAILS) {
             showColumnDetails(sender);
-        } else if (operation == null || column == null) {
+            return;
+        }
+
+        Columns column = matchToEnum(arguments, 1, Columns.class);
+        if (operation == null || column == null) {
             displayUsageHints(sender);
-        } else {
-            sender.sendMessage(ChatColor.BLUE + "[AuthMe] MySQL change '" + column + "'");
-            try (Connection con = getConnection(mySql)) {
-                if (operation == Operation.ADD) {
-                    changeColumnToNotNullWithDefault(sender, column, con);
-                } else if (operation == Operation.REMOVE) {
-                    removeNotNullAndDefault(sender, column, con);
-                }
-            } catch (SQLException | IllegalStateException e) {
-                logger.logException("Failed to perform MySQL default altering operation:", e);
+            return;
+        }
+
+        sender.sendMessage(ChatColor.BLUE + "[AuthMe] MySQL change '" + column + "'");
+        try (Connection con = getConnection(mySql)) {
+            if (operation == Operation.ADD) {
+                changeColumnToNotNullWithDefault(sender, column, con);
+            } else if (operation == Operation.REMOVE) {
+                removeNotNullAndDefault(sender, column, con);
             }
+        } catch (SQLException | IllegalStateException e) {
+            logger.logException("Failed to perform MySQL default altering operation:", e);
         }
     }
 
     /**
      * Adds a default value to the column definition and adds a {@code NOT NULL} constraint for
      * the specified column.
-     *
-     * @param sender the command sender initiation the action
-     * @param column the column to modify
-     * @param con connection to the database
-     * @throws SQLException .
      */
     private void changeColumnToNotNullWithDefault(CommandSender sender, Columns column,
                                                   Connection con) throws SQLException {
@@ -132,11 +130,6 @@ class MySqlDefaultChanger implements DebugSection {
     /**
      * Removes the {@code NOT NULL} constraint of a column definition and replaces rows with the
      * default value to {@code NULL}.
-     *
-     * @param sender the command sender initiation the action
-     * @param column the column to modify
-     * @param con connection to the database
-     * @throws SQLException .
      */
     private void removeNotNullAndDefault(CommandSender sender, Columns column, Connection con) throws SQLException {
         final String tableName = settings.getProperty(DatabaseSettings.MYSQL_TABLE);
@@ -259,8 +252,8 @@ class MySqlDefaultChanger implements DebugSection {
     @VisibleForTesting
     Connection getConnection(MySQL mySql) {
         try {
-            return (Connection) MySQL.class.getMethod("getConnection").invoke(mySql);
-        } catch (IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
+            return mySql.getConnection();
+        } catch (SQLException e) {
             throw new IllegalStateException("Could not get MySQL connection", e);
         }
     }

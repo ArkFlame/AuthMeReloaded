@@ -93,9 +93,7 @@ public class PremiumVerificationPacketListener extends PacketListenerAbstract {
             fr.xephi.authme.data.auth.PlayerAuth auth = dataSource.getAuth(lowerName);
 
             boolean isPremium = auth != null && auth.isPremium();
-            boolean isPending = !isPremium && pendingPremiumCache.isPending(username);
-
-            if (isPremium || isPending) {
+            if (isPremium || pendingPremiumCache.isPending(username)) {
                 byte[] verifyToken = loginVerifier.startVerification(connectionKey, username, playerUUID);
                 WrapperLoginServerEncryptionRequest encReq = new WrapperLoginServerEncryptionRequest(
                     "", loginVerifier.getPublicKey(), verifyToken, true);
@@ -121,6 +119,7 @@ public class PremiumVerificationPacketListener extends PacketListenerAbstract {
         ClientVersion clientVersion = user.getClientVersion();
 
         WrapperLoginClientEncryptionResponse wrapper = new WrapperLoginClientEncryptionResponse(event);
+        event.setCancelled(true);
 
         Optional<byte[]> encVerifyTokenOpt = wrapper.getEncryptedVerifyToken();
         if (!encVerifyTokenOpt.isPresent()) {
@@ -128,14 +127,13 @@ public class PremiumVerificationPacketListener extends PacketListenerAbstract {
             // token so this should not happen; fall through to password auth without verifying.
             logger.warning("Player '" + username + "' returned a signed nonce during premium "
                 + "verification (expected plain verify token). Resuming without premium bypass.");
-            event.setCancelled(true);
-            abortVerificationAndResume(connectionKey, user, username, clientVersion, playerUUID);
+            loginVerifier.cleanupPending(connectionKey);
+            resumeLogin(user, username, clientVersion, playerUUID);
             return;
         }
 
         byte[] encSharedSecret = wrapper.getEncryptedSharedSecret().clone();
         byte[] encVerifyToken = encVerifyTokenOpt.get().clone();
-        event.setCancelled(true);
 
         // Step 1: RSA-decrypt the shared secret synchronously (fast; we're on the event loop).
         // We must do this here — not inside the async task — so we can set up Netty encryption
@@ -147,7 +145,8 @@ public class PremiumVerificationPacketListener extends PacketListenerAbstract {
             sharedSecret = loginVerifier.decryptData(encSharedSecret);
         } catch (GeneralSecurityException e) {
             logger.warning("RSA decryption failed for '" + username + "': " + e.getMessage());
-            abortVerificationAndResume(connectionKey, user, username, clientVersion, playerUUID);
+            loginVerifier.cleanupPending(connectionKey);
+            resumeLogin(user, username, clientVersion, playerUUID);
             return;
         }
 
@@ -199,16 +198,6 @@ public class PremiumVerificationPacketListener extends PacketListenerAbstract {
         } catch (GeneralSecurityException e) {
             logger.warning("Failed to install AES cipher handlers: " + e.getMessage());
         }
-    }
-
-    /**
-     * Clears a pending verification and re-injects {@code LOGIN_START} so the player continues
-     * with regular authentication after a failed verification attempt.
-     */
-    private void abortVerificationAndResume(String connectionKey, User user, String username,
-                                             ClientVersion clientVersion, UUID playerUUID) {
-        loginVerifier.cleanupPending(connectionKey);
-        resumeLogin(user, username, clientVersion, playerUUID);
     }
 
     /**

@@ -56,7 +56,7 @@ public class LoginLocationFixListener implements Listener {
 
         for (BlockFace face : NEIGHBOR_FACES) {
             Block adjacent = joinBlock.getRelative(face);
-            if (adjacent.getType() == Material.AIR && adjacent.getRelative(BlockFace.UP).getType() == Material.AIR) {
+            if (isFreeSpot(adjacent)) {
                 teleportAndNotify(player, adjacent, 0.1, MessageKey.LOCATION_FIX_PORTAL);
                 return;
             }
@@ -74,25 +74,24 @@ public class LoginLocationFixListener implements Listener {
             return;
         }
 
-        World world = player.getWorld();
-        int maxHeight = world.getMaxHeight();
-        int minHeight = MIN_HEIGHT_AVAILABLE ? world.getMinHeight() : 0;
-        for (int y = minHeight; y <= maxHeight; y++) {
+        int maxHeight = player.getWorld().getMaxHeight();
+        for (int y = MIN_HEIGHT_AVAILABLE ? player.getWorld().getMinHeight() : 0; y <= maxHeight; y++) {
             joinLocation.setY(y);
             Block block = joinLocation.getBlock();
-            Block below = block.getRelative(BlockFace.DOWN);
-            if (below.getType().isBlock() && block.getType() == Material.AIR
-                && block.getRelative(BlockFace.UP).getType() == Material.AIR) {
-                if (below.getType() == Material.LAVA) {
-                    below.setType(Material.DIRT);
+            Material belowType = block.getRelative(BlockFace.DOWN).getType();
+            if (belowType.isBlock() && isFreeSpot(block)) {
+                if (belowType == Material.LAVA) {
+                    block.getRelative(BlockFace.DOWN).setType(Material.DIRT);
                 }
                 teleportAndNotify(player, block, 0.1, MessageKey.LOCATION_FIX_UNDERGROUND);
                 return;
             }
-            if (y == maxHeight) {
-                teleportAndNotify(player, block, 1.1, MessageKey.LOCATION_FIX_UNDERGROUND_CANT_FIX);
-            }
         }
+        teleportAndNotify(player, joinLocation.getBlock(), 1.1, MessageKey.LOCATION_FIX_UNDERGROUND_CANT_FIX);
+    }
+
+    private static boolean isFreeSpot(Block block) {
+        return block.getType() == Material.AIR && block.getRelative(BlockFace.UP).getType() == Material.AIR;
     }
 
     private void teleportAndNotify(Player player, Block block, double yOffset, MessageKey message) {

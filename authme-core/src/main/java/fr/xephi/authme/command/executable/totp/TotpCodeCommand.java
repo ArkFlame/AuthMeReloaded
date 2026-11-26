@@ -66,36 +66,28 @@ public class TotpCodeCommand extends PlayerCommand {
         }
 
         LimboPlayer limbo = limboService.getLimboPlayer(player);
-        if (limbo != null && limbo.getState() == LimboPlayerState.TOTP_REQUIRED) {
-            processCode(player, auth, limbo, arguments.get(0));
-        } else {
+        if (limbo == null || limbo.getState() != LimboPlayerState.TOTP_REQUIRED) {
             logger.debug(() -> "Aborting TOTP check for player '" + playerName
                 + "'. Invalid limbo state: " + (limbo == null ? "no limbo" : limbo.getState()));
             messages.send(player, MessageKey.LOGIN_MESSAGE);
+            return;
         }
-    }
 
-    private void processCode(Player player, PlayerAuth auth, LimboPlayer limbo, String inputCode) {
-        boolean isCodeValid = totpAuthenticator.checkCode(auth, inputCode);
-        if (isCodeValid) {
-            logger.debug("Successfully checked TOTP code for `{0}`", player.getName());
+        if (totpAuthenticator.checkCode(auth, arguments.get(0))) {
+            logger.debug("Successfully checked TOTP code for `{0}`", playerName);
             asynchronousLogin.performLogin(player, auth);
         } else {
-            logger.debug("Input TOTP code was invalid for player `{0}`", player.getName());
-            handleWrongCode(player, limbo);
-        }
-    }
-
-    private void handleWrongCode(Player player, LimboPlayer limbo) {
-        String ip = PlayerUtils.getPlayerIp(player);
-        tempbanManager.increaseCount(ip, player.getName().toLowerCase(Locale.ROOT));
-        if (tempbanManager.shouldTempban(ip)) {
-            tempbanManager.tempbanPlayer(player);
-        } else if (limbo.increaseFailedTotpAttempts() >= MAX_TOTP_ATTEMPTS) {
-            String kickMessage = messages.retrieveSingle(player, MessageKey.TWO_FACTOR_INVALID_CODE);
-            bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, () -> player.kickPlayer(kickMessage));
-        } else {
-            messages.send(player, MessageKey.TWO_FACTOR_INVALID_CODE);
+            logger.debug("Input TOTP code was invalid for player `{0}`", playerName);
+            String ip = PlayerUtils.getPlayerIp(player);
+            tempbanManager.increaseCount(ip, playerName.toLowerCase(Locale.ROOT));
+            if (tempbanManager.shouldTempban(ip)) {
+                tempbanManager.tempbanPlayer(player);
+            } else if (limbo.increaseFailedTotpAttempts() >= MAX_TOTP_ATTEMPTS) {
+                String kickMessage = messages.retrieveSingle(player, MessageKey.TWO_FACTOR_INVALID_CODE);
+                bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, () -> player.kickPlayer(kickMessage));
+            } else {
+                messages.send(player, MessageKey.TWO_FACTOR_INVALID_CODE);
+            }
         }
     }
 }

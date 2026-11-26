@@ -54,16 +54,12 @@ public class HelpTranslationGenerator {
         File helpFile = new File(dataFolder, MessagePathHelper.createHelpMessageFilePath(languageCode));
         Map<String, Object> helpEntries = generateHelpMessageEntries();
 
-        String helpEntriesYaml = exportToYaml(helpEntries);
-        Files.write(helpFile.toPath(), helpEntriesYaml.getBytes(), StandardOpenOption.TRUNCATE_EXISTING);
-        return helpFile;
-    }
-
-    private static String exportToYaml(Map<String, Object> helpEntries) {
         DumperOptions options = new DumperOptions();
         options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
         options.setAllowUnicode(true);
-        return new Yaml(options).dump(helpEntries);
+        String helpEntriesYaml = new Yaml(options).dump(helpEntries);
+        Files.write(helpFile.toPath(), helpEntriesYaml.getBytes(), StandardOpenOption.TRUNCATE_EXISTING);
+        return helpFile;
     }
 
     /**

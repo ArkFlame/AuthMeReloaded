@@ -608,17 +608,13 @@ class PlayerListenerTest {
 
     @Test
     void shouldPerformAllJoinVerificationsSuccessfullyPreLoginLowest() throws FailedVerificationException {
-        String name = TEST_PLAYER_NAME;
-        UUID uniqueId = TEST_PLAYER_UUID;
-        String ip = "12.34.56.78";
-
-        AsyncPlayerPreLoginEvent preLoginEvent = spy(new AsyncPlayerPreLoginEvent(name, createInetAddress(ip), uniqueId));
-        given(validationService.isUnrestricted(name)).willReturn(false);
+        AsyncPlayerPreLoginEvent preLoginEvent = newPreLoginEvent("12.34.56.78");
+        given(validationService.isUnrestricted(TEST_PLAYER_NAME)).willReturn(false);
 
         listener.onAsyncPlayerPreLoginEventLowest(preLoginEvent);
 
-        verify(validationService).isUnrestricted(name);
-        verify(onJoinVerifier).checkIsValidName(name, uniqueId);
+        verify(validationService).isUnrestricted(TEST_PLAYER_NAME);
+        verify(onJoinVerifier).checkIsValidName(TEST_PLAYER_NAME, TEST_PLAYER_UUID);
         verifyNoInteractions(dataSource);
         verifyNoModifyingCalls(preLoginEvent);
     }
@@ -640,35 +636,28 @@ class PlayerListenerTest {
 
     @Test
     void shouldPerformAllJoinVerificationsSuccessfullyPreLoginHighest() throws FailedVerificationException {
-        String name = TEST_PLAYER_NAME;
-        UUID uniqueId = TEST_PLAYER_UUID;
-        String ip = "12.34.56.78";
-
-        AsyncPlayerPreLoginEvent preLoginEvent = spy(new AsyncPlayerPreLoginEvent(name, createInetAddress(ip), uniqueId));
-        given(validationService.isUnrestricted(name)).willReturn(false);
-        PlayerAuth auth = PlayerAuth.builder().name(name).build();
-        given(dataSource.getAuth(name)).willReturn(auth);
+        AsyncPlayerPreLoginEvent preLoginEvent = newPreLoginEvent("12.34.56.78");
+        given(validationService.isUnrestricted(TEST_PLAYER_NAME)).willReturn(false);
+        PlayerAuth auth = PlayerAuth.builder().name(TEST_PLAYER_NAME).build();
+        given(dataSource.getAuth(TEST_PLAYER_NAME)).willReturn(auth);
 
         listener.onAsyncPlayerPreLoginEventHighest(preLoginEvent);
 
-        verify(validationService).isUnrestricted(name);
-        verify(onJoinVerifier).checkNameRestrictions(eq(name), any(InetAddress.class));
+        verify(validationService).isUnrestricted(TEST_PLAYER_NAME);
+        verify(onJoinVerifier).checkNameRestrictions(eq(TEST_PLAYER_NAME), any(InetAddress.class));
         verify(onJoinVerifier).checkKickNonRegistered(true);
-        verify(onJoinVerifier).checkAntibot(name, true);
-        verify(onJoinVerifier).checkNameCasing(name, auth);
-        verify(onJoinVerifier).checkPlayerCountry(name, ip, true);
-        verify(playerCache).removePlayer(name);
+        verify(onJoinVerifier).checkAntibot(TEST_PLAYER_NAME, true);
+        verify(onJoinVerifier).checkNameCasing(TEST_PLAYER_NAME, auth);
+        verify(onJoinVerifier).checkPlayerCountry(TEST_PLAYER_NAME, "12.34.56.78", true);
+        verify(playerCache).removePlayer(TEST_PLAYER_NAME);
         verifyNoModifyingCalls(preLoginEvent);
     }
 
     @Test
     void shouldKeepCachedLoginOnPreLoginWhenPlayerWithNameIsOnline() {
-        String name = TEST_PLAYER_NAME;
-        UUID uniqueId = TEST_PLAYER_UUID;
-        AsyncPlayerPreLoginEvent preLoginEvent = spy(
-            new AsyncPlayerPreLoginEvent(name, createInetAddress("12.34.56.78"), uniqueId));
-        given(validationService.isUnrestricted(name)).willReturn(false);
-        given(bukkitService.getPlayerExact(name)).willReturn(mock(Player.class));
+        AsyncPlayerPreLoginEvent preLoginEvent = newPreLoginEvent("12.34.56.78");
+        given(validationService.isUnrestricted(TEST_PLAYER_NAME)).willReturn(false);
+        given(bukkitService.getPlayerExact(TEST_PLAYER_NAME)).willReturn(mock(Player.class));
 
         listener.onAsyncPlayerPreLoginEventHighest(preLoginEvent);
 
@@ -719,32 +708,37 @@ class PlayerListenerTest {
         verify(event).setLoginResult(AsyncPlayerPreLoginEvent.Result.KICK_OTHER);
     }
 
-    @Test
-    void shouldRemoveMessageOnQuit() {
-        given(settings.getProperty(RegistrationSettings.REMOVE_LEAVE_MESSAGE)).willReturn(true);
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("quitMessageCases")
+    void shouldHandleQuitMessage(String description, boolean removeLeaveMessage,
+                                 boolean removeUnloggedLeaveMessage, String expectedQuitMessage) {
+        given(settings.getProperty(RegistrationSettings.REMOVE_LEAVE_MESSAGE)).willReturn(removeLeaveMessage);
+        if (!removeLeaveMessage) {
+            given(settings.getProperty(RegistrationSettings.REMOVE_UNLOGGED_LEAVE_MESSAGE))
+                .willReturn(removeUnloggedLeaveMessage);
+        }
         Player player = mock(Player.class);
+        PlayerQuitEvent event = new PlayerQuitEvent(player, "quit message");
         given(listenerService.shouldCancelEvent(player)).willReturn(true); // player not authenticated
-        PlayerQuitEvent event = new PlayerQuitEvent(player, "Player has quit the server");
+        if (!removeLeaveMessage && removeUnloggedLeaveMessage) {
+            given(listenerService.shouldCancelEvent(event)).willReturn(true);
+        }
 
         listener.onPlayerQuit(event);
 
-        assertThat(event.getQuitMessage(), nullValue());
+        if (expectedQuitMessage == null) {
+            assertThat(event.getQuitMessage(), nullValue());
+        } else {
+            assertThat(event.getQuitMessage(), equalTo(expectedQuitMessage));
+        }
         verify(management).performQuit(player);
     }
 
-    @Test
-    void shouldRemoveMessageForUnloggedUser() {
-        given(settings.getProperty(RegistrationSettings.REMOVE_LEAVE_MESSAGE)).willReturn(false);
-        given(settings.getProperty(RegistrationSettings.REMOVE_UNLOGGED_LEAVE_MESSAGE)).willReturn(true);
-        Player player = mock(Player.class);
-        PlayerQuitEvent event = new PlayerQuitEvent(player, "Joel exits the party");
-        given(listenerService.shouldCancelEvent(event)).willReturn(true);
-        given(listenerService.shouldCancelEvent(player)).willReturn(true);
-
-        listener.onPlayerQuit(event);
-
-        assertThat(event.getQuitMessage(), nullValue());
-        verify(management).performQuit(player);
+    private static Stream<Arguments> quitMessageCases() {
+        return Stream.of(
+            Arguments.of("remove leave message for everyone", true, false, null),
+            Arguments.of("remove message for unlogged player", false, true, null),
+            Arguments.of("keep quit message", false, false, "quit message"));
     }
 
     @Test
@@ -788,20 +782,6 @@ class PlayerListenerTest {
 
         assertThrows(UnsupportedOperationException.class, () -> listener.onPlayerQuit(event));
 
-        verify(management).performQuit(player);
-    }
-
-    @Test
-    void shouldProcessPlayerAndKeepQuitMessage() {
-        Player player = mock(Player.class);
-        mockLeaveMessagesDisabled();
-        given(listenerService.shouldCancelEvent(player)).willReturn(true); // player not authenticated
-        String quitMessage = "The player has left the server.";
-        PlayerQuitEvent event = new PlayerQuitEvent(player, quitMessage);
-
-        listener.onPlayerQuit(event);
-
-        assertThat(event.getQuitMessage(), equalTo(quitMessage));
         verify(management).performQuit(player);
     }
 
@@ -992,6 +972,10 @@ class PlayerListenerTest {
         Player player = mock(Player.class);
         given(player.getServer()).willReturn(server);
         return player;
+    }
+
+    private static AsyncPlayerPreLoginEvent newPreLoginEvent(String ip) {
+        return spy(new AsyncPlayerPreLoginEvent(TEST_PLAYER_NAME, createInetAddress(ip), TEST_PLAYER_UUID));
     }
 
     private static PlayerCommandPreprocessEvent mockCommandEvent(String message) {

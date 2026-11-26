@@ -10,6 +10,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -54,12 +56,11 @@ class ConsoleLoggerTest {
 
     @BeforeEach
     void setMockLogger() throws IOException {
-        File logFile = new File(tempFolder, "authme.log");
+        logFile = new File(tempFolder, "authme.log");
         if (!logFile.createNewFile()) {
             throw new IOException("Could not create file '" + logFile.getPath() + "'");
         }
         ConsoleLogger.initialize(logger, logFile);
-        this.logFile = logFile;
         this.consoleLogger = new ConsoleLogger("test");
     }
 
@@ -172,27 +173,16 @@ class ConsoleLoggerTest {
             containsString("[DEBUG] Too little too late")));
     }
 
-    @Test
-    void shouldCloseFileWriterDespiteExceptionOnFlush() throws IOException {
+    @ParameterizedTest
+    @ValueSource(strings = {"flush", "close"})
+    void shouldCloseFileWriterEvenIfFlushOrCloseFails(String throwingMethod) throws IOException {
         // given
         FileWriter fileWriter = mock(FileWriter.class);
-        doThrow(new IOException("Error during flush")).when(fileWriter).flush();
-        ReflectionTestUtils.setField(ConsoleLogger.class, null, "fileWriter", fileWriter);
-
-        // when
-        ConsoleLogger.closeFileWriter();
-
-        // then
-        verify(fileWriter).flush();
-        verify(fileWriter).close();
-        assertThat(ReflectionTestUtils.getFieldValue(ConsoleLogger.class, null, "fileWriter"), nullValue());
-    }
-
-    @Test
-    void shouldHandleExceptionOnFileWriterClose() throws IOException {
-        // given
-        FileWriter fileWriter = mock(FileWriter.class);
-        doThrow(new IOException("Cannot close")).when(fileWriter).close();
+        if ("flush".equals(throwingMethod)) {
+            doThrow(new IOException("Error during flush")).when(fileWriter).flush();
+        } else {
+            doThrow(new IOException("Cannot close")).when(fileWriter).close();
+        }
         ReflectionTestUtils.setField(ConsoleLogger.class, null, "fileWriter", fileWriter);
 
         // when

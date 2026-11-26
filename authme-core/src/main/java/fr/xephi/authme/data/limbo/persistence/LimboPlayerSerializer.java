@@ -36,9 +36,9 @@ class LimboPlayerSerializer implements JsonSerializer<LimboPlayer> {
     static final String ENDER_PEARLS = "ender-pearls";
     static final String PEARL_UUID = "uuid";
     static final String VELOCITY = "velocity";
-    static final String VEL_X = "x";
-    static final String VEL_Y = "y";
-    static final String VEL_Z = "z";
+    static final String VEL_X = LOC_X;
+    static final String VEL_Y = LOC_Y;
+    static final String VEL_Z = LOC_Z;
     static final String VEHICLE_UUID = "vehicle-uuid";
     static final String VEHICLE_TYPE = "vehicle-type";
 
@@ -79,8 +79,13 @@ class LimboPlayerSerializer implements JsonSerializer<LimboPlayer> {
                 if (pearl.getLocation() != null && pearl.getLocation().getWorld() != null) {
                     pearlObject.add(LOCATION, serializeLocation(pearl.getLocation()));
                 }
-                if (pearl.getVelocity() != null) {
-                    pearlObject.add(VELOCITY, serializeVelocity(pearl.getVelocity()));
+                Vector velocity = pearl.getVelocity();
+                if (velocity != null) {
+                    JsonObject velocityObject = new JsonObject();
+                    velocityObject.addProperty(VEL_X, velocity.getX());
+                    velocityObject.addProperty(VEL_Y, velocity.getY());
+                    velocityObject.addProperty(VEL_Z, velocity.getZ());
+                    pearlObject.add(VELOCITY, velocityObject);
                 }
                 pearlArray.add(pearlObject);
             }
@@ -104,13 +109,5 @@ class LimboPlayerSerializer implements JsonSerializer<LimboPlayer> {
         locationObject.addProperty(LOC_YAW, loc.getYaw());
         locationObject.addProperty(LOC_PITCH, loc.getPitch());
         return locationObject;
-    }
-
-    private static JsonObject serializeVelocity(Vector velocity) {
-        JsonObject velocityObject = new JsonObject();
-        velocityObject.addProperty(VEL_X, velocity.getX());
-        velocityObject.addProperty(VEL_Y, velocity.getY());
-        velocityObject.addProperty(VEL_Z, velocity.getZ());
-        return velocityObject;
     }
 }

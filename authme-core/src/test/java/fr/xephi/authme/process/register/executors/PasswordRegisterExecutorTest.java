@@ -69,9 +69,7 @@ class PasswordRegisterExecutorTest {
         Player player = mockPlayerWithName(name);
         PasswordRegisterParams params = PasswordRegisterParams.of(player, password, null);
 
-        boolean result = executor.isRegistrationAdmitted(params);
-
-        assertThat(result, equalTo(valid));
+        assertThat(executor.isRegistrationAdmitted(params), equalTo(valid));
         verify(validationService).validatePassword(password, name);
         if (!valid) {
             verify(commonService).send(player, MessageKey.PASSWORD_CHARACTERS_ERROR, "[a-z]");
@@ -99,13 +97,12 @@ class PasswordRegisterExecutorTest {
     void shouldHandleForceLoginAfterRegistration(boolean forceLogin) {
         given(commonService.getProperty(RegistrationSettings.FORCE_LOGIN_AFTER_REGISTER)).willReturn(forceLogin);
         Player player = mock(Player.class);
-        PasswordRegisterParams params = PasswordRegisterParams.of(player, "pass", "mail@example.org");
         if (!forceLogin) {
             given(commonService.getProperty(PluginSettings.USE_ASYNC_TASKS)).willReturn(false);
             setBukkitServiceToScheduleSyncDelayedTaskWithEntityAndDelay(bukkitService);
         }
 
-        executor.executePostPersistAction(params);
+        executor.executePostPersistAction(PasswordRegisterParams.of(player, "pass", "mail@example.org"));
 
         if (forceLogin) {
             verifyNoInteractions(bukkitService, asynchronousLogin);

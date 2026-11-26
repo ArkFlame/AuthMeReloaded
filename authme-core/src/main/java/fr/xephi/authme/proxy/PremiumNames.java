@@ -8,10 +8,8 @@ import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
@@ -36,7 +34,7 @@ public class PremiumNames {
     private final ScheduledExecutorService executor;
     private final Path cacheFile;
     private volatile Set<String> names = ConcurrentHashMap.newKeySet();
-    private List<String> listBuffer = new ArrayList<>();
+    private Set<String> listBuffer = ConcurrentHashMap.newKeySet();
     private int expectedChunk = -1;
 
     public PremiumNames(Path dataDirectory, LoggerAdapter logger, ScheduledExecutorService executor,
@@ -83,23 +81,21 @@ public class PremiumNames {
             return;
         }
         if (sequence == 0) {
-            listBuffer = new ArrayList<>();
+            listBuffer = ConcurrentHashMap.newKeySet();
             expectedChunk = 0;
         }
         if (sequence != expectedChunk) {
             logger.warning("Discarding premium list: received chunk " + sequence + " instead of " + expectedChunk);
-            listBuffer = new ArrayList<>();
+            listBuffer = ConcurrentHashMap.newKeySet();
             expectedChunk = -1;
             return;
         }
         ++expectedChunk;
         addNormalized(listBuffer, parts[2]);
         if ("1".equals(parts[1])) {
-            Set<String> newNames = ConcurrentHashMap.newKeySet();
-            newNames.addAll(listBuffer);
-            listBuffer = new ArrayList<>();
+            replace(listBuffer);
+            listBuffer = ConcurrentHashMap.newKeySet();
             expectedChunk = -1;
-            replace(newNames);
         }
     }
 

@@ -13,12 +13,15 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.BDDMockito.given;
@@ -64,24 +67,15 @@ class ProxyLoginRequestValidatorTest {
         TestHelper.setupLogger();
     }
 
-    @Test
-    void shouldAcceptStoredPremiumUuidFromProxy() {
-        UUID premiumUuid = UUID.randomUUID();
-        PlayerAuth auth = PlayerAuth.builder().name("bobby").premiumUuid(premiumUuid).build();
-        givenPremiumPlayerWithAuth(auth);
-
-        assertTrue(validator.validate(player, premiumUuid));
-        verify(premiumService, never()).finalizePendingPremium(player, premiumUuid);
-    }
-
-    @Test
-    void shouldRejectStoredPremiumUuidMismatch() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldAcceptOrRejectStoredPremiumUuid(boolean matching) {
         UUID storedUuid = UUID.randomUUID();
-        UUID forwardedUuid = UUID.randomUUID();
+        UUID forwardedUuid = matching ? storedUuid : UUID.randomUUID();
         PlayerAuth auth = PlayerAuth.builder().name("bobby").premiumUuid(storedUuid).build();
         givenPremiumPlayerWithAuth(auth);
 
-        assertFalse(validator.validate(player, forwardedUuid));
+        assertEquals(matching, validator.validate(player, forwardedUuid));
         verify(premiumService, never()).finalizePendingPremium(player, forwardedUuid);
     }
 
