@@ -196,6 +196,13 @@ public class MySQL extends AbstractHikariSqlDataSource {
             }
 
             addUuidColumnsIfAbsent(md, st);
+
+            try {
+                indexColumnIfAbsent(md, st, getDatabase(), col.LAST_IP);
+            } catch (SQLException e) {
+                logger.warning("Could not index the last IP column, per-login IP lookups will scan the table: "
+                    + e.getMessage());
+            }
         }
         logger.info("MySQL setup finished");
     }

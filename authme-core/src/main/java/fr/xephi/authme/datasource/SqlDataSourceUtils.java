@@ -100,6 +100,27 @@ public final class SqlDataSourceUtils {
     }
 
     /**
+     * Returns whether any index of the table covers the given column.
+     *
+     * @param metaData the database meta data
+     * @param catalog the catalog to look in, or null for the default one
+     * @param tableName the name of the table
+     * @param columnName the name of the column to check
+     * @return true if an index (including the primary key) contains the column
+     */
+    public static boolean isColumnIndexed(DatabaseMetaData metaData, String catalog, String tableName,
+                                          String columnName) throws SQLException {
+        try (ResultSet rs = metaData.getIndexInfo(catalog, null, tableName, false, false)) {
+            while (rs.next()) {
+                if (columnName.equalsIgnoreCase(rs.getString("COLUMN_NAME"))) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    /**
      * Returns whether the given column has a NOT NULL constraint.
      *
      * @param metaData the database meta data

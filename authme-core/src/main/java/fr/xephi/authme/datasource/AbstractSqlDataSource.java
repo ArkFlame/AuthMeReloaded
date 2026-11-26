@@ -275,6 +275,17 @@ public abstract class AbstractSqlDataSource implements DataSource {
         if (isColumnMissing(md, column)) addColumn(st, column, definition);
     }
 
+    /**
+     * Creates an index on the column unless an index already covers it. Lookups by this column run on
+     * the login path, and without an index each of them scans the whole table.
+     */
+    protected void indexColumnIfAbsent(DatabaseMetaData md, Statement st, String catalog, String column)
+        throws SQLException {
+        if (!SqlDataSourceUtils.isColumnIndexed(md, catalog, tableName, column)) {
+            st.executeUpdate("CREATE INDEX idx_" + tableName + "_" + column + " ON " + tableName + " (" + column + ")");
+        }
+    }
+
     /** Adds the configured UUID columns to the table when they are not there yet. */
     protected void addUuidColumnsIfAbsent(DatabaseMetaData md, Statement st) throws SQLException {
         if (!col.PLAYER_UUID.isEmpty()) addColumnIfAbsent(md, st, col.PLAYER_UUID, "VARCHAR(36)");
