@@ -2,7 +2,6 @@ package fr.xephi.authme.data.limbo.persistence;
 
 import com.google.common.io.Files;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import fr.xephi.authme.ConsoleLogger;
 import fr.xephi.authme.data.limbo.LimboPlayer;
 import fr.xephi.authme.initialization.DataFolder;
@@ -32,11 +31,7 @@ class IndividualFilesPersistenceHandler implements LimboPersistenceHandler {
         if (!cacheDir.exists() && !cacheDir.isDirectory() && !cacheDir.mkdir()) {
             logger.warning("Failed to create playerdata directory '" + cacheDir + "'");
         }
-        gson = new GsonBuilder()
-            .registerTypeAdapter(LimboPlayer.class, new LimboPlayerSerializer())
-            .registerTypeAdapter(LimboPlayer.class, new LimboPlayerDeserializer(bukkitService))
-            .setPrettyPrinting()
-            .create();
+        gson = LimboPersistenceHandler.createGson(bukkitService);
     }
 
     @Override

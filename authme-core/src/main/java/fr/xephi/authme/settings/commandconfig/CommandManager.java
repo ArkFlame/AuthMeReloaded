@@ -19,6 +19,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
@@ -159,10 +160,10 @@ public class CommandManager implements Reloadable {
     }
 
     private static boolean shouldCommandBeRun(OnLoginCommand command, int numberOfOtherAccounts) {
-        return (!command.getIfNumberOfAccountsAtLeast().isPresent()
-                || command.getIfNumberOfAccountsAtLeast().get() <= numberOfOtherAccounts)
-            && (!command.getIfNumberOfAccountsLessThan().isPresent()
-                || command.getIfNumberOfAccountsLessThan().get() > numberOfOtherAccounts);
+        Optional<Integer> atLeast = command.getIfNumberOfAccountsAtLeast();
+        Optional<Integer> lessThan = command.getIfNumberOfAccountsLessThan();
+        return (!atLeast.isPresent() || atLeast.get() <= numberOfOtherAccounts)
+            && (!lessThan.isPresent() || lessThan.get() > numberOfOtherAccounts);
     }
 
     @Override

@@ -409,21 +409,23 @@ public class AsynchronousLogin implements AsynchronousProcess {
         logger.fine(message);
 
         for (Player onlinePlayer : bukkitService.getOnlinePlayers()) {
+            MessageKey headerKey;
+            String[] headerArgs;
             if (onlinePlayer.getName().equalsIgnoreCase(player.getName())
                 && service.hasPermission(onlinePlayer, PlayerPermission.SEE_OWN_ACCOUNTS)) {
-                String header = service.retrieveSingleMessage(onlinePlayer, MessageKey.ACCOUNTS_OWNED_SELF, Integer.toString(auths.size()));
-                bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(onlinePlayer, () -> {
-                    onlinePlayer.sendMessage(header);
-                    onlinePlayer.sendMessage(message);
-                });
+                headerKey = MessageKey.ACCOUNTS_OWNED_SELF;
+                headerArgs = new String[]{Integer.toString(auths.size())};
             } else if (service.hasPermission(onlinePlayer, AdminPermission.SEE_OTHER_ACCOUNTS)) {
-                String header = service.retrieveSingleMessage(onlinePlayer, MessageKey.ACCOUNTS_OWNED_OTHER,
-                    player.getName(), Integer.toString(auths.size()));
-                bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(onlinePlayer, () -> {
-                    onlinePlayer.sendMessage(header);
-                    onlinePlayer.sendMessage(message);
-                });
+                headerKey = MessageKey.ACCOUNTS_OWNED_OTHER;
+                headerArgs = new String[]{player.getName(), Integer.toString(auths.size())};
+            } else {
+                continue;
             }
+            String header = service.retrieveSingleMessage(onlinePlayer, headerKey, headerArgs);
+            bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(onlinePlayer, () -> {
+                onlinePlayer.sendMessage(header);
+                onlinePlayer.sendMessage(message);
+            });
         }
     }
 

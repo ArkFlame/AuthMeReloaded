@@ -52,8 +52,7 @@ class SqlDataSourceUtilsTest {
         ResultSet resultSet = mock(ResultSet.class);
         given(resultSet.getInt("NULLABLE")).willReturn(DatabaseMetaData.columnNullable);
         given(resultSet.next()).willReturn(true);
-        DatabaseMetaData metaData = mock(DatabaseMetaData.class);
-        given(metaData.getColumns(null, null, tableName, columnName)).willReturn(resultSet);
+        DatabaseMetaData metaData = mockMetaData(tableName, columnName, resultSet);
 
         // when
         boolean result = SqlDataSourceUtils.isNotNullColumn(metaData, tableName, columnName);
@@ -70,8 +69,7 @@ class SqlDataSourceUtilsTest {
         ResultSet resultSet = mock(ResultSet.class);
         given(resultSet.getInt("NULLABLE")).willReturn(DatabaseMetaData.columnNullableUnknown);
         given(resultSet.next()).willReturn(true);
-        DatabaseMetaData metaData = mock(DatabaseMetaData.class);
-        given(metaData.getColumns(null, null, tableName, columnName)).willReturn(resultSet);
+        DatabaseMetaData metaData = mockMetaData(tableName, columnName, resultSet);
 
         // when
         boolean result = SqlDataSourceUtils.isNotNullColumn(metaData, tableName, columnName);
@@ -87,8 +85,7 @@ class SqlDataSourceUtilsTest {
         String columnName = "unknown";
         ResultSet resultSet = mock(ResultSet.class);
         given(resultSet.next()).willReturn(false);
-        DatabaseMetaData metaData = mock(DatabaseMetaData.class);
-        given(metaData.getColumns(null, null, tableName, columnName)).willReturn(resultSet);
+        DatabaseMetaData metaData = mockMetaData(tableName, columnName, resultSet);
 
         // when / then
         assertThrows(IllegalStateException.class,
@@ -103,8 +100,7 @@ class SqlDataSourceUtilsTest {
         ResultSet resultSet = mock(ResultSet.class);
         given(resultSet.getObject("COLUMN_DEF")).willReturn("Literature");
         given(resultSet.next()).willReturn(true);
-        DatabaseMetaData metaData = mock(DatabaseMetaData.class);
-        given(metaData.getColumns(null, null, tableName, columnName)).willReturn(resultSet);
+        DatabaseMetaData metaData = mockMetaData(tableName, columnName, resultSet);
 
         // when
         Object defaultValue = SqlDataSourceUtils.getColumnDefaultValue(metaData, tableName, columnName);
@@ -120,8 +116,7 @@ class SqlDataSourceUtilsTest {
         String columnName = "unknown";
         ResultSet resultSet = mock(ResultSet.class);
         given(resultSet.next()).willReturn(false);
-        DatabaseMetaData metaData = mock(DatabaseMetaData.class);
-        given(metaData.getColumns(null, null, tableName, columnName)).willReturn(resultSet);
+        DatabaseMetaData metaData = mockMetaData(tableName, columnName, resultSet);
 
         // when / then
         assertThrows(IllegalStateException.class,
@@ -136,13 +131,19 @@ class SqlDataSourceUtilsTest {
         ResultSet resultSet = mock(ResultSet.class);
         given(resultSet.getObject("COLUMN_DEF")).willReturn(null);
         given(resultSet.next()).willReturn(true);
-        DatabaseMetaData metaData = mock(DatabaseMetaData.class);
-        given(metaData.getColumns(null, null, tableName, columnName)).willReturn(resultSet);
+        DatabaseMetaData metaData = mockMetaData(tableName, columnName, resultSet);
 
         // when
         Object defaultValue = SqlDataSourceUtils.getColumnDefaultValue(metaData, tableName, columnName);
 
         // then
         assertThat(defaultValue, nullValue());
+    }
+
+    private static DatabaseMetaData mockMetaData(String tableName, String columnName, ResultSet resultSet)
+        throws SQLException {
+        DatabaseMetaData metaData = mock(DatabaseMetaData.class);
+        given(metaData.getColumns(null, null, tableName, columnName)).willReturn(resultSet);
+        return metaData;
     }
 }

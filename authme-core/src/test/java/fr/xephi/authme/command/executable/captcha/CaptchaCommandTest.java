@@ -18,8 +18,8 @@ import org.mockito.Mock;
 
 import java.util.Collections;
 
+import static fr.xephi.authme.listener.TestPlayerUtils.mockPlayerWithName;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.only;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -185,11 +185,6 @@ public class CaptchaCommandTest {
         verify(commonService).send(player, MessageKey.USAGE_REGISTER);
     }
 
-    private static Player mockPlayerWithName(String name) {
-        Player player = mock(Player.class);
-        given(player.getName()).willReturn(name);
-        return player;
-    }
 }
 
 

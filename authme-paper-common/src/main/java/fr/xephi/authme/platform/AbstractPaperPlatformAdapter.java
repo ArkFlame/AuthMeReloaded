@@ -30,6 +30,13 @@ public abstract class AbstractPaperPlatformAdapter extends AbstractSpigotPlatfor
 
     private static final boolean DIALOG_AVAILABLE = hasDialogApi();
 
+    /** Paper API classes every Paper-derived platform requires. */
+    private static final String[] PAPER_API_CLASSES = {
+        "io.papermc.paper.event.player.AsyncChatEvent",
+        "io.papermc.paper.event.player.AsyncPlayerSpawnLocationEvent",
+        "io.papermc.paper.event.player.PlayerOpenSignEvent"
+    };
+
     private final Map<UUID, CompletableFuture<Boolean>> pendingTeleports = new ConcurrentHashMap<>();
 
     @Override
@@ -121,7 +128,32 @@ public abstract class AbstractPaperPlatformAdapter extends AbstractSpigotPlatfor
     public List<Class<? extends Listener>> getListeners() {
         return EventRegistrationAdapter.combineListeners(
             EventRegistrationAdapter.getCommonListeners(),
-            List.of(PlayerSwapHandItemsListener.class, EntityAirChangeListener.class, EntityPickupItemListener.class));
+            List.of(PlayerSwapHandItemsListener.class, EntityAirChangeListener.class, EntityPickupItemListener.class),
+            getPlatformListeners());
+    }
+
+    /**
+     * Returns the listeners specific to the concrete Paper-derived platform.
+     * Platform adapters override this rather than duplicating the shared listener assembly.
+     *
+     * @return the platform-specific listeners
+     */
+    protected List<Class<? extends Listener>> getPlatformListeners() {
+        return List.of();
+    }
+
+    /**
+     * Checks the shared Paper API classes, plus any platform-specific ones supplied by the caller.
+     *
+     * @param errorMessage the message to return when a class is missing
+     * @param platformClasses additional classes the concrete platform requires
+     * @return the compatibility error, or {@code null} when all classes are present
+     */
+    protected final String getPaperCompatibilityError(String errorMessage, String... platformClasses) {
+        String[] requiredClasses = new String[platformClasses.length + PAPER_API_CLASSES.length];
+        System.arraycopy(platformClasses, 0, requiredClasses, 0, platformClasses.length);
+        System.arraycopy(PAPER_API_CLASSES, 0, requiredClasses, platformClasses.length, PAPER_API_CLASSES.length);
+        return getCompatibilityError(errorMessage, requiredClasses);
     }
 
     @Override

@@ -25,11 +25,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-import fr.xephi.authme.util.UuidUtils;
-
-import java.util.UUID;
-
-import static fr.xephi.authme.datasource.SqlDataSourceUtils.getNullableLong;
 import static fr.xephi.authme.datasource.SqlDataSourceUtils.logSqlException;
 
 /**
@@ -377,31 +372,7 @@ public class SQLite extends AbstractSqlDataSource {
     }
 
     private PlayerAuth buildAuthFromResultSet(ResultSet row) throws SQLException {
-        String salt = !col.SALT.isEmpty() ? row.getString(col.SALT) : null;
-        UUID uuid = col.PLAYER_UUID.isEmpty()
-            ? null : UuidUtils.parseUuidSafely(row.getString(col.PLAYER_UUID));
-        UUID premiumUuid = col.PREMIUM_UUID.isEmpty()
-            ? null : UuidUtils.parseUuidSafely(row.getString(col.PREMIUM_UUID));
-
-        return PlayerAuth.builder()
-            .name(row.getString(col.NAME))
-            .email(row.getString(col.EMAIL))
-            .realName(row.getString(col.REAL_NAME))
-            .password(row.getString(col.PASSWORD), salt)
-            .totpKey(row.getString(col.TOTP_KEY))
-            .lastLogin(getNullableLong(row, col.LAST_LOGIN))
-            .lastIp(row.getString(col.LAST_IP))
-            .registrationDate(row.getLong(col.REGISTRATION_DATE))
-            .registrationIp(row.getString(col.REGISTRATION_IP))
-            .locX(row.getDouble(col.LASTLOC_X))
-            .locY(row.getDouble(col.LASTLOC_Y))
-            .locZ(row.getDouble(col.LASTLOC_Z))
-            .locWorld(row.getString(col.LASTLOC_WORLD))
-            .locYaw(row.getFloat(col.LASTLOC_YAW))
-            .locPitch(row.getFloat(col.LASTLOC_PITCH))
-            .uuid(uuid)
-            .premiumUuid(premiumUuid)
-            .build();
+        return SqlDataSourceUtils.buildAuthFromResultSet(row, col, false);
     }
 
     /**

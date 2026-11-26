@@ -7,12 +7,11 @@ import org.bukkit.event.Cancellable;
 /**
  * Common supertype for all AuthMe teleport events.
  */
-public abstract class AbstractTeleportEvent extends CustomEvent implements Cancellable {
+public abstract class AbstractTeleportEvent extends AbstractCancellableEvent implements Cancellable {
 
     private final Player player;
     private final Location from;
     private Location to;
-    private boolean isCancelled;
 
     /**
      * Constructor.
@@ -39,6 +38,7 @@ public abstract class AbstractTeleportEvent extends CustomEvent implements Cance
 
     /**
      * Return the location the player is being teleported away from.
+     * The location is captured when the event is created; treat it as read-only.
      *
      * @return The location prior to the teleport
      */
@@ -49,7 +49,7 @@ public abstract class AbstractTeleportEvent extends CustomEvent implements Cance
     /**
      * Set the destination of the teleport.
      *
-     * @param to The location to teleport the player to
+     * @param to The location to teleport the player to, or {@code null} to abort the teleport
      */
     public void setTo(Location to) {
         this.to = to;
@@ -58,21 +58,9 @@ public abstract class AbstractTeleportEvent extends CustomEvent implements Cance
     /**
      * Return the destination the player is being teleported to.
      *
-     * @return The teleport destination
+     * @return The teleport destination, or {@code null} if a listener cleared it
      */
     public Location getTo() {
         return to;
     }
-
-    @Override
-    public void setCancelled(boolean isCancelled) {
-        this.isCancelled = isCancelled;
-    }
-
-    @Override
-    public boolean isCancelled() {
-        return isCancelled;
-    }
-
-
 }

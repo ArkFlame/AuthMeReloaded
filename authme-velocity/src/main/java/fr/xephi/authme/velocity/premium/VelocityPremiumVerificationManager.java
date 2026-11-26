@@ -37,8 +37,7 @@ public final class VelocityPremiumVerificationManager {
         this.pendingVerificationFailureHandler = pendingVerificationFailureHandler;
         this.keepOfflineUuidCompatibility = keepOfflineUuidCompatibility;
         this.isNameConnected = isNameConnected;
-        this.loginVerifier = new ProxyPremiumLoginVerifier("authme-velocity-premium",
-            message -> this.logger.warn(message));
+        this.loginVerifier = new ProxyPremiumLoginVerifier(logger::warn);
     }
 
     public void register() {

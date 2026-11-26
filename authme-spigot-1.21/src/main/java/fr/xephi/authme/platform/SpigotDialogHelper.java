@@ -29,13 +29,11 @@ final class SpigotDialogHelper {
     }
 
     static void showLoginDialog(Player player, DialogWindowSpec dialog) {
-        DialogBase base = new DialogBase(toTextComponent(dialog.title()))
-            .inputs(createInputs(dialog))
-            .body(createBody(dialog))
-            .afterAction(DialogBase.AfterAction.CLOSE);
+        DialogBase base = newDialogBase(dialog);
 
         List<ActionButton> buttons = new ArrayList<>();
-        buttons.add(new ActionButton(toTextComponent(dialog.primaryButtonLabel()), new RunCommandAction("login $(password)")));
+        buttons.add(new ActionButton(toTextComponent(dialog.primaryButtonLabel()),
+            new RunCommandAction("login $(password)")));
         if (dialog.showSecondaryButton() && dialog.secondaryButtonCommand() != null) {
             buttons.add(new ActionButton(toTextComponent(dialog.secondaryButtonLabel()),
                 new RunCommandAction(dialog.secondaryButtonCommand())));
@@ -45,10 +43,7 @@ final class SpigotDialogHelper {
     }
 
     static void showTotpDialog(Player player, DialogWindowSpec dialog) {
-        DialogBase base = new DialogBase(toTextComponent(dialog.title()))
-            .inputs(createInputs(dialog))
-            .body(createBody(dialog))
-            .afterAction(DialogBase.AfterAction.CLOSE);
+        DialogBase base = newDialogBase(dialog);
 
         player.showDialog(new MultiActionDialog(base,
             new ActionButton(toTextComponent(dialog.primaryButtonLabel()), new RunCommandAction("2fa code $(code)"))));
@@ -63,10 +58,7 @@ final class SpigotDialogHelper {
     }
 
     private static void showCommandDialog(Player player, DialogWindowSpec dialog, String commandTemplate) {
-        DialogBase base = new DialogBase(toTextComponent(dialog.title()))
-            .inputs(createInputs(dialog))
-            .body(createBody(dialog))
-            .afterAction(DialogBase.AfterAction.CLOSE);
+        DialogBase base = newDialogBase(dialog);
 
         player.showDialog(new MultiActionDialog(base,
             new ActionButton(toTextComponent(dialog.primaryButtonLabel()), new RunCommandAction(commandTemplate)))
@@ -75,10 +67,7 @@ final class SpigotDialogHelper {
 
     static void showRegisterDialog(Player player, RegistrationType type, RegisterSecondaryArgument secondArg,
                                    DialogWindowSpec dialog) {
-        DialogBase base = new DialogBase(toTextComponent(dialog.title()))
-            .inputs(createInputs(dialog))
-            .body(createBody(dialog))
-            .afterAction(DialogBase.AfterAction.CLOSE);
+        DialogBase base = newDialogBase(dialog);
 
         player.showDialog(new MultiActionDialog(base,
             new ActionButton(toTextComponent(dialog.primaryButtonLabel()),
@@ -87,6 +76,14 @@ final class SpigotDialogHelper {
 
     static void closeDialog(Player player) {
         player.clearDialog();
+    }
+
+    /** Builds the dialog shell shared by every dialog type in this renderer. */
+    private static DialogBase newDialogBase(DialogWindowSpec dialog) {
+        return new DialogBase(toTextComponent(dialog.title()))
+            .inputs(createInputs(dialog))
+            .body(createBody(dialog))
+            .afterAction(DialogBase.AfterAction.CLOSE);
     }
 
     private static List<DialogInput> createInputs(DialogWindowSpec dialog) {

@@ -31,12 +31,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+import static fr.xephi.authme.listener.TestPlayerUtils.createInetAddress;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -615,14 +615,6 @@ class OnJoinVerifierTest {
         given(settings.getProperty(RestrictionSettings.MAX_NICKNAME_LENGTH)).willReturn(maxLength);
         given(settings.getProperty(RestrictionSettings.ALLOWED_NICKNAME_CHARACTERS)).willReturn("[a-zA-Z0-9]+");
         onJoinVerifier.reload();
-    }
-
-    private static InetAddress createInetAddress(String ip) {
-        try {
-            return InetAddress.getByName(ip);
-        } catch (UnknownHostException e) {
-            throw new IllegalArgumentException("Invalid IP address: " + ip, e);
-        }
     }
 
     private void expectValidationExceptionWith(Executable executable, MessageKey messageKey, String... args) {

@@ -10,13 +10,12 @@ import org.bukkit.inventory.ItemStack;
  * This event is called before the inventory data of a player is suppressed,
  * i.e. the inventory of the player is not displayed until he has authenticated.
  */
-public class ProtectInventoryEvent extends CustomEvent implements Cancellable {
+public class ProtectInventoryEvent extends AbstractCancellableEvent implements Cancellable {
 
     private static final HandlerList handlers = new HandlerList();
     private final ItemStack[] storedInventory;
     private final ItemStack[] storedArmor;
     private final Player player;
-    private boolean isCancelled;
 
     /**
      * Constructor.
@@ -32,18 +31,20 @@ public class ProtectInventoryEvent extends CustomEvent implements Cancellable {
     }
 
     /**
-     * Return the inventory of the player.
+     * Return the inventory of the player as it was when the event was created.
+     * Treat the array as read-only: it is a snapshot shared with other listeners.
      *
-     * @return The player's inventory
+     * @return A snapshot of the player's inventory
      */
     public ItemStack[] getStoredInventory() {
         return storedInventory;
     }
 
     /**
-     * Return the armor of the player.
+     * Return the armor of the player as it was when the event was created.
+     * Treat the array as read-only: it is a snapshot shared with other listeners.
      *
-     * @return The player's armor
+     * @return A snapshot of the player's armor
      */
     public ItemStack[] getStoredArmor() {
         return storedArmor;
@@ -56,16 +57,6 @@ public class ProtectInventoryEvent extends CustomEvent implements Cancellable {
      */
     public Player getPlayer() {
         return player;
-    }
-
-    @Override
-    public void setCancelled(boolean isCancelled) {
-        this.isCancelled = isCancelled;
-    }
-
-    @Override
-    public boolean isCancelled() {
-        return isCancelled;
     }
 
     /**

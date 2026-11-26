@@ -116,8 +116,8 @@ class LimboServiceHelper {
         LimboPlayer merged = new LimboPlayer(location, isOperator, groups, canFly, walkSpeed, flySpeed);
         merged.setEnderPearls(mergeEnderPearls(newLimbo, oldLimbo));
 
-        UUID vehicleUuid = oldLimbo.getVehicleUuid() != null ? oldLimbo.getVehicleUuid() : newLimbo.getVehicleUuid();
-        EntityType vehicleType = oldLimbo.getVehicleType() != null ? oldLimbo.getVehicleType() : newLimbo.getVehicleType();
+        UUID vehicleUuid = firstNotNull(oldLimbo.getVehicleUuid(), newLimbo.getVehicleUuid());
+        EntityType vehicleType = firstNotNull(oldLimbo.getVehicleType(), newLimbo.getVehicleType());
         merged.setVehicle(vehicleUuid, vehicleType);
 
         return merged;
@@ -159,7 +159,7 @@ class LimboServiceHelper {
         return incomingPearl.hasDetailedState() ? incomingPearl : existingPearl;
     }
 
-    private static Location firstNotNull(Location first, Location second) {
+    private static <T> T firstNotNull(T first, T second) {
         return first == null ? second : first;
     }
 

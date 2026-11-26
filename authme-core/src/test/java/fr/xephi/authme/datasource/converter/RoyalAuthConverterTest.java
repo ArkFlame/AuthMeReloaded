@@ -1,14 +1,12 @@
 package fr.xephi.authme.datasource.converter;
 
 import fr.xephi.authme.AuthMe;
-import fr.xephi.authme.TestHelper;
 import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.util.FileUtils;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.Server;
 import org.bukkit.command.CommandSender;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,7 +37,7 @@ import static org.mockito.Mockito.verify;
  * Test for {@link RoyalAuthConverter}. The RoyalAuth user data folder is redirected to a temporary folder.
  */
 @ExtendWith(MockitoExtension.class)
-class RoyalAuthConverterTest {
+class RoyalAuthConverterTest extends AbstractConverterTest {
 
     @Mock
     private AuthMe plugin;
@@ -57,11 +55,6 @@ class RoyalAuthConverterTest {
     private ArgumentCaptor<PlayerAuth> authCaptor;
 
     private RoyalAuthConverter converter;
-
-    @BeforeAll
-    static void initLogger() {
-        TestHelper.setupLogger();
-    }
 
     @BeforeEach
     void setUpConverter() {

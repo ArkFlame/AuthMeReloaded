@@ -16,10 +16,10 @@ import org.mockito.Mock;
 
 import java.util.Collections;
 
+import static fr.xephi.authme.listener.TestPlayerUtils.mockPlayerWithName;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 /**
@@ -163,11 +163,6 @@ public class VerificationCommandTest {
         assertThat(command.getArgumentsMismatchMessage(), equalTo(MessageKey.USAGE_VERIFICATION_CODE));
     }
 
-    private static Player mockPlayerWithName(String name) {
-        Player player = mock(Player.class);
-        given(player.getName()).willReturn(name);
-        return player;
-    }
 }
 
 

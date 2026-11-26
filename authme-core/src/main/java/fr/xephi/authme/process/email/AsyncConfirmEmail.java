@@ -47,11 +47,7 @@ public class AsyncConfirmEmail implements AsynchronousProcess {
         String playerName = player.getName().toLowerCase(Locale.ROOT);
 
         if (!playerCache.isAuthenticated(playerName)) {
-            if (dataSource.isAuthAvailable(player.getName())) {
-                service.send(player, MessageKey.LOGIN_MESSAGE);
-            } else {
-                service.send(player, MessageKey.REGISTER_MESSAGE);
-            }
+            EmailProcessHelper.sendUnloggedMessage(service, dataSource, player);
             return;
         }
 

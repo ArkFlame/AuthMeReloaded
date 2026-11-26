@@ -396,31 +396,7 @@ final class VelocityProxyBridge {
      * also receives the auto-login signal early enough to suppress its login dialog.
      */
     void onPlayerEnterConfiguration(PlayerEnterConfigurationEvent event) {
-        if (!configuration.autoLoginEnabled()) {
-            return;
-        }
-        ServerConnection server = event.server();
-        if (server == null) {
-            return;
-        }
-
-        String normalizedName = normalizeName(event.player().getUsername());
-        UUID verifiedPremiumUuid = premiumVerificationManager.getVerifiedPremiumUuid(normalizedName);
-        boolean isPremiumJoin = verifiedPremiumUuid != null;
-        if (!authenticationStore.isAuthenticated(normalizedName) && !isPremiumJoin) {
-            return;
-        }
-
-        boolean sent = server.sendPluginMessage(
-            AUTHME_CHANNEL, createPerformLoginMessage(normalizedName, verifiedPremiumUuid));
-        if (sent) {
-            logger.info("Sent config-phase auto-login to server '{}' for player {} (verifiedPremiumUuid={})",
-                server.getServer().getServerInfo().getName(), normalizedName, verifiedPremiumUuid);
-            initiatePendingLogin(normalizedName);
-        } else {
-            logger.debug("Config-phase auto-login send to '{}' for {} returned false; onServerConnected will retry",
-                server.getServer().getServerInfo().getName(), normalizedName);
-        }
+        sendConfigPhaseAutoLogin(event.server(), event.player().getUsername(), false);
     }
 
     /**
@@ -430,37 +406,36 @@ final class VelocityProxyBridge {
      * after the configuration phase completes — too late to suppress that dialog on a server switch.
      */
     void onPlayerEnteredConfiguration(PlayerEnteredConfigurationEvent event) {
-        if (!configuration.autoLoginEnabled()) {
+        sendConfigPhaseAutoLogin(event.server(), event.player().getUsername(), true);
+    }
+
+    private void sendConfigPhaseAutoLogin(ServerConnection server, String playerName, boolean authServerOnly) {
+        if (!configuration.autoLoginEnabled() || server == null) {
             return;
         }
-        ServerConnection server = event.server();
-        if (server == null) {
-            return;
-        }
-        RegisteredServer target = server.getServer();
-        String normalizedName = normalizeName(event.player().getUsername());
+        String normalizedName = normalizeName(playerName);
         UUID verifiedPremiumUuid = premiumVerificationManager.getVerifiedPremiumUuid(normalizedName);
         boolean isPremiumJoin = verifiedPremiumUuid != null;
         // The pre-join dialog only appears on backends running AuthMe, i.e. auth servers, but a
         // proxy-verified premium player must carry the premium UUID to any backend they enter:
         // with keepOfflineUuidCompatibility the backend sees the offline UUID and needs that
         // UUID in perform.login to finalize the pending premium enrollment.
-        if (!configuration.isAuthServer(target) && !isPremiumJoin) {
+        if (authServerOnly && !configuration.isAuthServer(server.getServer()) && !isPremiumJoin) {
             return;
         }
         if (!authenticationStore.isAuthenticated(normalizedName) && !isPremiumJoin) {
             return;
         }
-
+        String serverName = server.getServer().getServerInfo().getName();
         boolean sent = server.sendPluginMessage(
             AUTHME_CHANNEL, createPerformLoginMessage(normalizedName, verifiedPremiumUuid));
         if (sent) {
-            logger.info("Sent config-phase auto-login to auth server '{}' for player {} (verifiedPremiumUuid={})",
-                target.getServerInfo().getName(), normalizedName, verifiedPremiumUuid);
+            logger.info("Sent config-phase auto-login to {}server '{}' for player {} (verifiedPremiumUuid={})",
+                authServerOnly ? "auth " : "", serverName, normalizedName, verifiedPremiumUuid);
             initiatePendingLogin(normalizedName);
         } else {
             logger.debug("Config-phase auto-login send to '{}' for {} returned false; onServerConnected will retry",
-                target.getServerInfo().getName(), normalizedName);
+                serverName, normalizedName);
         }
     }
 

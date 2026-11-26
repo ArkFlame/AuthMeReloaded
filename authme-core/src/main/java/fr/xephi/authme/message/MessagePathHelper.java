@@ -48,7 +48,7 @@ public final class MessagePathHelper {
      * @return true if it is a messages file, false otherwise
      */
     public static boolean isMessagesFile(String filename) {
-        return MESSAGE_FILE_PATTERN.matcher(filename).matches();
+        return getLanguageIfIsMessagesFile(filename) != null;
     }
 
     /**

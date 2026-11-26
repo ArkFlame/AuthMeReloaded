@@ -14,7 +14,6 @@ import fr.xephi.authme.service.CommonService;
 import fr.xephi.authme.service.PendingEmailVerificationCache;
 import fr.xephi.authme.service.ValidationService;
 import fr.xephi.authme.settings.properties.RegistrationSettings;
-import fr.xephi.authme.util.RandomStringUtils;
 import fr.xephi.authme.util.Utils;
 import org.bukkit.entity.Player;
 
@@ -84,13 +83,14 @@ public class AsyncAddEmail implements AsynchronousProcess {
                     return;
                 }
                 if (requiresEmailConfirmation()) {
-                    sendConfirmationCode(player, email);
+                    EmailProcessHelper.sendConfirmationCode(service, emailService, pendingEmailVerificationCache,
+                        logger, player, email);
                 } else {
                     saveEmailDirectly(auth, player, email);
                 }
             }
         } else {
-            sendUnloggedMessage(player);
+            EmailProcessHelper.sendUnloggedMessage(service, dataSource, player);
         }
     }
 
@@ -105,17 +105,6 @@ public class AsyncAddEmail implements AsynchronousProcess {
             && service.getProperty(RegistrationSettings.REGISTER_SECOND_ARGUMENT) != EMAIL_OPTIONAL;
     }
 
-    private void sendConfirmationCode(Player player, String email) {
-        String code = RandomStringUtils.generateNum(6);
-        if (emailService.sendEmailConfirmationMail(player.getName(), email, code)) {
-            pendingEmailVerificationCache.addPending(player.getName(), email, code);
-            service.send(player, MessageKey.EMAIL_CONFIRM_CODE_SENT, email);
-        } else {
-            logger.warning("Could not send confirmation email for player '" + player + "'");
-            service.send(player, MessageKey.EMAIL_SEND_FAILURE);
-        }
-    }
-
     private void saveEmailDirectly(PlayerAuth auth, Player player, String email) {
         auth.setEmail(email);
         if (dataSource.updateEmail(auth)) {
@@ -124,14 +113,6 @@ public class AsyncAddEmail implements AsynchronousProcess {
         } else {
             logger.warning("Could not save email for player '" + player + "'");
             service.send(player, MessageKey.ERROR);
-        }
-    }
-
-    private void sendUnloggedMessage(Player player) {
-        if (dataSource.isAuthAvailable(player.getName())) {
-            service.send(player, MessageKey.LOGIN_MESSAGE);
-        } else {
-            service.send(player, MessageKey.REGISTER_MESSAGE);
         }
     }
 

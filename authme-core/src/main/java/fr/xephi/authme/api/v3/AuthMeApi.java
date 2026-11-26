@@ -25,6 +25,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.function.Function;
 
 /**
  * The current API of AuthMe.
@@ -143,11 +144,7 @@ public class AuthMeApi {
      * @return AuthMe player info, or empty optional if the player doesn't exist
      */
     public Optional<AuthMePlayer> getPlayerInfo(String playerName) {
-        PlayerAuth auth = playerCache.getAuth(playerName);
-        if (auth == null) {
-            auth = dataSource.getAuth(playerName);
-        }
-        return AuthMePlayerImpl.fromPlayerAuth(auth);
+        return AuthMePlayerImpl.fromPlayerAuth(getAuth(playerName));
     }
 
     /**
@@ -157,14 +154,8 @@ public class AuthMeApi {
      * @return The last ip address of the player
      */
     public String getLastIp(String playerName) {
-        PlayerAuth auth = playerCache.getAuth(playerName);
-        if (auth == null) {
-            auth = dataSource.getAuth(playerName);
-        }
-        if (auth != null) {
-            return auth.getLastIp();
-        }
-        return null;
+        PlayerAuth auth = getAuth(playerName);
+        return auth == null ? null : auth.getLastIp();
     }
 
     /**
@@ -203,14 +194,19 @@ public class AuthMeApi {
     }
 
     private Long getLastLoginMillis(String playerName) {
+        PlayerAuth auth = getAuth(playerName);
+        return auth == null ? null : auth.getLastLogin();
+    }
+
+    /**
+     * Looks up a player in the cache first, falling back to the data source.
+     *
+     * @param playerName the player name to look up
+     * @return the player auth, or null if no data exists for the player
+     */
+    private PlayerAuth getAuth(String playerName) {
         PlayerAuth auth = playerCache.getAuth(playerName);
-        if (auth == null) {
-            auth = dataSource.getAuth(playerName);
-        }
-        if (auth != null) {
-            return auth.getLastLogin();
-        }
-        return null;
+        return auth != null ? auth : dataSource.getAuth(playerName);
     }
 
     /**
@@ -353,9 +349,7 @@ public class AuthMeApi {
      * @return registered names
      */
     public List<String> getRegisteredNames() {
-        List<String> registeredNames = new ArrayList<>();
-        dataSource.getAllAuths().forEach(auth -> registeredNames.add(auth.getNickname()));
-        return registeredNames;
+        return getPlayerNames(PlayerAuth::getNickname);
     }
 
     /**
@@ -364,9 +358,13 @@ public class AuthMeApi {
      * @return registered real-names
      */
     public List<String> getRegisteredRealNames() {
-        List<String> registeredNames = new ArrayList<>();
-        dataSource.getAllAuths().forEach(auth -> registeredNames.add(auth.getRealName()));
-        return registeredNames;
+        return getPlayerNames(PlayerAuth::getRealName);
+    }
+
+    private List<String> getPlayerNames(Function<PlayerAuth, String> nameExtractor) {
+        List<String> names = new ArrayList<>();
+        dataSource.getAllAuths().forEach(auth -> names.add(nameExtractor.apply(auth)));
+        return names;
     }
 
     /**

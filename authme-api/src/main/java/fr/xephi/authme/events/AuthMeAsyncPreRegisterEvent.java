@@ -5,8 +5,8 @@ import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
 /**
- * This event is called when a player uses the register command,
- * it's fired even when a user does a /register with invalid arguments.
+ * This event is called when a player uses the register command.
+ * It is fired even when the player supplies invalid arguments.
  * {@link #setCanRegister(boolean) event.setCanRegister(false)} prevents the player from registering.
  */
 public class AuthMeAsyncPreRegisterEvent extends CustomEvent {
@@ -29,7 +29,7 @@ public class AuthMeAsyncPreRegisterEvent extends CustomEvent {
     /**
      * Return the player concerned by this event.
      *
-     * @return The player who executed a valid {@code /login} command
+     * @return The player who executed the {@code /register} command
      */
     public Player getPlayer() {
         return player;
@@ -38,7 +38,7 @@ public class AuthMeAsyncPreRegisterEvent extends CustomEvent {
     /**
      * Return whether the player is allowed to register.
      *
-     * @return True if the player can log in, false otherwise
+     * @return True if the player can register, false otherwise
      */
     public boolean canRegister() {
         return canRegister;
@@ -47,7 +47,7 @@ public class AuthMeAsyncPreRegisterEvent extends CustomEvent {
     /**
      * Define whether or not the player may register.
      *
-     * @param canRegister True to allow the player to log in; false to prevent him
+     * @param canRegister True to allow the player to register; false to prevent him
      */
     public void setCanRegister(boolean canRegister) {
         this.canRegister = canRegister;

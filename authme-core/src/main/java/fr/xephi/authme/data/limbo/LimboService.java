@@ -176,9 +176,7 @@ public class LimboService {
             }
         } else {
             player.setOp(limbo.isOperator());
-            settings.getProperty(RESTORE_ALLOW_FLIGHT).restoreAllowFlight(player, limbo);
-            settings.getProperty(RESTORE_FLY_SPEED).restoreFlySpeed(player, limbo);
-            settings.getProperty(RESTORE_WALK_SPEED).restoreWalkSpeed(player, limbo);
+            restoreSpeedAndFlight(player, limbo);
             limbo.clearTasks();
             logger.debug("Restored LimboPlayer stats for `{0}`", lowerName);
         }
@@ -203,9 +201,7 @@ public class LimboService {
         LimboPlayer diskLimbo = persistence.getLimboPlayer(player);
         if (diskLimbo != null) {
             // Disk limbo captured speeds before revokeLimboStates ran — restore from it
-            settings.getProperty(RESTORE_ALLOW_FLIGHT).restoreAllowFlight(player, diskLimbo);
-            settings.getProperty(RESTORE_FLY_SPEED).restoreFlySpeed(player, diskLimbo);
-            settings.getProperty(RESTORE_WALK_SPEED).restoreWalkSpeed(player, diskLimbo);
+            restoreSpeedAndFlight(player, diskLimbo);
             logger.debug("Restored speeds from disk LimboPlayer for `{0}` during auto-login", lowerName);
             doRestoreEntities(player, diskLimbo);
         } else {
@@ -241,6 +237,13 @@ public class LimboService {
             player.setWalkSpeed(LimboPlayer.DEFAULT_WALK_SPEED);
             player.setFlySpeed(LimboPlayer.DEFAULT_FLY_SPEED);
         }
+    }
+
+    /** Restores the speed and flight states recorded in a limbo player. */
+    private void restoreSpeedAndFlight(Player player, LimboPlayer limbo) {
+        settings.getProperty(RESTORE_ALLOW_FLIGHT).restoreAllowFlight(player, limbo);
+        settings.getProperty(RESTORE_FLY_SPEED).restoreFlySpeed(player, limbo);
+        settings.getProperty(RESTORE_WALK_SPEED).restoreWalkSpeed(player, limbo);
     }
 
     /**
@@ -424,7 +427,7 @@ public class LimboService {
 
         if (recreateMissingPearls) {
             for (EnderPearlRestoreData pearl : pendingPearls.values()) {
-                if (recreateEnderPearl(player, pearl)) {
+                if (recreateEnderPearl(player, pearl, name)) {
                     pearlRecreated++;
                 }
             }
@@ -449,15 +452,15 @@ public class LimboService {
         }
     }
 
-    private boolean recreateEnderPearl(Player player, EnderPearlRestoreData pearl) {
+    private boolean recreateEnderPearl(Player player, EnderPearlRestoreData pearl, String name) {
         if (!pearl.canBeRecreated()) {
             logger.debug("Unable to recreate ender pearl {0} for `{1}` because its saved location is unavailable",
-                pearl.getUuid(), player.getName().toLowerCase(Locale.ROOT));
+                pearl.getUuid(), name);
             return false;
         }
         if (!bukkitService.isOwnedByCurrentThread(pearl.getLocation())) {
             logger.debug("Unable to recreate ender pearl {0} for `{1}` because its saved location is in another region",
-                pearl.getUuid(), player.getName().toLowerCase(Locale.ROOT));
+                pearl.getUuid(), name);
             return false;
         }
 

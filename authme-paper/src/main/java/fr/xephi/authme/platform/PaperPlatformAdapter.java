@@ -20,12 +20,6 @@ import java.util.List;
  */
 public class PaperPlatformAdapter extends AbstractPaperPlatformAdapter {
 
-    /**
-     * Constructor.
-     */
-    public PaperPlatformAdapter() {
-    }
-
     @Override
     public String getPlatformName() {
         return "paper-1.21";
@@ -33,22 +27,17 @@ public class PaperPlatformAdapter extends AbstractPaperPlatformAdapter {
 
     @Override
     public String getCompatibilityError() {
-        return getCompatibilityError("This AuthMe Paper build requires the Paper 1.21.11+ API.",
-            "io.papermc.paper.event.player.AsyncChatEvent",
-            "io.papermc.paper.event.player.AsyncPlayerSpawnLocationEvent",
-            "io.papermc.paper.event.player.PlayerOpenSignEvent");
+        return getPaperCompatibilityError("This AuthMe Paper build requires the Paper 1.21.11+ API.");
     }
 
     @Override
-    public List<Class<? extends Listener>> getListeners() {
-        return EventRegistrationAdapter.combineListeners(
-            super.getListeners(),
-            Arrays.asList(
-                PaperChatListener.class,
-                PaperDialogFlowListener.class,
-                PaperProxyAutoLoginListener.class,
-                PaperPlayerSpawnLocationListener.class,
-                PaperLoginValidationListener.class,
-                PlayerOpenSignListener.class));
+    protected List<Class<? extends Listener>> getPlatformListeners() {
+        return Arrays.asList(
+            PaperChatListener.class,
+            PaperDialogFlowListener.class,
+            PaperProxyAutoLoginListener.class,
+            PaperPlayerSpawnLocationListener.class,
+            PaperLoginValidationListener.class,
+            PlayerOpenSignListener.class);
     }
 }

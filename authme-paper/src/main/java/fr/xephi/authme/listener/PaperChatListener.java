@@ -9,10 +9,4 @@ import io.papermc.paper.event.player.AsyncChatEvent;
  * including HIDE_CHAT recipient filtering via the Adventure API.
  */
 public class PaperChatListener extends AbstractPaperAsyncChatListener {
-
-    /**
-     * Constructor.
-     */
-    public PaperChatListener() {
-    }
 }

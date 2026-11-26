@@ -39,16 +39,11 @@ public final class PlayerLocaleResolver {
     public static String resolveLanguage(Settings settings, CommandSender sender,
                                          BukkitCompatibilityAdapter compatibilityAdapter) {
         if (settings != null && sender instanceof Player
-                && settings.getProperty(PluginSettings.PER_PLAYER_LOCALE)) {
-            if (compatibilityAdapter == null) {
-                return null;
-            }
-            Player player = (Player) sender;
-            Optional<String> locale = compatibilityAdapter.getPlayerLocale(player);
+                && settings.getProperty(PluginSettings.PER_PLAYER_LOCALE) && compatibilityAdapter != null) {
+            Optional<String> locale = compatibilityAdapter.getPlayerLocale((Player) sender);
             if (locale.isPresent()) {
                 return toLanguageCode(locale.get());
             }
-            return null;
         }
         return null;
     }

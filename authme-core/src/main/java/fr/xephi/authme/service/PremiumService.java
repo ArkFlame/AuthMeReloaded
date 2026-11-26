@@ -95,7 +95,7 @@ public class PremiumService implements HasCleanup {
             // UUID v4 = Mojang-issued UUID: either the server is in online mode (Mojang already
             // verified the session at the connection level) or the proxy forwarded a real Mojang
             // UUID. No extra API call needed — the server's own auth is the source of truth.
-            storePremiumUuid(auth, playerUuid, player, player.getName());
+            storePremiumUuid(auth, playerUuid, player, player.getName(), true);
         } else {
             // UUID v3 = Bukkit offline UUID: fetch the Mojang UUID and hold it as pending.
             // The player must reconnect; a cryptographic Mojang session check on reconnect is
@@ -298,10 +298,6 @@ public class PremiumService implements HasCleanup {
             return;
         }
         storePremiumUuid(auth, confirmedUuid, player, playerName, false);
-    }
-
-    private void storePremiumUuid(PlayerAuth auth, UUID uuid, CommandSender feedbackTarget, String playerName) {
-        storePremiumUuid(auth, uuid, feedbackTarget, playerName, true);
     }
 
     private void storePremiumUuid(PlayerAuth auth, UUID uuid, CommandSender feedbackTarget, String playerName,

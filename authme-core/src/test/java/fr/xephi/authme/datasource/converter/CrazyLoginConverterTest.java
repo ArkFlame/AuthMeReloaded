@@ -1,12 +1,10 @@
 package fr.xephi.authme.datasource.converter;
 
-import fr.xephi.authme.TestHelper;
 import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.settings.Settings;
 import fr.xephi.authme.settings.properties.ConverterSettings;
 import org.bukkit.command.CommandSender;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,7 +37,7 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
  * Test for {@link CrazyLoginConverter}.
  */
 @ExtendWith(MockitoExtension.class)
-class CrazyLoginConverterTest {
+class CrazyLoginConverterTest extends AbstractConverterTest {
 
     @Mock
     private DataSource dataSource;
@@ -54,11 +52,6 @@ class CrazyLoginConverterTest {
     private ArgumentCaptor<PlayerAuth> authCaptor;
 
     private CrazyLoginConverter converter;
-
-    @BeforeAll
-    static void initLogger() {
-        TestHelper.setupLogger();
-    }
 
     @BeforeEach
     void setUpConverter() {

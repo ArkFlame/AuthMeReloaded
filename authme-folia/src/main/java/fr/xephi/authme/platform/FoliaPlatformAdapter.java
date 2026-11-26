@@ -101,24 +101,19 @@ public class FoliaPlatformAdapter extends AbstractPaperPlatformAdapter {
 
     @Override
     public String getCompatibilityError() {
-        return getCompatibilityError("This AuthMe Folia build requires the Folia 1.21.11+ API.",
-            "io.papermc.paper.threadedregions.scheduler.GlobalRegionScheduler",
-            "io.papermc.paper.event.player.AsyncChatEvent",
-            "io.papermc.paper.event.player.AsyncPlayerSpawnLocationEvent",
-            "io.papermc.paper.event.player.PlayerOpenSignEvent");
+        return getPaperCompatibilityError("This AuthMe Folia build requires the Folia 1.21.11+ API.",
+            "io.papermc.paper.threadedregions.scheduler.GlobalRegionScheduler");
     }
 
     @Override
-    public List<Class<? extends Listener>> getListeners() {
-        return EventRegistrationAdapter.combineListeners(
-            super.getListeners(),
-            Arrays.asList(
-                FoliaChatListener.class,
-                PaperDialogFlowListener.class,
-                PaperProxyAutoLoginListener.class,
-                FoliaPlayerSpawnLocationListener.class,
-                PaperLoginValidationListener.class,
-                PlayerOpenSignListener.class));
+    protected List<Class<? extends Listener>> getPlatformListeners() {
+        return Arrays.asList(
+            FoliaChatListener.class,
+            PaperDialogFlowListener.class,
+            PaperProxyAutoLoginListener.class,
+            FoliaPlayerSpawnLocationListener.class,
+            PaperLoginValidationListener.class,
+            PlayerOpenSignListener.class);
     }
 
     private static long ticksToMillis(long ticks) {

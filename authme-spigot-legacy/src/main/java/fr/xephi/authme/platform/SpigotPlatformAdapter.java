@@ -5,6 +5,10 @@ package fr.xephi.authme.platform;
  */
 public class SpigotPlatformAdapter extends AbstractSpigotPlatformAdapter {
 
+    private static final SpigotCompatibility COMPATIBILITY = new SpigotCompatibility(
+        "This AuthMe Spigot Legacy build requires the Spigot 1.16+ API.",
+        "org.spigotmc.event.player.PlayerSpawnLocationEvent");
+
     @Override
     public String getPlatformName() {
         return "spigot-legacy";
@@ -12,7 +16,6 @@ public class SpigotPlatformAdapter extends AbstractSpigotPlatformAdapter {
 
     @Override
     public String getCompatibilityError() {
-        return getCompatibilityError("This AuthMe Spigot Legacy build requires the Spigot 1.16+ API.",
-            "org.spigotmc.event.player.PlayerSpawnLocationEvent");
+        return COMPATIBILITY.getError();
     }
 }

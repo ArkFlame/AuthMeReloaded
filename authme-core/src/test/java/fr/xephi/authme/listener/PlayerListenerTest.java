@@ -28,9 +28,7 @@ import org.bukkit.entity.EnderPearl;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.SignChangeEvent;
-import org.bukkit.event.entity.EntityAirChangeEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
@@ -53,7 +51,6 @@ import org.bukkit.event.player.PlayerPortalEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerShearEntityEvent;
-import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.InventoryView;
 import org.junit.jupiter.api.AfterEach;
@@ -65,7 +62,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.lang.reflect.Field;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -76,6 +72,8 @@ import java.util.UUID;
 
 import static com.google.common.collect.Sets.newHashSet;
 import static fr.xephi.authme.listener.EventCancelVerifier.withServiceMock;
+import static fr.xephi.authme.listener.TestPlayerUtils.createInetAddress;
+import static fr.xephi.authme.listener.TestPlayerUtils.mockPlayerWithName;
 import static fr.xephi.authme.service.BukkitServiceTestHelper.setBukkitServiceToScheduleSyncDelayedTaskWithEntityAndDelay;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -1280,12 +1278,6 @@ class PlayerListenerTest {
             .check(listener::onPlayerInteractAtEntity, PlayerInteractAtEntityEvent.class);
     }
 
-    private static Player mockPlayerWithName(String name) {
-        Player player = mock(Player.class);
-        given(player.getName()).willReturn(name);
-        return player;
-    }
-
     /**
      * {@link PlayerCommandPreprocessEvent} gets the list of online players from the player's server.
      * This method creates a Player mock with all necessary mocked behavior.
@@ -1327,11 +1319,4 @@ class PlayerListenerTest {
         verifyNoMoreInteractions(event);
     }
 
-    public static InetAddress createInetAddress(String ip) {
-        try {
-            return InetAddress.getByName(ip);
-        } catch (UnknownHostException e) {
-            throw new IllegalArgumentException("Invalid IP address: " + ip, e);
-        }
-    }
 }

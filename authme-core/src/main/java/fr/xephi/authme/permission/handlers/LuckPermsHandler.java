@@ -54,11 +54,7 @@ public class LuckPermsHandler implements PermissionHandler {
             return false;
         }
 
-        String playerName = player.getName();
-        if (playerName == null) {
-            return false;
-        }
-        User user = luckPerms.getUserManager().getUser(playerName);
+        User user = getLoadedUser(player, "add group", false);
         if (user == null) {
             return false;
         }
@@ -95,14 +91,8 @@ public class LuckPermsHandler implements PermissionHandler {
 
     @Override
     public boolean isInGroup(OfflinePlayer player, UserGroup group) {
-        String playerName = player.getName();
-        if (playerName == null) {
-            return false;
-        }
-        User user = luckPerms.getUserManager().getUser(playerName);
+        User user = getLoadedUser(player, "check group", true);
         if (user == null) {
-            logger.warning("LuckPermsHandler: tried to check group for offline user "
-                + player.getName() + " but it isn't loaded!");
             return false;
         }
 
@@ -112,14 +102,8 @@ public class LuckPermsHandler implements PermissionHandler {
 
     @Override
     public boolean removeFromGroup(OfflinePlayer player, UserGroup group) {
-        String playerName = player.getName();
-        if (playerName == null) {
-            return false;
-        }
-        User user = luckPerms.getUserManager().getUser(playerName);
+        User user = getLoadedUser(player, "remove group", true);
         if (user == null) {
-            logger.warning("LuckPermsHandler: tried to remove group for offline user "
-                + player.getName() + " but it isn't loaded!");
             return false;
         }
 
@@ -132,14 +116,8 @@ public class LuckPermsHandler implements PermissionHandler {
 
     @Override
     public boolean setGroup(OfflinePlayer player, UserGroup group) {
-        String playerName = player.getName();
-        if (playerName == null) {
-            return false;
-        }
-        User user = luckPerms.getUserManager().getUser(playerName);
+        User user = getLoadedUser(player, "set group", true);
         if (user == null) {
-            logger.warning("LuckPermsHandler: tried to set group for offline user "
-                + player.getName() + " but it isn't loaded!");
             return false;
         }
 
@@ -163,14 +141,8 @@ public class LuckPermsHandler implements PermissionHandler {
 
     @Override
     public List<UserGroup> getGroups(OfflinePlayer player) {
-        String playerName = player.getName();
-        if (playerName == null) {
-            return Collections.emptyList();
-        }
-        User user = luckPerms.getUserManager().getUser(playerName);
+        User user = getLoadedUser(player, "get groups", true);
         if (user == null) {
-            logger.warning("LuckPermsHandler: tried to get groups for offline user "
-                + player.getName() + " but it isn't loaded!");
             return Collections.emptyList();
         }
 
@@ -202,6 +174,20 @@ public class LuckPermsHandler implements PermissionHandler {
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             throw new PermissionLoadUserException("Unable to load the permission data of the user " + uuid, e);
         }
+    }
+
+    /** Returns the loaded LuckPerms user for the player, optionally logging if it is not loaded. */
+    private User getLoadedUser(OfflinePlayer player, String action, boolean logWarning) {
+        String playerName = player.getName();
+        if (playerName == null) {
+            return null;
+        }
+        User user = luckPerms.getUserManager().getUser(playerName);
+        if (user == null && logWarning) {
+            logger.warning("LuckPermsHandler: tried to " + action + " for offline user "
+                + playerName + " but it isn't loaded!");
+        }
+        return user;
     }
 
     @NotNull

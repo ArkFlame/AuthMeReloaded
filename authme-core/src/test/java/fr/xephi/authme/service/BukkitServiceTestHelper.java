@@ -2,6 +2,7 @@ package fr.xephi.authme.service;
 
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.mockito.stubbing.Answer;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -23,11 +24,8 @@ public final class BukkitServiceTestHelper {
      * @param bukkitService the mock to set behavior on
      */
     public static void setBukkitServiceToScheduleSyncTaskFromOptionallyAsyncTask(BukkitService bukkitService) {
-        doAnswer(invocation -> {
-            Runnable runnable = invocation.getArgument(0);
-            runnable.run();
-            return null;
-        }).when(bukkitService).scheduleSyncTaskFromOptionallyAsyncTask(any(Runnable.class));
+        doAnswer(runRunnableAt(0))
+            .when(bukkitService).scheduleSyncTaskFromOptionallyAsyncTask(any(Runnable.class));
     }
 
     /**
@@ -37,11 +35,8 @@ public final class BukkitServiceTestHelper {
      * @param bukkitService the mock to set behavior on
      */
     public static void setBukkitServiceToScheduleSyncEntityTaskFromOptionallyAsyncTask(BukkitService bukkitService) {
-        doAnswer(invocation -> {
-            Runnable runnable = invocation.getArgument(1);
-            runnable.run();
-            return null;
-        }).when(bukkitService).scheduleSyncTaskFromOptionallyAsyncTask(any(Entity.class), any(Runnable.class));
+        doAnswer(runRunnableAt(1))
+            .when(bukkitService).scheduleSyncTaskFromOptionallyAsyncTask(any(Entity.class), any(Runnable.class));
     }
 
     /**
@@ -51,11 +46,7 @@ public final class BukkitServiceTestHelper {
      * @param bukkitService the mock to set behavior on
      */
     public static void setBukkitServiceToRunTaskAsynchronously(BukkitService bukkitService) {
-        doAnswer(invocation -> {
-            Runnable runnable = invocation.getArgument(0);
-            runnable.run();
-            return null;
-        }).when(bukkitService).runTaskAsynchronously(any(Runnable.class));
+        doAnswer(runRunnableAt(0)).when(bukkitService).runTaskAsynchronously(any(Runnable.class));
     }
 
     /**
@@ -65,11 +56,7 @@ public final class BukkitServiceTestHelper {
      * @param bukkitService the mock to set behavior on
      */
     public static void setBukkitServiceToRunTaskOptionallyAsync(BukkitService bukkitService) {
-        doAnswer(invocation -> {
-            Runnable runnable = invocation.getArgument(0);
-            runnable.run();
-            return null;
-        }).when(bukkitService).runTaskOptionallyAsync(any(Runnable.class));
+        doAnswer(runRunnableAt(0)).when(bukkitService).runTaskOptionallyAsync(any(Runnable.class));
     }
 
     /**
@@ -79,11 +66,7 @@ public final class BukkitServiceTestHelper {
      * @param bukkitService the mock to set behavior on
      */
     public static void setBukkitServiceToScheduleSyncDelayedTask(BukkitService bukkitService) {
-        doAnswer(invocation -> {
-            Runnable runnable = invocation.getArgument(0);
-            runnable.run();
-            return null;
-        }).when(bukkitService).scheduleSyncDelayedTask(any(Runnable.class));
+        doAnswer(runRunnableAt(0)).when(bukkitService).scheduleSyncDelayedTask(any(Runnable.class));
     }
 
     /**
@@ -93,11 +76,7 @@ public final class BukkitServiceTestHelper {
      * @param bukkitService the mock to set behavior on
      */
     public static void setBukkitServiceToScheduleSyncDelayedTaskWithDelay(BukkitService bukkitService) {
-        doAnswer(invocation -> {
-            Runnable runnable = invocation.getArgument(0);
-            runnable.run();
-            return null;
-        }).when(bukkitService).scheduleSyncDelayedTask(any(Runnable.class), anyLong());
+        doAnswer(runRunnableAt(0)).when(bukkitService).scheduleSyncDelayedTask(any(Runnable.class), anyLong());
     }
 
     /**
@@ -107,34 +86,37 @@ public final class BukkitServiceTestHelper {
      * @param bukkitService the mock to set behavior on
      */
     public static void setBukkitServiceToScheduleSyncDelayedTaskWithEntityAndDelay(BukkitService bukkitService) {
-        doAnswer(invocation -> {
-            Runnable runnable = invocation.getArgument(1);
-            runnable.run();
-            return null;
-        }).when(bukkitService).scheduleSyncDelayedTask(any(Entity.class), any(Runnable.class), anyLong());
+        doAnswer(runRunnableAt(1))
+            .when(bukkitService).scheduleSyncDelayedTask(any(Entity.class), any(Runnable.class), anyLong());
     }
 
     public static void setBukkitServiceToRunOnGlobalRegion(BukkitService bukkitService) {
-        doAnswer(invocation -> {
-            Runnable runnable = invocation.getArgument(0);
-            runnable.run();
-            return null;
-        }).when(bukkitService).runOnGlobalRegion(any(Runnable.class));
+        doAnswer(runRunnableAt(0)).when(bukkitService).runOnGlobalRegion(any(Runnable.class));
     }
 
     public static void setBukkitServiceToRunTaskLaterOnGlobalRegion(BukkitService bukkitService) {
-        doAnswer(invocation -> {
-            Runnable runnable = invocation.getArgument(0);
-            runnable.run();
-            return mock(CancellableTask.class);
-        }).when(bukkitService).runTaskLaterOnGlobalRegion(any(Runnable.class), anyLong());
+        doAnswer(runRunnableAtAndReturnTask(0))
+            .when(bukkitService).runTaskLaterOnGlobalRegion(any(Runnable.class), anyLong());
     }
 
     public static void setBukkitServiceToRunTaskLater(BukkitService bukkitService) {
-        doAnswer(invocation -> {
-            Runnable runnable = invocation.getArgument(1);
+        doAnswer(runRunnableAtAndReturnTask(1))
+            .when(bukkitService).runTaskLater(any(Player.class), any(Runnable.class), anyLong());
+    }
+
+    private static Answer<Object> runRunnableAt(int argumentIndex) {
+        return invocation -> {
+            Runnable runnable = invocation.getArgument(argumentIndex);
+            runnable.run();
+            return null;
+        };
+    }
+
+    private static Answer<Object> runRunnableAtAndReturnTask(int argumentIndex) {
+        return invocation -> {
+            Runnable runnable = invocation.getArgument(argumentIndex);
             runnable.run();
             return mock(CancellableTask.class);
-        }).when(bukkitService).runTaskLater(any(Player.class), any(Runnable.class), anyLong());
+        };
     }
 }

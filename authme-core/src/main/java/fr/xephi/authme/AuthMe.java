@@ -47,10 +47,12 @@ import fr.xephi.authme.platform.PlatformAdapter;
 import fr.xephi.authme.platform.TeleportAdapter;
 
 import java.io.File;
+import java.util.Iterator;
 import java.util.ServiceLoader;
 import java.util.function.Consumer;
 
 import static fr.xephi.authme.service.BukkitService.TICKS_PER_MINUTE;
+
 /**
  * The AuthMe main class.
  */
@@ -264,10 +266,10 @@ public class AuthMe extends JavaPlugin {
     }
 
     private PlatformAdapter loadPlatformAdapter() {
-        java.util.Iterator<PlatformAdapter> it =
+        Iterator<PlatformAdapter> adapters =
             ServiceLoader.load(PlatformAdapter.class, getClass().getClassLoader()).iterator();
-        if (it.hasNext()) {
-            return it.next();
+        if (adapters.hasNext()) {
+            return adapters.next();
         }
         throw new IllegalStateException(
             "No PlatformAdapter found. Ensure you are using a version-specific AuthMe jar.");

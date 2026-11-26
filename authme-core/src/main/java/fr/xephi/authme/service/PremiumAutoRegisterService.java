@@ -80,7 +80,7 @@ public class PremiumAutoRegisterService {
             return false;
         }
 
-        UUID premiumUuid = getVerifiedPremiumUuid(player, name);
+        UUID premiumUuid = resolveVerifiedPremiumUuid(player, name, false);
         if (premiumUuid == null) {
             return false;
         }
@@ -90,11 +90,13 @@ public class PremiumAutoRegisterService {
     }
 
     /**
-     * Uses exactly the same identity sources as premium bypass: a Mojang UUID v4 from the
-     * handshake/proxy, a signed proxy premium claim, or a PacketEvents-verified session.
-     * A player name on its own is never sufficient.
+     * Resolves the verified premium UUID from exactly the same identity sources as premium bypass:
+     * a Mojang UUID v4 from the handshake/proxy, a signed proxy premium claim, or a
+     * PacketEvents-verified session. A player name on its own is never sufficient.
+     * The PacketEvents source is consumed when {@code consume} is set, so a session cannot be
+     * reused after it has been checked again in the saving task.
      */
-    private UUID getVerifiedPremiumUuid(Player player, String name) {
+    private UUID resolveVerifiedPremiumUuid(Player player, String name, boolean consume) {
         UUID playerUuid = player.getUniqueId();
         if (playerUuid != null && playerUuid.version() == 4) {
             return playerUuid;
@@ -103,7 +105,9 @@ public class PremiumAutoRegisterService {
             ProxySessionManager.ProxyLoginRequest request = proxySessionManager.getLoginRequest(name);
             return request == null ? null : request.verifiedPremiumUuid();
         }
-        return premiumLoginVerifier.getVerifiedUuid(name);
+        return consume
+            ? premiumLoginVerifier.consumeVerifiedUuid(name)
+            : premiumLoginVerifier.getVerifiedUuid(name);
     }
 
     private void createAccount(Player player, UUID premiumUuid) {
@@ -163,16 +167,7 @@ public class PremiumAutoRegisterService {
      * consumed session can no longer trigger registration.
      */
     private UUID recheckVerifiedPremiumUuid(Player player, String name, UUID expectedUuid) {
-        UUID playerUuid = player.getUniqueId();
-        if (playerUuid != null && playerUuid.version() == 4) {
-            return expectedUuid.equals(playerUuid) ? expectedUuid : null;
-        }
-        if (bungeeSender.isEnabled()) {
-            ProxySessionManager.ProxyLoginRequest request = proxySessionManager.getLoginRequest(name);
-            UUID verified = request == null ? null : request.verifiedPremiumUuid();
-            return expectedUuid.equals(verified) ? verified : null;
-        }
-        UUID verified = premiumLoginVerifier.consumeVerifiedUuid(name);
+        UUID verified = resolveVerifiedPremiumUuid(player, name, true);
         return expectedUuid.equals(verified) ? verified : null;
     }
 }

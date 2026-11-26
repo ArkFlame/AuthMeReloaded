@@ -20,7 +20,7 @@ import java.util.UUID;
  * synchronous Bukkit API and should return quickly, because the configuration thread waits for
  * the dialog to be answered.
  */
-public class PreJoinDialogEvent extends CustomEvent implements Cancellable {
+public class PreJoinDialogEvent extends AbstractCancellableEvent implements Cancellable {
 
     /** Which pre-join dialog is about to be shown. */
     public enum DialogType {
@@ -37,7 +37,6 @@ public class PreJoinDialogEvent extends CustomEvent implements Cancellable {
     private final InetAddress address;
     private final DialogType dialogType;
     private final boolean registered;
-    private boolean cancelled;
 
     /**
      * Constructor.
@@ -133,16 +132,6 @@ public class PreJoinDialogEvent extends CustomEvent implements Cancellable {
      */
     public boolean isRegistered() {
         return registered;
-    }
-
-    @Override
-    public boolean isCancelled() {
-        return cancelled;
-    }
-
-    @Override
-    public void setCancelled(boolean cancelled) {
-        this.cancelled = cancelled;
     }
 
     /**

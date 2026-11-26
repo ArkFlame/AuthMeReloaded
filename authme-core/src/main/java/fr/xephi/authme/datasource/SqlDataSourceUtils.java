@@ -1,11 +1,14 @@
 package fr.xephi.authme.datasource;
 
 import fr.xephi.authme.ConsoleLogger;
+import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
+import fr.xephi.authme.util.UuidUtils;
 
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.UUID;
 
 /**
  * Utilities for SQL data sources.
@@ -38,6 +41,47 @@ public final class SqlDataSourceUtils {
     public static Long getNullableLong(ResultSet rs, String columnName) throws SQLException {
         long longValue = rs.getLong(columnName);
         return rs.wasNull() ? null : longValue;
+    }
+
+    /**
+     * Builds a {@link PlayerAuth} from the current row of the given result set. The group id is only
+     * read when {@code includeGroup} is true, since SQLite does not define a group column.
+     *
+     * @param row the result set positioned on the row to read
+     * @param col the configured column names
+     * @param includeGroup whether to read the group column
+     * @return the player auth built from the row
+     * @throws SQLException if the row cannot be read
+     */
+    public static PlayerAuth buildAuthFromResultSet(ResultSet row, Columns col, boolean includeGroup)
+        throws SQLException {
+        String salt = col.SALT.isEmpty() ? null : row.getString(col.SALT);
+        int group = includeGroup && !col.GROUP.isEmpty() ? row.getInt(col.GROUP) : -1;
+        UUID uuid = col.PLAYER_UUID.isEmpty()
+            ? null : UuidUtils.parseUuidSafely(row.getString(col.PLAYER_UUID));
+        UUID premiumUuid = col.PREMIUM_UUID.isEmpty()
+            ? null : UuidUtils.parseUuidSafely(row.getString(col.PREMIUM_UUID));
+
+        return PlayerAuth.builder()
+            .name(row.getString(col.NAME))
+            .realName(row.getString(col.REAL_NAME))
+            .password(row.getString(col.PASSWORD), salt)
+            .totpKey(row.getString(col.TOTP_KEY))
+            .lastLogin(getNullableLong(row, col.LAST_LOGIN))
+            .lastIp(row.getString(col.LAST_IP))
+            .email(row.getString(col.EMAIL))
+            .registrationDate(row.getLong(col.REGISTRATION_DATE))
+            .registrationIp(row.getString(col.REGISTRATION_IP))
+            .groupId(group)
+            .locWorld(row.getString(col.LASTLOC_WORLD))
+            .locX(row.getDouble(col.LASTLOC_X))
+            .locY(row.getDouble(col.LASTLOC_Y))
+            .locZ(row.getDouble(col.LASTLOC_Z))
+            .locYaw(row.getFloat(col.LASTLOC_YAW))
+            .locPitch(row.getFloat(col.LASTLOC_PITCH))
+            .uuid(uuid)
+            .premiumUuid(premiumUuid)
+            .build();
     }
 
     /**

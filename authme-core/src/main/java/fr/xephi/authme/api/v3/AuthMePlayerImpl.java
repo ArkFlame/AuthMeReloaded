@@ -12,17 +12,25 @@ import java.util.UUID;
  */
 class AuthMePlayerImpl implements AuthMePlayer {
 
-    private String name;
-    private UUID uuid;
-    private String email;
+    private final String name;
+    private final UUID uuid;
+    private final String email;
 
-    private Instant registrationDate;
-    private String registrationIpAddress;
+    private final Instant registrationDate;
+    private final String registrationIpAddress;
 
-    private Instant lastLoginDate;
-    private String lastLoginIpAddress;
+    private final Instant lastLoginDate;
+    private final String lastLoginIpAddress;
 
-    AuthMePlayerImpl() {
+    private AuthMePlayerImpl(PlayerAuth playerAuth) {
+        this.name = playerAuth.getRealName();
+        this.uuid = playerAuth.getUuid();
+        this.email = nullIfDefault(playerAuth.getEmail(), PlayerAuth.DB_EMAIL_DEFAULT);
+        Long lastLoginMillis = nullIfDefault(playerAuth.getLastLogin(), PlayerAuth.DB_LAST_LOGIN_DEFAULT);
+        this.registrationDate = toInstant(playerAuth.getRegistrationDate());
+        this.registrationIpAddress = playerAuth.getRegistrationIp();
+        this.lastLoginDate = toInstant(lastLoginMillis);
+        this.lastLoginIpAddress = nullIfDefault(playerAuth.getLastIp(), PlayerAuth.DB_LAST_IP_DEFAULT);
     }
 
     /**
@@ -36,17 +44,7 @@ class AuthMePlayerImpl implements AuthMePlayer {
         if (playerAuth == null) {
             return Optional.empty();
         }
-
-        AuthMePlayerImpl authMeUser = new AuthMePlayerImpl();
-        authMeUser.name = playerAuth.getRealName();
-        authMeUser.uuid = playerAuth.getUuid();
-        authMeUser.email = nullIfDefault(playerAuth.getEmail(), PlayerAuth.DB_EMAIL_DEFAULT);
-        Long lastLoginMillis = nullIfDefault(playerAuth.getLastLogin(), PlayerAuth.DB_LAST_LOGIN_DEFAULT);
-        authMeUser.registrationDate = toInstant(playerAuth.getRegistrationDate());
-        authMeUser.registrationIpAddress = playerAuth.getRegistrationIp();
-        authMeUser.lastLoginDate = toInstant(lastLoginMillis);
-        authMeUser.lastLoginIpAddress = nullIfDefault(playerAuth.getLastIp(), PlayerAuth.DB_LAST_IP_DEFAULT);
-        return Optional.of(authMeUser);
+        return Optional.of(new AuthMePlayerImpl(playerAuth));
     }
 
     @Override
@@ -54,6 +52,7 @@ class AuthMePlayerImpl implements AuthMePlayer {
         return name;
     }
 
+    @Override
     public Optional<UUID> getUuid() {
         return Optional.ofNullable(uuid);
     }
@@ -75,7 +74,7 @@ class AuthMePlayerImpl implements AuthMePlayer {
 
     @Override
     public Optional<Instant> getLastLoginDate() {
-        return Optional.ofNullable( lastLoginDate);
+        return Optional.ofNullable(lastLoginDate);
     }
 
     @Override

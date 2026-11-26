@@ -7,6 +7,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
 /**
  * Stores transient dialog state between Paper/Folia's configuration phase and the actual join.
@@ -67,45 +68,27 @@ public class PreJoinDialogService {
     }
 
     public void storePendingLoginPassword(long sessionId, String password) {
-        DialogSession session = sessions.get(sessionId);
-        if (session != null) {
-            session.loginPassword = password;
-        }
+        withSession(sessionId, session -> session.loginPassword = password);
     }
 
     public void storePendingRecoveryEmail(long sessionId, String email) {
-        DialogSession session = sessions.get(sessionId);
-        if (session != null) {
-            session.recoveryEmail = email;
-        }
+        withSession(sessionId, session -> session.recoveryEmail = email);
     }
 
     public void storePendingPasswordRegistration(long sessionId, String password, String email) {
-        DialogSession session = sessions.get(sessionId);
-        if (session != null) {
-            session.registration = new PendingRegistration(password, email, false);
-        }
+        withSession(sessionId, session -> session.registration = new PendingRegistration(password, email, false));
     }
 
     public void storePendingEmailRegistration(long sessionId, String email) {
-        DialogSession session = sessions.get(sessionId);
-        if (session != null) {
-            session.registration = new PendingRegistration(email, null, true);
-        }
+        withSession(sessionId, session -> session.registration = new PendingRegistration(email, null, true));
     }
 
     public void markSkipPostJoinDialog(long sessionId) {
-        DialogSession session = sessions.get(sessionId);
-        if (session != null) {
-            session.skipPostJoinDialog = true;
-        }
+        withSession(sessionId, session -> session.skipPostJoinDialog = true);
     }
 
     public void storePendingKickMessage(long sessionId, String message) {
-        DialogSession session = sessions.get(sessionId);
-        if (session != null) {
-            session.kickMessage = message;
-        }
+        withSession(sessionId, session -> session.kickMessage = message);
     }
 
     /**
@@ -116,16 +99,18 @@ public class PreJoinDialogService {
      * @param future the future that blocks the configuration-phase thread
      */
     public void registerPreJoinFuture(long sessionId, CompletableFuture<String> future) {
-        DialogSession session = sessions.get(sessionId);
-        if (session != null) {
-            session.future = future;
-        }
+        withSession(sessionId, session -> session.future = future);
     }
 
     public void unregisterPreJoinFuture(long sessionId) {
+        withSession(sessionId, session -> session.future = null);
+    }
+
+    /** Applies a state change to a session that is still open, ignoring sessions already retired. */
+    private void withSession(long sessionId, Consumer<DialogSession> action) {
         DialogSession session = sessions.get(sessionId);
         if (session != null) {
-            session.future = null;
+            action.accept(session);
         }
     }
 

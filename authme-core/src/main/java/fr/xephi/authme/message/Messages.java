@@ -148,10 +148,7 @@ public class Messages {
         String message = MiniMessageConverter.convert(
             messagesFileHandler.getMessage(key.getKey(), language), isMiniMessageEnabled());
         String displayName = sender instanceof Player ? ((Player) sender).getDisplayName() : sender.getName();
-        return ChatColor.translateAlternateColorCodes('&', message)
-                .replace(NEWLINE_TAG, "\n")
-                .replace(USERNAME_TAG, sender.getName())
-                .replace(DISPLAYNAME_TAG, displayName);
+        return formatMessage(message, sender.getName(), displayName);
     }
 
     /**
@@ -164,11 +161,14 @@ public class Messages {
     private String retrieveMessage(MessageKey key, String name) {
         String message = MiniMessageConverter.convert(
             messagesFileHandler.getMessage(key.getKey()), isMiniMessageEnabled());
+        return formatMessage(message, name, name);
+    }
 
+    private static String formatMessage(String message, String name, String displayName) {
         return ChatColor.translateAlternateColorCodes('&', message)
                 .replace(NEWLINE_TAG, "\n")
                 .replace(USERNAME_TAG, name)
-                .replace(DISPLAYNAME_TAG, name);
+                .replace(DISPLAYNAME_TAG, displayName);
     }
 
     /**
@@ -182,16 +182,7 @@ public class Messages {
      * @return The message from the file with replacements
      */
     public String retrieveSingle(CommandSender sender, MessageKey key, String... replacements) {
-        String message = retrieveMessage(key, sender);
-        String[] tags = key.getTags();
-        if (replacements.length == tags.length) {
-            for (int i = 0; i < tags.length; ++i) {
-                message = message.replace(tags[i], replacements[i]);
-            }
-        } else {
-            logger.warning("Invalid number of replacements for message key '" + key + "'");
-        }
-        return message;
+        return applyReplacements(retrieveMessage(key, sender), key, replacements);
     }
 
     /**
@@ -205,7 +196,10 @@ public class Messages {
      * @return The message from the file with replacements
      */
     public String retrieveSingle(String name, MessageKey key, String... replacements) {
-        String message = retrieveMessage(key, name);
+        return applyReplacements(retrieveMessage(key, name), key, replacements);
+    }
+
+    private String applyReplacements(String message, MessageKey key, String[] replacements) {
         String[] tags = key.getTags();
         if (replacements.length == tags.length) {
             for (int i = 0; i < tags.length; ++i) {

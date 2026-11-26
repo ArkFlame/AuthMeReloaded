@@ -2,11 +2,13 @@ package fr.xephi.authme.listener;
 
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
+import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityEvent;
 import org.bukkit.event.entity.EntityInteractEvent;
 import org.bukkit.event.entity.EntityRegainHealthEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
@@ -55,9 +57,7 @@ public class EntityListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onFoodLevelChange(FoodLevelChangeEvent event) {
-        if (listenerService.shouldCancelEvent(event)) {
-            event.setCancelled(true);
-        }
+        cancelIfUnauthorized(event);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
@@ -68,19 +68,16 @@ public class EntityListener implements Listener {
         }
     }
 
-    //TODO sgdc3 20190808: We listen at the same event twice, does it make any sense?
+    // Both priorities are needed: the LOWEST handler blocks early, the HIGHEST one
+    // re-applies the check after other plugins have had a chance to uncancel.
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onEntityInteract(EntityInteractEvent event) {
-        if (listenerService.shouldCancelEvent(event)) {
-            event.setCancelled(true);
-        }
+        cancelIfUnauthorized(event);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onLowestEntityInteract(EntityInteractEvent event) {
-        if (listenerService.shouldCancelEvent(event)) {
-            event.setCancelled(true);
-        }
+        cancelIfUnauthorized(event);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
@@ -95,9 +92,7 @@ public class EntityListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.NORMAL)
     public void onShoot(EntityShootBowEvent event) {
-        if (listenerService.shouldCancelEvent(event)) {
-            event.setCancelled(true);
-        }
+        cancelIfUnauthorized(event);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
@@ -118,6 +113,12 @@ public class EntityListener implements Listener {
     public void onVehicleDestroy(VehicleDestroyEvent event) {
         if (listenerService.shouldCancelEvent(event.getAttacker())) {
             event.setCancelled(true);
+        }
+    }
+
+    private void cancelIfUnauthorized(EntityEvent event) {
+        if (listenerService.shouldCancelEvent(event)) {
+            ((Cancellable) event).setCancelled(true);
         }
     }
 }

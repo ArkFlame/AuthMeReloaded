@@ -11,10 +11,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import static fr.xephi.authme.listener.TestPlayerUtils.mockPlayerWithName;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -114,11 +114,6 @@ class LegacyPlayerLoginListenerTest {
         verifyNoModifyingCalls(loginEvent);
     }
 
-    private static Player mockPlayerWithName(String name) {
-        Player player = mock(Player.class);
-        given(player.getName()).willReturn(name);
-        return player;
-    }
 
     private static void verifyNoModifyingCalls(PlayerLoginEvent event) {
         verify(event, atLeast(0)).getPlayer();

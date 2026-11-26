@@ -7,7 +7,7 @@ import fr.xephi.authme.security.crypts.description.Recommendation;
 import fr.xephi.authme.security.crypts.description.SaltType;
 import fr.xephi.authme.security.crypts.description.Usage;
 
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 
 import static fr.xephi.authme.security.HashUtils.isEqual;
@@ -72,14 +72,9 @@ public class PhpBB implements EncryptionMethod {
         private static final String itoa64 = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
         private static String md5(String data) {
-            try {
-                byte[] bytes = data.getBytes("ISO-8859-1");
-                MessageDigest md5er = HashUtils.getDigest(MessageDigestAlgorithm.MD5);
-                byte[] hash = md5er.digest(bytes);
-                return bytes2hex(hash);
-            } catch (UnsupportedEncodingException e) {
-                throw new UnsupportedOperationException(e);
-            }
+            byte[] bytes = data.getBytes(StandardCharsets.ISO_8859_1);
+            MessageDigest md5er = HashUtils.getDigest(MessageDigestAlgorithm.MD5);
+            return HashUtils.toHex(md5er.digest(bytes));
         }
 
         private static int hexToInt(char ch) {
@@ -89,17 +84,6 @@ public class PhpBB implements EncryptionMethod {
             if (ch >= 'A' && ch <= 'F')
                 return ch - 'A' + 0xA;
             throw new IllegalArgumentException("Not a hex character: " + ch);
-        }
-
-        private static String bytes2hex(byte[] bytes) {
-            StringBuilder r = new StringBuilder(32);
-            for (byte b : bytes) {
-                String x = Integer.toHexString(b & 0xff);
-                if (x.length() < 2)
-                    r.append('0');
-                r.append(x);
-            }
-            return r.toString();
         }
 
         private static String pack(String hex) {

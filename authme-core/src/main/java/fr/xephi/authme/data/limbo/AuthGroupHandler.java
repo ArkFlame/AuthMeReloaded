@@ -13,6 +13,7 @@ import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.function.Consumer;
 
 /**
  * Changes the permission group according to the auth status of the player and the configuration.
@@ -95,16 +96,7 @@ class AuthGroupHandler implements Reloadable {
      * @param groups the groups from the limbo player
      */
     private void addGroups(Player player, Collection<UserGroup> groups) {
-        for (UserGroup group : groups) {
-            if (!isValidGroup(group)) {
-                continue;
-            }
-            try {
-                permissionsManager.addGroup(player, group);
-            } catch (RuntimeException e) {
-                logger.logException("Unable to restore permission group '" + group.getGroupName() + "'", e);
-            }
-        }
+        processGroups(player, groups, group -> permissionsManager.addGroup(player, group), "restore");
     }
 
     /**
@@ -115,14 +107,20 @@ class AuthGroupHandler implements Reloadable {
      * @param groups the groups from the limbo player
      */
     private void removeGroups(Player player, Collection<UserGroup> groups) {
+        processGroups(player, groups, group -> permissionsManager.removeGroup(player, group), "remove");
+    }
+
+    private void processGroups(Player player, Collection<UserGroup> groups, Consumer<UserGroup> action,
+                               String actionName) {
         for (UserGroup group : groups) {
             if (!isValidGroup(group)) {
                 continue;
             }
             try {
-                permissionsManager.removeGroup(player, group);
+                action.accept(group);
             } catch (RuntimeException e) {
-                logger.logException("Unable to remove permission group '" + group.getGroupName() + "'", e);
+                logger.logException("Unable to " + actionName + " permission group '"
+                    + group.getGroupName() + "'", e);
             }
         }
     }

@@ -416,11 +416,7 @@ public class AsynchronousJoinTest {
     public void shouldRestoreOperatorOfUnregisteredPlayerWhenRegistrationIsOptional() {
         // given
         Player player = mockPlayer("Bobby");
-        given(validationService.fulfillsNameRestrictions(player)).willReturn(true);
-        given(service.getProperty(RestrictionSettings.UNRESTRICTED_NAMES)).willReturn(Set.of());
-        given(service.getProperty(RestrictionSettings.FORCE_SURVIVAL_MODE)).willReturn(false);
-        given(service.getProperty(HooksSettings.DISABLE_SOCIAL_SPY)).willReturn(false);
-        given(service.getProperty(RestrictionSettings.MAX_JOIN_PER_IP)).willReturn(0);
+        givenDefaultJoinRestrictions(player);
         given(database.getAuth("bobby")).willReturn(null);
         given(service.getProperty(RegistrationSettings.FORCE)).willReturn(false);
 
@@ -456,11 +452,7 @@ public class AsynchronousJoinTest {
         Player player = mockPlayer(".Bobby");
         UUID playerId = UUID.fromString("00000000-0000-0000-0009-01f163ba2c3a");
         given(player.getUniqueId()).willReturn(playerId);
-        given(validationService.fulfillsNameRestrictions(player)).willReturn(true);
-        given(service.getProperty(RestrictionSettings.UNRESTRICTED_NAMES)).willReturn(Set.of());
-        given(service.getProperty(RestrictionSettings.FORCE_SURVIVAL_MODE)).willReturn(false);
-        given(service.getProperty(HooksSettings.DISABLE_SOCIAL_SPY)).willReturn(false);
-        given(service.getProperty(RestrictionSettings.MAX_JOIN_PER_IP)).willReturn(0);
+        givenDefaultJoinRestrictions(player);
         given(database.getAuth(".bobby")).willReturn(null);
         given(floodgateService.canAutoRegister(playerId)).willReturn(true);
         given(service.getProperty(SecuritySettings.MIN_PASSWORD_LENGTH)).willReturn(5);
@@ -637,11 +629,7 @@ public class AsynchronousJoinTest {
     public void shouldShowRegisterPromptForUnregisteredPlayerRequestingForceLogin() {
         // given - forceLogin is meaningless without an account
         Player player = mockPlayer("Bobby");
-        given(validationService.fulfillsNameRestrictions(player)).willReturn(true);
-        given(service.getProperty(RestrictionSettings.UNRESTRICTED_NAMES)).willReturn(Set.of());
-        given(service.getProperty(RestrictionSettings.FORCE_SURVIVAL_MODE)).willReturn(false);
-        given(service.getProperty(HooksSettings.DISABLE_SOCIAL_SPY)).willReturn(false);
-        given(service.getProperty(RestrictionSettings.MAX_JOIN_PER_IP)).willReturn(0);
+        givenDefaultJoinRestrictions(player);
         given(database.getAuth("bobby")).willReturn(null);
         given(service.getProperty(RestrictionSettings.PROTECT_INVENTORY_BEFORE_LOGIN)).willReturn(false);
         given(service.getProperty(RegistrationSettings.FORCE)).willReturn(true);
@@ -762,13 +750,17 @@ public class AsynchronousJoinTest {
             ((java.util.function.Function<Boolean, org.bukkit.event.Event>) invocation.getArgument(0)).apply(false));
     }
 
-    private void setUpRegisteredJoin(Player player) {
-        String normalizedName = player.getName().toLowerCase();
+    private void givenDefaultJoinRestrictions(Player player) {
         given(validationService.fulfillsNameRestrictions(player)).willReturn(true);
         given(service.getProperty(RestrictionSettings.UNRESTRICTED_NAMES)).willReturn(Set.of());
         given(service.getProperty(RestrictionSettings.FORCE_SURVIVAL_MODE)).willReturn(false);
         given(service.getProperty(HooksSettings.DISABLE_SOCIAL_SPY)).willReturn(false);
         given(service.getProperty(RestrictionSettings.MAX_JOIN_PER_IP)).willReturn(0);
+    }
+
+    private void setUpRegisteredJoin(Player player) {
+        String normalizedName = player.getName().toLowerCase();
+        givenDefaultJoinRestrictions(player);
         auth = mock(PlayerAuth.class);
         given(database.getAuth(normalizedName)).willReturn(auth);
         given(service.getProperty(RestrictionSettings.PROTECT_INVENTORY_BEFORE_LOGIN)).willReturn(false);

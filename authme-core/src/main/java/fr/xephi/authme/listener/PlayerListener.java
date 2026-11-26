@@ -28,11 +28,13 @@ import org.bukkit.entity.EnderPearl;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
@@ -42,6 +44,7 @@ import org.bukkit.event.player.PlayerBedEnterEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerEditBookEvent;
+import org.bukkit.event.player.PlayerEvent;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
@@ -367,7 +370,10 @@ public class PlayerListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event) {
-        String cmd = event.getMessage().split(" ")[0].toLowerCase(Locale.ROOT);
+        // Avoid String#split's array allocation on this hot event: only the first token is needed.
+        String message = event.getMessage();
+        int spaceIndex = message.indexOf(' ');
+        String cmd = (spaceIndex < 0 ? message : message.substring(0, spaceIndex)).toLowerCase(Locale.ROOT);
         if (settings.getProperty(HooksSettings.USE_ESSENTIALS_MOTD) && "/motd".equals(cmd)) {
             return;
         }
@@ -392,7 +398,10 @@ public class PlayerListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onPlayerMove(PlayerMoveEvent event) {
-        if (settings.getProperty(ALLOW_UNAUTHED_MOVEMENT) && settings.getProperty(ALLOWED_MOVEMENT_RADIUS) <= 0) {
+        // PlayerMoveEvent is one of the hottest events: read each setting once instead of twice.
+        boolean allowUnauthedMovement = settings.getProperty(ALLOW_UNAUTHED_MOVEMENT);
+        int allowedRadius = allowUnauthedMovement ? settings.getProperty(ALLOWED_MOVEMENT_RADIUS) : 0;
+        if (allowUnauthedMovement && allowedRadius <= 0) {
             return;
         }
 
@@ -418,7 +427,7 @@ public class PlayerListener implements Listener {
             return;
         }
 
-        if (!settings.getProperty(RestrictionSettings.ALLOW_UNAUTHED_MOVEMENT)) {
+        if (!allowUnauthedMovement) {
             // "cancel" the event
             event.setTo(event.getFrom());
             return;
@@ -434,12 +443,14 @@ public class PlayerListener implements Listener {
                 teleportAdapter.teleportPlayer(player, spawn);
                 return;
             }
-            double radius = settings.getProperty(ALLOWED_MOVEMENT_RADIUS);
-            Location current = player.getLocation() != null ? player.getLocation() : from;
-            if (spawn.distance(current) > radius) {
+            Location current = player.getLocation();
+            if (current == null) {
+                current = from;
+            }
+            if (spawn.distance(current) > allowedRadius) {
                 // Already outside the radius: there is no in-radius location to fall back to.
                 teleportAdapter.teleportPlayer(player, spawn);
-            } else if (spawn.distance(to) > radius) {
+            } else if (spawn.distance(to) > allowedRadius) {
                 // #3081: prevent crossing the boundary without teleporting the player to spawn.
                 event.setTo(from);
             }
@@ -455,9 +466,7 @@ public class PlayerListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onPlayerPortal(PlayerPortalEvent event) {
-        if (listenerService.shouldCancelEvent(event)) {
-            event.setCancelled(true);
-        }
+        cancelIfUnauthorized(event);
     }
 
     private static boolean isBlockedTeleportCause(PlayerTeleportEvent.TeleportCause cause) {
@@ -498,66 +507,47 @@ public class PlayerListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerInteract(PlayerInteractEvent event) {
-        if (listenerService.shouldCancelEvent(event)) {
-            event.setCancelled(true);
-        }
+        cancelIfUnauthorized(event);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onPlayerInteractEntity(PlayerInteractEntityEvent event) {
-        if (listenerService.shouldCancelEvent(event)) {
-            event.setCancelled(true);
-        }
+        cancelIfUnauthorized(event);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onPlayerInteractAtEntity(PlayerInteractAtEntityEvent event) {
-        if (listenerService.shouldCancelEvent(event)) {
-            event.setCancelled(true);
-        }
+        cancelIfUnauthorized(event);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onPlayerHitPlayerEvent(EntityDamageByEntityEvent event) {
-        if (listenerService.shouldCancelEvent(event)) {
-            event.setCancelled(true);
-        }
+        cancelIfUnauthorized(event);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onPlayerShear(PlayerShearEntityEvent event) {
-        if (listenerService.shouldCancelEvent(event)) {
-            event.setCancelled(true);
-        }
+        cancelIfUnauthorized(event);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onPlayerFish(PlayerFishEvent event) {
-        if (listenerService.shouldCancelEvent(event)) {
-            event.setCancelled(true);
-        }
+        cancelIfUnauthorized(event);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onPlayerBedEnter(PlayerBedEnterEvent event) {
-        if (listenerService.shouldCancelEvent(event)) {
-            event.setCancelled(true);
-        }
+        cancelIfUnauthorized(event);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onPlayerEditBook(PlayerEditBookEvent event) {
-        if (listenerService.shouldCancelEvent(event)) {
-            event.setCancelled(true);
-        }
+        cancelIfUnauthorized(event);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onSignChange(SignChangeEvent event) {
-        Player player = event.getPlayer();
-        if (listenerService.shouldCancelEvent(player)) {
-            event.setCancelled(true);
-        }
+        cancelIfUnauthorized(event.getPlayer(), event);
     }
 
     /*
@@ -566,23 +556,17 @@ public class PlayerListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onPlayerDropItem(PlayerDropItemEvent event) {
-        if (listenerService.shouldCancelEvent(event)) {
-            event.setCancelled(true);
-        }
+        cancelIfUnauthorized(event);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onPlayerHeldItem(PlayerItemHeldEvent event) {
-        if (listenerService.shouldCancelEvent(event)) {
-            event.setCancelled(true);
-        }
+        cancelIfUnauthorized(event);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onPlayerConsumeItem(PlayerItemConsumeEvent event) {
-        if (listenerService.shouldCancelEvent(event)) {
-            event.setCancelled(true);
-        }
+        cancelIfUnauthorized(event);
     }
 
     // Port of HaHaWTH/AuthMeReReloaded @ 06f6035b0: exact or substring inventory title matching
@@ -634,6 +618,29 @@ public class PlayerListener implements Listener {
     public void onPlayerInventoryDrag(InventoryDragEvent event) {
         if (listenerService.shouldCancelEvent(event.getWhoClicked())
             && !isInventoryWhitelisted(event.getView())) {
+            event.setCancelled(true);
+        }
+    }
+
+    /*
+     * Shared bodies for the simple "cancel if the player is not authenticated" handlers.
+     * The overloads preserve the ListenerService overload used by each event kind.
+     */
+
+    private void cancelIfUnauthorized(PlayerEvent event) {
+        if (listenerService.shouldCancelEvent(event)) {
+            ((Cancellable) event).setCancelled(true);
+        }
+    }
+
+    private void cancelIfUnauthorized(EntityEvent event) {
+        if (listenerService.shouldCancelEvent(event)) {
+            ((Cancellable) event).setCancelled(true);
+        }
+    }
+
+    private void cancelIfUnauthorized(Player player, Cancellable event) {
+        if (listenerService.shouldCancelEvent(player)) {
             event.setCancelled(true);
         }
     }

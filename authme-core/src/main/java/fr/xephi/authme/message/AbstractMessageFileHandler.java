@@ -14,6 +14,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import javax.annotation.PostConstruct;
 import java.io.File;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 import static fr.xephi.authme.message.MessagePathHelper.DEFAULT_LANGUAGE;
 
@@ -105,15 +106,7 @@ public abstract class AbstractMessageFileHandler implements Reloadable {
      * @return the message, or {@code null} if not available
      */
     public String getMessageIfExists(String key, String language) {
-        if (language == null || language.equals(getLanguage())) {
-            return getMessageIfExists(key);
-        }
-        FileConfiguration config = languageCache.computeIfAbsent(language, this::loadLanguageConfiguration);
-        if (config == UNAVAILABLE) {
-            return getMessageIfExists(key);
-        }
-        String message = config.getString(key);
-        return message != null ? message : getMessageIfExists(key);
+        return getMessageInLanguage(key, language, () -> getMessageIfExists(key));
     }
 
     /**
@@ -125,15 +118,29 @@ public abstract class AbstractMessageFileHandler implements Reloadable {
      * @return the message
      */
     public String getMessage(String key, String language) {
+        return getMessageInLanguage(key, language, () -> getMessage(key));
+    }
+
+    /**
+     * Looks up a key in the requested language, falling back to the supplied default when the language is
+     * unavailable or does not define the key. The fallback is provided by the caller because
+     * {@link #getMessage(String)} may be overridden to add its own fallback logic.
+     *
+     * @param key the key to retrieve
+     * @param language the requested language, or null for the server default
+     * @param fallback supplies the message to use when the requested language has no value
+     * @return the message in the requested language, or the fallback message
+     */
+    private String getMessageInLanguage(String key, String language, Supplier<String> fallback) {
         if (language == null || language.equals(getLanguage())) {
-            return getMessage(key);
+            return fallback.get();
         }
         FileConfiguration config = languageCache.computeIfAbsent(language, this::loadLanguageConfiguration);
         if (config == UNAVAILABLE) {
-            return getMessage(key);
+            return fallback.get();
         }
         String message = config.getString(key);
-        return message != null ? message : getMessage(key);
+        return message != null ? message : fallback.get();
     }
 
     private FileConfiguration loadLanguageConfiguration(String language) {

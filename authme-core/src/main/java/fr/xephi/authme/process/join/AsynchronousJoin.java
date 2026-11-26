@@ -457,22 +457,24 @@ public class AsynchronousJoin implements AsynchronousProcess {
                 player.addPotionEffect(bukkitService.createBlindnessEffect(blindTimeOut));
             }
             commandManager.runCommandsOnJoin(player);
+
+            // Pre-join dialog actions are mutually exclusive and all require the limbo created above.
+            // Pick the single action to run and schedule one follow-up task rather than one per case.
+            Runnable pendingAction = null;
             if (pendingRegistration != null) {
-                bukkitService.runTaskOptionallyAsync(() -> processPendingRegistration(player, pendingRegistration));
+                pendingAction = () -> processPendingRegistration(player, pendingRegistration);
+            } else if (pendingLoginPassword != null) {
+                pendingAction = () -> asynchronousLogin.login(player, pendingLoginPassword);
+            } else if (pendingRecoveryEmail != null) {
+                pendingAction = () -> processPendingEmailRecovery(player, pendingRecoveryEmail);
+            } else if (pendingForceLogin) {
+                pendingAction = () -> asynchronousLogin.forceLogin(player);
+            }
+            if (pendingAction != null) {
+                bukkitService.runTaskOptionallyAsync(pendingAction);
                 return;
             }
-            if (pendingLoginPassword != null) {
-                bukkitService.runTaskOptionallyAsync(() -> asynchronousLogin.login(player, pendingLoginPassword));
-                return;
-            }
-            if (pendingRecoveryEmail != null) {
-                bukkitService.runTaskOptionallyAsync(() -> processPendingEmailRecovery(player, pendingRecoveryEmail));
-                return;
-            }
-            if (pendingForceLogin) {
-                bukkitService.runTaskOptionallyAsync(() -> asynchronousLogin.forceLogin(player));
-                return;
-            }
+
             if (!shouldSkipPostJoinDialog
                 && !playerCache.isAuthenticated(player.getName())
                 && service.getProperty(RegistrationSettings.USE_DIALOG_UI)

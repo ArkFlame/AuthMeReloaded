@@ -24,14 +24,13 @@ import org.bukkit.event.HandlerList;
  * return before continuing the asynchronous join, so the decision made here is final. The event is
  * never called when the player is not subject to authentication (for example unrestricted names).
  */
-public class PlayerPreAuthEvent extends CustomEvent implements Cancellable {
+public class PlayerPreAuthEvent extends AbstractCancellableEvent implements Cancellable {
 
     private static final HandlerList handlers = new HandlerList();
 
     private final Player player;
     private final boolean registered;
     private final Source source;
-    private boolean cancelled;
     private boolean forceLoginRequested;
 
     /**
@@ -86,7 +85,7 @@ public class PlayerPreAuthEvent extends CustomEvent implements Cancellable {
      */
     public void forceLogin() {
         this.forceLoginRequested = true;
-        this.cancelled = false;
+        super.setCancelled(false);
     }
 
     /**
@@ -106,11 +105,6 @@ public class PlayerPreAuthEvent extends CustomEvent implements Cancellable {
         setCancelled(true);
     }
 
-    @Override
-    public boolean isCancelled() {
-        return cancelled;
-    }
-
     /**
      * Cancelling the event skips authentication, see {@link #skipAuthentication()}.
      * A cancelled event cannot also force a login: cancelling clears a pending {@link #forceLogin()}.
@@ -119,7 +113,7 @@ public class PlayerPreAuthEvent extends CustomEvent implements Cancellable {
      */
     @Override
     public void setCancelled(boolean cancel) {
-        this.cancelled = cancel;
+        super.setCancelled(cancel);
         if (cancel) {
             this.forceLoginRequested = false;
         }

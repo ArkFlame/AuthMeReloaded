@@ -1,31 +1,20 @@
 package fr.xephi.authme.command.executable.authme;
 
-import fr.xephi.authme.command.PlayerCommand;
 import fr.xephi.authme.message.MessageKey;
-import fr.xephi.authme.platform.TeleportAdapter;
-import fr.xephi.authme.settings.SpawnLoader;
-import org.bukkit.entity.Player;
-
-import javax.inject.Inject;
-import java.util.List;
+import org.bukkit.Location;
 
 /**
  * Teleports the player to the first spawn.
  */
-public class FirstSpawnCommand extends PlayerCommand {
-
-    @Inject
-    private SpawnLoader spawnLoader;
-
-    @Inject
-    private TeleportAdapter teleportAdapter;
+public class FirstSpawnCommand extends SpawnTeleportCommand {
 
     @Override
-    public void runCommand(Player player, List<String> arguments) {
-        if (spawnLoader.getFirstSpawn() == null) {
-            messages.send(player, MessageKey.FIRST_SPAWN_NOT_DEFINED);
-        } else {
-            teleportAdapter.teleportPlayer(player, spawnLoader.getFirstSpawn());
-        }
+    protected Location getSpawn() {
+        return getSpawnLoader().getFirstSpawn();
+    }
+
+    @Override
+    protected MessageKey getNotDefinedMessage() {
+        return MessageKey.FIRST_SPAWN_NOT_DEFINED;
     }
 }

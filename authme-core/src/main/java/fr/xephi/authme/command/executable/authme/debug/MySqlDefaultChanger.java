@@ -255,8 +255,7 @@ class MySqlDefaultChanger implements DebugSection {
     @VisibleForTesting
     Connection getConnection(MySQL mySql) {
         try {
-            Method method = MySQL.class.getDeclaredMethod("getConnection");
-            method.setAccessible(true);
+            Method method = MySQL.class.getMethod("getConnection");
             return (Connection) method.invoke(mySql);
         } catch (IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
             throw new IllegalStateException("Could not get MySQL connection", e);

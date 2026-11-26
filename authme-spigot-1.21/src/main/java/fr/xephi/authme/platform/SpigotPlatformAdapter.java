@@ -17,23 +17,10 @@ import java.util.List;
  */
 public class SpigotPlatformAdapter extends AbstractSpigotPlatformAdapter {
 
-    /**
-     * True when the BungeeCord dialog API is present on the running server (Spigot 1.21.6+).
-     * Checked once at class-load time via Class.forName so that SpigotDialogHelper — which
-     * directly references those classes — is never loaded on servers that don't have them.
-     */
-    private static final boolean DIALOG_AVAILABLE;
-
-    static {
-        boolean available = false;
-        try {
-            Class.forName("net.md_5.bungee.api.dialog.MultiActionDialog");
-            available = true;
-        } catch (ClassNotFoundException ignored) {
-            // BungeeCord dialog API absent (Spigot < 1.21.6)
-        }
-        DIALOG_AVAILABLE = available;
-    }
+    private static final SpigotCompatibility COMPATIBILITY = new SpigotCompatibility(
+        "This AuthMe Spigot 1.21 build requires the Spigot 1.20+ API.",
+        "org.spigotmc.event.player.PlayerSpawnLocationEvent",
+        "org.bukkit.event.player.PlayerSignOpenEvent");
 
     @Override
     public String getPlatformName() {
@@ -42,9 +29,7 @@ public class SpigotPlatformAdapter extends AbstractSpigotPlatformAdapter {
 
     @Override
     public String getCompatibilityError() {
-        return getCompatibilityError("This AuthMe Spigot 1.21 build requires the Spigot 1.20+ API.",
-            "org.spigotmc.event.player.PlayerSpawnLocationEvent",
-            "org.bukkit.event.player.PlayerSignOpenEvent");
+        return COMPATIBILITY.getError();
     }
 
     @Override
@@ -65,7 +50,7 @@ public class SpigotPlatformAdapter extends AbstractSpigotPlatformAdapter {
 
     @Override
     public boolean isDialogSupported() {
-        return DIALOG_AVAILABLE;
+        return DialogApiAvailability.isAvailable();
     }
 
     @Override
@@ -96,7 +81,7 @@ public class SpigotPlatformAdapter extends AbstractSpigotPlatformAdapter {
 
     @Override
     public void closeDialog(Player player) {
-        if (DIALOG_AVAILABLE) {
+        if (DialogApiAvailability.isAvailable()) {
             SpigotDialogHelper.closeDialog(player);
         }
     }

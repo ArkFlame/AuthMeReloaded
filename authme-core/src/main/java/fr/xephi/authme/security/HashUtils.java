@@ -13,6 +13,8 @@ import javax.crypto.spec.SecretKeySpec;
  */
 public final class HashUtils {
 
+    private static final char[] HEX_CHARS = "0123456789abcdef".toCharArray();
+
     private HashUtils() {
     }
 
@@ -113,6 +115,22 @@ public final class HashUtils {
     public static boolean isEqual(String string1, String string2) {
         return MessageDigest.isEqual(
             string1.getBytes(StandardCharsets.UTF_8), string2.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * Returns the given bytes as a lowercase hexadecimal string (two characters per byte).
+     *
+     * @param bytes the bytes to convert
+     * @return the hexadecimal representation of the bytes
+     */
+    public static String toHex(byte[] bytes) {
+        char[] chars = new char[bytes.length * 2];
+        for (int i = 0; i < bytes.length; ++i) {
+            int value = bytes[i] & 0xFF;
+            chars[i * 2] = HEX_CHARS[value >>> 4];
+            chars[i * 2 + 1] = HEX_CHARS[value & 0x0F];
+        }
+        return new String(chars);
     }
 
     /**

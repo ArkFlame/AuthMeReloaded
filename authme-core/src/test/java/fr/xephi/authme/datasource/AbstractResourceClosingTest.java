@@ -8,7 +8,6 @@ import fr.xephi.authme.security.crypts.HashedPassword;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.lang.reflect.InvocationTargetException;
@@ -210,17 +209,7 @@ public abstract class AbstractResourceClosingTest {
     private ResultSet initResultSet() throws SQLException {
         ResultSet rs = mock(ResultSet.class);
         // Return true for ResultSet#next the first time to make sure we execute all code
-        given(rs.next()).willAnswer(new Answer<Boolean>() {
-            boolean isInitial = true;
-            @Override
-            public Boolean answer(InvocationOnMock invocation) {
-                if (isInitial) {
-                    isInitial = false;
-                    return true;
-                }
-                return false;
-            }
-        });
+        given(rs.next()).willReturn(true, false);
         given(rs.getString(anyInt())).willReturn("test");
         given(rs.getString(anyString())).willReturn("test");
 

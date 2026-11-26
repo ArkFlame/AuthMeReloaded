@@ -1,6 +1,5 @@
 package fr.xephi.authme.settings;
 
-import fr.xephi.authme.AuthMe;
 import fr.xephi.authme.ConsoleLogger;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.settings.properties.EmailSettings;
@@ -17,14 +16,11 @@ import javax.inject.Inject;
  * see {@link SettingsMigrationService}.
  */
 public class SettingsWarner {
-    
+
     private final ConsoleLogger logger = ConsoleLoggerFactory.get(SettingsWarner.class);
 
     @Inject
     private Settings settings;
-
-    @Inject
-    private AuthMe authMe;
 
     SettingsWarner() {
     }

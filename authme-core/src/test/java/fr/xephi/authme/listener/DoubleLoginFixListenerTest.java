@@ -15,8 +15,8 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Arrays;
-import java.util.Collection;
 
+import static fr.xephi.authme.listener.TestPlayerUtils.mockPlayerWithName;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -53,8 +53,8 @@ class DoubleLoginFixListenerTest {
     @Test
     void shouldKickDuplicateNameIgnoringCase() {
         given(commonService.getProperty(SecuritySettings.ANTI_GHOST_PLAYERS)).willReturn(true);
-        Player first = mockPlayer("Ghost");
-        Player duplicate = mockPlayer("ghost");
+        Player first = mockPlayerWithName("Ghost");
+        Player duplicate = mockPlayerWithName("ghost");
         given(commonService.retrieveSingleMessage(duplicate, MessageKey.DOUBLE_LOGIN_FIX))
             .willReturn("Doubled login");
 
@@ -71,8 +71,8 @@ class DoubleLoginFixListenerTest {
     @Test
     void shouldNotKickPlayersWithUniqueNames() {
         given(commonService.getProperty(SecuritySettings.ANTI_GHOST_PLAYERS)).willReturn(true);
-        Player first = mockPlayer("Alice");
-        Player second = mockPlayer("Bob");
+        Player first = mockPlayerWithName("Alice");
+        Player second = mockPlayerWithName("Bob");
 
         Server server = serverWithPlayers(first, second);
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
@@ -84,12 +84,6 @@ class DoubleLoginFixListenerTest {
         verify(second, never()).kickPlayer(org.mockito.ArgumentMatchers.anyString());
         verify(commonService, never()).retrieveSingleMessage(org.mockito.ArgumentMatchers.any(),
             org.mockito.ArgumentMatchers.any(MessageKey.class));
-    }
-
-    private static Player mockPlayer(String name) {
-        Player player = mock(Player.class);
-        given(player.getName()).willReturn(name);
-        return player;
     }
 
     private static Server serverWithPlayers(Player... players) {

@@ -7,25 +7,20 @@ import org.bukkit.event.HandlerList;
 /**
  * Event fired before a session is restored.
  */
-public class RestoreSessionEvent extends CustomEvent implements Cancellable {
+public class RestoreSessionEvent extends AbstractCancellableEvent implements Cancellable {
 
     private static final HandlerList handlers = new HandlerList();
     private final Player player;
-    private boolean isCancelled;
 
+    /**
+     * Constructor.
+     *
+     * @param player the player whose session is about to be restored
+     * @param isAsync {@code true} to fire the event asynchronously, false otherwise
+     */
     public RestoreSessionEvent(Player player, boolean isAsync) {
         super(isAsync);
         this.player = player;
-    }
-
-    @Override
-    public boolean isCancelled() {
-        return isCancelled;
-    }
-
-    @Override
-    public void setCancelled(boolean isCancelled) {
-        this.isCancelled = isCancelled;
     }
 
     /**

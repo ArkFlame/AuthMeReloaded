@@ -9,11 +9,10 @@ import org.bukkit.event.HandlerList;
  * This event is fired when the inventory of a player is restored
  * (the inventory data is no longer hidden from the user).
  */
-public class RestoreInventoryEvent extends CustomEvent implements Cancellable {
+public class RestoreInventoryEvent extends AbstractCancellableEvent implements Cancellable {
 
     private static final HandlerList handlers = new HandlerList();
     private final Player player;
-    private boolean isCancelled;
 
     /**
      * Constructor.
@@ -31,16 +30,6 @@ public class RestoreInventoryEvent extends CustomEvent implements Cancellable {
      */
     public Player getPlayer() {
         return player;
-    }
-
-    @Override
-    public boolean isCancelled() {
-        return isCancelled;
-    }
-
-    @Override
-    public void setCancelled(boolean isCancelled) {
-        this.isCancelled = isCancelled;
     }
 
     /**

@@ -1,11 +1,9 @@
 package fr.xephi.authme.datasource.converter;
 
-import fr.xephi.authme.TestHelper;
 import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.datasource.DataSourceType;
 import org.bukkit.command.CommandSender;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -28,12 +26,7 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 /**
  * Test for {@link AbstractDataSourceConverter}.
  */
-class AbstractDataSourceConverterTest {
-
-    @BeforeAll
-    static void initLogger() {
-        TestHelper.setupLogger();
-    }
+class AbstractDataSourceConverterTest extends AbstractConverterTest {
 
     @Test
     void shouldThrowForDestinationTypeMismatch() {

@@ -316,13 +316,8 @@ public class SpawnLoader implements Reloadable {
      * @return True upon success, false otherwise
      */
     private boolean isValidSpawnPoint(Location location) {
-        if (location == null) {
-            return false;
-        }
-        if (location.getX() == 0 && location.getY() == 0 && location.getZ() == 0) {
-            return false;
-        }
-        return true;
+        return location != null
+            && !(location.getX() == 0 && location.getY() == 0 && location.getZ() == 0);
     }
 
     /**
@@ -405,17 +400,7 @@ public class SpawnLoader implements Reloadable {
      * @return Location corresponding to the values in the path
      */
     private static Location getLocationFromConfiguration(FileConfiguration configuration, String pathPrefix) {
-        if (containsAllSpawnFields(configuration, pathPrefix)) {
-            String prefix = pathPrefix + ".";
-            String worldName = configuration.getString(prefix + "world");
-            World world = Bukkit.getWorld(worldName);
-            if (!StringUtils.isBlank(worldName) && world != null) {
-                return new Location(world, configuration.getDouble(prefix + "x"),
-                    configuration.getDouble(prefix + "y"), configuration.getDouble(prefix + "z"),
-                    getFloat(configuration, prefix + "yaw"), getFloat(configuration, prefix + "pitch"));
-            }
-        }
-        return null;
+        return buildLocation(configuration, pathPrefix, "world", "x", "y", "z", "yaw", "pitch");
     }
 
     /**
@@ -426,51 +411,50 @@ public class SpawnLoader implements Reloadable {
      * @return Location corresponding to the values in the path
      */
     private static Location getLocationFromCmiConfiguration(FileConfiguration configuration) {
-        final String pathPrefix = "Spawn.Main";
-        if (isLocationCompleteInCmiConfig(configuration, pathPrefix)) {
-            String prefix = pathPrefix + ".";
-            String worldName = configuration.getString(prefix + "World");
-            World world = Bukkit.getWorld(worldName);
-            if (!StringUtils.isBlank(worldName) && world != null) {
-                return new Location(world, configuration.getDouble(prefix + "X"),
-                    configuration.getDouble(prefix + "Y"), configuration.getDouble(prefix + "Z"),
-                    getFloat(configuration, prefix + "Yaw"), getFloat(configuration, prefix + "Pitch"));
-            }
-        }
-        return null;
+        return buildLocation(configuration, "Spawn.Main", "World", "X", "Y", "Z", "Yaw", "Pitch");
     }
 
     /**
-     * Return whether the file configuration contains all fields necessary to define a spawn
-     * under the given path.
+     * Build a {@link Location} from the fields stored under {@code pathPrefix}, using the given field keys.
+     *
+     * @param configuration the file configuration to read from
+     * @param pathPrefix the path holding the spawn point
+     * @param worldKey key of the world name
+     * @param xKey key of the x coordinate
+     * @param yKey key of the y coordinate
+     * @param zKey key of the z coordinate
+     * @param yawKey key of the yaw
+     * @param pitchKey key of the pitch
+     * @return the location, or null if the entry is incomplete
+     */
+    private static Location buildLocation(FileConfiguration configuration, String pathPrefix, String worldKey,
+                                          String xKey, String yKey, String zKey, String yawKey, String pitchKey) {
+        if (!containsAllFields(configuration, pathPrefix, worldKey, xKey, yKey, zKey, yawKey, pitchKey)) {
+            return null;
+        }
+        String prefix = pathPrefix + ".";
+        String worldName = configuration.getString(prefix + worldKey);
+        World world = Bukkit.getWorld(worldName);
+        if (StringUtils.isBlank(worldName) || world == null) {
+            return null;
+        }
+        return new Location(world, configuration.getDouble(prefix + xKey),
+            configuration.getDouble(prefix + yKey), configuration.getDouble(prefix + zKey),
+            getFloat(configuration, prefix + yawKey), getFloat(configuration, prefix + pitchKey));
+    }
+
+    /**
+     * Return whether the file configuration contains all given fields under the given path.
      *
      * @param configuration The file configuration to use
      * @param pathPrefix    The path to verify
+     * @param fields        The field names to look for
      *
-     * @return True if all spawn fields are present, false otherwise
+     * @return True if all fields are present, false otherwise
      */
-    private static boolean containsAllSpawnFields(FileConfiguration configuration, String pathPrefix) {
-        String[] fields = {"world", "x", "y", "z", "yaw", "pitch"};
+    private static boolean containsAllFields(FileConfiguration configuration, String pathPrefix, String... fields) {
         for (String field : fields) {
             if (!configuration.contains(pathPrefix + "." + field)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /**
-     * Return whether the CMI file configuration contains all spawn fields under the given path.
-     *
-     * @param cmiConfiguration The file configuration from CMI
-     * @param pathPrefix       The path to verify
-     *
-     * @return True if all spawn fields are present, false otherwise
-     */
-    private static boolean isLocationCompleteInCmiConfig(FileConfiguration cmiConfiguration, String pathPrefix) {
-        String[] fields = {"World", "X", "Y", "Z", "Yaw", "Pitch"};
-        for (String field : fields) {
-            if (!cmiConfiguration.contains(pathPrefix + "." + field)) {
                 return false;
             }
         }

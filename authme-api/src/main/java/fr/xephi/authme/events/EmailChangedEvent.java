@@ -8,12 +8,11 @@ import org.bukkit.event.HandlerList;
 /**
  * This event is called when a player adds or changes his email address.
  */
-public class EmailChangedEvent extends CustomEvent implements Cancellable {
+public class EmailChangedEvent extends AbstractCancellableEvent implements Cancellable {
     private static final HandlerList handlers = new HandlerList();
     private final Player player;
     private final String oldEmail;
     private final String newEmail;
-    private boolean isCancelled;
 
     /**
      * Constructor
@@ -29,11 +28,6 @@ public class EmailChangedEvent extends CustomEvent implements Cancellable {
         this.player = player;
         this.oldEmail = oldEmail;
         this.newEmail = newEmail;
-    }
-
-    @Override
-    public boolean isCancelled() {
-        return isCancelled;
     }
 
     /**
@@ -62,11 +56,6 @@ public class EmailChangedEvent extends CustomEvent implements Cancellable {
      */
     public String getNewEmail() {
         return this.newEmail;
-    }
-
-    @Override
-    public void setCancelled(boolean cancelled) {
-        this.isCancelled = cancelled;
     }
 
     @Override

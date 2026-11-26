@@ -38,7 +38,7 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import static fr.xephi.authme.IsEqualByReflectionMatcher.hasEqualValuesOnAllFields;
-import static org.hamcrest.Matchers.containsString;
+import static fr.xephi.authme.listener.TestPlayerUtils.mockPlayerWithName;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -418,11 +418,6 @@ public class RegisterCommandTest {
         verifyNoInteractions(management, validationService);
     }
 
-    private static Player mockPlayerWithName(String name) {
-        Player player = mock(Player.class);
-        given(player.getName()).willReturn(name);
-        return player;
-    }
 }
 
 

@@ -7,7 +7,7 @@ import fr.xephi.authme.security.crypts.description.Recommendation;
 import fr.xephi.authme.security.crypts.description.SaltType;
 import fr.xephi.authme.security.crypts.description.Usage;
 
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Arrays;
@@ -77,8 +77,8 @@ public class Wordpress extends UnsaltedMethod {
             return output;
         }
         MessageDigest md = HashUtils.getDigest(MessageDigestAlgorithm.MD5);
-        byte[] pass = stringToUtf8(password);
-        byte[] hash = md.digest(stringToUtf8(salt + password));
+        byte[] pass = password.getBytes(StandardCharsets.UTF_8);
+        byte[] hash = md.digest((salt + password).getBytes(StandardCharsets.UTF_8));
         do {
             byte[] t = new byte[hash.length + pass.length];
             System.arraycopy(hash, 0, t, 0, hash.length);
@@ -98,19 +98,11 @@ public class Wordpress extends UnsaltedMethod {
         return output;
     }
 
-    private byte[] stringToUtf8(String string) {
-        try {
-            return string.getBytes("UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new UnsupportedOperationException("This system doesn't support UTF-8!", e);
-        }
-    }
-
     @Override
     public String computeHash(String password) {
         byte random[] = new byte[6];
         randomGen.nextBytes(random);
-        return crypt(password, gensaltPrivate(stringToUtf8(new String(random))));
+        return crypt(password, gensaltPrivate(new String(random).getBytes(StandardCharsets.UTF_8)));
     }
 
     @Override

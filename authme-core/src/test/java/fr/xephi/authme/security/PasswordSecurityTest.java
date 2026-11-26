@@ -20,6 +20,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
@@ -115,44 +117,22 @@ class PasswordSecurityTest {
         ReflectionTestUtils.invokePostConstructMethods(passwordSecurity);
     }
 
-    @Test
-    void shouldReturnPasswordMatch() {
+    @ParameterizedTest
+    @CsvSource({"Tester, myPassTest, true", "My_PLayer, passw0Rd1, false"})
+    void shouldReturnPasswordMatch(String playerName, String clearTextPass, boolean expectedMatch) {
         // given
         HashedPassword password = new HashedPassword("$TEST$10$SOME_HASH", null);
-        String playerName = "Tester";
         // Calls to EncryptionMethod are always with the lower-case version of the name
         String playerLowerCase = playerName.toLowerCase(Locale.ROOT);
-        String clearTextPass = "myPassTest";
 
         given(dataSource.getPassword(playerName)).willReturn(password);
-        given(method.comparePassword(clearTextPass, password, playerLowerCase)).willReturn(true);
+        given(method.comparePassword(clearTextPass, password, playerLowerCase)).willReturn(expectedMatch);
 
         // when
         boolean result = passwordSecurity.comparePassword(clearTextPass, playerName);
 
         // then
-        assertThat(result, equalTo(true));
-        verify(dataSource).getPassword(playerName);
-        verify(pluginManager).callEvent(any(PasswordEncryptionEvent.class));
-        verify(method).comparePassword(clearTextPass, password, playerLowerCase);
-    }
-
-    @Test
-    void shouldReturnPasswordMismatch() {
-        // given
-        HashedPassword password = new HashedPassword("$TEST$10$SOME_HASH", null);
-        String playerName = "My_PLayer";
-        String playerLowerCase = playerName.toLowerCase(Locale.ROOT);
-        String clearTextPass = "passw0Rd1";
-
-        given(dataSource.getPassword(playerName)).willReturn(password);
-        given(method.comparePassword(clearTextPass, password, playerLowerCase)).willReturn(false);
-
-        // when
-        boolean result = passwordSecurity.comparePassword(clearTextPass, playerName);
-
-        // then
-        assertThat(result, equalTo(false));
+        assertThat(result, equalTo(expectedMatch));
         verify(dataSource).getPassword(playerName);
         verify(pluginManager).callEvent(any(PasswordEncryptionEvent.class));
         verify(method).comparePassword(clearTextPass, password, playerLowerCase);

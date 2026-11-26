@@ -8,7 +8,6 @@ import fr.xephi.authme.util.FileUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,7 +40,7 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
  * Test for {@link AuthPlusConverter}.
  */
 @ExtendWith(MockitoExtension.class)
-class AuthPlusConverterTest {
+class AuthPlusConverterTest extends AbstractConverterTest {
 
     private static final UUID UUID_TESTPLAYER    = UUID.fromString("a811b264-a1da-42dd-b1b7-b601234b7cc7");
     private static final UUID UUID_EXISTINGPLAYER = UUID.fromString("b922c375-b2eb-53ee-c2c8-c712345c8dd8");
@@ -57,11 +56,6 @@ class AuthPlusConverterTest {
 
     @Captor
     private ArgumentCaptor<PlayerAuth> authCaptor;
-
-    @BeforeAll
-    public static void initLogger() {
-        TestHelper.setupLogger();
-    }
 
     @BeforeEach
     void setUpConverter() {

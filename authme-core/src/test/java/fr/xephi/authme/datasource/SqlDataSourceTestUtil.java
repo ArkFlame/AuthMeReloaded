@@ -22,15 +22,23 @@ public final class SqlDataSourceTestUtil {
     }
 
     public static MySQL createMySql(Settings settings, HikariDataSource hikariDataSource) {
-        MySqlExtensionsFactory extensionsFactory = mock(MySqlExtensionsFactory.class);
-        given(extensionsFactory.buildExtension(any())).willReturn(mock(MySqlExtension.class));
-        return new MySQL(settings, hikariDataSource, extensionsFactory);
+        return new MySQL(settings, hikariDataSource, mockExtensionsFactory());
     }
 
     public static PostgreSqlDataSource createPostgres(Settings settings, HikariDataSource hikariDataSource) {
+        return new PostgreSqlDataSource(settings, hikariDataSource, mockExtensionsFactory());
+    }
+
+    static HikariDataSource mockHikariDataSource(Connection connection) throws java.sql.SQLException {
+        HikariDataSource hikariDataSource = mock(HikariDataSource.class);
+        given(hikariDataSource.getConnection()).willReturn(connection);
+        return hikariDataSource;
+    }
+
+    static MySqlExtensionsFactory mockExtensionsFactory() {
         MySqlExtensionsFactory extensionsFactory = mock(MySqlExtensionsFactory.class);
         given(extensionsFactory.buildExtension(any())).willReturn(mock(MySqlExtension.class));
-        return new PostgreSqlDataSource(settings, hikariDataSource, extensionsFactory);
+        return extensionsFactory;
     }
 
     /**

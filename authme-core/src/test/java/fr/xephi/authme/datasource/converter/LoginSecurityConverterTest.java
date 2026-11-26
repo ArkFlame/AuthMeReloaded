@@ -1,12 +1,10 @@
 package fr.xephi.authme.datasource.converter;
 
-import fr.xephi.authme.TestHelper;
 import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.settings.Settings;
 import fr.xephi.authme.settings.properties.ConverterSettings;
 import org.bukkit.command.CommandSender;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,7 +37,7 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
  * Test for {@link LoginSecurityConverter}. Uses a temporary SQLite file; no external database is needed.
  */
 @ExtendWith(MockitoExtension.class)
-class LoginSecurityConverterTest {
+class LoginSecurityConverterTest extends AbstractConverterTest {
 
     private static final String PLAYER_UUID = "a811b264-a1da-42dd-b1b7-b601234b7cc7";
 
@@ -56,11 +54,6 @@ class LoginSecurityConverterTest {
     private ArgumentCaptor<PlayerAuth> authCaptor;
 
     private LoginSecurityConverter converter;
-
-    @BeforeAll
-    static void initLogger() {
-        TestHelper.setupLogger();
-    }
 
     @BeforeEach
     void setUpConverter() {

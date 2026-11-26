@@ -1,11 +1,13 @@
 package fr.xephi.authme.datasource;
 
+import com.zaxxer.hikari.HikariDataSource;
 import ch.jalu.datasourcecolumns.data.DataSourceValue;
 import ch.jalu.datasourcecolumns.data.DataSourceValueImpl;
 import ch.jalu.datasourcecolumns.data.DataSourceValues;
 import ch.jalu.datasourcecolumns.predicate.AlwaysTruePredicate;
 import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.datasource.columnshandler.AuthMeColumns;
+import fr.xephi.authme.datasource.mysqlextensions.MySqlExtension;
 import fr.xephi.authme.datasource.columnshandler.AuthMeColumnsHandler;
 import fr.xephi.authme.security.crypts.HashedPassword;
 
@@ -26,6 +28,11 @@ import static fr.xephi.authme.datasource.SqlDataSourceUtils.logSqlException;
 public abstract class AbstractSqlDataSource implements DataSource {
 
     protected AuthMeColumnsHandler columnsHandler;
+    protected HikariDataSource ds;
+    protected String tableName;
+    protected Columns col;
+    protected List<String> columnOthers;
+    protected MySqlExtension sqlExtension;
 
     @Override
     public boolean isAuthAvailable(String user) {

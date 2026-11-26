@@ -379,11 +379,7 @@ class TeleportationServiceTest {
     @Test
     void shouldTeleportBackToPlayerAuthLocation() {
         // given
-        given(settings.getProperty(RestrictionSettings.TELEPORT_UNAUTHED_TO_SPAWN)).willReturn(true);
-        given(settings.getProperty(RestrictionSettings.SAVE_QUIT_LOCATION)).willReturn(true);
-
-        PlayerAuth auth = createAuthWithLocation();
-        auth.setWorld("myWorld");
+        PlayerAuth auth = createAuthWithQuitLocation();
         World world = mock(World.class);
         given(bukkitService.getWorld("myWorld")).willReturn(world);
 
@@ -406,11 +402,7 @@ class TeleportationServiceTest {
     @Test
     void shouldTeleportAccordingToPlayerAuthAndPlayerWorldAsFallback() {
         // given
-        given(settings.getProperty(RestrictionSettings.TELEPORT_UNAUTHED_TO_SPAWN)).willReturn(true);
-        given(settings.getProperty(RestrictionSettings.SAVE_QUIT_LOCATION)).willReturn(true);
-
-        PlayerAuth auth = createAuthWithLocation();
-        auth.setWorld("myWorld");
+        PlayerAuth auth = createAuthWithQuitLocation();
         given(bukkitService.getWorld("myWorld")).willReturn(null);
 
         Player player = mock(Player.class);
@@ -434,11 +426,7 @@ class TeleportationServiceTest {
     @Test
     void shouldNotTeleportIfPlayerIsAlreadyAtQuitLocation() {
         // given
-        given(settings.getProperty(RestrictionSettings.TELEPORT_UNAUTHED_TO_SPAWN)).willReturn(true);
-        given(settings.getProperty(RestrictionSettings.SAVE_QUIT_LOCATION)).willReturn(true);
-
-        PlayerAuth auth = createAuthWithLocation();
-        auth.setWorld("myWorld");
+        PlayerAuth auth = createAuthWithQuitLocation();
         World world = mock(World.class);
         given(bukkitService.getWorld("myWorld")).willReturn(world);
 
@@ -555,6 +543,14 @@ class TeleportationServiceTest {
     // We check that the World in Location is set, this method creates a mock World in Location for us
     private static Location mockLocation() {
         return new Location(mock(World.class), 0.0, 0.0, 0.0);
+    }
+
+    private PlayerAuth createAuthWithQuitLocation() {
+        given(settings.getProperty(RestrictionSettings.TELEPORT_UNAUTHED_TO_SPAWN)).willReturn(true);
+        given(settings.getProperty(RestrictionSettings.SAVE_QUIT_LOCATION)).willReturn(true);
+        PlayerAuth auth = createAuthWithLocation();
+        auth.setWorld("myWorld");
+        return auth;
     }
 
     private static PlayerAuth createAuthWithLocation() {

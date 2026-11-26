@@ -85,11 +85,15 @@ public class MessageUpdater {
 
     private static boolean moveIfApplicable(PropertyReader reader, MessageKeyConfigurationData configurationData,
                                             String oldPath, MessageKey messageKey) {
-        if (configurationData.getMessage(messageKey) == null && reader.getString(oldPath) != null) {
-            configurationData.setMessage(messageKey, reader.getString(oldPath));
-            return true;
+        if (configurationData.getMessage(messageKey) != null) {
+            return false;
         }
-        return false;
+        String oldValue = reader.getString(oldPath);
+        if (oldValue == null) {
+            return false;
+        }
+        configurationData.setMessage(messageKey, oldValue);
+        return true;
     }
 
     private boolean migrateOldKeys(PropertyReader propertyReader, MessageKeyConfigurationData configurationData) {

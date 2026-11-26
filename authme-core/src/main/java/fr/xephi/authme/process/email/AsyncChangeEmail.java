@@ -13,7 +13,6 @@ import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.service.CommonService;
 import fr.xephi.authme.service.PendingEmailVerificationCache;
 import fr.xephi.authme.service.ValidationService;
-import fr.xephi.authme.util.RandomStringUtils;
 import org.bukkit.entity.Player;
 
 import javax.inject.Inject;
@@ -82,24 +81,14 @@ public class AsyncChangeEmail implements AsynchronousProcess {
                     return;
                 }
                 if (emailService.hasAllInformation()) {
-                    sendConfirmationCode(player, newEmail);
+                    EmailProcessHelper.sendConfirmationCode(service, emailService, pendingEmailVerificationCache,
+                        logger, player, newEmail);
                 } else {
                     saveEmailDirectly(auth, player, newEmail);
                 }
             }
         } else {
-            outputUnloggedMessage(player);
-        }
-    }
-
-    private void sendConfirmationCode(Player player, String newEmail) {
-        String code = RandomStringUtils.generateNum(6);
-        if (emailService.sendEmailConfirmationMail(player.getName(), newEmail, code)) {
-            pendingEmailVerificationCache.addPending(player.getName(), newEmail, code);
-            service.send(player, MessageKey.EMAIL_CONFIRM_CODE_SENT, newEmail);
-        } else {
-            logger.warning("Could not send confirmation email for player '" + player + "'");
-            service.send(player, MessageKey.EMAIL_SEND_FAILURE);
+            EmailProcessHelper.sendUnloggedMessage(service, dataSource, player);
         }
     }
 
@@ -113,11 +102,4 @@ public class AsyncChangeEmail implements AsynchronousProcess {
         }
     }
 
-    private void outputUnloggedMessage(Player player) {
-        if (dataSource.isAuthAvailable(player.getName())) {
-            service.send(player, MessageKey.LOGIN_MESSAGE);
-        } else {
-            service.send(player, MessageKey.REGISTER_MESSAGE);
-        }
-    }
 }

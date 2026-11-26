@@ -22,7 +22,7 @@ public class RegisterEvent extends CustomEvent {
     }
 
     /**
-     * Return the player that has successfully logged in or registered.
+     * Return the player that has successfully registered.
      *
      * @return The player
      */

@@ -9,7 +9,6 @@ import fr.xephi.authme.permission.DefaultPermission;
 import fr.xephi.authme.permission.PermissionsManager;
 import fr.xephi.authme.platform.BukkitCompatibilityAdapter;
 import fr.xephi.authme.settings.Settings;
-import fr.xephi.authme.settings.properties.PluginSettings;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.junit.jupiter.api.BeforeAll;

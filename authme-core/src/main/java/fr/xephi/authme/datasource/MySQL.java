@@ -5,38 +5,25 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.pool.HikariPool.PoolInitializationException;
 import fr.xephi.authme.ConsoleLogger;
-import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.datasource.columnshandler.AuthMeColumnsHandler;
-import fr.xephi.authme.datasource.mysqlextensions.MySqlExtension;
 import fr.xephi.authme.datasource.mysqlextensions.MySqlExtensionsFactory;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.settings.Settings;
 import fr.xephi.authme.settings.properties.DatabaseSettings;
 import fr.xephi.authme.settings.properties.HooksSettings;
-import fr.xephi.authme.util.UuidUtils;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Locale;
-import java.util.Set;
-import java.util.UUID;
-
-import static fr.xephi.authme.datasource.SqlDataSourceUtils.getNullableLong;
-import static fr.xephi.authme.datasource.SqlDataSourceUtils.logSqlException;
 
 /**
  * MySQL data source.
  */
 @SuppressWarnings({"checkstyle:AbbreviationAsWordInName"}) // Justification: Class name cannot be changed anymore
-public class MySQL extends AbstractSqlDataSource implements SqlConnectionSource {
+public class MySQL extends AbstractHikariSqlDataSource implements SqlConnectionSource {
     private final ConsoleLogger logger = ConsoleLoggerFactory.get(MySQL.class);
 
     private boolean useSsl;
@@ -48,13 +35,8 @@ public class MySQL extends AbstractSqlDataSource implements SqlConnectionSource 
     private String username;
     private String password;
     private String database;
-    private String tableName;
     private int poolSize;
     private int maxLifetime;
-    private List<String> columnOthers;
-    private Columns col;
-    private MySqlExtension sqlExtension;
-    private HikariDataSource ds;
 
     public MySQL(Settings settings, MySqlExtensionsFactory extensionsFactory) throws SQLException {
         setParameters(settings, extensionsFactory);
@@ -201,8 +183,8 @@ public class MySQL extends AbstractSqlDataSource implements SqlConnectionSource 
     }
 
     @Override
-    public Connection getConnection() throws SQLException {
-        return ds.getConnection();
+    String getJdbcUrl(String host, String port, String database) {
+        return "jdbc:mysql://" + host + ":" + port + "/" + database;
     }
 
     /**
@@ -331,213 +313,7 @@ public class MySQL extends AbstractSqlDataSource implements SqlConnectionSource 
     }
 
     @Override
-    public PlayerAuth getAuth(String user) {
-        String sql = "SELECT * FROM " + tableName + " WHERE " + col.NAME + "=?;";
-        PlayerAuth auth;
-        try (Connection con = getConnection(); PreparedStatement pst = con.prepareStatement(sql)) {
-            pst.setString(1, user.toLowerCase(Locale.ROOT));
-            try (ResultSet rs = pst.executeQuery()) {
-                if (rs.next()) {
-                    int id = rs.getInt(col.ID);
-                    auth = buildAuthFromResultSet(rs);
-                    sqlExtension.extendAuth(auth, id, con);
-                    return auth;
-                }
-            }
-        } catch (SQLException ex) {
-            logSqlException(ex);
-        }
-        return null;
-    }
-
-    @Override
-    public boolean saveAuth(PlayerAuth auth) {
-        super.saveAuth(auth);
-
-        try (Connection con = getConnection()) {
-            if (!columnOthers.isEmpty()) {
-                for (String column : columnOthers) {
-                    try (PreparedStatement pst = con.prepareStatement(
-                        "UPDATE " + tableName + " SET " + column + "=? WHERE " + col.NAME + "=?;")) {
-                        pst.setString(1, auth.getRealName());
-                        pst.setString(2, auth.getNickname());
-                        pst.executeUpdate();
-                    }
-                }
-            }
-
-            sqlExtension.saveAuth(auth, con);
-            return true;
-        } catch (SQLException ex) {
-            logSqlException(ex);
-        }
-        return false;
-    }
-
-    @Override
-    String getJdbcUrl(String host, String port, String database) {
-        return "jdbc:mysql://" + host + ":" + port + "/" + database;
-    }
-
-    @Override
-    public Set<String> getRecordsToPurge(long until) {
-        Set<String> list = new HashSet<>();
-        String select = "SELECT " + col.NAME + " FROM " + tableName + " WHERE GREATEST("
-            + " COALESCE(" + col.LAST_LOGIN + ", 0),"
-            + " COALESCE(" + col.REGISTRATION_DATE + ", 0)"
-            + ") < ?;";
-        try (Connection con = getConnection();
-             PreparedStatement selectPst = con.prepareStatement(select)) {
-            selectPst.setLong(1, until);
-            try (ResultSet rs = selectPst.executeQuery()) {
-                while (rs.next()) {
-                    list.add(rs.getString(col.NAME));
-                }
-            }
-        } catch (SQLException ex) {
-            logSqlException(ex);
-        }
-
-        return list;
-    }
-
-    @Override
-    public boolean removeAuth(String user) {
-        user = user.toLowerCase(Locale.ROOT);
-        String sql = "DELETE FROM " + tableName + " WHERE " + col.NAME + "=?;";
-        try (Connection con = getConnection(); PreparedStatement pst = con.prepareStatement(sql)) {
-            sqlExtension.removeAuth(user, con);
-            pst.setString(1, user.toLowerCase(Locale.ROOT));
-            pst.executeUpdate();
-            return true;
-        } catch (SQLException ex) {
-            logSqlException(ex);
-        }
-        return false;
-    }
-
-    @Override
-    public void closeConnection() {
-        if (ds != null && !ds.isClosed()) {
-            ds.close();
-        }
-    }
-
-    @Override
-    public void purgeRecords(Collection<String> toPurge) {
-        String sql = "DELETE FROM " + tableName + " WHERE " + col.NAME + "=?;";
-        try (Connection con = getConnection(); PreparedStatement pst = con.prepareStatement(sql)) {
-            for (String name : toPurge) {
-                pst.setString(1, name.toLowerCase(Locale.ROOT));
-                pst.executeUpdate();
-            }
-        } catch (SQLException ex) {
-            logSqlException(ex);
-        }
-    }
-
-    @Override
     public DataSourceType getType() {
         return DataSourceType.MYSQL;
-    }
-
-    @Override
-    public List<PlayerAuth> getAllAuths() {
-        List<PlayerAuth> auths = new ArrayList<>();
-        try (Connection con = getConnection(); Statement st = con.createStatement()) {
-            try (ResultSet rs = st.executeQuery("SELECT * FROM " + tableName)) {
-                while (rs.next()) {
-                    PlayerAuth auth = buildAuthFromResultSet(rs);
-                    sqlExtension.extendAuth(auth, rs.getInt(col.ID), con);
-                    auths.add(auth);
-                }
-            }
-        } catch (SQLException ex) {
-            logSqlException(ex);
-        }
-        return auths;
-    }
-
-    @Override
-    public List<String> getLoggedPlayersWithEmptyMail() {
-        List<String> players = new ArrayList<>();
-        String sql = "SELECT " + col.REAL_NAME + " FROM " + tableName + " WHERE " + col.IS_LOGGED + " = 1"
-            + " AND (" + col.EMAIL + " = 'your@email.com' OR " + col.EMAIL + " IS NULL);";
-        try (Connection con = getConnection();
-             Statement st = con.createStatement();
-             ResultSet rs = st.executeQuery(sql)) {
-            while (rs.next()) {
-                players.add(rs.getString(1));
-            }
-        } catch (SQLException ex) {
-            logSqlException(ex);
-        }
-        return players;
-    }
-
-    @Override
-    public List<PlayerAuth> getRecentlyLoggedInPlayers() {
-        List<PlayerAuth> players = new ArrayList<>();
-        String sql = "SELECT * FROM " + tableName + " ORDER BY " + col.LAST_LOGIN + " DESC LIMIT 10;";
-        try (Connection con = getConnection();
-             Statement st = con.createStatement();
-             ResultSet rs = st.executeQuery(sql)) {
-            while (rs.next()) {
-                players.add(buildAuthFromResultSet(rs));
-            }
-        } catch (SQLException e) {
-            logSqlException(e);
-        }
-        return players;
-    }
-
-    @Override
-    public boolean setTotpKey(String user, String totpKey) {
-        String sql = "UPDATE " + tableName + " SET " + col.TOTP_KEY + " = ? WHERE " + col.NAME + " = ?";
-        try (Connection con = getConnection(); PreparedStatement pst = con.prepareStatement(sql)) {
-            pst.setString(1, totpKey);
-            pst.setString(2, user.toLowerCase(Locale.ROOT));
-            pst.executeUpdate();
-            return true;
-        } catch (SQLException e) {
-            logSqlException(e);
-        }
-        return false;
-    }
-
-    /**
-     * Creates a {@link PlayerAuth} object with the data from the provided result set.
-     *
-     * @param row the result set to read from
-     * @return generated player auth object with the data from the result set
-     * @throws SQLException .
-     */
-    private PlayerAuth buildAuthFromResultSet(ResultSet row) throws SQLException {
-        String salt = col.SALT.isEmpty() ? null : row.getString(col.SALT);
-        int group = col.GROUP.isEmpty() ? -1 : row.getInt(col.GROUP);
-        UUID uuid = col.PLAYER_UUID.isEmpty()
-            ? null : UuidUtils.parseUuidSafely(row.getString(col.PLAYER_UUID));
-        UUID premiumUuid = col.PREMIUM_UUID.isEmpty()
-            ? null : UuidUtils.parseUuidSafely(row.getString(col.PREMIUM_UUID));
-        return PlayerAuth.builder()
-            .name(row.getString(col.NAME))
-            .realName(row.getString(col.REAL_NAME))
-            .password(row.getString(col.PASSWORD), salt)
-            .totpKey(row.getString(col.TOTP_KEY))
-            .lastLogin(getNullableLong(row, col.LAST_LOGIN))
-            .lastIp(row.getString(col.LAST_IP))
-            .email(row.getString(col.EMAIL))
-            .registrationDate(row.getLong(col.REGISTRATION_DATE))
-            .registrationIp(row.getString(col.REGISTRATION_IP))
-            .groupId(group)
-            .locWorld(row.getString(col.LASTLOC_WORLD))
-            .locX(row.getDouble(col.LASTLOC_X))
-            .locY(row.getDouble(col.LASTLOC_Y))
-            .locZ(row.getDouble(col.LASTLOC_Z))
-            .locYaw(row.getFloat(col.LASTLOC_YAW))
-            .locPitch(row.getFloat(col.LASTLOC_PITCH))
-            .uuid(uuid)
-            .premiumUuid(premiumUuid)
-            .build();
     }
 }
