@@ -76,12 +76,6 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>javatar</groupId>
-            <artifactId>javatar</artifactId>
-            <version>${dependencies.javatar.version}</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-email</artifactId>
             <version>${dependencies.commons-email.version}</version>
@@ -302,10 +296,6 @@
                         <relocation>
                             <pattern>com.maxmind</pattern>
                             <shadedPattern>fr.xephi.authme.libs.com.maxmind</shadedPattern>
-                        </relocation>
-                        <relocation>
-                            <pattern>com.ice.tar</pattern>
-                            <shadedPattern>fr.xephi.authme.libs.com.ice.tar</shadedPattern>
                         </relocation>
                         <relocation>
                             <pattern>net.ricecode.similarity</pattern>

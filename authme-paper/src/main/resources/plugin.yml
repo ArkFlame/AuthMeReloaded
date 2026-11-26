@@ -20,7 +20,6 @@ libraries:
   - ch.jalu:injector:${dependencies.injector.version}
   - net.ricecode:string-similarity:${dependencies.string-similarity.version}
   - com.maxmind.geoip2:geoip2:${dependencies.geoip2.version}
-  - javatar:javatar:${dependencies.javatar.version}
   - org.apache.commons:commons-email:${dependencies.commons-email.version}
   - com.zaxxer:HikariCP:${dependencies.hikaricp.version}
   - org.slf4j:slf4j-simple:${dependencies.slf4j.version}

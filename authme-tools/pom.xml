@@ -34,11 +34,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>javatar</groupId>
-            <artifactId>javatar</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-email</artifactId>
             <scope>test</scope>
