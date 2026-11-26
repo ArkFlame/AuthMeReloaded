@@ -105,11 +105,10 @@ public class PremiumVerificationPacketListener extends PacketListenerAbstract {
         User user = event.getUser();
         String connectionKey = connectionKey(user);
 
-        if (!loginVerifier.hasPending(connectionKey)) {
+        String username = loginVerifier.getPendingUsername(connectionKey);
+        if (username == null) { // pending entries always carry a non-null username
             return;
         }
-
-        String username = loginVerifier.getPendingUsername(connectionKey);
         // Read playerUUID BEFORE completeVerification() removes the pending record
         UUID playerUUID = loginVerifier.getPendingPlayerUUID(connectionKey);
         ClientVersion clientVersion = user.getClientVersion();

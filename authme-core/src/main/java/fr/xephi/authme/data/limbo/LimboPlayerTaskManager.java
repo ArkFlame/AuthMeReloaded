@@ -150,18 +150,22 @@ class LimboPlayerTaskManager {
         }
 
         private void checkRegistrationAsync() {
-            if (cancelled.get() || !player.isOnline() || playerCache.isAuthenticated(player.getName())) {
+            if (cancelled.get() || !player.isOnline()) {
+                return;
+            }
+            final String name = player.getName();
+            if (playerCache.isAuthenticated(name)) {
                 return;
             }
 
             CancellableTask task = bukkitService.runTaskAsynchronously(() -> {
-                boolean isRegistered = dataSource.isAuthAvailable(player.getName());
-                if (cancelled.get() || isRegistered || playerCache.isAuthenticated(player.getName())) {
+                boolean isRegistered = dataSource.isAuthAvailable(name);
+                if (cancelled.get() || isRegistered || playerCache.isAuthenticated(name)) {
                     return;
                 }
 
                 bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, () -> {
-                    if (cancelled.get() || !player.isOnline() || playerCache.isAuthenticated(player.getName())) {
+                    if (cancelled.get() || !player.isOnline() || playerCache.isAuthenticated(name)) {
                         return;
                     }
 

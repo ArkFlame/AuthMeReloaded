@@ -368,13 +368,12 @@ public class LimboService {
 
     /** Restores ender pearl shooters and the player's vehicle in a single world pass. */
     private void doRestoreEntities(Player player, LimboPlayer limbo) {
-        Map<UUID, EnderPearlRestoreData> pendingPearls = limbo.copyEnderPearlsByUuid();
         UUID vehicleUuid = limbo.getVehicleUuid();
-        EntityType vehicleType = limbo.getVehicleType();
-
-        if (pendingPearls.isEmpty() && vehicleUuid == null) {
+        if (limbo.getEnderPearls().isEmpty() && vehicleUuid == null) {
             return;
         }
+        Map<UUID, EnderPearlRestoreData> pendingPearls = limbo.copyEnderPearlsByUuid();
+        EntityType vehicleType = limbo.getVehicleType();
         String playerName = player.getName().toLowerCase(Locale.ROOT);
 
         int pearlTotal = pendingPearls.size();
@@ -447,14 +446,15 @@ public class LimboService {
                 pearl.getUuid(), name);
             return false;
         }
-        if (!bukkitService.isOwnedByCurrentThread(pearl.getLocation())) {
+        Location location = pearl.getLocation();
+        if (!bukkitService.isOwnedByCurrentThread(location)) {
             logger.debug("Unable to recreate ender pearl {0} for `{1}` because its saved location is in another region",
                 pearl.getUuid(), name);
             return false;
         }
 
-        EnderPearl recreatedPearl = (EnderPearl) pearl.getLocation().getWorld()
-            .spawnEntity(pearl.getLocation(), EntityType.ENDER_PEARL);
+        EnderPearl recreatedPearl = (EnderPearl) location.getWorld()
+            .spawnEntity(location, EntityType.ENDER_PEARL);
         recreatedPearl.setShooter(player);
 
         Vector velocity = pearl.getVelocity();

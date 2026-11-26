@@ -147,8 +147,9 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public HashedPassword getPassword(String user) {
-        Optional<PlayerAuth> auth = cachedAuths.getIfPresent(normalize(user));
-        return auth != null && auth.isPresent() ? auth.get().getPassword() : source.getPassword(normalize(user));
+        String key = normalize(user);
+        Optional<PlayerAuth> auth = cachedAuths.getIfPresent(key);
+        return auth != null && auth.isPresent() ? auth.get().getPassword() : source.getPassword(key);
     }
 
     @Override

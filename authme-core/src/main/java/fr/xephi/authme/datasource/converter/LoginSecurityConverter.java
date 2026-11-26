@@ -28,7 +28,6 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static fr.xephi.authme.util.Utils.logAndSendMessage;
@@ -130,10 +129,10 @@ public class LoginSecurityConverter implements Converter {
      * @return the created player auth object
      */
     private static PlayerAuth buildAuthFromLoginSecurity(String name, ResultSet resultSet) throws SQLException {
-        Long lastLoginMillis = Optional.ofNullable(resultSet.getTimestamp("last_login"))
-            .map(Timestamp::getTime).orElse(null);
-        long regDate = Optional.ofNullable(resultSet.getDate("registration_date"))
-            .map(Date::getTime).orElse(System.currentTimeMillis());
+        Timestamp lastLogin = resultSet.getTimestamp("last_login");
+        Long lastLoginMillis = lastLogin == null ? null : lastLogin.getTime();
+        Date registrationDate = resultSet.getDate("registration_date");
+        long regDate = registrationDate == null ? System.currentTimeMillis() : registrationDate.getTime();
         UUID uuid = UuidUtils.parseUuidSafely(resultSet.getString("unique_user_id"));
         return PlayerAuth.builder()
             .name(name)

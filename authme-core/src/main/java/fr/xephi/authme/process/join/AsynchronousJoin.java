@@ -688,19 +688,10 @@ public class AsynchronousJoin implements AsynchronousProcess {
             premiumService.finalizePendingPremium(player, verified);
             return true;
         }
-        failPendingPremium(player, name);
-        return false;
-    }
-
-    /**
-     * Notifies the proxy and the player that a pending premium enrollment failed.
-     *
-     * @param player the player whose enrollment failed
-     * @param name the player's name, as reported to the proxy
-     */
-    private void failPendingPremium(Player player, String name) {
+        // Notifies the proxy and the player that the pending premium enrollment failed.
         bungeeSender.sendPremiumUnset(name);
         service.send(player, MessageKey.PREMIUM_PENDING_FAIL);
+        return false;
     }
 
 }

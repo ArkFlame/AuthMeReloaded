@@ -282,10 +282,11 @@ public abstract class AbstractSqlDataSource implements DataSource {
 
     /** Adds the configured UUID columns to the table when they are not there yet. */
     protected void addUuidColumnsIfAbsent(DatabaseMetaData md, Statement st) throws SQLException {
-        for (String uuidColumn : new String[] {col.PLAYER_UUID, col.PREMIUM_UUID}) {
-            if (!uuidColumn.isEmpty()) {
-                addColumnIfAbsent(md, st, uuidColumn, "VARCHAR(36)");
-            }
+        if (!col.PLAYER_UUID.isEmpty()) {
+            addColumnIfAbsent(md, st, col.PLAYER_UUID, "VARCHAR(36)");
+        }
+        if (!col.PREMIUM_UUID.isEmpty()) {
+            addColumnIfAbsent(md, st, col.PREMIUM_UUID, "VARCHAR(36)");
         }
     }
 

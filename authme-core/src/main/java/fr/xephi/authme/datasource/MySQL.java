@@ -82,15 +82,14 @@ public class MySQL extends AbstractHikariSqlDataSource {
         ds.setUsername(getUsername());
         ds.setPassword(getPassword());
         // Driver
-        String driverClassName = getDriverClassName();
-        ds.setDriverClassName(driverClassName);
+        ds.setDriverClassName(getDriverClassName());
 
         // SSL mode: DISABLED / PREFERRED (SSL but no cert check) / VERIFY_CA
         // Migrated from deprecated useSSL + verifyServerCertificate (removed in Connector/J 9.x)
         String sslMode = !useSsl ? "DISABLED" : (!serverCertificateVerification ? "PREFERRED" : "VERIFY_CA");
         ds.addDataSourceProperty("sslMode", sslMode);
         // Ported from HaHaWTH/AuthMeReReloaded
-        applyMariaDbSslMode(ds, driverClassName, mariaDbSslMode);
+        applyMariaDbSslMode(ds, ds.getDriverClassName(), mariaDbSslMode);
 
         if (allowPublicKeyRetrieval) {
             ds.addDataSourceProperty("allowPublicKeyRetrieval", "true");

@@ -93,15 +93,14 @@ final class ConverterUtils {
             }
             return new HashedPassword(phc);
         }
-        if ("SHA-256".equals(algo) || "SHA-512".equals(algo) || "LOGIT-SHA-256".equals(algo)) {
+        boolean sha256 = "SHA-256".equals(algo);
+        if (sha256 || "SHA-512".equals(algo) || "LOGIT-SHA-256".equals(algo)) {
             if (salt == null) {
                 logger.warning("Null salt for " + algo + " account '" + name + "', skipping");
                 return null;
             }
             // SHA-256 maps to $SHA$<salt>$<hash>, SHA-512 to DOUBLE_SHA512, LOGIT-SHA-256 to SALTEDSHA256.
-            return "SHA-256".equals(algo)
-                ? new HashedPassword("$SHA$" + salt + "$" + hash)
-                : new HashedPassword(hash, salt);
+            return sha256 ? new HashedPassword("$SHA$" + salt + "$" + hash) : new HashedPassword(hash, salt);
         }
         logger.warning("Unknown " + pluginName + " algorithm '" + algo + "' for player '" + name + "', skipping");
         return null;

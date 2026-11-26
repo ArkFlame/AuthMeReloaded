@@ -185,8 +185,12 @@ public class ValidationService implements Reloadable {
     }
 
     private boolean matchesRestrictions(Collection<Pattern> restrictions, String ip, String domain) {
-        return restrictions.stream().anyMatch(restriction ->
-            restriction.matcher(ip).matches() || restriction.matcher(domain).matches());
+        for (Pattern restriction : restrictions) {
+            if (restriction.matcher(ip).matches() || restriction.matcher(domain).matches()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @VisibleForTesting
@@ -208,10 +212,19 @@ public class ValidationService implements Reloadable {
                                                   Property<List<String>> blacklist) {
         List<String> whitelistValue = settings.getProperty(whitelist);
         if (!Utils.isCollectionEmpty(whitelistValue)) {
-            return whitelistValue.stream().anyMatch(value::equalsIgnoreCase);
+            return containsIgnoreCase(whitelistValue, value);
         }
         List<String> blacklistValue = settings.getProperty(blacklist);
-        return Utils.isCollectionEmpty(blacklistValue) || !blacklistValue.stream().anyMatch(value::equalsIgnoreCase);
+        return Utils.isCollectionEmpty(blacklistValue) || !containsIgnoreCase(blacklistValue, value);
+    }
+
+    private static boolean containsIgnoreCase(Collection<String> values, String value) {
+        for (String entry : values) {
+            if (entry.equalsIgnoreCase(value)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

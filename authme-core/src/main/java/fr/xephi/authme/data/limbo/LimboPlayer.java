@@ -29,9 +29,9 @@ public class LimboPlayer {
     private final Location loc;
     private final float walkSpeed;
     private final float flySpeed;
-    private CancellableTask timeoutTask = null;
-    private MessageTask messageTask = null;
-    private CancellableTask messageTaskHandle = null;
+    private CancellableTask timeoutTask;
+    private MessageTask messageTask;
+    private CancellableTask messageTaskHandle;
     private LimboPlayerState state = LimboPlayerState.PASSWORD_REQUIRED;
     private int failedTotpAttempts;
     // The pearl UUIDs are the keys of this map; a separate set would duplicate the same state.
@@ -202,10 +202,6 @@ public class LimboPlayer {
      * @param pearls tracked ender pearls to restore on reconnect
      */
     public void setEnderPearls(Collection<EnderPearlRestoreData> pearls) {
-        if (pearls.isEmpty()) {
-            this.enderPearls = Collections.emptyMap();
-            return;
-        }
         Map<UUID, EnderPearlRestoreData> pearlMap = new HashMap<>();
         for (EnderPearlRestoreData pearl : pearls) {
             if (pearl != null) {
