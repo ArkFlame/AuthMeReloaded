@@ -28,6 +28,7 @@ import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -262,7 +263,7 @@ public class GeoIpService {
 
         HttpURLConnection connection = (HttpURLConnection) new URL(ARCHIVE_URL).openConnection();
         configureConnection(connection);
-        String basicAuth = "Basic " + new String(Base64.getEncoder().encode((clientId + ":" + licenseKey).getBytes()));
+        String basicAuth = "Basic " + Base64.getEncoder().encodeToString((clientId + ":" + licenseKey).getBytes(StandardCharsets.UTF_8));
         connection.setRequestProperty("Authorization", basicAuth);
 
         if (lastModified != null) {

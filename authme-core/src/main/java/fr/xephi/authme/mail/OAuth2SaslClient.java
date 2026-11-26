@@ -21,6 +21,7 @@ import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.sasl.SaslClient;
 import javax.security.sasl.SaslException;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 /**
  * An OAuth2 implementation of SaslClient.
@@ -70,7 +71,7 @@ class OAuth2SaslClient implements SaslClient {
     String email = nameCallback.getName();
 
     byte[] response = String.format("user=%s\1auth=Bearer %s\1\1", email,
-                                    oauthToken).getBytes();
+                                    oauthToken).getBytes(StandardCharsets.UTF_8);
     isComplete = true;
     return response;
   }
