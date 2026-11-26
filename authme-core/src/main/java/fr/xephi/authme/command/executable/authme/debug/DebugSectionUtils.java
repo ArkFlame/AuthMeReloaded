@@ -6,6 +6,7 @@ import fr.xephi.authme.datasource.CacheDataSource;
 import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
 import org.bukkit.Location;
+import org.bukkit.World;
 
 import java.lang.reflect.Field;
 import java.math.RoundingMode;
@@ -23,6 +24,12 @@ final class DebugSectionUtils {
 
     private static ConsoleLogger logger = ConsoleLoggerFactory.get(DebugSectionUtils.class);
     private static Field limboEntriesField;
+    private static final ThreadLocal<DecimalFormat> DECIMAL_FORMAT = ThreadLocal.withInitial(() -> {
+        DecimalFormat df = new DecimalFormat("#.##");
+        df.setDecimalFormatSymbols(DecimalFormatSymbols.getInstance(Locale.US));
+        df.setRoundingMode(RoundingMode.HALF_UP);
+        return df;
+    });
 
     private DebugSectionUtils() {
     }
@@ -38,7 +45,8 @@ final class DebugSectionUtils {
             return "null";
         }
 
-        String worldName = location.getWorld() == null ? "null" : location.getWorld().getName();
+        World world = location.getWorld();
+        String worldName = world == null ? "null" : world.getName();
         return formatLocation(location.getX(), location.getY(), location.getZ(), worldName);
     }
 
@@ -62,23 +70,7 @@ final class DebugSectionUtils {
      * @return the rounded number
      */
     private static String round(double number) {
-        DecimalFormat df = new DecimalFormat("#.##");
-        df.setDecimalFormatSymbols(DecimalFormatSymbols.getInstance(Locale.US));
-        df.setRoundingMode(RoundingMode.HALF_UP);
-        return df.format(number);
-    }
-
-    private static Field getLimboPlayerEntriesField() {
-        if (limboEntriesField == null) {
-            try {
-                Field field = LimboService.class.getDeclaredField("entries");
-                field.setAccessible(true);
-                limboEntriesField = field;
-            } catch (Exception e) {
-                logger.logException("Could not retrieve LimboService entries field:", e);
-            }
-        }
-        return limboEntriesField;
+        return DECIMAL_FORMAT.get().format(number);
     }
 
     /**
@@ -93,15 +85,22 @@ final class DebugSectionUtils {
      * @return the value of the function applied to the map, or null upon error
      */
     static <U> U applyToLimboPlayersMap(LimboService limboService, Function<Map, U> function) {
-        Field limboPlayerEntriesField = getLimboPlayerEntriesField();
-        if (limboPlayerEntriesField != null) {
+        if (limboEntriesField == null) {
             try {
-                return function.apply((Map) limboEntriesField.get(limboService));
+                Field field = LimboService.class.getDeclaredField("entries");
+                field.setAccessible(true);
+                limboEntriesField = field;
             } catch (Exception e) {
-                logger.logException("Could not retrieve LimboService values:", e);
+                logger.logException("Could not retrieve LimboService entries field:", e);
+                return null;
             }
         }
-        return null;
+        try {
+            return function.apply((Map) limboEntriesField.get(limboService));
+        } catch (Exception e) {
+            logger.logException("Could not retrieve LimboService values:", e);
+            return null;
+        }
     }
 
     static <T> T castToTypeOrNull(Object object, Class<T> clazz) {

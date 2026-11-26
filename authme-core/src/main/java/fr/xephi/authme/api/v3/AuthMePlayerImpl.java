@@ -26,10 +26,9 @@ class AuthMePlayerImpl implements AuthMePlayer {
         this.name = playerAuth.getRealName();
         this.uuid = playerAuth.getUuid();
         this.email = nullIfDefault(playerAuth.getEmail(), PlayerAuth.DB_EMAIL_DEFAULT);
-        Long lastLoginMillis = nullIfDefault(playerAuth.getLastLogin(), PlayerAuth.DB_LAST_LOGIN_DEFAULT);
         this.registrationDate = toInstant(playerAuth.getRegistrationDate());
         this.registrationIpAddress = playerAuth.getRegistrationIp();
-        this.lastLoginDate = toInstant(lastLoginMillis);
+        this.lastLoginDate = toInstant(playerAuth.getLastLogin());
         this.lastLoginIpAddress = nullIfDefault(playerAuth.getLastIp(), PlayerAuth.DB_LAST_IP_DEFAULT);
     }
 

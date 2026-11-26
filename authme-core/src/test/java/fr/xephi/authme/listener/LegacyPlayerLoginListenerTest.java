@@ -7,10 +7,15 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerLoginEvent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockMakers;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.stream.Stream;
 
 import static fr.xephi.authme.listener.TestPlayerUtils.mockPlayerWithName;
 import static org.mockito.Mockito.mock;
@@ -29,61 +34,46 @@ class LegacyPlayerLoginListenerTest {
     @InjectMocks
     private LegacyPlayerLoginListener listener;
 
-    @Mock(mockMaker = MockMakers.INLINE)
+    @Mock
     private Messages messages;
-    @Mock(mockMaker = MockMakers.INLINE)
+    @Mock
     private OnJoinVerifier onJoinVerifier;
-    @Mock(mockMaker = MockMakers.INLINE)
+    @Mock
     private ValidationService validationService;
 
-    @Test
-    void shouldNotInterfereWithUnrestrictedUser() throws FailedVerificationException {
-        String name = "Player01";
+    @ParameterizedTest(name = "unrestricted={0}, fullServerRefusal={1}, alreadyRejected={2}")
+    @MethodSource("loginScenarios")
+    void shouldHandleLogin(boolean unrestricted, boolean refuseForFullServer,
+                           boolean alreadyRejected, String name) throws FailedVerificationException {
         Player player = mockPlayerWithName(name);
-        PlayerLoginEvent event = inlineSpy(new PlayerLoginEvent(player, "", null));
-        given(validationService.isUnrestricted(name)).willReturn(true);
+        PlayerLoginEvent rawEvent = new PlayerLoginEvent(player, "", null);
+        if (alreadyRejected) {
+            rawEvent.setResult(PlayerLoginEvent.Result.KICK_BANNED);
+        }
+        PlayerLoginEvent event = inlineSpy(rawEvent);
+
+        given(validationService.isUnrestricted(name)).willReturn(unrestricted);
+        if (!unrestricted) {
+            given(onJoinVerifier.refusePlayerForFullServer(event)).willReturn(refuseForFullServer);
+        }
 
         listener.onPlayerLogin(event);
 
         verify(validationService).isUnrestricted(name);
         verify(onJoinVerifier).checkSingleSession(name);
-        verifyNoModifyingCalls(event);
-        verifyNoMoreInteractions(onJoinVerifier);
-    }
-
-    @Test
-    void shouldStopHandlingForFullServer() throws FailedVerificationException {
-        String name = "someone";
-        Player player = mockPlayerWithName(name);
-        PlayerLoginEvent event = inlineSpy(new PlayerLoginEvent(player, "", null));
-        given(validationService.isUnrestricted(name)).willReturn(false);
-        given(onJoinVerifier.refusePlayerForFullServer(event)).willReturn(true);
-
-        listener.onPlayerLogin(event);
-
-        verify(validationService).isUnrestricted(name);
-        verify(onJoinVerifier).checkSingleSession(name);
-        verify(onJoinVerifier).refusePlayerForFullServer(event);
+        if (!unrestricted) {
+            verify(onJoinVerifier).refusePlayerForFullServer(event);
+        }
         verifyNoMoreInteractions(onJoinVerifier);
         verifyNoModifyingCalls(event);
     }
 
-    @Test
-    void shouldContinueHandlingAlreadyRejectedEvent() throws FailedVerificationException {
-        String name = "someone";
-        Player player = mockPlayerWithName(name);
-        PlayerLoginEvent event = new PlayerLoginEvent(player, "", null);
-        event.setResult(PlayerLoginEvent.Result.KICK_BANNED);
-        event = inlineSpy(event);
-        given(validationService.isUnrestricted(name)).willReturn(false);
-        given(onJoinVerifier.refusePlayerForFullServer(event)).willReturn(false);
-
-        listener.onPlayerLogin(event);
-
-        verify(validationService).isUnrestricted(name);
-        verify(onJoinVerifier).checkSingleSession(name);
-        verify(onJoinVerifier).refusePlayerForFullServer(event);
-        verifyNoModifyingCalls(event);
+    private static Stream<Arguments> loginScenarios() {
+        return Stream.of(
+            Arguments.of(true, false, false, "Player01"),
+            Arguments.of(false, true, false, "someone"),
+            Arguments.of(false, false, true, "someone"),
+            Arguments.of(false, false, false, "someone"));
     }
 
     @Test
@@ -101,22 +91,6 @@ class LegacyPlayerLoginListenerTest {
         verify(event).setResult(PlayerLoginEvent.Result.KICK_OTHER);
         verifyNoInteractions(validationService);
     }
-
-    @Test
-    void shouldPerformAllJoinVerificationsSuccessfullyLogin() {
-        String name = "someone";
-        Player player = mockPlayerWithName(name);
-        PlayerLoginEvent loginEvent = inlineSpy(new PlayerLoginEvent(player, "", null));
-        given(validationService.isUnrestricted(name)).willReturn(false);
-        given(onJoinVerifier.refusePlayerForFullServer(loginEvent)).willReturn(false);
-
-        listener.onPlayerLogin(loginEvent);
-
-        verify(validationService).isUnrestricted(name);
-        verify(onJoinVerifier).refusePlayerForFullServer(loginEvent);
-        verifyNoModifyingCalls(loginEvent);
-    }
-
 
     private static void verifyNoModifyingCalls(PlayerLoginEvent event) {
         verify(event, atLeast(0)).getPlayer();

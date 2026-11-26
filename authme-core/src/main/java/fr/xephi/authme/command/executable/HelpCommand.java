@@ -32,7 +32,6 @@ public class HelpCommand implements ExecutableCommand {
     @Inject
     private HelpProvider helpProvider;
 
-
     // Convention: arguments is not the actual invoked arguments but the command that was invoked,
     // e.g. "/authme help register" would typically be arguments = [register], but here we pass [authme, register]
     @Override

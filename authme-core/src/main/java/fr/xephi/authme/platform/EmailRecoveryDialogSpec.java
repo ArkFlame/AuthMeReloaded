@@ -35,7 +35,7 @@ public final class EmailRecoveryDialogSpec {
             showBody, stackButtonsVertically);
     }
 
-    /** Shared construction for the single-input recovery dialogs; keys stay with the caller. */
+    /** Shared single-input construction; message keys stay with the callers. */
     private static DialogWindowSpec createDialog(Function<MessageKey, String> text, String inputId, int maxLength,
                                                  MessageKey title, MessageKey inputLabel, MessageKey button,
                                                  MessageKey body, boolean showBody, boolean stackButtonsVertically) {
@@ -44,9 +44,7 @@ public final class EmailRecoveryDialogSpec {
             Collections.singletonList(new DialogInputSpec(inputId, text.apply(inputLabel), maxLength)),
             text.apply(button),
             text.apply(MessageKey.DIALOG_CANCEL_BUTTON),
-            false,
-            false,
-            null,
+            false, false, null,
             showBody ? text.apply(body) : null,
             stackButtonsVertically);
     }

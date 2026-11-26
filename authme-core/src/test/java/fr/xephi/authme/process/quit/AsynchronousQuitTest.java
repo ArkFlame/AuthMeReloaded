@@ -7,11 +7,9 @@ import fr.xephi.authme.data.VerificationCodeManager;
 import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.data.auth.PlayerCache;
 import fr.xephi.authme.datasource.DataSource;
-import fr.xephi.authme.process.SyncProcessManager;
 import fr.xephi.authme.service.CommonService;
 import fr.xephi.authme.service.DialogStateService;
 import fr.xephi.authme.service.PremiumLoginVerifier;
-import fr.xephi.authme.service.SessionService;
 import fr.xephi.authme.service.TeleportationService;
 import fr.xephi.authme.service.ValidationService;
 import fr.xephi.authme.settings.SpawnLoader;
@@ -51,15 +49,11 @@ class AsynchronousQuitTest {
     @Mock
     private PlayerCache playerCache;
     @Mock
-    private SyncProcessManager syncProcessManager;
-    @Mock
     private SpawnLoader spawnLoader;
     @Mock
     private ValidationService validationService;
     @Mock
     private VerificationCodeManager codeManager;
-    @Mock
-    private SessionService sessionService;
     @Mock
     private TeleportationService teleportationService;
     @Mock
