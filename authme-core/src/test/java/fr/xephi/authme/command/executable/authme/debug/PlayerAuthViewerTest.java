@@ -17,7 +17,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
@@ -33,11 +32,11 @@ class PlayerAuthViewerTest {
     @Mock
     private DataSource dataSource;
 
+    @Mock
+    private CommandSender sender;
+
     @Test
     void shouldMakeExample() {
-        // given
-        CommandSender sender = mock(CommandSender.class);
-
         // when
         authViewer.execute(sender, Collections.emptyList());
 
@@ -47,9 +46,6 @@ class PlayerAuthViewerTest {
 
     @Test
     void shouldHandleMissingPlayer() {
-        // given
-        CommandSender sender = mock(CommandSender.class);
-
         // when
         authViewer.execute(sender, Collections.singletonList("bogus"));
 
@@ -61,7 +57,6 @@ class PlayerAuthViewerTest {
     @Test
     void shouldDisplayAuthInfo() {
         // given
-        CommandSender sender = mock(CommandSender.class);
         PlayerAuth auth = PlayerAuth.builder().name("george").realName("George")
             .password("abcdefghijkl", "mnopqrst")
             .lastIp("127.1.2.7").registrationDate(1111140000000L)
@@ -84,7 +79,6 @@ class PlayerAuthViewerTest {
     @Test
     void shouldHandleCornerCases() {
         // given
-        CommandSender sender = mock(CommandSender.class);
         PlayerAuth auth = PlayerAuth.builder().name("tar")
             .password("abcd", null)
             .lastIp("127.1.2.7").registrationDate(0L)

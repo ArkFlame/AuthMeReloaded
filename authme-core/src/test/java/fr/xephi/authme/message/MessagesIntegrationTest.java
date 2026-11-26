@@ -87,13 +87,19 @@ class MessagesIntegrationTest {
     }
 
     @Test
-    void shouldLoadMessageWithNewLines() {
+    void shouldHandleMessageWithNewLines() {
         CommandSender sender = mockSender();
-
         String[] lines = new String[]{"We've got", "new lines", "and ' apostrophes"};
+
         assertThat(messages.retrieve(MessageKey.UNKNOWN_USER, sender), equalTo(lines));
         assertThat(messages.retrieveSingle(sender, MessageKey.UNKNOWN_USER),
             equalTo("We've got\nnew lines\nand ' apostrophes"));
+
+        messages.send(sender, MessageKey.UNKNOWN_USER);
+
+        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        verify(sender, times(3)).sendMessage(captor.capture());
+        assertThat(captor.getAllValues(), contains(lines));
     }
 
     @Test
@@ -131,36 +137,18 @@ class MessagesIntegrationTest {
     }
 
     @Test
-    void shouldSendMultiLineMessageToPlayer() {
-        MessageKey key = MessageKey.UNKNOWN_USER;
+    void shouldApplyTagReplacements() {
         CommandSender sender = mockSender();
+        messages.send(sender, MessageKey.CAPTCHA_WRONG_ERROR, "1234");
+        verify(sender).sendMessage("Use /captcha 1234 to solve the captcha");
 
-        messages.send(sender, key);
+        // Key with tags but no replacements: sent verbatim
+        CommandSender plainSender = mockSender();
+        messages.send(plainSender, MessageKey.CAPTCHA_WRONG_ERROR);
+        verify(plainSender).sendMessage("Use /captcha %captcha_code to solve the captcha");
 
-        String[] lines = new String[]{"We've got", "new lines", "and ' apostrophes"};
-        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
-        verify(sender, times(3)).sendMessage(captor.capture());
-        assertThat(captor.getAllValues(), contains(lines));
-    }
-
-    @Test
-    void shouldSendMessageToPlayerWithTagReplacement() {
-        MessageKey key = MessageKey.CAPTCHA_WRONG_ERROR;
-        CommandSender sender = mockSender();
-
-        messages.send(sender, key, "1234");
-
-        verify(sender, times(1)).sendMessage("Use /captcha 1234 to solve the captcha");
-    }
-
-    @Test
-    void shouldNotLogErrorForKeyWithNoTagReplacements() {
-        MessageKey key = MessageKey.CAPTCHA_WRONG_ERROR;
-        CommandSender sender = mockSender();
-
-        messages.send(sender, key);
-
-        verify(sender).sendMessage("Use /captcha %captcha_code to solve the captcha");
+        assertThat(messages.retrieveSingle("Tester", MessageKey.CAPTCHA_WRONG_ERROR, "24680"),
+            equalTo("Use /captcha 24680 to solve the captcha"));
     }
 
     @Test
@@ -185,16 +173,6 @@ class MessagesIntegrationTest {
         String message = messages.retrieveSingle(sender, key);
 
         assertThat(message, equalTo("§cWrong password!"));
-    }
-
-    @Test
-    void shouldRetrieveMessageWithReplacements() {
-        MessageKey key = MessageKey.CAPTCHA_WRONG_ERROR;
-        CommandSender sender = mockSender();
-
-        String result = messages.retrieveSingle(sender.getName(), key, "24680");
-
-        assertThat(result, equalTo("Use /captcha 24680 to solve the captcha"));
     }
 
     @Test

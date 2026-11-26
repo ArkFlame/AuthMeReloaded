@@ -97,7 +97,22 @@ public class AsynchronousQuit implements AsynchronousProcess {
 
         try {
             if (wasLoggedIn) {
-                saveQuitState(player, realName, name);
+                if (service.getProperty(RestrictionSettings.SAVE_QUIT_LOCATION)) {
+                    try {
+                        Location loc = spawnLoader.getPlayerLocationOrSpawn(player);
+                        database.updateQuitLoc(PlayerAuth.builder().name(name).realName(realName)
+                            .location(loc).build());
+                    } catch (RuntimeException e) {
+                        logger.warning("Could not save the quit location of '" + name + "': " + e.getMessage());
+                    }
+                }
+
+                database.updateSession(PlayerAuth.builder()
+                    .name(name)
+                    .realName(realName)
+                    .lastIp(PlayerUtils.getPlayerIp(player))
+                    .lastLogin(System.currentTimeMillis())
+                    .build());
             }
         } finally {
             //always unauthenticate the player - use session only for auto logins on the same ip
@@ -118,27 +133,6 @@ public class AsynchronousQuit implements AsynchronousProcess {
 
             database.invalidateCache(name);
         }
-    }
-
-    private void saveQuitState(Player player, String realName, String name) {
-        if (service.getProperty(RestrictionSettings.SAVE_QUIT_LOCATION)) {
-            try {
-                Location loc = spawnLoader.getPlayerLocationOrSpawn(player);
-                database.updateQuitLoc(PlayerAuth.builder().name(name).realName(realName).location(loc).build());
-            } catch (RuntimeException e) {
-                logger.warning("Could not save the quit location of '" + name + "': " + e.getMessage());
-            }
-        }
-
-        PlayerAuth auth = PlayerAuth.builder()
-            .name(name)
-            .realName(realName)
-            .lastIp(PlayerUtils.getPlayerIp(player))
-            .lastLogin(System.currentTimeMillis())
-            .build();
-        database.updateSession(auth);
-
-        // TODO: send an update when a messaging service will be implemented (QUITLOC)
     }
 
 }

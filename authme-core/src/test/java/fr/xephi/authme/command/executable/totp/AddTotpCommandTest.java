@@ -12,10 +12,14 @@ import fr.xephi.authme.security.totp.GenerateTotpService;
 import fr.xephi.authme.security.totp.TotpAuthenticator.TotpGenerationResult;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 
 import java.util.Collections;
+import java.util.stream.Stream;
 
 import static fr.xephi.authme.listener.TestPlayerUtils.mockPlayerWithName;
 import static org.mockito.BDDMockito.given;
@@ -39,34 +43,26 @@ public class AddTotpCommandTest {
     @Mock
     private Messages messages;
 
-    @Test
-    public void shouldHandleNonLoggedInUser() {
+    @ParameterizedTest
+    @MethodSource("invalidStates")
+    public void shouldNotAddCodeForInvalidState(PlayerAuth auth, MessageKey expectedMessage) {
         // given
         Player player = mockPlayerWithName("bob");
-        given(playerCache.getAuth("bob")).willReturn(null);
+        given(playerCache.getAuth("bob")).willReturn(auth);
 
         // when
         addTotpCommand.runCommand(player, Collections.emptyList());
 
         // then
-        verify(messages).send(player, MessageKey.NOT_LOGGED_IN);
+        verify(messages).send(player, expectedMessage);
         verifyNoInteractions(generateTotpService);
     }
 
-    @Test
-    public void shouldNotAddCodeForAlreadyExistingTotp() {
-        // given
-        Player player = mockPlayerWithName("arend");
-        PlayerAuth auth = PlayerAuth.builder().name("arend")
-            .totpKey("TOTP2345").build();
-        given(playerCache.getAuth("arend")).willReturn(auth);
-
-        // when
-        addTotpCommand.runCommand(player, Collections.emptyList());
-
-        // then
-        verify(messages).send(player, MessageKey.TWO_FACTOR_ALREADY_ENABLED);
-        verifyNoInteractions(generateTotpService);
+    private static Stream<Arguments> invalidStates() {
+        return Stream.of(
+            Arguments.of(null, MessageKey.NOT_LOGGED_IN),
+            Arguments.of(PlayerAuth.builder().name("bob").totpKey("TOTP2345").build(),
+                MessageKey.TWO_FACTOR_ALREADY_ENABLED));
     }
 
     @Test

@@ -21,7 +21,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -276,16 +275,16 @@ public class LimboService {
      * @param player the player to reset the tasks for
      */
     public void replaceTasksAfterRegistration(Player player) {
-        Optional<LimboPlayer> limboPlayer = getLimboOrLogError(player, "reset tasks");
-        limboPlayer.ifPresent(limbo -> {
+        LimboPlayer limboPlayer = getLimboOrLogError(player, "reset tasks");
+        if (limboPlayer != null) {
             // The register timeout has fired its purpose. Cancel it explicitly: registerTimeoutTask only
             // replaces an existing task when a login timeout is configured, so with loginTimeout=0
             // (timeout disabled) the old register timeout would otherwise still kick the player later.
-            limbo.setTimeoutTask((CancellableTask) null);
-            taskManager.registerTimeoutTask(player, limbo, LimboMessageType.LOG_IN);
-            taskManager.registerMessageTask(player, limbo, LimboMessageType.LOG_IN);
-        });
-        authGroupHandler.setGroup(player, limboPlayer.orElse(null), AuthGroupType.REGISTERED_UNAUTHENTICATED);
+            limboPlayer.setTimeoutTask((CancellableTask) null);
+            taskManager.registerTimeoutTask(player, limboPlayer, LimboMessageType.LOG_IN);
+            taskManager.registerMessageTask(player, limboPlayer, LimboMessageType.LOG_IN);
+        }
+        authGroupHandler.setGroup(player, limboPlayer, AuthGroupType.REGISTERED_UNAUTHENTICATED);
     }
 
     /**
@@ -295,8 +294,10 @@ public class LimboService {
      * @param messageType the message to show for the limbo player
      */
     public void resetMessageTask(Player player, LimboMessageType messageType) {
-        getLimboOrLogError(player, "reset message task")
-            .ifPresent(limbo -> taskManager.registerMessageTask(player, limbo, messageType));
+        LimboPlayer limbo = getLimboOrLogError(player, "reset message task");
+        if (limbo != null) {
+            taskManager.registerMessageTask(player, limbo, messageType);
+        }
     }
 
     /** @param player the player whose message task should be muted */
@@ -310,23 +311,25 @@ public class LimboService {
     }
 
     private void setMessageTaskMuted(Player player, boolean muted) {
-        getLimboOrLogError(player, muted ? "mute message task" : "unmute message task")
-            .ifPresent(limbo -> LimboPlayerTaskManager.setMuted(limbo.getMessageTask(), muted));
+        LimboPlayer limbo = getLimboOrLogError(player, muted ? "mute message task" : "unmute message task");
+        if (limbo != null) {
+            LimboPlayerTaskManager.setMuted(limbo.getMessageTask(), muted);
+        }
     }
 
     /**
-     * Returns the limbo player for the given player or logs an error.
+     * Returns the limbo player for the given player or logs a debug message.
      *
      * @param player the player to retrieve the limbo player for
      * @param context the action for which the limbo player is being retrieved (for logging)
-     * @return Optional with the limbo player
+     * @return the limbo player, or null if none is present
      */
-    private Optional<LimboPlayer> getLimboOrLogError(Player player, String context) {
+    private LimboPlayer getLimboOrLogError(Player player, String context) {
         LimboPlayer limbo = entries.get(player.getUniqueId());
         if (limbo == null) {
             logger.debug("No LimboPlayer found for `{0}`. Action: {1}", player.getName(), context);
         }
-        return Optional.ofNullable(limbo);
+        return limbo;
     }
 
     /**
@@ -420,8 +423,17 @@ public class LimboService {
         limbo.setEnderPearls(Collections.emptyList());
         limbo.setVehicle(null, null);
 
-        logEntityRestoreResult(playerName, pearlRestored, pearlTotal, pearlRecreated,
-            vehicleUuid, vehicleType, vehicleDone);
+        if (pearlTotal > 0) {
+            logger.debug("Restored {0}/{1} ender pearl(s) and recreated {2} for `{3}`",
+                pearlRestored, pearlTotal, pearlRecreated, playerName);
+        }
+        if (vehicleUuid != null) {
+            if (vehicleDone) {
+                logger.debug("Restored vehicle ({0}) for `{1}`", vehicleType, playerName);
+            } else {
+                logger.debug("Vehicle ({0}) no longer exists for `{1}`, skipping", vehicleType, playerName);
+            }
+        }
     }
 
     /**
@@ -445,22 +457,6 @@ public class LimboService {
             }
         }
         return recreated;
-    }
-
-    /** Logs the outcome of restoring a player's pearls and vehicle. */
-    private void logEntityRestoreResult(String name, int pearlRestored, int pearlTotal, int pearlRecreated,
-                                        UUID vehicleUuid, EntityType vehicleType, boolean vehicleDone) {
-        if (pearlTotal > 0) {
-            logger.debug("Restored {0}/{1} ender pearl(s) and recreated {2} for `{3}`",
-                pearlRestored, pearlTotal, pearlRecreated, name);
-        }
-        if (vehicleUuid != null) {
-            if (vehicleDone) {
-                logger.debug("Restored vehicle ({0}) for `{1}`", vehicleType, name);
-            } else {
-                logger.debug("Vehicle ({0}) no longer exists for `{1}`, skipping", vehicleType, name);
-            }
-        }
     }
 
     private boolean recreateEnderPearl(Player player, EnderPearlRestoreData pearl, String name) {

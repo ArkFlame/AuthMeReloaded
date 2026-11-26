@@ -9,7 +9,6 @@ import fr.xephi.authme.settings.properties.SecuritySettings;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -60,17 +59,12 @@ class SettingsConsistencyTest {
     void shouldNotHaveVeryLongCommentLines() {
         // given
         Map<String, List<String>> commentEntries = configurationData.getAllComments();
-        List<String> badPaths = new ArrayList<>();
 
         // when
-        for (Map.Entry<String, List<String>> commentEntry : commentEntries.entrySet()) {
-            for (String comment : commentEntry.getValue()) {
-                if (comment.length() > MAX_COMMENT_LENGTH) {
-                    badPaths.add(commentEntry.getKey());
-                    break;
-                }
-            }
-        }
+        List<String> badPaths = commentEntries.entrySet().stream()
+            .filter(entry -> entry.getValue().stream().anyMatch(c -> c.length() > MAX_COMMENT_LENGTH))
+            .map(Map.Entry::getKey)
+            .collect(Collectors.toList());
 
         // then
         if (!badPaths.isEmpty()) {
@@ -79,7 +73,6 @@ class SettingsConsistencyTest {
                 + String.join("\n- ", badPaths));
         }
     }
-
 
     /**
      * Checks that enum properties have all possible enum values listed in their comment

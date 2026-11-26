@@ -54,6 +54,8 @@ class RegisterAdminCommandTest {
     private CommonService commandService;
     @Mock
     private ValidationService validationService;
+    @Mock
+    private CommandSender sender;
 
     @BeforeAll
     static void setUpLogger() {
@@ -67,7 +69,6 @@ class RegisterAdminCommandTest {
         String password = "myPassword";
         given(validationService.validatePassword(password, user))
             .willReturn(new ValidationResult(MessageKey.INVALID_PASSWORD_LENGTH));
-        CommandSender sender = mock(CommandSender.class);
 
         // when
         command.executeCommand(sender, Arrays.asList(user, password));
@@ -85,7 +86,6 @@ class RegisterAdminCommandTest {
         String password = "@some-pass@";
         given(validationService.validatePassword(password, user)).willReturn(new ValidationResult());
         given(dataSource.isAuthAvailable(user)).willReturn(true);
-        CommandSender sender = mock(CommandSender.class);
         setBukkitServiceToRunTaskOptionallyAsync(bukkitService);
 
         // when
@@ -103,7 +103,6 @@ class RegisterAdminCommandTest {
         String user = "test-test";
         String password = "afdjhfkt";
         HashedPassword hashedPassword = givenValidRegistration(user, password, "235sdf4w5udsgf", false);
-        CommandSender sender = mock(CommandSender.class);
         setBukkitServiceToRunTaskOptionallyAsync(bukkitService);
 
         // when
@@ -112,9 +111,7 @@ class RegisterAdminCommandTest {
         // then
         verify(validationService).validatePassword(password, user);
         verify(commandService).send(sender, MessageKey.ERROR);
-        ArgumentCaptor<PlayerAuth> captor = ArgumentCaptor.forClass(PlayerAuth.class);
-        verify(dataSource).saveAuth(captor.capture());
-        assertAuthHasInfo(captor.getValue(), user, hashedPassword);
+        verifyAuthSaved(user, hashedPassword);
     }
 
     @ParameterizedTest
@@ -125,16 +122,12 @@ class RegisterAdminCommandTest {
         String password = "Al1O3P49S5%";
         String kickForAdminRegister = "Admin registered you -- log in again";
         HashedPassword hashedPassword = givenValidRegistration(user, password, "$aea2345EW235dfsa@#R%987048", true);
-        Player player = null;
-        if (playerOnline) {
-            player = mock(Player.class);
-            given(bukkitService.getPlayerExact(user)).willReturn(player);
+        Player player = playerOnline ? mock(Player.class) : null;
+        given(bukkitService.getPlayerExact(user)).willReturn(player);
+        if (player != null) {
             given(commandService.retrieveSingleMessage(player, MessageKey.KICK_FOR_ADMIN_REGISTER)).willReturn(kickForAdminRegister);
             setBukkitServiceToScheduleSyncEntityTaskFromOptionallyAsyncTask(bukkitService);
-        } else {
-            given(bukkitService.getPlayerExact(user)).willReturn(null);
         }
-        CommandSender sender = mock(CommandSender.class);
         setBukkitServiceToRunTaskOptionallyAsync(bukkitService);
 
         // when
@@ -143,9 +136,7 @@ class RegisterAdminCommandTest {
         // then
         verify(validationService).validatePassword(password, user);
         verify(commandService).send(sender, MessageKey.REGISTER_SUCCESS);
-        ArgumentCaptor<PlayerAuth> captor = ArgumentCaptor.forClass(PlayerAuth.class);
-        verify(dataSource).saveAuth(captor.capture());
-        assertAuthHasInfo(captor.getValue(), user, hashedPassword);
+        verifyAuthSaved(user, hashedPassword);
         if (playerOnline) {
             verify(player).kickPlayer(kickForAdminRegister);
         }
@@ -158,6 +149,12 @@ class RegisterAdminCommandTest {
         HashedPassword hashedPassword = new HashedPassword(hash);
         given(passwordSecurity.computeHash(password, user)).willReturn(hashedPassword);
         return hashedPassword;
+    }
+
+    private void verifyAuthSaved(String user, HashedPassword hashedPassword) {
+        ArgumentCaptor<PlayerAuth> captor = ArgumentCaptor.forClass(PlayerAuth.class);
+        verify(dataSource).saveAuth(captor.capture());
+        assertAuthHasInfo(captor.getValue(), user, hashedPassword);
     }
 
     private void assertAuthHasInfo(PlayerAuth auth, String name, HashedPassword hashedPassword) {
