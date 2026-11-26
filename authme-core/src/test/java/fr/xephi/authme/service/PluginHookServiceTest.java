@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockMakers;
 
 import java.io.File;
@@ -52,13 +53,10 @@ class PluginHookServiceTest {
     // PluginManager is an interface, so the default subclass mock maker suffices.
     // JUnit creates a new test instance per method, so this is a fresh mock for every test.
     private final PluginManager pluginManager = mock(PluginManager.class);
-    /** World only serves as an unstubbed lookup key, so a single shared mock is enough. */
-    private static World world;
 
     @BeforeAll
     static void setUpOnce() {
         TestHelper.setupLogger();
-        world = mock(World.class);
     }
 
     @Test
@@ -198,9 +196,11 @@ class PluginHookServiceTest {
     }
 
     @ParameterizedTest(name = "multiverse spawn lookup for MV world: {0}")
-    @MethodSource("mvWorldSpawnCases")
+    @ValueSource(booleans = {true, false})
     void shouldGetMultiverseSpawn(boolean isMvWorld) {
         // given
+        // World only serves as an unstubbed lookup key.
+        World world = mock(World.class);
         Location location = mock(Location.class);
         MultiverseWorld multiverseWorld = mock(MultiverseWorld.class);
         given(multiverseWorld.getSpawnLocation()).willReturn(location);
@@ -224,10 +224,6 @@ class PluginHookServiceTest {
         if (isMvWorld) {
             verify(multiverseWorld).getSpawnLocation();
         }
-    }
-
-    private static Stream<Arguments> mvWorldSpawnCases() {
-        return Stream.of(Arguments.of(true), Arguments.of(false));
     }
 
     private static void setPluginAvailable(PluginManager managerMock, String pluginName,

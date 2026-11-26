@@ -8,7 +8,6 @@ import fr.xephi.authme.settings.Settings;
 import fr.xephi.authme.settings.properties.LimboSettings;
 import org.bukkit.entity.Player;
 import org.hamcrest.Matcher;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,24 +40,28 @@ class LimboPersistenceTest {
 
     private LimboPersistence limboPersistence;
 
+    private LimboPersistenceHandler handler;
+
+    private Logger logger;
+
+    private Player player;
+
     @Mock
     private Factory<LimboPersistenceHandler> handlerFactory;
 
     @Mock
     private Settings settings;
 
-    @BeforeAll
-    static void setUpLogger() {
-        TestHelper.setupLogger();
-    }
-
     @BeforeEach
     @SuppressWarnings("unchecked")
     void setUpMocksAndLimboPersistence() {
+        logger = TestHelper.setupLogger();
+        player = mock(Player.class);
         given(settings.getProperty(LimboSettings.LIMBO_PERSISTENCE_TYPE)).willReturn(LimboPersistenceType.DISABLED);
         given(handlerFactory.newInstance(any(Class.class)))
             .willAnswer(invocation -> mock((Class<?>) invocation.getArgument(0)));
         limboPersistence = new LimboPersistence(settings, handlerFactory);
+        handler = getHandler();
     }
 
     @Test
@@ -70,8 +73,6 @@ class LimboPersistenceTest {
     @Test
     void shouldDelegateToHandler() {
         // given
-        Player player = mock(Player.class);
-        LimboPersistenceHandler handler = getHandler();
         LimboPlayer limbo = mock(LimboPlayer.class);
         given(handler.getLimboPlayer(player)).willReturn(limbo);
 
@@ -103,9 +104,6 @@ class LimboPersistenceTest {
     @Test
     void shouldHandleExceptionWhenGettingLimbo() {
         // given
-        Player player = mock(Player.class);
-        Logger logger = TestHelper.setupLogger();
-        LimboPersistenceHandler handler = getHandler();
         doThrow(RuntimeException.class).when(handler).getLimboPlayer(player);
 
         // when
@@ -119,10 +117,7 @@ class LimboPersistenceTest {
     @Test
     void shouldHandleExceptionWhenSavingLimbo() {
         // given
-        Player player = mock(Player.class);
         LimboPlayer limbo = mock(LimboPlayer.class);
-        Logger logger = TestHelper.setupLogger();
-        LimboPersistenceHandler handler = getHandler();
         doThrow(IllegalStateException.class).when(handler).saveLimboPlayer(player, limbo);
 
         // when
@@ -135,9 +130,6 @@ class LimboPersistenceTest {
     @Test
     void shouldHandleExceptionWhenRemovingLimbo() {
         // given
-        Player player = mock(Player.class);
-        Logger logger = TestHelper.setupLogger();
-        LimboPersistenceHandler handler = getHandler();
         doThrow(UnsupportedOperationException.class).when(handler).removeLimboPlayer(player);
 
         // when

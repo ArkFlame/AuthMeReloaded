@@ -34,9 +34,7 @@ public final class CommandUtils {
      * @return min number of arguments required by the command
      */
     public static int getMinNumberOfArguments(CommandDescription command) {
-        return (int) command.getArguments().stream()
-            .filter(argument -> !argument.isOptional())
-            .count();
+        return (int) command.getArguments().stream().filter(argument -> !argument.isOptional()).count();
     }
 
     /**
@@ -123,10 +121,7 @@ public final class CommandUtils {
      * @return command parts without empty entries
      */
     public static List<String> splitInput(String input) {
-        if (input == null) {
-            return new ArrayList<>();
-        }
-        String trimmedInput = input.trim();
+        String trimmedInput = input == null ? "" : input.trim();
         if (trimmedInput.startsWith("/")) {
             trimmedInput = trimmedInput.substring(1).trim();
         }

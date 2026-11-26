@@ -14,12 +14,16 @@ public enum WalkFlySpeedRestoreType {
     RESTORE {
         @Override
         public void restoreFlySpeed(Player player, LimboPlayer limbo) {
-            restore(player, true, limbo.getFlySpeed(), "RESTORE");
+            float speed = limbo.getFlySpeed();
+            log(player, true, String.valueOf(speed), " (RESTORE mode)");
+            setSpeed(player, true, speed);
         }
 
         @Override
         public void restoreWalkSpeed(Player player, LimboPlayer limbo) {
-            restore(player, false, limbo.getWalkSpeed(), "RESTORE");
+            float speed = limbo.getWalkSpeed();
+            log(player, false, String.valueOf(speed), " (RESTORE mode)");
+            setSpeed(player, false, speed);
         }
     },
 
@@ -68,15 +72,11 @@ public enum WalkFlySpeedRestoreType {
 
     public abstract void restoreWalkSpeed(Player player, LimboPlayer limbo);
 
-    private static void restore(Player player, boolean fly, float speed, String mode) {
-        log(player, fly, String.valueOf(speed), " (" + mode + " mode)");
-        setSpeed(player, fly, speed);
-    }
-
     private static void restoreNoZero(Player player, LimboPlayer limbo, boolean fly) {
         float speed = getSpeed(limbo, fly);
         if (speed > 0.01f) {
-            restore(player, fly, speed, "RESTORE_NO_ZERO");
+            log(player, fly, String.valueOf(speed), " (RESTORE_NO_ZERO mode)");
+            setSpeed(player, fly, speed);
         } else {
             log(player, fly, "DEFAULT, it was 0!", " (RESTORE_NO_ZERO mode)");
             setSpeed(player, fly, fly ? LimboPlayer.DEFAULT_FLY_SPEED : LimboPlayer.DEFAULT_WALK_SPEED);
@@ -102,8 +102,7 @@ public enum WalkFlySpeedRestoreType {
     }
 
     private static void log(Player player, boolean fly, String target, String detail) {
-        logger.debug(() -> "Restoring " + (fly ? "fly" : "walk") + " speed for LimboPlayer " + player.getName()
-            + " to " + target + detail);
+        logger.debug(() -> "Restoring " + (fly ? "fly" : "walk") + " speed for LimboPlayer " + player.getName() + " to " + target + detail);
     }
 
     private static void setSpeed(Player player, boolean fly, float speed) {

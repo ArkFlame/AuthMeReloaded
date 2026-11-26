@@ -35,8 +35,7 @@ public class PendingConnectionRegistryTest {
 
     @Test
     public void shouldMatchClaimCaseInsensitively() {
-        PlayerConnection connection = newConnection(50_000);
-        registry.tryClaim("Bobby", connection, TTL);
+        PlayerConnection connection = claim("Bobby", 50_000, TTL);
 
         assertThat(registry.holdsClaim("bOBBy", connection), is(true));
         assertThat(registry.tryClaim("BOBBY", newConnection(50_001), TTL), is(false));
@@ -44,9 +43,8 @@ public class PendingConnectionRegistryTest {
 
     @Test
     public void shouldRefuseSecondLiveConnectionWithSameName() {
-        PlayerConnection first = newConnection(50_000);
+        PlayerConnection first = claim("Bobby", 50_000, TTL);
         PlayerConnection second = newConnection(50_001);
-        registry.tryClaim("Bobby", first, TTL);
 
         assertThat(registry.tryClaim("Bobby", second, TTL), is(false));
         assertThat(registry.holdsClaim("Bobby", second), is(false));
@@ -55,9 +53,8 @@ public class PendingConnectionRegistryTest {
 
     @Test
     public void shouldReportNameClaimedByAnotherLiveConnection() {
-        PlayerConnection holder = newConnection(50_000);
+        PlayerConnection holder = claim("Bobby", 50_000, TTL);
         PlayerConnection other = newConnection(50_001);
-        registry.tryClaim("Bobby", holder, TTL);
 
         assertThat(registry.isClaimedByOtherConnection("Bobby", other), is(true));
         assertThat(registry.isClaimedByOtherConnection("Bobby", holder), is(false));
@@ -69,8 +66,7 @@ public class PendingConnectionRegistryTest {
 
         assertThat(registry.isClaimedByOtherConnection("Bobby", other), is(false));
 
-        PlayerConnection gone = newConnection(50_000);
-        registry.tryClaim("Bobby", gone, TTL);
+        PlayerConnection gone = claim("Bobby", 50_000, TTL);
         given(gone.isConnected()).willReturn(false);
         assertThat(registry.isClaimedByOtherConnection("Bobby", other), is(false));
 
@@ -80,16 +76,14 @@ public class PendingConnectionRegistryTest {
 
     @Test
     public void shouldAllowSameConnectionToRenewItsClaim() {
-        PlayerConnection connection = newConnection(50_000);
-        registry.tryClaim("Bobby", connection, TTL);
+        PlayerConnection connection = claim("Bobby", 50_000, TTL);
 
         assertThat(registry.tryClaim("Bobby", connection, TTL), is(true));
     }
 
     @Test
     public void shouldTakeOverClaimOfDisconnectedConnection() {
-        PlayerConnection gone = newConnection(50_000);
-        registry.tryClaim("Bobby", gone, TTL);
+        PlayerConnection gone = claim("Bobby", 50_000, TTL);
         given(gone.isConnected()).willReturn(false);
 
         assertThat(registry.tryClaim("Bobby", newConnection(50_001), TTL), is(true));
@@ -104,16 +98,14 @@ public class PendingConnectionRegistryTest {
 
     @Test
     public void shouldNotConsiderExpiredClaimAsHeld() {
-        PlayerConnection connection = newConnection(50_000);
-        registry.tryClaim("Bobby", connection, -1L);
+        PlayerConnection connection = claim("Bobby", 50_000, -1L);
 
         assertThat(registry.holdsClaim("Bobby", connection), is(false));
     }
 
     @Test
     public void shouldReleaseClaim() {
-        PlayerConnection connection = newConnection(50_000);
-        registry.tryClaim("Bobby", connection, TTL);
+        PlayerConnection connection = claim("Bobby", 50_000, TTL);
 
         registry.release("Bobby");
 
@@ -123,8 +115,7 @@ public class PendingConnectionRegistryTest {
 
     @Test
     public void shouldKeepClaimOfLiveConnectionWhenAnotherOneCloses() {
-        PlayerConnection holder = newConnection(50_000);
-        registry.tryClaim("Bobby", holder, TTL);
+        PlayerConnection holder = claim("Bobby", 50_000, TTL);
 
         // The refused duplicate connection closes and triggers the same close event
         registry.releaseIfStale("Bobby");
@@ -135,8 +126,7 @@ public class PendingConnectionRegistryTest {
 
     @Test
     public void shouldReleaseClaimOfClosedConnection() {
-        PlayerConnection holder = newConnection(50_000);
-        registry.tryClaim("Bobby", holder, TTL);
+        PlayerConnection holder = claim("Bobby", 50_000, TTL);
         given(holder.isConnected()).willReturn(false);
 
         registry.releaseIfStale("Bobby");
@@ -150,6 +140,12 @@ public class PendingConnectionRegistryTest {
         registry.releaseIfStale("Bobby");
 
         assertThat(registry.holdsClaim("Bobby", newConnection(50_000)), is(false));
+    }
+
+    private PlayerConnection claim(String name, int port, long ttl) {
+        PlayerConnection connection = newConnection(port);
+        registry.tryClaim(name, connection, ttl);
+        return connection;
     }
 
     private static PlayerConnection newConnection(int port) {

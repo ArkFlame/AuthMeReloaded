@@ -87,44 +87,38 @@ class SqLiteMigrater {
     // cf. https://stackoverflow.com/questions/805363/how-do-i-rename-a-column-in-a-sqlite-database-table
     private void recreateDatabaseWithNewDefinitions(SQLite sqLite) throws SQLException {
         String tempTable = "tmp_" + tableName;
-        Connection connection = getConnection(sqLite);
+        Connection connection;
+        try {
+            Field connectionField = SQLite.class.getDeclaredField("con");
+            connectionField.setAccessible(true);
+            connection = (Connection) connectionField.get(sqLite);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new IllegalStateException("Failed to get the connection from SQLite", e);
+        }
         try (Statement st = connection.createStatement()) {
             st.execute("ALTER TABLE " + tableName + " RENAME TO " + tempTable + ";");
         }
 
         sqLite.reload();
 
+        String baseColumns = col.ID + ", " + col.NAME + ", " + col.REAL_NAME + ", " + col.PASSWORD;
+        String locationColumns = col.LASTLOC_X + ", " + col.LASTLOC_Y + ", " + col.LASTLOC_Z + ", "
+            + col.LASTLOC_WORLD + ", " + col.LASTLOC_PITCH + ", " + col.LASTLOC_YAW;
         try (Statement st = connection.createStatement()) {
-            String copySql = "INSERT INTO " + tableName + " ("
-                + col.ID + ", " + col.NAME + ", " + col.REAL_NAME + ", " + col.PASSWORD + ", "
-                + col.LAST_IP + ", " + col.LAST_LOGIN + ", " + col.REGISTRATION_IP + ", " + col.REGISTRATION_DATE
-                + ", " + col.LASTLOC_X + ", " + col.LASTLOC_Y + ", " + col.LASTLOC_Z + ", " + col.LASTLOC_WORLD
-                + ", " + col.LASTLOC_PITCH + ", " + col.LASTLOC_YAW + ", " + col.EMAIL + ", " + col.IS_LOGGED + ")"
-                + " SELECT " + col.ID + ", " + col.NAME + ", " + col.REAL_NAME + ", " + col.PASSWORD + ","
+            String copySql = "INSERT INTO " + tableName + " (" + baseColumns + ", " + col.LAST_IP + ", "
+                + col.LAST_LOGIN + ", " + col.REGISTRATION_IP + ", " + col.REGISTRATION_DATE + ", "
+                + locationColumns + ", " + col.EMAIL + ", " + col.IS_LOGGED + ")"
+                + " SELECT " + baseColumns + ","
                 + " CASE WHEN " + col.LAST_IP + " = '127.0.0.1' OR " + col.LAST_IP + " = '' THEN NULL else "
                 + col.LAST_IP + " END,"
                 + " " + col.LAST_LOGIN + ", " + col.REGISTRATION_IP + ", " + col.REGISTRATION_DATE + ", "
-                + col.LASTLOC_X + ", " + col.LASTLOC_Y + ", " + col.LASTLOC_Z + ", " + col.LASTLOC_WORLD + ", "
-                + col.LASTLOC_PITCH + ", " + col.LASTLOC_YAW + ","
+                + locationColumns + ","
                 + " CASE WHEN " + col.EMAIL + " = 'your@email.com' THEN NULL ELSE " + col.EMAIL + " END, "
                 + col.IS_LOGGED + " FROM " + tempTable + ";";
             int insertedEntries = st.executeUpdate(copySql);
             logger.info("Copied over " + insertedEntries + " from the old table to the new one");
 
             st.execute("DROP TABLE " + tempTable + ";");
-        }
-    }
-
-    /**
-     * Returns the connection from the given SQLite instance.
-     */
-    private static Connection getConnection(SQLite sqLite) {
-        try {
-            Field connectionField = SQLite.class.getDeclaredField("con");
-            connectionField.setAccessible(true);
-            return (Connection) connectionField.get(sqLite);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            throw new IllegalStateException("Failed to get the connection from SQLite", e);
         }
     }
 }

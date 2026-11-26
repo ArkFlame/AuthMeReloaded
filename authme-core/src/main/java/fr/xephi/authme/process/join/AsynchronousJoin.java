@@ -188,7 +188,8 @@ public class AsynchronousJoin implements AsynchronousProcess {
         String pendingKick = dialogState.kickMessage();
 
         if (!validationService.fulfillsNameRestrictions(player)) {
-            kickWithMessageKey(player, MessageKey.NOT_OWNER_ERROR);
+            bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player,
+                () -> player.kickPlayer(service.retrieveSingleMessage(player, MessageKey.NOT_OWNER_ERROR)));
             if (service.getProperty(RestrictionSettings.BAN_UNKNOWN_IP) && ip != null) {
                 bukkitService.runOnGlobalRegion(() -> server.banIP(ip));
             }
@@ -555,17 +556,6 @@ public class AsynchronousJoin implements AsynchronousProcess {
         // Player stays in limbo to use the recovery code or new password
     }
 
-    /**
-     * Resolves the message on the player's owning thread and kicks the player there.
-     *
-     * @param player the player to kick
-     * @param messageKey the message to resolve and show
-     */
-    private void kickWithMessageKey(Player player, MessageKey messageKey) {
-        bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player,
-            () -> player.kickPlayer(service.retrieveSingleMessage(player, messageKey)));
-    }
-
     private void processPendingRegistration(Player player, PreJoinDialogService.PendingRegistration pendingRegistration) {
         if (pendingRegistration.isEmailRegistration()) {
             asyncRegister.register(RegistrationMethod.EMAIL_REGISTRATION,
@@ -595,7 +585,8 @@ public class AsynchronousJoin implements AsynchronousProcess {
             int count = 0;
             for (Player online : bukkitService.getOnlinePlayers()) {
                 if (ip.equalsIgnoreCase(PlayerUtils.getPlayerIp(online)) && ++count > maxPerIp) {
-                    kickWithMessageKey(player, MessageKey.SAME_IP_ONLINE);
+                    bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player,
+                        () -> player.kickPlayer(service.retrieveSingleMessage(player, MessageKey.SAME_IP_ONLINE)));
                     return false;
                 }
             }

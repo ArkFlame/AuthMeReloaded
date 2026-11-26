@@ -23,7 +23,6 @@ public class JarMessageSource {
     public JarMessageSource(String localJarPath, String defaultJarPath) {
         localJarMessages = localJarPath.equals(defaultJarPath) ? null : loadJarFile(localJarPath);
         defaultJarMessages = loadJarFile(defaultJarPath);
-
         if (defaultJarMessages == null) {
             throw new IllegalStateException("Default JAR file '" + defaultJarPath + "' could not be loaded");
         }
@@ -37,13 +36,14 @@ public class JarMessageSource {
 
     private MessageMigraterPropertyReader loadJarFile(String jarPath) {
         try (InputStream stream = FileUtils.getResourceFromJar(jarPath)) {
-            if (stream != null) {
-                return MessageMigraterPropertyReader.loadFromStream(stream);
+            if (stream == null) {
+                logger.debug("Could not load '" + jarPath + "' from JAR");
+                return null;
             }
-            logger.debug("Could not load '" + jarPath + "' from JAR");
+            return MessageMigraterPropertyReader.loadFromStream(stream);
         } catch (IOException e) {
             logger.logException("Exception while handling JAR path '" + jarPath + "'", e);
+            return null;
         }
-        return null;
     }
 }

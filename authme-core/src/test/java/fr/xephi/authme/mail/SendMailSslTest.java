@@ -55,18 +55,7 @@ class SendMailSslTest {
     @ParameterizedTest
     @MethodSource("emailObjectCases")
     void shouldCreateEmailObject(String mailAddress, String expectedFrom, LogLevel logLevel) throws EmailException {
-        given(settings.getProperty(EmailSettings.SMTP_PORT)).willReturn(465);
-        String smtpHost = "mail.example.com";
-        given(settings.getProperty(EmailSettings.SMTP_HOST)).willReturn(smtpHost);
-        String senderAccount = "sender@example.org";
-        given(settings.getProperty(EmailSettings.MAIL_ACCOUNT)).willReturn(senderAccount);
-        given(settings.getProperty(EmailSettings.MAIL_ADDRESS)).willReturn(mailAddress);
-        given(settings.getProperty(EmailSettings.MAIL_PASSWORD)).willReturn("pass1234");
-        String senderName = "Server administration";
-        given(settings.getProperty(EmailSettings.MAIL_SENDER_NAME)).willReturn(senderName);
-        given(settings.getProperty(EmailSettings.RECOVERY_MAIL_SUBJECT)).willReturn("Recover password");
-        given(settings.getProperty(EmailSettings.SSL_CHECK_SERVER_IDENTITY)).willReturn(true);
-        given(settings.getProperty(PluginSettings.LOG_LEVEL)).willReturn(logLevel);
+        stubEmailSettings(465, mailAddress, "Server administration", "Recover password", logLevel);
 
         HtmlEmail email = sendMailSsl.initializeMail("recipient@example.com");
 
@@ -74,8 +63,8 @@ class SendMailSslTest {
         assertThat(email.getToAddresses(), hasSize(1));
         assertThat(email.getToAddresses().get(0).getAddress(), equalTo("recipient@example.com"));
         assertThat(email.getFromAddress().getAddress(), equalTo(expectedFrom));
-        assertThat(email.getFromAddress().getPersonal(), equalTo(senderName));
-        assertThat(email.getHostName(), equalTo(smtpHost));
+        assertThat(email.getFromAddress().getPersonal(), equalTo("Server administration"));
+        assertThat(email.getHostName(), equalTo("mail.example.com"));
         assertThat(email.getSmtpPort(), equalTo("465"));
     }
 
@@ -86,28 +75,31 @@ class SendMailSslTest {
         );
     }
 
+    private void stubEmailSettings(int smtpPort, String mailAddress, String senderName,
+                                   String subject, LogLevel logLevel) {
+        given(settings.getProperty(EmailSettings.SMTP_PORT)).willReturn(smtpPort);
+        given(settings.getProperty(EmailSettings.SMTP_HOST)).willReturn("mail.example.com");
+        given(settings.getProperty(EmailSettings.MAIL_ACCOUNT)).willReturn("sender@example.org");
+        given(settings.getProperty(EmailSettings.MAIL_ADDRESS)).willReturn(mailAddress);
+        given(settings.getProperty(EmailSettings.MAIL_PASSWORD)).willReturn("pass1234");
+        given(settings.getProperty(EmailSettings.MAIL_SENDER_NAME)).willReturn(senderName);
+        given(settings.getProperty(EmailSettings.RECOVERY_MAIL_SUBJECT)).willReturn(subject);
+        given(settings.getProperty(EmailSettings.SSL_CHECK_SERVER_IDENTITY)).willReturn(true);
+        given(settings.getProperty(PluginSettings.LOG_LEVEL)).willReturn(logLevel);
+    }
+
     @Test
     void shouldCreateEmailObjectWithOAuth2() throws EmailException {
-        given(settings.getProperty(EmailSettings.SMTP_PORT)).willReturn(587);
+        stubEmailSettings(587, "", "Admin", "Ricóber chur pasword ése", LogLevel.INFO);
         given(settings.getProperty(EmailSettings.OAUTH2_TOKEN)).willReturn("oAuth2 token");
-        String smtpHost = "mail.example.com";
-        given(settings.getProperty(EmailSettings.SMTP_HOST)).willReturn(smtpHost);
-        String senderMail = "sender@example.org";
-        given(settings.getProperty(EmailSettings.MAIL_ACCOUNT)).willReturn(senderMail);
-        given(settings.getProperty(EmailSettings.MAIL_ADDRESS)).willReturn("");
-        given(settings.getProperty(EmailSettings.MAIL_PASSWORD)).willReturn("pass1234");
-        given(settings.getProperty(EmailSettings.MAIL_SENDER_NAME)).willReturn("Admin");
-        given(settings.getProperty(EmailSettings.RECOVERY_MAIL_SUBJECT)).willReturn("Ricóber chur pasword ése");
-        given(settings.getProperty(EmailSettings.SSL_CHECK_SERVER_IDENTITY)).willReturn(true);
-        given(settings.getProperty(PluginSettings.LOG_LEVEL)).willReturn(LogLevel.INFO);
 
         HtmlEmail email = sendMailSsl.initializeMail("recipient@example.com");
 
         assertThat(email, not(nullValue()));
         assertThat(email.getToAddresses(), hasSize(1));
         assertThat(email.getToAddresses().get(0).getAddress(), equalTo("recipient@example.com"));
-        assertThat(email.getFromAddress().getAddress(), equalTo(senderMail));
-        assertThat(email.getHostName(), equalTo(smtpHost));
+        assertThat(email.getFromAddress().getAddress(), equalTo("sender@example.org"));
+        assertThat(email.getHostName(), equalTo("mail.example.com"));
         assertThat(email.getSmtpPort(), equalTo("587"));
 
         Properties mailProperties = email.getMailSession().getProperties();

@@ -9,9 +9,7 @@ import org.spigotmc.event.player.PlayerSpawnLocationEvent;
 
 import javax.inject.Inject;
 
-/**
- * Handles the legacy Spigot spawn-location event on platforms that still use it.
- */
+/** Handles the legacy Spigot spawn-location event on platforms that still use it. */
 public class LegacyPlayerSpawnLocationListener implements Listener {
 
     @Inject

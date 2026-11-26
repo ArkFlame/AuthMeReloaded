@@ -44,10 +44,8 @@ class ConsoleLoggerFactoryTest {
 
     @Test
     void shouldCreateLoggerWithProperNameAndDefaultLogLevel() {
-        // given / when
         ConsoleLogger logger = ConsoleLoggerFactory.get(AuthMe.class);
 
-        // then
         assertThat(logger.getName(), equalTo("fr.xephi.authme.AuthMe"));
         assertThat(logger.getLogLevel(), equalTo(LogLevel.INFO));
         assertThat(getConsoleLoggerMap().keySet(), contains("fr.xephi.authme.AuthMe"));
@@ -55,12 +53,10 @@ class ConsoleLoggerFactoryTest {
 
     @Test
     void shouldReturnSameInstanceForName() {
-        // given / when
         ConsoleLogger logger1 = ConsoleLoggerFactory.get(String.class);
         ConsoleLogger logger2 = ConsoleLoggerFactory.get(Number.class);
         ConsoleLogger logger3 = ConsoleLoggerFactory.get(String.class);
 
-        // then
         assertThat(ConsoleLoggerFactory.getTotalLoggers(), equalTo(2));
         assertThat(logger3, sameInstance(logger1));
         assertThat(logger2, not(sameInstance(logger1)));
@@ -68,17 +64,14 @@ class ConsoleLoggerFactoryTest {
 
     @Test
     void shouldInitializeAccordingToSettings() {
-        // given
         Settings settings = mock(Settings.class);
         given(settings.getProperty(PluginSettings.LOG_LEVEL)).willReturn(LogLevel.FINE);
         given(settings.getProperty(SecuritySettings.USE_LOGGING)).willReturn(false);
         ConsoleLogger existingLogger = ConsoleLoggerFactory.get(String.class);
 
-        // when
         ConsoleLoggerFactory.reloadSettings(settings);
         ConsoleLogger newLogger = ConsoleLoggerFactory.get(AuthMe.class);
 
-        // then
         assertThat(existingLogger.getLogLevel(), equalTo(LogLevel.FINE));
         assertThat(newLogger.getLogLevel(), equalTo(LogLevel.FINE));
     }

@@ -91,7 +91,10 @@ public class PaperLoginValidationListener implements Listener {
     }
 
     private void verifyLoginPhase(PlayerConnectionValidateLoginEvent event, PlayerLoginConnection connection) {
-        String playerName = getPlayerName(connection);
+        String playerName = getPlayerName(connection.getAuthenticatedProfile());
+        if (playerName == null) {
+            playerName = getPlayerName(connection.getUnsafeProfile());
+        }
         if (playerName == null) {
             return;
         }
@@ -153,11 +156,6 @@ public class PaperLoginValidationListener implements Listener {
         return loginTimeout <= 0 || registerTimeout <= 0
             ? CLAIM_WITHOUT_TIMEOUT_MILLIS
             : TimeUnit.SECONDS.toMillis(Math.max(loginTimeout, registerTimeout)) + CLAIM_GRACE_MILLIS;
-    }
-
-    private static String getPlayerName(PlayerLoginConnection connection) {
-        String name = getPlayerName(connection.getAuthenticatedProfile());
-        return name != null ? name : getPlayerName(connection.getUnsafeProfile());
     }
 
     private static String getPlayerName(PlayerProfile profile) {

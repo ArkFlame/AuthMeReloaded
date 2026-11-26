@@ -41,12 +41,16 @@ class SpawnLocationViewer implements DebugSection {
     @Override
     public void execute(CommandSender sender, List<String> arguments) {
         sendTitle(sender, "spawn location viewer");
-        if (arguments.isEmpty()) {
+        String arg = arguments.isEmpty() ? null : arguments.get(0);
+        if (arg == null) {
             showGeneralInfo(sender);
-        } else if ("?".equals(arguments.get(0))) {
-            showHelp(sender);
+        } else if ("?".equals(arg)) {
+            sender.sendMessage("Use /authme spawn and /authme firstspawn to teleport to the spawns.");
+            sender.sendMessage("/authme set(first)spawn sets the (first) spawn to your current location.");
+            sender.sendMessage("Use /authme debug spawn <player> to view where a player would be teleported to.");
+            sender.sendMessage("Read more at https://github.com/AuthMe/AuthMeReloaded/wiki/Spawn-Handling");
         } else {
-            showPlayerSpawn(sender, arguments.get(0));
+            showPlayerSpawn(sender, arg);
         }
     }
 
@@ -62,13 +66,6 @@ class SpawnLocationViewer implements DebugSection {
         sender.sendMessage("AuthMe first spawn location: " + formatLocation(spawnLoader.getFirstSpawn()));
         sender.sendMessage("AuthMe (first)spawn are only used depending on the configured priority!");
         sender.sendMessage("Use '/authme debug spawn ?' for further help");
-    }
-
-    private void showHelp(CommandSender sender) {
-        sender.sendMessage("Use /authme spawn and /authme firstspawn to teleport to the spawns.");
-        sender.sendMessage("/authme set(first)spawn sets the (first) spawn to your current location.");
-        sender.sendMessage("Use /authme debug spawn <player> to view where a player would be teleported to.");
-        sender.sendMessage("Read more at https://github.com/AuthMe/AuthMeReloaded/wiki/Spawn-Handling");
     }
 
     private void showPlayerSpawn(CommandSender sender, String playerName) {
