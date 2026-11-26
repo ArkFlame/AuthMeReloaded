@@ -8,6 +8,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
+import java.util.Locale;
 
 /**
  * Performs migrations on the MySQL data source if necessary.
@@ -70,7 +71,7 @@ final class MySqlMigrater {
 
         // Use the timestamp from Java to avoid timezone issues in case JVM and database are out of sync
         long currentTimestamp = System.currentTimeMillis();
-        int updatedRows = st.executeUpdate(String.format("UPDATE %s SET %s = %d;",
+        int updatedRows = st.executeUpdate(String.format(Locale.ROOT, "UPDATE %s SET %s = %d;",
             tableName, col.REGISTRATION_DATE, currentTimestamp));
         logger.info("Created column '" + col.REGISTRATION_DATE + "' and set the current timestamp, "
             + currentTimestamp + ", to all " + updatedRows + " rows");
