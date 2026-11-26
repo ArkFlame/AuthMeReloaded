@@ -6,8 +6,9 @@ import fr.xephi.authme.settings.SpawnLoader;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -41,30 +42,18 @@ abstract class AbstractSpawnSetterCommandTest<T extends SpawnSetterCommand> {
         given(player.getLocation()).willReturn(location);
     }
 
-    @Test
-    void shouldSaveSpawnAndReportSuccess() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldSaveSpawnAndReportOutcome(boolean saved) {
         // given
-        given(saveSpawn(location)).willReturn(true);
+        given(saveSpawn(location)).willReturn(saved);
 
         // when
         getCommand().executeCommand(player, Collections.emptyList());
 
         // then
         verifySpawnSaved(location);
-        verify(messages).send(player, getSuccessMessage());
-    }
-
-    @Test
-    void shouldReportFailureIfSpawnCouldNotBeSaved() {
-        // given
-        given(saveSpawn(location)).willReturn(false);
-
-        // when
-        getCommand().executeCommand(player, Collections.emptyList());
-
-        // then
-        verifySpawnSaved(location);
-        verify(messages).send(player, getFailureMessage());
+        verify(messages).send(player, saved ? getSuccessMessage() : getFailureMessage());
     }
 
     /** @return the command under test */

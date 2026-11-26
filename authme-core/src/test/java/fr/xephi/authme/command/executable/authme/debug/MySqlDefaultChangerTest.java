@@ -11,9 +11,8 @@ import fr.xephi.authme.datasource.SqlDataSourceTestUtil;
 import fr.xephi.authme.settings.Settings;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -29,11 +28,7 @@ import static org.mockito.Mockito.verify;
 /**
  * Test for {@link MySqlDefaultChanger}.
  */
-@ExtendWith(MockitoExtension.class)
 class MySqlDefaultChangerTest {
-
-    @Mock
-    private Settings settings;
 
     @BeforeAll
     static void setUpLogger() {
@@ -59,40 +54,27 @@ class MySqlDefaultChangerTest {
         verify(dataSource).getConnection();
     }
 
-    @Test
-    void shouldSetMySqlFieldOnInitialization() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldSetMySqlFieldOnInitialization(boolean mysqlSource) {
         // given
-        MySQL mySql = mock(MySQL.class);
-        MySqlDefaultChanger defaultChanger = createDefaultChanger(mySql);
+        DataSource dataSource = mysqlSource
+            ? mock(MySQL.class)
+            : new CacheDataSource(mock(DataSource.class), mock(PlayerCache.class));
+        MySqlDefaultChanger defaultChanger = createDefaultChanger(dataSource);
 
         // when
         defaultChanger.setMySqlField();
 
         // then
-        assertThat(ReflectionTestUtils.getFieldValue(MySqlDefaultChanger.class, defaultChanger, "mySql"),
-            sameInstance(mySql));
-    }
-
-    @Test
-    void shouldLeaveMySqlFieldToNullOnInitialization() {
-        // given
-        DataSource dataSource = mock(DataSource.class);
-        PlayerCache playerCache = mock(PlayerCache.class);
-        CacheDataSource cacheDataSource = new CacheDataSource(dataSource, playerCache);
-        MySqlDefaultChanger defaultChanger = createDefaultChanger(cacheDataSource);
-
-        // when
-        defaultChanger.setMySqlField();
-
-        // then
-        assertThat(ReflectionTestUtils.getFieldValue(MySqlDefaultChanger.class, defaultChanger, "mySql"),
-            nullValue());
+        Object mySql = ReflectionTestUtils.getFieldValue(
+            MySqlDefaultChanger.class, defaultChanger, "mySql");
+        assertThat(mySql, mysqlSource ? sameInstance((Object) dataSource) : nullValue());
     }
 
     private MySqlDefaultChanger createDefaultChanger(DataSource dataSource) {
         MySqlDefaultChanger defaultChanger = new MySqlDefaultChanger();
         ReflectionTestUtils.setField(defaultChanger, "dataSource", dataSource);
-        ReflectionTestUtils.setField(defaultChanger, "settings", settings);
         return defaultChanger;
     }
 }

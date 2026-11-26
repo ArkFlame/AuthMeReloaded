@@ -50,9 +50,6 @@ public class AsyncAddEmail implements AsynchronousProcess {
     @Inject
     private PendingEmailVerificationCache pendingEmailVerificationCache;
 
-    AsyncAddEmail() {
-    }
-
     /**
      * Handles the request to add the given email to the player's account.
      * If email sending is available and email confirmation is required, the address is held pending
@@ -66,9 +63,8 @@ public class AsyncAddEmail implements AsynchronousProcess {
 
         if (playerCache.isAuthenticated(playerName)) {
             PlayerAuth auth = playerCache.getAuth(playerName);
-            String currentEmail = auth.getEmail();
 
-            if (!Utils.isEmailEmpty(currentEmail)) {
+            if (!Utils.isEmailEmpty(auth.getEmail())) {
                 service.send(player, MessageKey.USAGE_CHANGE_EMAIL);
             } else if (!validationService.validateEmail(email)) {
                 service.send(player, MessageKey.INVALID_EMAIL);

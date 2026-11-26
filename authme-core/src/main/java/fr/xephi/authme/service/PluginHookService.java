@@ -78,13 +78,11 @@ public class PluginHookService {
      * @return The spawn location from Multiverse, or null if unavailable
      */
     public Location getMultiverseSpawn(World world) {
-        if (multiverse != null) {
-            MVWorldManager manager = multiverse.getMVWorldManager();
-            if (manager.isMVWorld(world)) {
-                return manager.getMVWorld(world).getSpawnLocation();
-            }
+        if (multiverse == null) {
+            return null;
         }
-        return null;
+        MVWorldManager manager = multiverse.getMVWorldManager();
+        return manager.isMVWorld(world) ? manager.getMVWorld(world).getSpawnLocation() : null;
     }
 
     // ------

@@ -24,7 +24,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -109,44 +108,35 @@ class ConverterCommandTest {
         assertThat(ConverterCommand.CONVERTERS.get("royalauth"), equalTo(RoyalAuthConverter.class));
     }
 
-    @Test
-    void shouldLaunchConverterForAllTypes() {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("converterExecutions")
+    void shouldExecuteConverter(String caseName, String input, boolean converterFails) {
         // given
-        String converterName = "authplus";
-        Class<? extends Converter> converterClass = ConverterCommand.CONVERTERS.get(converterName);
+        Class<? extends Converter> converterClass = ConverterCommand.CONVERTERS.get("authplus");
         Converter converter = createMockReturnedByInjector(converterClass);
+        if (converterFails) {
+            doThrow(IllegalStateException.class).when(converter).execute(any(CommandSender.class));
+        }
         CommandSender sender = mock(CommandSender.class);
         setBukkitServiceToRunTaskAsynchronously(bukkitService);
 
         // when
-        command.executeCommand(sender, Collections.singletonList(converterName));
+        command.executeCommand(sender, Collections.singletonList(input));
 
         // then
         verify(converter).execute(sender);
         verifyNoMoreInteractions(converter);
         verify(converterFactory).newInstance(converterClass);
         verifyNoMoreInteractions(converterFactory);
+        if (converterFails) {
+            verify(commonService).send(sender, MessageKey.ERROR);
+        }
     }
 
-    @Test
-    void shouldCatchExceptionInConverterAndInformSender() {
-        // given
-        String converterName = "authplus";
-        Class<? extends Converter> converterClass = ConverterCommand.CONVERTERS.get(converterName);
-        Converter converter = createMockReturnedByInjector(converterClass);
-        doThrow(IllegalStateException.class).when(converter).execute(any(CommandSender.class));
-        CommandSender sender = mock(CommandSender.class);
-        setBukkitServiceToRunTaskAsynchronously(bukkitService);
-
-        // when
-        command.executeCommand(sender, Collections.singletonList(converterName.toUpperCase(Locale.ROOT)));
-
-        // then
-        verify(converter).execute(sender);
-        verifyNoMoreInteractions(converter);
-        verify(converterFactory).newInstance(converterClass);
-        verifyNoMoreInteractions(converterFactory);
-        verify(commonService).send(sender, MessageKey.ERROR);
+    private static Stream<Arguments> converterExecutions() {
+        return Stream.of(
+            Arguments.of("lowercase name", "authplus", false),
+            Arguments.of("uppercase name, failing converter", "AUTHPLUS", true));
     }
 
     private <T extends Converter> T createMockReturnedByInjector(Class<T> clazz) {

@@ -1,7 +1,6 @@
 package fr.xephi.authme.command.help;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
 import fr.xephi.authme.command.CommandArgumentDescription;
 import fr.xephi.authme.command.CommandDescription;
 import fr.xephi.authme.command.CommandUtils;
@@ -87,20 +86,15 @@ public class HelpProvider implements Reloadable {
             return lines;
         }
         String language = PlayerLocaleResolver.resolveLanguage(settings, sender, compatibilityAdapter);
-        addHeader(lines, language);
-
-        CommandDescription command = helpMessagesService.buildLocalizedDescription(matchedCommand, language);
-        List<String> correctLabels = ImmutableList.copyOf(filterCorrectLabels(command, result.getLabels()));
-        addSections(lines, command, correctLabels, sender, options, language);
-        return lines;
-    }
-
-    /** Adds the localized help header to the output, if there is one. */
-    private void addHeader(List<String> lines, String language) {
         String header = helpMessagesService.getMessage(HelpMessage.HEADER, language);
         if (!header.isEmpty()) {
             lines.add(ChatColor.GOLD + header);
         }
+
+        CommandDescription command = helpMessagesService.buildLocalizedDescription(matchedCommand, language);
+        List<String> correctLabels = filterCorrectLabels(command, result.getLabels());
+        addSections(lines, command, correctLabels, sender, options, language);
+        return lines;
     }
 
     /** Appends the enabled help sections to the output in the order in which they are shown. */

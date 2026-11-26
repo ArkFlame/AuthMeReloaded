@@ -41,10 +41,7 @@ class AuthMePlayerImpl implements AuthMePlayer {
      * @return the mapped player auth, or empty optional if the argument was null
      */
     static Optional<AuthMePlayer> fromPlayerAuth(PlayerAuth playerAuth) {
-        if (playerAuth == null) {
-            return Optional.empty();
-        }
-        return Optional.of(new AuthMePlayerImpl(playerAuth));
+        return Optional.ofNullable(playerAuth).map(AuthMePlayerImpl::new);
     }
 
     @Override

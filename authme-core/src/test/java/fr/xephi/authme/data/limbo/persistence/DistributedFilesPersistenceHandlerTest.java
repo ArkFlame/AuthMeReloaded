@@ -91,10 +91,8 @@ class DistributedFilesPersistenceHandlerTest {
         playerDataFolder = new File(dataFolder, "playerdata");
         playerDataFolder.mkdir();
 
-        File limboFilesFolder = new File(TEST_RESOURCES_FOLDER + PROJECT_ROOT + "data/limbo");
-        for (File file : limboFilesFolder.listFiles()) {
-            File from = new File(playerDataFolder, file.getName());
-            Files.copy(file, from);
+        for (File file : new File(TEST_RESOURCES_FOLDER + PROJECT_ROOT + "data/limbo").listFiles()) {
+            Files.copy(file, new File(playerDataFolder, file.getName()));
         }
 
         given(bukkitService.getWorld(anyString()))
@@ -125,15 +123,12 @@ class DistributedFilesPersistenceHandlerTest {
 
     @Test
     void shouldRemovePlayer() {
-        // given
         Player playerToRemove = mockPlayerWithUuid(UUID_STAFF);
         Player unknownPlayerToRemove = mockPlayerWithUuid(UNKNOWN_UUID);
 
-        // when
         persistenceHandler.removeLimboPlayer(playerToRemove);
         persistenceHandler.removeLimboPlayer(unknownPlayerToRemove);
 
-        // then
         assertThat(persistenceHandler.getLimboPlayer(playerToRemove), nullValue());
         assertThat(persistenceHandler.getLimboPlayer(unknownPlayerToRemove), nullValue());
         // Player in same segment should still exist...
@@ -145,7 +140,6 @@ class DistributedFilesPersistenceHandlerTest {
 
     @Test
     void shouldAddPlayer() {
-        // given
         Player uuidToAdd1 = mockPlayerWithUuid(UNKNOWN_UUID);
         Location location1 = mockLocation("1world");
         LimboPlayer limbo1 = new LimboPlayer(location1, false, Collections.singletonList(new UserGroup("group-1")), true, 0.1f, 0.2f);
@@ -153,11 +147,9 @@ class DistributedFilesPersistenceHandlerTest {
         Location location2 = mockLocation("2world");
         LimboPlayer limbo2 = new LimboPlayer(location2, true, Collections.emptyList(), false, 0.0f, 0.25f);
 
-        // when
         persistenceHandler.saveLimboPlayer(uuidToAdd1, limbo1);
         persistenceHandler.saveLimboPlayer(uuidToAdd2, limbo2);
 
-        // then
         LimboPlayer addedPlayer1 = persistenceHandler.getLimboPlayer(uuidToAdd1);
         assertThat(addedPlayer1, isLimbo(limbo1));
         assertThat(addedPlayer1, hasLocation(location1));
@@ -170,16 +162,12 @@ class DistributedFilesPersistenceHandlerTest {
 
     @Test
     void shouldHandleReadErrorGracefully() throws IOException {
-        // given
-        // assumption
         File invalidFile = new File(playerDataFolder, "seg16-4-limbo.json");
         assertThat(invalidFile.exists(), equalTo(false));
         Files.write("not valid json".getBytes(), invalidFile);
 
-        // when
         LimboPlayer result = persistenceHandler.getLimboPlayer(mockPlayerWithUuid(UNKNOWN_UUID));
 
-        // then
         assertThat(result, nullValue());
     }
 

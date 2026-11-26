@@ -184,11 +184,6 @@ public class AsynchronousJoin implements AsynchronousProcess {
         InetSocketAddress address = player.getAddress();
         String ip = address == null ? null : address.getAddress().getHostAddress();
         PreJoinDialogService.PendingDialogState dialogState = preJoinDialogService.consumeSession(name);
-        String pendingLoginPassword = dialogState.loginPassword();
-        String pendingRecoveryEmail = dialogState.recoveryEmail();
-        PreJoinDialogService.PendingRegistration pendingRegistration = dialogState.registration();
-        boolean shouldSkipPostJoinDialog = dialogState.skipPostJoinDialog();
-        boolean pendingForceLogin = dialogState.forceLogin();
         String pendingKick = dialogState.kickMessage();
         // pendingKick is applied below, after proxy/premium/session checks, which take priority:
         // a Velocity perform.login arriving just after the player cancelled the pre-join dialog
@@ -222,7 +217,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
             return;
         }
 
-        if (handleAuthState(player, auth, name, pendingRegistration)) {
+        if (handleAuthState(player, auth, name, dialogState.registration())) {
             return;
         }
 
@@ -241,8 +236,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
             return;
         }
 
-        processJoinSync(player, name, auth != null, pendingLoginPassword, pendingRecoveryEmail,
-            pendingRegistration, shouldSkipPostJoinDialog, pendingForceLogin);
+        processJoinSync(player, name, auth != null, dialogState);
     }
 
     /** Applies the per-join game mode and social spy settings required before any other work. */
@@ -465,16 +459,21 @@ public class AsynchronousJoin implements AsynchronousProcess {
         forceLoginAsync(player, proxyInitiated);
     }
 
-    private Runnable pickPendingAction(Player player, String name, String pendingLoginPassword, String pendingRecoveryEmail,
-                                       PreJoinDialogService.PendingRegistration pendingRegistration,
-                                       boolean pendingForceLogin) {
+    private Runnable pickPendingAction(Player player, String name,
+                                       PreJoinDialogService.PendingDialogState dialogState) {
+        PreJoinDialogService.PendingRegistration pendingRegistration = dialogState.registration();
         if (pendingRegistration != null) {
             return () -> processPendingRegistration(player, pendingRegistration);
-        } else if (pendingLoginPassword != null) {
+        }
+        String pendingLoginPassword = dialogState.loginPassword();
+        if (pendingLoginPassword != null) {
             return () -> asynchronousLogin.login(player, pendingLoginPassword);
-        } else if (pendingRecoveryEmail != null) {
+        }
+        String pendingRecoveryEmail = dialogState.recoveryEmail();
+        if (pendingRecoveryEmail != null) {
             return () -> processPendingEmailRecovery(player, name, pendingRecoveryEmail);
-        } else if (pendingForceLogin) {
+        }
+        if (dialogState.forceLogin()) {
             return () -> asynchronousLogin.forceLogin(player);
         }
         return null;
@@ -487,18 +486,16 @@ public class AsynchronousJoin implements AsynchronousProcess {
      * @param player the player to process
      * @param isAuthAvailable true if the player is registered, false otherwise
      */
-    private void processJoinSync(Player player, String name, boolean isAuthAvailable, String pendingLoginPassword,
-                                 String pendingRecoveryEmail,
-                                 PreJoinDialogService.PendingRegistration pendingRegistration,
-                                 boolean shouldSkipPostJoinDialog, boolean pendingForceLogin) {
+    private void processJoinSync(Player player, String name, boolean isAuthAvailable,
+                                 PreJoinDialogService.PendingDialogState dialogState) {
         int registrationTimeout = service.getProperty(
             isAuthAvailable ? RestrictionSettings.LOGIN_TIMEOUT : RestrictionSettings.REGISTER_TIMEOUT
         ) * TICKS_PER_SECOND;
 
         // Pick the pre-join dialog continuation up front: the scheduled task then captures a
-        // single Runnable instead of all four pending values.
-        final Runnable pendingAction = pickPendingAction(player, name, pendingLoginPassword, pendingRecoveryEmail,
-            pendingRegistration, pendingForceLogin);
+        // single Runnable instead of all pending values.
+        final Runnable pendingAction = pickPendingAction(player, name, dialogState);
+        final boolean shouldSkipPostJoinDialog = dialogState.skipPostJoinDialog();
 
         bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, () -> {
             // Guard: proxy login may have completed between when this task was scheduled and now

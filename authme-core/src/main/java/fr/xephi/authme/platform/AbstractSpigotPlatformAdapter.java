@@ -38,11 +38,10 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
     private static final Method BLOCK_IS_PASSABLE_METHOD;
 
     static {
-        Method direct = findMethod(Player.class, "getLocale");
-        Method spigot = direct == null ? findMethod(Player.class, "spigot") : null;
-        PLAYER_GET_LOCALE_METHOD = direct;
-        PLAYER_SPIGOT_METHOD = spigot;
-        SPIGOT_GET_LOCALE_METHOD = spigot == null ? null : findMethod(spigot.getReturnType(), "getLocale");
+        PLAYER_GET_LOCALE_METHOD = findMethod(Player.class, "getLocale");
+        PLAYER_SPIGOT_METHOD = PLAYER_GET_LOCALE_METHOD == null ? findMethod(Player.class, "spigot") : null;
+        SPIGOT_GET_LOCALE_METHOD = PLAYER_SPIGOT_METHOD == null
+            ? null : findMethod(PLAYER_SPIGOT_METHOD.getReturnType(), "getLocale");
         BLOCK_IS_PASSABLE_METHOD = findMethod(Block.class, "isPassable");
     }
 
@@ -70,20 +69,15 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
     @Override
     public Optional<String> getPlayerLocale(Player player) {
         try {
-            String locale = null;
+            Object result = null;
             if (PLAYER_GET_LOCALE_METHOD != null) {
-                Object result = PLAYER_GET_LOCALE_METHOD.invoke(player);
-                if (result instanceof String) {
-                    locale = (String) result;
-                }
+                result = PLAYER_GET_LOCALE_METHOD.invoke(player);
             } else if (PLAYER_SPIGOT_METHOD != null && SPIGOT_GET_LOCALE_METHOD != null) {
                 Object spigot = PLAYER_SPIGOT_METHOD.invoke(player);
-                Object result = spigot == null ? null : SPIGOT_GET_LOCALE_METHOD.invoke(spigot);
-                if (result instanceof String) {
-                    locale = (String) result;
-                }
+                result = spigot == null ? null : SPIGOT_GET_LOCALE_METHOD.invoke(spigot);
             }
-            return locale == null || locale.trim().isEmpty() ? Optional.empty() : Optional.of(locale);
+            return result instanceof String && !((String) result).trim().isEmpty()
+                ? Optional.of((String) result) : Optional.empty();
         } catch (Exception ignored) {
             return Optional.empty();
         }

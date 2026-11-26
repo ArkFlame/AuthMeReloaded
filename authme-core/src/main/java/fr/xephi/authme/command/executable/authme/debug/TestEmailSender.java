@@ -38,7 +38,6 @@ class TestEmailSender implements DebugSection {
     @Inject
     private Server server;
 
-
     @Override
     public String getName() {
         return "mail";
@@ -98,35 +97,33 @@ class TestEmailSender implements DebugSection {
                     + "e.g. /authme debug mail test@example.com");
                 return null;
             }
-            final String email = emailResult.getValue();
+            String email = emailResult.getValue();
             if (Utils.isEmailEmpty(email)) {
                 sender.sendMessage(ChatColor.RED + "No email set for your account!"
                     + " Please use /authme debug mail <email>");
                 return null;
             }
             return email;
-        } else {
-            String email = arguments.get(0);
-            if (StringUtils.isInsideString('@', email)) {
-                return email;
-            }
-            sender.sendMessage(ChatColor.RED + "Invalid email! Usage: /authme debug mail test@example.com");
-            return null;
         }
+
+        String email = arguments.get(0);
+        if (StringUtils.isInsideString('@', email)) {
+            return email;
+        }
+        sender.sendMessage(ChatColor.RED + "Invalid email! Usage: /authme debug mail test@example.com");
+        return null;
     }
 
     private boolean sendTestEmail(String email) {
-        HtmlEmail htmlEmail;
         try {
-            htmlEmail = sendMailSsl.initializeMail(email);
+            HtmlEmail htmlEmail = sendMailSsl.initializeMail(email);
+            String message = "Hello there!<br />This is a sample email sent to you from a Minecraft server ("
+                + server.getName() + ") via /authme debug mail. If you're seeing this, sending emails should be fine.";
+            htmlEmail.setSubject("AuthMe test email");
+            return sendMailSsl.sendEmail(message, htmlEmail);
         } catch (EmailException e) {
             logger.logException("Failed to create email for sample email:", e);
             return false;
         }
-
-        htmlEmail.setSubject("AuthMe test email");
-        String message = "Hello there!<br />This is a sample email sent to you from a Minecraft server ("
-            + server.getName() + ") via /authme debug mail. If you're seeing this, sending emails should be fine.";
-        return sendMailSsl.sendEmail(message, htmlEmail);
     }
 }

@@ -65,14 +65,13 @@ class SqLiteMigrater {
     }
 
     private String createBackup() {
-        File sqLite = new File(dataFolder, databaseName + ".db");
         File backupDirectory = new File(dataFolder, "backups");
         FileUtils.createDirectory(backupDirectory);
 
         String backupName = "backup-" + databaseName + FileUtils.createCurrentTimeString() + ".db";
         File backup = new File(backupDirectory, backupName);
         try {
-            Files.copy(sqLite, backup);
+            Files.copy(new File(dataFolder, databaseName + ".db"), backup);
             return backupName;
         } catch (IOException e) {
             throw new IllegalStateException("Failed to create SQLite backup before migration", e);
@@ -88,16 +87,14 @@ class SqLiteMigrater {
      */
     // cf. https://stackoverflow.com/questions/805363/how-do-i-rename-a-column-in-a-sqlite-database-table
     private void recreateDatabaseWithNewDefinitions(SQLite sqLite) throws SQLException {
-        Connection connection = getConnection(sqLite);
         String tempTable = "tmp_" + tableName;
-        try (Statement st = connection.createStatement()) {
+        try (Statement st = getConnection(sqLite).createStatement()) {
             st.execute("ALTER TABLE " + tableName + " RENAME TO " + tempTable + ";");
         }
 
         sqLite.reload();
-        connection = getConnection(sqLite);
 
-        try (Statement st = connection.createStatement()) {
+        try (Statement st = getConnection(sqLite).createStatement()) {
             String copySql = "INSERT INTO $table ($id, $name, $realName, $password, $lastIp, $lastLogin, $regIp, "
                 + "$regDate, $locX, $locY, $locZ, $locWorld, $locPitch, $locYaw, $email, $isLogged)"
                 + "SELECT $id, $name, $realName,"

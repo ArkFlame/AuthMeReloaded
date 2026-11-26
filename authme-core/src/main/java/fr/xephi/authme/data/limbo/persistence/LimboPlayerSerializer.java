@@ -44,15 +44,11 @@ class LimboPlayerSerializer implements JsonSerializer<LimboPlayer> {
 
     private static final Gson GSON = new Gson();
 
-
     @Override
     public JsonElement serialize(LimboPlayer limboPlayer, Type type, JsonSerializationContext context) {
         JsonObject obj = new JsonObject();
 
-        Location loc = limboPlayer.getLocation();
-        if (loc != null && loc.getWorld() != null) {
-            obj.add(LOCATION, serializeLocation(loc));
-        }
+        addLocation(obj, limboPlayer.getLocation());
 
         JsonArray jsonGroups = new JsonArray();
         for (UserGroup group : limboPlayer.getGroups()) {
@@ -76,9 +72,7 @@ class LimboPlayerSerializer implements JsonSerializer<LimboPlayer> {
             for (EnderPearlRestoreData pearl : pearls) {
                 JsonObject pearlObject = new JsonObject();
                 pearlObject.addProperty(PEARL_UUID, pearl.getUuid().toString());
-                if (pearl.getLocation() != null && pearl.getLocation().getWorld() != null) {
-                    pearlObject.add(LOCATION, serializeLocation(pearl.getLocation()));
-                }
+                addLocation(pearlObject, pearl.getLocation());
                 Vector velocity = pearl.getVelocity();
                 if (velocity != null) {
                     JsonObject velocityObject = new JsonObject();
@@ -100,14 +94,16 @@ class LimboPlayerSerializer implements JsonSerializer<LimboPlayer> {
         return obj;
     }
 
-    static JsonObject serializeLocation(Location loc) {
-        JsonObject locationObject = new JsonObject();
-        locationObject.addProperty(LOC_WORLD, loc.getWorld().getName());
-        locationObject.addProperty(LOC_X, loc.getX());
-        locationObject.addProperty(LOC_Y, loc.getY());
-        locationObject.addProperty(LOC_Z, loc.getZ());
-        locationObject.addProperty(LOC_YAW, loc.getYaw());
-        locationObject.addProperty(LOC_PITCH, loc.getPitch());
-        return locationObject;
+    private static void addLocation(JsonObject parent, Location loc) {
+        if (loc != null && loc.getWorld() != null) {
+            JsonObject locationObject = new JsonObject();
+            locationObject.addProperty(LOC_WORLD, loc.getWorld().getName());
+            locationObject.addProperty(LOC_X, loc.getX());
+            locationObject.addProperty(LOC_Y, loc.getY());
+            locationObject.addProperty(LOC_Z, loc.getZ());
+            locationObject.addProperty(LOC_YAW, loc.getYaw());
+            locationObject.addProperty(LOC_PITCH, loc.getPitch());
+            parent.add(LOCATION, locationObject);
+        }
     }
 }

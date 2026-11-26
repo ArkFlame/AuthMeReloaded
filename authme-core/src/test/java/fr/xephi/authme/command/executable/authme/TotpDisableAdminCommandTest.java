@@ -8,6 +8,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -43,7 +45,7 @@ class TotpDisableAdminCommandTest extends AbstractTotpAdminCommandTest {
         // given
         CommandSender sender = mock(CommandSender.class);
         PlayerAuth auth = PlayerAuth.builder()
-            .name("billy")
+            .name("Billy")
             .totpKey(null)
             .build();
         given(dataSource.getAuth("Billy")).willReturn(auth);
@@ -56,8 +58,9 @@ class TotpDisableAdminCommandTest extends AbstractTotpAdminCommandTest {
         verify(dataSource, only()).getAuth("Billy");
     }
 
-    @Test
-    void shouldRemoveTotpFromUser() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldHandleRemovalResult(boolean removed) {
         // given
         CommandSender sender = mock(CommandSender.class);
         PlayerAuth auth = PlayerAuth.builder()
@@ -65,33 +68,22 @@ class TotpDisableAdminCommandTest extends AbstractTotpAdminCommandTest {
             .totpKey("56484998")
             .build();
         given(dataSource.getAuth("Bobby")).willReturn(auth);
-        given(dataSource.removeTotpKey("Bobby")).willReturn(true);
-        Player player = mock(Player.class);
-        given(bukkitService.getPlayerExact("Bobby")).willReturn(player);
+        given(dataSource.removeTotpKey("Bobby")).willReturn(removed);
 
         // when
-        command.executeCommand(sender, Collections.singletonList("Bobby"));
+        if (removed) {
+            Player player = mock(Player.class);
+            given(bukkitService.getPlayerExact("Bobby")).willReturn(player);
+            command.executeCommand(sender, Collections.singletonList("Bobby"));
 
-        // then
-        verify(sender).sendMessage(argThat(containsString("Disabled two-factor authentication successfully")));
-        verify(messages).send(player, MessageKey.TWO_FACTOR_REMOVED_SUCCESS);
-    }
+            // then
+            verify(sender).sendMessage(argThat(containsString("Disabled two-factor authentication successfully")));
+            verify(messages).send(player, MessageKey.TWO_FACTOR_REMOVED_SUCCESS);
+        } else {
+            command.executeCommand(sender, Collections.singletonList("Bobby"));
 
-    @Test
-    void shouldHandleErrorWhileRemovingTotp() {
-        // given
-        CommandSender sender = mock(CommandSender.class);
-        PlayerAuth auth = PlayerAuth.builder()
-            .name("Bobby")
-            .totpKey("321654")
-            .build();
-        given(dataSource.getAuth("Bobby")).willReturn(auth);
-        given(dataSource.removeTotpKey("Bobby")).willReturn(false);
-
-        // when
-        command.executeCommand(sender, Collections.singletonList("Bobby"));
-
-        // then
-        verify(messages).send(sender, MessageKey.ERROR);
+            // then
+            verify(messages).send(sender, MessageKey.ERROR);
+        }
     }
 }

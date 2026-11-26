@@ -38,7 +38,6 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
@@ -50,9 +49,9 @@ public class GeoIpService {
 
     private static final String DATABASE_NAME = "GeoLite2-Country";
     private static final String DATABASE_FILE = DATABASE_NAME + ".mmdb";
-    private static final String DATABASE_TMP_FILE = DATABASE_NAME + ".mmdb.tmp";
+    private static final String DATABASE_TMP_FILE = DATABASE_FILE + ".tmp";
 
-    private static final String ARCHIVE_FILE = DATABASE_NAME + ".mmdb.gz";
+    private static final String ARCHIVE_FILE = DATABASE_FILE + ".gz";
 
     private static final String ARCHIVE_URL =
         "https://updates.maxmind.com/geoip/databases/" + DATABASE_NAME + "/update";
@@ -263,8 +262,7 @@ public class GeoIpService {
         if (lastModified != null) {
             // Only download if we actually need a newer version - this field is specified in GMT zone
             ZonedDateTime zonedTime = lastModified.atZone(ZoneId.of("GMT"));
-            String timeFormat = DateTimeFormatter.RFC_1123_DATE_TIME.format(zonedTime);
-            connection.addRequestProperty("If-Modified-Since", timeFormat);
+            connection.addRequestProperty("If-Modified-Since", DateTimeFormatter.RFC_1123_DATE_TIME.format(zonedTime));
         }
         return connection;
     }
@@ -343,25 +341,15 @@ public class GeoIpService {
         if (InternetProtocolUtils.isLocalAddress(ip)) {
             return localAddressValue;
         }
-        return getCountry(ip).map(extractor).orElse(fallback);
-    }
-
-    /**
-     * Get the country of the given IP address.
-     *
-     * @param ip textual IP address to lookup
-     * @return the wrapped Country model, or empty if the database is unavailable or has no record
-     */
-    private Optional<Country> getCountry(String ip) {
         if (ip == null || ip.isEmpty() || !isDataAvailable()) {
-            return Optional.empty();
+            return fallback;
         }
 
         try {
-            InetAddress address = InetAddress.getByName(ip);
-
+            AbstractCountryResponse response = databaseReader.country(InetAddress.getByName(ip));
             // Reader.getCountry() can be null for unknown addresses
-            return Optional.ofNullable(databaseReader.country(address)).map(AbstractCountryResponse::getCountry);
+            Country country = response == null ? null : response.getCountry();
+            return country == null ? fallback : extractor.apply(country);
         } catch (UnknownHostException e) {
             // Ignore invalid ip addresses
             // Legacy GEO IP Database returned an unknown country object with Country-Code: '--' and Country-Name: 'N/A'
@@ -369,6 +357,6 @@ public class GeoIpService {
             logger.logException("Cannot lookup country for " + ip + " at GEO IP database", ioEx);
         }
 
-        return Optional.empty();
+        return fallback;
     }
 }
