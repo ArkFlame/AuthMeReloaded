@@ -38,6 +38,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.zip.GZIPInputStream;
 
 public class GeoIpService {
@@ -290,10 +291,7 @@ public class GeoIpService {
      *         or "--" if it cannot be fetched.
      */
     public String getCountryCode(String ip) {
-        if (InternetProtocolUtils.isLocalAddress(ip)) {
-            return "LOCALHOST";
-        }
-        return getCountry(ip).map(Country::getIsoCode).orElse("--");
+        return getCountryValue(ip, Country::getIsoCode, "--", "LOCALHOST");
     }
 
     /**
@@ -303,10 +301,15 @@ public class GeoIpService {
      * @return The name of the country, "LocalHost" for local addresses, or "N/A" if it cannot be fetched.
      */
     public String getCountryName(String ip) {
+        return getCountryValue(ip, Country::getName, "N/A", "LocalHost");
+    }
+
+    private String getCountryValue(String ip, Function<Country, String> extractor, String fallback,
+                                   String localAddressValue) {
         if (InternetProtocolUtils.isLocalAddress(ip)) {
-            return "LocalHost";
+            return localAddressValue;
         }
-        return getCountry(ip).map(Country::getName).orElse("N/A");
+        return getCountry(ip).map(extractor).orElse(fallback);
     }
 
     /**

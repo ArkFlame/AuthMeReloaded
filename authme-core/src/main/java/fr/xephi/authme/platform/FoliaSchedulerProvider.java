@@ -23,6 +23,9 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
 
     private static final CancellableTask NO_OP_TASK = () -> { };
 
+    private static final String GLOBAL_SCHEDULER_NAME = "global region scheduler";
+    private static final String ASYNC_SCHEDULER_NAME = "async scheduler";
+
     private final LazyScheduler globalScheduler = new LazyScheduler("getGlobalRegionScheduler");
     private final LazyScheduler asyncScheduler = new LazyScheduler("getAsyncScheduler");
 
@@ -41,12 +44,8 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
     @Override
     public void runOnGlobalThread(Plugin plugin, Runnable task) {
         Object scheduler = globalScheduler.get();
-        Method run = findMethod(scheduler, "run", Plugin.class, Consumer.class);
-        if (run == null) {
-            warnUnavailable(plugin, "global region scheduler");
-            return;
-        }
-        invoke(run, scheduler, plugin, toConsumer(task));
+        schedule(plugin, scheduler, findMethod(scheduler, "run", Plugin.class, Consumer.class),
+            GLOBAL_SCHEDULER_NAME, plugin, toConsumer(task));
     }
 
     @Override
@@ -54,7 +53,7 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
         Object scheduler = globalScheduler.get();
         return schedule(plugin, scheduler,
             findMethod(scheduler, "runDelayed", Plugin.class, Consumer.class, long.class),
-            "global region scheduler", plugin, toConsumer(task), delayTicks);
+            GLOBAL_SCHEDULER_NAME, plugin, toConsumer(task), delayTicks);
     }
 
     @Override
@@ -64,7 +63,7 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
         return schedule(plugin, scheduler,
             findMethod(scheduler, "runAtFixedRate", Plugin.class, Consumer.class,
                 long.class, long.class, TimeUnit.class),
-            "global region scheduler", plugin, toConsumer(task),
+            GLOBAL_SCHEDULER_NAME, plugin, toConsumer(task),
             delayTicks * MILLIS_PER_TICK, periodTicks * MILLIS_PER_TICK, TimeUnit.MILLISECONDS);
     }
 
@@ -73,7 +72,7 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
         Object scheduler = asyncScheduler.get();
         return schedule(plugin, scheduler,
             findMethod(scheduler, "runNow", Plugin.class, Consumer.class),
-            "async scheduler", plugin, toConsumer(task));
+            ASYNC_SCHEDULER_NAME, plugin, toConsumer(task));
     }
 
     @Override
@@ -82,7 +81,7 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
         return schedule(plugin, scheduler,
             findMethod(scheduler, "runAtFixedRate", Plugin.class, Consumer.class,
                 long.class, long.class, TimeUnit.class),
-            "async scheduler", plugin, toConsumer(task),
+            ASYNC_SCHEDULER_NAME, plugin, toConsumer(task),
             delayTicks * MILLIS_PER_TICK, periodTicks * MILLIS_PER_TICK, TimeUnit.MILLISECONDS);
     }
 
@@ -115,18 +114,15 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
         return getter == null ? null : invoke(getter, null);
     }
 
+    /**
+     * Resolves a public method on the given receiver. A {@link Class} receiver is searched
+     * directly, so callers may pass either an instance or a class without needing two helpers.
+     */
     private static Method findMethod(Object receiver, String name, Class<?>... parameterTypes) {
         if (receiver == null) {
             return null;
         }
-        try {
-            return receiver.getClass().getMethod(name, parameterTypes);
-        } catch (NoSuchMethodException e) {
-            return null;
-        }
-    }
-
-    private static Method findMethod(Class<?> owner, String name, Class<?>... parameterTypes) {
+        Class<?> owner = receiver instanceof Class<?> ? (Class<?>) receiver : receiver.getClass();
         try {
             return owner.getMethod(name, parameterTypes);
         } catch (NoSuchMethodException e) {

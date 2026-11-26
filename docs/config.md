@@ -7,7 +7,8 @@ with which you can configure various settings. The following is the initial cont
 the generated config.yml file.
 
 This configuration is generated from the shared `authme-core` module. It applies to the
-current Spigot Legacy, Spigot 1.21, and Paper 1.21 builds unless a setting comment says otherwise.
+three server jars — `-Spigot-1.8.jar`, `-Spigot.jar` and `-Paper.jar` — unless a setting
+comment says otherwise.
 
 ```yml
 DataSource:

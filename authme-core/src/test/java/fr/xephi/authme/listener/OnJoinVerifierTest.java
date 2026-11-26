@@ -26,6 +26,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.function.Executable;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -86,14 +88,11 @@ class OnJoinVerifierTest {
 
     @Test
     void shouldNotDoAnythingForNormalEvent() {
-        // given
         PlayerLoginEvent event = mock(PlayerLoginEvent.class);
         given(event.getResult()).willReturn(PlayerLoginEvent.Result.ALLOWED);
 
-        // when
         boolean result = onJoinVerifier.refusePlayerForFullServer(event);
 
-        // then
         assertThat(result, equalTo(false));
         verify(event).getResult();
         verifyNoMoreInteractions(event);
@@ -102,7 +101,6 @@ class OnJoinVerifierTest {
 
     @Test
     void shouldRefuseNonVipPlayerForFullServer() {
-        // given
         Player player = mock(Player.class);
         PlayerLoginEvent event = new PlayerLoginEvent(player, "hostname", null);
         event.setResult(PlayerLoginEvent.Result.KICK_FULL);
@@ -111,10 +109,8 @@ class OnJoinVerifierTest {
         String serverFullMessage = "server is full";
         given(messages.retrieveSingle("VipCheck", MessageKey.KICK_FULL_SERVER)).willReturn(serverFullMessage);
 
-        // when
         boolean result = onJoinVerifier.refusePlayerForFullServer(event);
 
-        // then
         assertThat(result, equalTo(true));
         assertThat(event.getResult(), equalTo(PlayerLoginEvent.Result.KICK_FULL));
         assertThat(event.getKickMessage(), equalTo(serverFullMessage));
@@ -123,7 +119,6 @@ class OnJoinVerifierTest {
 
     @Test
     void shouldKickNonVipForJoiningVipPlayer() {
-        // given
         Player player = mock(Player.class);
         PlayerLoginEvent event = new PlayerLoginEvent(player, "hostname", null);
         event.setResult(PlayerLoginEvent.Result.KICK_FULL);
@@ -136,10 +131,8 @@ class OnJoinVerifierTest {
         given(server.getMaxPlayers()).willReturn(onlinePlayers.size());
         given(messages.retrieveSingle("VipPlayer", MessageKey.KICK_FOR_VIP)).willReturn("kick for vip");
 
-        // when
         boolean result = onJoinVerifier.refusePlayerForFullServer(event);
 
-        // then
         assertThat(result, equalTo(false));
         assertThat(event.getResult(), equalTo(PlayerLoginEvent.Result.ALLOWED));
         // First player is VIP, so expect no interactions there and second player to have been kicked
@@ -149,7 +142,6 @@ class OnJoinVerifierTest {
 
     @Test
     void shouldKickVipPlayerIfNoPlayerCanBeKicked() {
-        // given
         Player player = mock(Player.class);
         PlayerLoginEvent event = new PlayerLoginEvent(player, "hostname", null);
         event.setResult(PlayerLoginEvent.Result.KICK_FULL);
@@ -161,10 +153,8 @@ class OnJoinVerifierTest {
         given(server.getMaxPlayers()).willReturn(onlinePlayers.size());
         given(messages.retrieveSingle("VipPlayer", MessageKey.KICK_FULL_SERVER)).willReturn("kick full server");
 
-        // when
         boolean result = onJoinVerifier.refusePlayerForFullServer(event);
 
-        // then
         assertThat(result, equalTo(true));
         assertThat(event.getResult(), equalTo(PlayerLoginEvent.Result.KICK_FULL));
         assertThat(event.getKickMessage(), equalTo("kick full server"));
@@ -173,158 +163,119 @@ class OnJoinVerifierTest {
 
     @Test
     void shouldReturnKickMessageForNonVipPlayerOnFullServer() {
-        // given
         given(permissionsManager.hasPermissionOffline("RegularPlayer", PlayerStatePermission.IS_VIP)).willReturn(false);
         given(messages.retrieveSingle("RegularPlayer", MessageKey.KICK_FULL_SERVER)).willReturn("server is full");
 
-        // when
         String kickMessage = onJoinVerifier.getServerFullKickMessageIfDenied("RegularPlayer");
 
-        // then
         assertThat(kickMessage, equalTo("server is full"));
         verifyNoInteractions(bukkitService, dataSource);
     }
 
     @Test
     void shouldKickNonRegistered() {
-        // given
         given(settings.getProperty(RestrictionSettings.KICK_NON_REGISTERED)).willReturn(true);
 
-        // when / then
         expectValidationExceptionWith(() -> onJoinVerifier.checkKickNonRegistered(false),
             MessageKey.MUST_REGISTER_MESSAGE);
     }
 
     @Test
     void shouldNotKickRegisteredPlayer() throws FailedVerificationException {
-        // given / when / then
         onJoinVerifier.checkKickNonRegistered(true);
     }
 
     @Test
     void shouldNotKickUnregisteredPlayer() throws FailedVerificationException {
-        // given
         given(settings.getProperty(RestrictionSettings.KICK_NON_REGISTERED)).willReturn(false);
 
-        // when
         onJoinVerifier.checkKickNonRegistered(false);
     }
 
     @Test
     void shouldAllowValidName() throws FailedVerificationException {
-        // given
         configureNicknameCharacterCheck(8);
 
-        // when
         onJoinVerifier.checkIsValidName("Bobby5");
     }
 
     @Test
     void shouldRejectTooLongName() {
-        // given
         given(settings.getProperty(RestrictionSettings.MAX_NICKNAME_LENGTH)).willReturn(8);
         given(settings.getProperty(RestrictionSettings.ALLOWED_NICKNAME_CHARACTERS)).willReturn("[a-zA-Z0-9]+");
         onJoinVerifier.reload(); // @PostConstruct method
 
-        // when / then
         expectValidationExceptionWith(() -> onJoinVerifier.checkIsValidName("longerthaneight"),
             MessageKey.INVALID_NAME_LENGTH);
     }
 
     @Test
     void shouldRejectTooShortName() {
-        // given
         configureNicknameCharacterCheck(8);
 
-        // when / then
         expectValidationExceptionWith(() -> onJoinVerifier.checkIsValidName("abc"),
             MessageKey.INVALID_NAME_LENGTH);
     }
 
     @Test
     void shouldRejectNameWithInvalidCharacters() {
-        // given
         configureNicknameCharacterCheck(8);
 
-        // when / then
         expectValidationExceptionWith(() -> onJoinVerifier.checkIsValidName("Tester!"),
             MessageKey.INVALID_NAME_CHARACTERS, "[a-zA-Z0-9]+");
     }
 
     @Test
     void shouldSkipNameCharacterCheckForVerifiedBedrockPlayer() {
-        // given
         UUID playerId = BEDROCK_PLAYER_ID;
         configureNicknameCharacterCheck(16);
         given(settings.getProperty(HooksSettings.IGNORE_BEDROCK_NAME_CHECK)).willReturn(true);
         given(floodgateService.isFloodgatePlayer(playerId)).willReturn(true);
 
-        // when / then
         assertDoesNotThrow(() -> onJoinVerifier.checkIsValidName("Tester!", playerId));
         verify(floodgateService).isFloodgatePlayer(playerId);
     }
 
-    @Test
-    void shouldStillCheckNameOfNonBedrockPlayer() {
-        // given
+    @ParameterizedTest
+    @ValueSource(strings = {"Tester!", "Bedrock_Tester"})
+    void shouldStillCheckNameOfNonBedrockPlayer(String name) {
         UUID playerId = BEDROCK_PLAYER_ID;
         configureNicknameCharacterCheck(16);
         given(settings.getProperty(HooksSettings.IGNORE_BEDROCK_NAME_CHECK)).willReturn(true);
         given(floodgateService.isFloodgatePlayer(playerId)).willReturn(false);
 
-        // when / then
-        expectValidationExceptionWith(() -> onJoinVerifier.checkIsValidName("Tester!", playerId),
+        expectValidationExceptionWith(() -> onJoinVerifier.checkIsValidName(name, playerId),
             MessageKey.INVALID_NAME_CHARACTERS, "[a-zA-Z0-9]+");
     }
 
     @Test
     void shouldStillCheckNameWhenBedrockBypassIsDisabled() {
-        // given
         UUID playerId = BEDROCK_PLAYER_ID;
         configureNicknameCharacterCheck(16);
         given(settings.getProperty(HooksSettings.IGNORE_BEDROCK_NAME_CHECK)).willReturn(false);
 
-        // when / then
         expectValidationExceptionWith(() -> onJoinVerifier.checkIsValidName("Tester!", playerId),
             MessageKey.INVALID_NAME_CHARACTERS, "[a-zA-Z0-9]+");
         verifyNoInteractions(floodgateService);
     }
 
     @Test
-    void shouldNotTreatBedrockLookingNameAsBedrockPlayer() {
-        // given
-        UUID playerId = BEDROCK_PLAYER_ID;
-        configureNicknameCharacterCheck(16);
-        given(settings.getProperty(HooksSettings.IGNORE_BEDROCK_NAME_CHECK)).willReturn(true);
-        given(floodgateService.isFloodgatePlayer(playerId)).willReturn(false);
-
-        // when / then
-        expectValidationExceptionWith(() -> onJoinVerifier.checkIsValidName("Bedrock_Tester", playerId),
-            MessageKey.INVALID_NAME_CHARACTERS, "[a-zA-Z0-9]+");
-    }
-
-    @Test
     void shouldAllowProperlyCasedName() throws FailedVerificationException {
-        // given
         String name = "Bobby";
         PlayerAuth auth = PlayerAuth.builder().name("bobby").realName("Bobby").build();
         given(settings.getProperty(RegistrationSettings.PREVENT_OTHER_CASE)).willReturn(true);
 
-        // when
         onJoinVerifier.checkNameCasing(name, auth);
 
-        // then
         verifyNoInteractions(dataSource);
     }
 
     @Test
     void shouldRejectNameWithWrongCasing() {
-        // given
         String name = "Tester";
         PlayerAuth auth = PlayerAuth.builder().name("tester").realName("testeR").build();
         given(settings.getProperty(RegistrationSettings.PREVENT_OTHER_CASE)).willReturn(true);
 
-        // when / then
         expectValidationExceptionWith(() -> onJoinVerifier.checkNameCasing(name, auth),
             MessageKey.INVALID_NAME_CASE, "testeR", "Tester");
 
@@ -333,76 +284,60 @@ class OnJoinVerifierTest {
 
     @Test
     void shouldUpdateMissingRealName() throws FailedVerificationException {
-        // given
         String name = "Authme";
         PlayerAuth auth = PlayerAuth.builder().name("authme").realName("").build();
         given(settings.getProperty(RegistrationSettings.PREVENT_OTHER_CASE)).willReturn(true);
 
-        // when
         onJoinVerifier.checkNameCasing(name, auth);
 
-        // then
         verify(dataSource).updateRealName("authme", "Authme");
     }
 
     @Test
     void shouldUpdateDefaultRealName() throws FailedVerificationException {
-        // given
         String name = "SOMEONE";
         PlayerAuth auth = PlayerAuth.builder().name("someone").realName("Player").build();
         given(settings.getProperty(RegistrationSettings.PREVENT_OTHER_CASE)).willReturn(true);
 
-        // when
         onJoinVerifier.checkNameCasing(name, auth);
 
-        // then
         verify(dataSource).updateRealName("someone", "SOMEONE");
     }
 
     @Test
     void shouldAcceptCasingMismatchForDisabledSetting() throws FailedVerificationException {
-        // given
         String name = "Test";
         PlayerAuth auth = PlayerAuth.builder().name("test").realName("TEST").build();
         given(settings.getProperty(RegistrationSettings.PREVENT_OTHER_CASE)).willReturn(false);
 
-        // when
         onJoinVerifier.checkNameCasing(name, auth);
 
-        // then
         verifyNoInteractions(dataSource);
     }
 
     @Test
     void shouldAcceptNameForUnregisteredAccount() throws FailedVerificationException {
-        // given
         String name = "MyPlayer";
         PlayerAuth auth = null;
 
-        // when
         onJoinVerifier.checkNameCasing(name, auth);
 
-        // then
         verifyNoInteractions(dataSource);
     }
 
     @Test
     void shouldAcceptNameThatIsNotOnline() throws FailedVerificationException {
-        // given
         String name = "bobby";
         given(settings.getProperty(RestrictionSettings.FORCE_SINGLE_SESSION)).willReturn(true);
         given(bukkitService.getOnlinePlayers()).willReturn(Collections.emptyList());
 
-        // when
         onJoinVerifier.checkSingleSession(name);
 
-        // then
         verify(bukkitService).getOnlinePlayers();
     }
 
     @Test
     void shouldRejectNameAlreadyOnline() {
-        // given
         String name = "Charlie";
 
         Player onlinePlayer = mock(Player.class);
@@ -410,77 +345,62 @@ class OnJoinVerifierTest {
         given(bukkitService.getOnlinePlayers()).willReturn(Collections.singletonList(onlinePlayer));
         given(settings.getProperty(RestrictionSettings.FORCE_SINGLE_SESSION)).willReturn(true);
 
-        // when / then
         expectValidationExceptionWith(() -> onJoinVerifier.checkSingleSession(name),
             MessageKey.USERNAME_ALREADY_ONLINE_ERROR);
     }
 
     @Test
     void shouldAcceptAlreadyOnlineNameForDisabledSetting() throws FailedVerificationException {
-        // given
         String name = "Felipe";
         given(settings.getProperty(RestrictionSettings.FORCE_SINGLE_SESSION)).willReturn(false);
 
-        // when
         onJoinVerifier.checkSingleSession(name);
 
-        // then
         verifyNoInteractions(bukkitService);
     }
 
     @Test
     void shouldAllowUser() throws FailedVerificationException {
-        // given
         String name = "Bobby";
         boolean isAuthAvailable = false;
         given(permissionsManager.hasPermissionOffline(name, PlayerStatePermission.BYPASS_ANTIBOT)).willReturn(false);
         given(antiBotService.shouldKick()).willReturn(false);
 
-        // when
         onJoinVerifier.checkAntibot(name, isAuthAvailable);
 
-        // then
         verify(permissionsManager).hasPermissionOffline(name, PlayerStatePermission.BYPASS_ANTIBOT);
         verify(antiBotService).shouldKick();
     }
 
     @Test
     void shouldAllowUserWithAuth() throws FailedVerificationException {
-        // given
         String name = "Lacey";
         boolean isAuthAvailable = true;
 
-        // when
         onJoinVerifier.checkAntibot(name, isAuthAvailable);
 
-        // then
         verifyNoInteractions(permissionsManager, antiBotService);
     }
 
     @Test
     void shouldAllowUserWithBypassPermission() throws FailedVerificationException {
-        // given
         String name = "Steward";
         boolean isAuthAvailable = false;
         given(permissionsManager.hasPermissionOffline(name, PlayerStatePermission.BYPASS_ANTIBOT)).willReturn(true);
 
-        // when
         onJoinVerifier.checkAntibot(name, isAuthAvailable);
 
-        // then
         verify(permissionsManager).hasPermissionOffline(name, PlayerStatePermission.BYPASS_ANTIBOT);
         verifyNoInteractions(antiBotService);
     }
 
     @Test
     void shouldKickUserForFailedAntibotCheck() {
-        // given
         String name = "D3";
         boolean isAuthAvailable = false;
         given(permissionsManager.hasPermissionOffline(name, PlayerStatePermission.BYPASS_ANTIBOT)).willReturn(false);
         given(antiBotService.shouldKick()).willReturn(true);
 
-        // when / then
         try {
             onJoinVerifier.checkAntibot(name, isAuthAvailable);
             fail("Expected exception to be thrown");
@@ -496,102 +416,84 @@ class OnJoinVerifierTest {
      */
     @Test
     void shouldNotCheckCountry() throws FailedVerificationException {
-        // given
         String name = "david";
         String ip = "127.0.0.1";
 
         given(settings.getProperty(ProtectionSettings.ENABLE_PROTECTION)).willReturn(false);
         given(settings.getProperty(ProtectionSettings.ENABLE_PROTECTION_REGISTERED)).willReturn(true);
 
-        // when
         onJoinVerifier.checkPlayerCountry(name, ip, false);
         onJoinVerifier.checkPlayerCountry(name, ip, true);
 
-        // then
         verifyNoInteractions(validationService);
     }
 
     @Test
     void shouldCheckAndAcceptUnregisteredPlayerCountry() throws FailedVerificationException {
-        // given
         String ip = "192.168.0.1";
         String name = "lucas";
         given(settings.getProperty(ProtectionSettings.ENABLE_PROTECTION)).willReturn(true);
         given(validationService.isCountryAdmitted(ip)).willReturn(true);
 
-        // when
         onJoinVerifier.checkPlayerCountry(name, ip, false);
 
-        // then
         verify(validationService).isCountryAdmitted(ip);
     }
 
     @Test
     void shouldCheckAndAcceptRegisteredPlayerCountry() throws FailedVerificationException {
-        // given
         String ip = "192.168.10.24";
         String name = "gabriel";
         given(settings.getProperty(ProtectionSettings.ENABLE_PROTECTION)).willReturn(true);
         given(settings.getProperty(ProtectionSettings.ENABLE_PROTECTION_REGISTERED)).willReturn(true);
         given(validationService.isCountryAdmitted(ip)).willReturn(true);
 
-        // when
         onJoinVerifier.checkPlayerCountry(name, ip, true);
 
-        // then
         verify(validationService).isCountryAdmitted(ip);
     }
 
     @Test
     void shouldThrowForBannedCountry() {
-        // given
         String ip = "192.168.40.0";
         String name = "bob";
         given(settings.getProperty(ProtectionSettings.ENABLE_PROTECTION)).willReturn(true);
         given(validationService.isCountryAdmitted(ip)).willReturn(false);
 
-        // when / then
         expectValidationExceptionWith(() -> onJoinVerifier.checkPlayerCountry(name, ip, false),
             MessageKey.COUNTRY_BANNED_ERROR);
     }
 
     @Test
     void shouldAllowPlayerWithMatchingNameRestriction() throws FailedVerificationException {
-        // given
         String name = "Bobby";
         InetAddress address = createInetAddress("127.0.0.4");
         given(validationService.fulfillsNameRestrictions(name, address)).willReturn(true);
 
-        // when
         onJoinVerifier.checkNameRestrictions(name, address);
 
-        // then
         verify(validationService).fulfillsNameRestrictions(name, address);
         verifyNoInteractions(settings, server);
     }
 
     @Test
     void shouldKickPlayerWithUnmatchedNameRestriction() {
-        // given
         String name = "Bobby";
         InetAddress address = createInetAddress("99.99.99.99");
         given(validationService.fulfillsNameRestrictions(name, address)).willReturn(false);
         given(settings.getProperty(RestrictionSettings.BAN_UNKNOWN_IP)).willReturn(false);
 
-        // when / then
         expectValidationExceptionWith(() -> onJoinVerifier.checkNameRestrictions(name, address),
             MessageKey.NOT_OWNER_ERROR);
     }
 
     @Test
     void shouldBanIpWhenNameRestrictionFailsAndBanIsEnabled() {
-        // given
         String name = "Bobby";
         InetAddress address = createInetAddress("99.99.99.99");
         given(validationService.fulfillsNameRestrictions(name, address)).willReturn(false);
         given(settings.getProperty(RestrictionSettings.BAN_UNKNOWN_IP)).willReturn(true);
 
-        // when
         try {
             onJoinVerifier.checkNameRestrictions(name, address);
             fail("Expected FailedVerificationException to be thrown");
@@ -599,7 +501,6 @@ class OnJoinVerifierTest {
             assertThat(e.getReason(), equalTo(MessageKey.NOT_OWNER_ERROR));
         }
 
-        // then - IP ban is scheduled
         verify(bukkitService).runOnGlobalRegion(any(Runnable.class));
     }
 

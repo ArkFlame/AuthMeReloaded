@@ -38,7 +38,8 @@ public final class FileUtils {
     public static boolean copyFileFromResource(File destinationFile, String resourcePath) {
         if (destinationFile.exists()) {
             return true;
-        } else if (!createDirectory(destinationFile.getParentFile())) {
+        }
+        if (!createDirectory(destinationFile.getParentFile())) {
             logger.warning("Cannot create parent directories for '" + destinationFile + "'");
             return false;
         }
@@ -47,15 +48,15 @@ public final class FileUtils {
             if (is == null) {
                 logger.warning(format("Cannot copy resource '%s' to file '%s': cannot load resource",
                     resourcePath, destinationFile.getPath()));
-            } else {
-                java.nio.file.Files.copy(is, destinationFile.toPath());
-                return true;
+                return false;
             }
+            java.nio.file.Files.copy(is, destinationFile.toPath());
+            return true;
         } catch (IOException e) {
             logger.logException(format("Cannot copy resource '%s' to file '%s':",
                 resourcePath, destinationFile.getPath()), e);
+            return false;
         }
-        return false;
     }
 
     /**
@@ -112,11 +113,8 @@ public final class FileUtils {
      * @param file the file to delete
      */
     public static void delete(File file) {
-        if (file != null) {
-            boolean result = file.delete();
-            if (!result) {
-                logger.warning("Could not delete file '" + file + "'");
-            }
+        if (file != null && !file.delete()) {
+            logger.warning("Could not delete file '" + file + "'");
         }
     }
 

@@ -26,13 +26,18 @@ public class PendingConnectionRegistry {
     }
 
     public boolean holdsClaim(String name, PlayerConnection connection) {
-        Claim claim = claims.get(normalize(name));
-        return claim != null && !claim.isStale() && claim.isHeldBy(connectionKey(connection));
+        Claim claim = activeClaim(name);
+        return claim != null && claim.isHeldBy(connectionKey(connection));
     }
 
     public boolean isClaimedByOtherConnection(String name, PlayerConnection connection) {
+        Claim claim = activeClaim(name);
+        return claim != null && !claim.isHeldBy(connectionKey(connection));
+    }
+
+    private Claim activeClaim(String name) {
         Claim claim = claims.get(normalize(name));
-        return claim != null && !claim.isStale() && !claim.isHeldBy(connectionKey(connection));
+        return claim != null && !claim.isStale() ? claim : null;
     }
 
     public void release(String name) {

@@ -67,14 +67,15 @@ class PurgeTask implements Runnable {
         Set<String> namePortion = new HashSet<>(INTERVAL_CHECK);
         for (int i = 0; i < INTERVAL_CHECK && nextPlayerIndex + i < offlinePlayers.length; i++) {
             OfflinePlayer offlinePlayer = offlinePlayers[nextPlayerIndex + i];
-            if (offlinePlayer.getName() != null && toPurge.remove(offlinePlayer.getName().toLowerCase(Locale.ROOT))) {
+            String name = offlinePlayer.getName();
+            if (name != null && toPurge.remove(name.toLowerCase(Locale.ROOT))) {
                 if (!permissionsManager.loadUserData(offlinePlayer)) {
-                    logger.warning("Unable to check if the user " + offlinePlayer.getName() + " can be purged!");
+                    logger.warning("Unable to check if the user " + name + " can be purged!");
                     continue;
                 }
                 if (!permissionsManager.hasPermissionOffline(offlinePlayer, PlayerStatePermission.BYPASS_PURGE)) {
                     playerPortion.add(offlinePlayer);
-                    namePortion.add(offlinePlayer.getName());
+                    namePortion.add(name);
                 }
             }
         }

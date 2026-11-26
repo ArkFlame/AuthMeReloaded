@@ -4,6 +4,8 @@ import fr.xephi.authme.task.purge.PurgeService;
 import org.bukkit.command.CommandSender;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -34,31 +36,20 @@ class PurgeCommandTest {
     @Mock
     private PurgeService purgeService;
 
-    @Test
-    void shouldHandleInvalidNumber() {
+    @ParameterizedTest
+    @CsvSource(value = {
+        "invalid, The value you've entered is invalid",
+        "29,      You can only purge data older than 30 days"
+    }, quoteCharacter = '"')
+    void shouldRejectInvalidInterval(String interval, String expectedMessage) {
         // given
-        String interval = "invalid";
         CommandSender sender = mock(CommandSender.class);
 
         // when
         command.executeCommand(sender, Collections.singletonList(interval));
 
         // then
-        verify(sender).sendMessage(argThat(containsString("The value you've entered is invalid")));
-        verifyNoInteractions(purgeService);
-    }
-
-    @Test
-    void shouldRejectTooSmallInterval() {
-        // given
-        String interval = "29";
-        CommandSender sender = mock(CommandSender.class);
-
-        // when
-        command.executeCommand(sender, Collections.singletonList(interval));
-
-        // then
-        verify(sender).sendMessage(argThat(containsString("You can only purge data older than 30 days")));
+        verify(sender).sendMessage(argThat(containsString(expectedMessage)));
         verifyNoInteractions(purgeService);
     }
 

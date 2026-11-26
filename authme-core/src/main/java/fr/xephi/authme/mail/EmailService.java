@@ -40,7 +40,6 @@ public class EmailService {
         return sendMailSsl.hasAllInformation();
     }
 
-
     /**
      * Sends an email to the user with his new password.
      *
@@ -60,7 +59,7 @@ public class EmailService {
             return false;
         }
 
-        String mailText = replaceTagsForPasswordMail(settings.getPasswordEmailMessage(), name, newPass);
+        String mailText = replaceTags(settings.getPasswordEmailMessage(), name, "<generatedpass />", newPass);
         // Generate an image?
         File file = null;
         if (settings.getProperty(EmailSettings.PASSWORD_AS_IMAGE)) {
@@ -135,7 +134,8 @@ public class EmailService {
             return false;
         }
 
-        String mailText = replaceTagsForVerificationEmail(message, name, code, minutesValid);
+        String mailText = replaceTags(message, name,
+            "<generatedcode />", code, "<minutesvalid />", String.valueOf(minutesValid));
         return sendMailSsl.sendEmail(mailText, email);
     }
 
@@ -153,8 +153,9 @@ public class EmailService {
             return false;
         }
 
-        String message = replaceTagsForRecoveryCodeMail(settings.getRecoveryCodeEmailMessage(),
-            name, code, settings.getProperty(SecuritySettings.RECOVERY_CODE_HOURS_VALID));
+        String message = replaceTags(settings.getRecoveryCodeEmailMessage(), name,
+            "<recoverycode />", code,
+            "<hoursvalid />", String.valueOf(settings.getProperty(SecuritySettings.RECOVERY_CODE_HOURS_VALID)));
         return sendMailSsl.sendEmail(message, htmlEmail);
     }
 
@@ -190,19 +191,14 @@ public class EmailService {
             .replace("<servername />", settings.getProperty(PluginSettings.SERVER_NAME));
     }
 
-    private String replaceTagsForPasswordMail(String mailText, String name, String newPass) {
-        return replaceCommonTags(mailText, name).replace("<generatedpass />", newPass);
-    }
-
-    private String replaceTagsForVerificationEmail(String mailText, String name, String code, int minutesValid) {
-        return replaceCommonTags(mailText, name)
-            .replace("<generatedcode />", code)
-            .replace("<minutesvalid />", String.valueOf(minutesValid));
-    }
-
-    private String replaceTagsForRecoveryCodeMail(String mailText, String name, String code, int hoursValid) {
-        return replaceCommonTags(mailText, name)
-            .replace("<recoverycode />", code)
-            .replace("<hoursvalid />", String.valueOf(hoursValid));
+    /**
+     * Replaces the common tags and then each tag/value pair (in the given order).
+     */
+    private String replaceTags(String mailText, String name, String... tagValuePairs) {
+        String text = replaceCommonTags(mailText, name);
+        for (int i = 0; i < tagValuePairs.length; i += 2) {
+            text = text.replace(tagValuePairs[i], tagValuePairs[i + 1]);
+        }
+        return text;
     }
 }

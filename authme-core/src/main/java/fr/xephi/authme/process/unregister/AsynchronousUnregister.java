@@ -10,6 +10,7 @@ import fr.xephi.authme.events.UnregisterByPlayerEvent;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.process.AsynchronousProcess;
+import fr.xephi.authme.process.logout.LogoutActions;
 import fr.xephi.authme.security.PasswordSecurity;
 import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.service.CommonService;
@@ -23,8 +24,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import javax.inject.Inject;
-
-import static fr.xephi.authme.service.BukkitService.TICKS_PER_SECOND;
 
 public class AsynchronousUnregister implements AsynchronousProcess {
     
@@ -120,13 +119,13 @@ public class AsynchronousUnregister implements AsynchronousProcess {
     private void performPostUnregisterActions(String name, Player player) {
         boolean sendBungeeLogout = player != null && playerCache.isAuthenticated(name);
         playerCache.removePlayer(name);
+        Runnable bungeeLogout = () -> bungeeSender.sendAuthMeBungeecordMessage(player, MessageType.LOGOUT);
 
         // TODO: send an update when a messaging service will be implemented (UNREGISTER)
 
         if (player == null || !player.isOnline()) {
             if (sendBungeeLogout) {
-                bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player,
-                    () -> bungeeSender.sendAuthMeBungeecordMessage(player, MessageType.LOGOUT));
+                bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, bungeeLogout);
             }
             return;
         }
@@ -139,23 +138,16 @@ public class AsynchronousUnregister implements AsynchronousProcess {
         // Run all player-facing actions in a single hop on the player's thread
         bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, () -> {
             if (sendBungeeLogout) {
-                bungeeSender.sendAuthMeBungeecordMessage(player, MessageType.LOGOUT);
+                bungeeLogout.run();
             }
             commandManager.runCommandsOnUnregister(player);
             if (force) {
                 limboService.createLimboPlayer(player, false);
-                applyBlindEffect(player);
+                LogoutActions.applyBlindEffect(player, service, bukkitService, RestrictionSettings.REGISTER_TIMEOUT);
             }
         });
 
         service.send(player, MessageKey.UNREGISTERED_SUCCESS);
-    }
-
-    private void applyBlindEffect(Player player) {
-        if (service.getProperty(RegistrationSettings.APPLY_BLIND_EFFECT)) {
-            int timeout = service.getProperty(RestrictionSettings.REGISTER_TIMEOUT) * TICKS_PER_SECOND;
-            player.addPotionEffect(bukkitService.createBlindnessEffect(timeout));
-        }
     }
 
 }

@@ -79,7 +79,8 @@ public class HelpProvider implements Reloadable {
      * @return the generated help messages
      */
     private List<String> buildHelpOutput(CommandSender sender, FoundCommandResult result, int options) {
-        if (result.getCommandDescription() == null) {
+        CommandDescription matchedCommand = result.getCommandDescription();
+        if (matchedCommand == null) {
             return singletonList(ChatColor.DARK_RED + "Failed to retrieve any help information!");
         }
 
@@ -95,7 +96,7 @@ public class HelpProvider implements Reloadable {
             lines.add(ChatColor.GOLD + header);
         }
 
-        CommandDescription command = helpMessagesService.buildLocalizedDescription(result.getCommandDescription(), language);
+        CommandDescription command = helpMessagesService.buildLocalizedDescription(matchedCommand, language);
         List<String> correctLabels = ImmutableList.copyOf(filterCorrectLabels(command, result.getLabels()));
 
         if (hasFlag(SHOW_COMMAND, options)) {

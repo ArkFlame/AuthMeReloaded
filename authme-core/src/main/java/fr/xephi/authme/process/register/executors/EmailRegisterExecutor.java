@@ -56,7 +56,7 @@ class EmailRegisterExecutor implements RegistrationExecutor<EmailRegisterParams>
     @Override
     public PlayerAuth buildPlayerAuth(EmailRegisterParams params) {
         String password = RandomStringUtils.generate(commonService.getProperty(RECOVERY_PASSWORD_LENGTH));
-        HashedPassword hashedPassword = passwordSecurity.computeHash(password, params.getPlayer().getName());
+        HashedPassword hashedPassword = passwordSecurity.computeHash(password, params.getPlayerName());
         params.setPassword(password);
         return createPlayerAuth(params.getPlayer(), hashedPassword, params.getEmail());
     }

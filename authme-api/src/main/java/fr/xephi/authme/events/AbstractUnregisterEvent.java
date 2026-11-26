@@ -10,7 +10,7 @@ public abstract class AbstractUnregisterEvent extends CustomEvent {
     private final Player player;
 
     /**
-     * Constructor for a player that has unregistered himself.
+     * Constructor for an event about a player who has been unregistered.
      *
      * @param player the player
      * @param isAsync if the event is called asynchronously

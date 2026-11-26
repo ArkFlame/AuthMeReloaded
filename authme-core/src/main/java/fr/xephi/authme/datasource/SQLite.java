@@ -211,29 +211,18 @@ public class SQLite extends AbstractSqlDataSource {
 
     @Override
     public synchronized Set<String> getRecordsToPurge(long until) {
-        Set<String> list = new HashSet<>();
-        try (PreparedStatement selectPst = con.prepareStatement(findRecordsToPurgeSql)) {
-            selectPst.setLong(1, until);
-            try (ResultSet rs = selectPst.executeQuery()) {
-                while (rs.next()) {
-                    list.add(rs.getString(col.NAME));
-                }
-            }
+        try {
+            return findRecordsToPurge(con, findRecordsToPurgeSql, until);
         } catch (SQLException ex) {
             logSqlException(ex);
         }
-
-        return list;
+        return new HashSet<>();
     }
 
     @Override
     public synchronized void purgeRecords(Collection<String> toPurge) {
-        try (PreparedStatement deletePst = con.prepareStatement(deleteByNameSql)) {
-            for (String name : toPurge) {
-                deletePst.setString(1, name.toLowerCase(Locale.ROOT));
-                deletePst.addBatch();
-            }
-            deletePst.executeBatch();
+        try {
+            deleteRecords(con, deleteByNameSql, toPurge);
         } catch (SQLException ex) {
             logSqlException(ex);
         }
@@ -283,16 +272,12 @@ public class SQLite extends AbstractSqlDataSource {
 
     @Override
     public synchronized List<String> getLoggedPlayersWithEmptyMail() {
-        List<String> players = new ArrayList<>();
-        try (PreparedStatement pst = con.prepareStatement(findLoggedWithEmptyEmailSql);
-             ResultSet rs = pst.executeQuery()) {
-            while (rs.next()) {
-                players.add(rs.getString(1));
-            }
+        try {
+            return findLoggedWithEmptyMail(con, findLoggedWithEmptyEmailSql);
         } catch (SQLException ex) {
             logSqlException(ex);
         }
-        return players;
+        return new ArrayList<>();
     }
 
     @Override
@@ -312,11 +297,8 @@ public class SQLite extends AbstractSqlDataSource {
 
     @Override
     public synchronized boolean setTotpKey(String user, String totpKey) {
-        try (PreparedStatement pst = con.prepareStatement(updateTotpSql)) {
-            pst.setString(1, totpKey);
-            pst.setString(2, user.toLowerCase(Locale.ROOT));
-            pst.executeUpdate();
-            return true;
+        try {
+            return updateTotpKey(con, updateTotpSql, user, totpKey);
         } catch (SQLException e) {
             logSqlException(e);
         }

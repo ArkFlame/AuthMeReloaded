@@ -5,12 +5,10 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.pool.HikariPool.PoolInitializationException;
 import fr.xephi.authme.ConsoleLogger;
-import fr.xephi.authme.datasource.columnshandler.AuthMeColumnsHandler;
 import fr.xephi.authme.datasource.mysqlextensions.MySqlExtensionsFactory;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.settings.Settings;
 import fr.xephi.authme.settings.properties.DatabaseSettings;
-import fr.xephi.authme.settings.properties.HooksSettings;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -29,13 +27,6 @@ public class MySQL extends AbstractHikariSqlDataSource {
     private boolean serverCertificateVerification;
     private boolean allowPublicKeyRetrieval;
     private String mariaDbSslMode;
-    private String host;
-    private String port;
-    private String username;
-    private String password;
-    private String database;
-    private int poolSize;
-    private int maxLifetime;
 
     public MySQL(Settings settings, MySqlExtensionsFactory extensionsFactory) throws SQLException {
         setParameters(settings, extensionsFactory);
@@ -89,23 +80,11 @@ public class MySQL extends AbstractHikariSqlDataSource {
      * @param extensionsFactory factory to create the MySQL extension
      */
     private void setParameters(Settings settings, MySqlExtensionsFactory extensionsFactory) {
-        this.host = settings.getProperty(DatabaseSettings.MYSQL_HOST);
-        this.port = settings.getProperty(DatabaseSettings.MYSQL_PORT);
-        this.username = settings.getProperty(DatabaseSettings.MYSQL_USERNAME);
-        this.password = settings.getProperty(DatabaseSettings.MYSQL_PASSWORD);
-        this.database = settings.getProperty(DatabaseSettings.MYSQL_DATABASE);
-        this.tableName = settings.getProperty(DatabaseSettings.MYSQL_TABLE);
-        this.columnOthers = settings.getProperty(HooksSettings.MYSQL_OTHER_USERNAME_COLS);
-        this.col = new Columns(settings);
-        this.columnsHandler = AuthMeColumnsHandler.createForMySql(this::getConnection, settings);
-        this.sqlExtension = extensionsFactory.buildExtension(col);
-        this.poolSize = settings.getProperty(DatabaseSettings.MYSQL_POOL_SIZE);
-        this.maxLifetime = settings.getProperty(DatabaseSettings.MYSQL_CONNECTION_MAX_LIFETIME);
+        setCommonParameters(settings, extensionsFactory);
         this.useSsl = settings.getProperty(DatabaseSettings.MYSQL_USE_SSL);
         this.serverCertificateVerification = settings.getProperty(DatabaseSettings.MYSQL_CHECK_SERVER_CERTIFICATE);
         this.allowPublicKeyRetrieval = settings.getProperty(DatabaseSettings.MYSQL_ALLOW_PUBLIC_KEY_RETRIEVAL);
         this.mariaDbSslMode = settings.getProperty(DatabaseSettings.MARIADB_SSL_MODE);
-        initSqlStrings();
     }
 
     /**
@@ -116,15 +95,15 @@ public class MySQL extends AbstractHikariSqlDataSource {
         ds.setPoolName("AuthMeMYSQLPool");
 
         // Pool Settings
-        ds.setMaximumPoolSize(poolSize);
-        ds.setMaxLifetime(maxLifetime * 1000L);
+        ds.setMaximumPoolSize(getPoolSize());
+        ds.setMaxLifetime(getMaxLifetime() * 1000L);
 
         // Database URL
-        ds.setJdbcUrl(this.getJdbcUrl(this.host, this.port, this.database));
+        ds.setJdbcUrl(this.getJdbcUrl(getHost(), getPort(), getDatabase()));
 
         // Auth
-        ds.setUsername(this.username);
-        ds.setPassword(this.password);
+        ds.setUsername(getUsername());
+        ds.setPassword(getPassword());
         
         // Driver
         String driverClassName = getDriverClassName();
@@ -264,7 +243,7 @@ public class MySQL extends AbstractHikariSqlDataSource {
 
     @Override
     protected boolean isColumnMissing(DatabaseMetaData metaData, String columnName) throws SQLException {
-        return SqlDataSourceUtils.isColumnMissing(metaData, database, tableName, columnName);
+        return SqlDataSourceUtils.isColumnMissing(metaData, getDatabase(), tableName, columnName);
     }
 
     @Override

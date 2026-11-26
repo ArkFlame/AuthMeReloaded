@@ -70,26 +70,19 @@ class PlayerLocaleResolverTest {
         return adapter;
     }
 
-    @Test
-    void shouldResolveLanguageForPlayerWithPerPlayerLocaleEnabled() {
+    @ParameterizedTest
+    @CsvSource({
+        "fr_fr, fr",
+        "pt_br, br" // special override via LOCALE_OVERRIDES
+    })
+    void shouldResolveLanguageForPlayerWithPerPlayerLocale(String locale, String expectedLanguage) {
         // given
         Player player = mock(Player.class);
-        BukkitCompatibilityAdapter adapter = adapterReturningLocale("fr_fr");
+        BukkitCompatibilityAdapter adapter = adapterReturningLocale(locale);
         Settings settings = settingsWithPerPlayerLocale(true);
 
         // when / then
-        assertThat(PlayerLocaleResolver.resolveLanguage(settings, player, adapter), equalTo("fr"));
-    }
-
-    @Test
-    void shouldResolveOverrideLocalePtBr() {
-        // given pt_br is mapped to "br" via LOCALE_OVERRIDES
-        Player player = mock(Player.class);
-        BukkitCompatibilityAdapter adapter = adapterReturningLocale("pt_br");
-        Settings settings = settingsWithPerPlayerLocale(true);
-
-        // when / then
-        assertThat(PlayerLocaleResolver.resolveLanguage(settings, player, adapter), equalTo("br"));
+        assertThat(PlayerLocaleResolver.resolveLanguage(settings, player, adapter), equalTo(expectedLanguage));
     }
 
     @Test

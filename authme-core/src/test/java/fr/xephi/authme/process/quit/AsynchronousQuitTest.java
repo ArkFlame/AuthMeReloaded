@@ -76,14 +76,11 @@ class AsynchronousQuitTest {
 
     @Test
     void shouldDropAutoLoginGrantsOnQuit() {
-        // given
         Player player = mock(Player.class);
         given(player.getName()).willReturn("Bobby");
 
-        // when
         asynchronousQuit.processQuit(player);
 
-        // then
         verify(proxySessionManager).removeLoginRequest("bobby");
         verify(premiumLoginVerifier).removeVerified("bobby");
         verify(playerCache).removePlayer("bobby");
@@ -91,30 +88,24 @@ class AsynchronousQuitTest {
 
     @Test
     void shouldUnauthenticatePlayerEvenIfSessionUpdateFails() {
-        // given
         Player player = mockLoggedInPlayer();
         given(service.getProperty(RestrictionSettings.SAVE_QUIT_LOCATION)).willReturn(false);
         doThrow(IllegalStateException.class).when(database).updateSession(any(PlayerAuth.class));
 
-        // when
         assertThrows(IllegalStateException.class, () -> asynchronousQuit.processQuit(player));
 
-        // then
         verify(playerCache).removePlayer("bobby");
         verify(database).setUnlogged("bobby");
     }
 
     @Test
     void shouldContinueQuitIfQuitLocationCannotBeSaved() {
-        // given
         Player player = mockLoggedInPlayer();
         given(service.getProperty(RestrictionSettings.SAVE_QUIT_LOCATION)).willReturn(true);
         given(spawnLoader.getPlayerLocationOrSpawn(player)).willThrow(IllegalStateException.class);
 
-        // when
         asynchronousQuit.processQuit(player);
 
-        // then
         verify(database, never()).updateQuitLoc(any(PlayerAuth.class));
         verify(database).updateSession(any(PlayerAuth.class));
         verify(playerCache).removePlayer("bobby");

@@ -98,8 +98,9 @@ public class RegisterCommand extends PlayerCommand {
     }
 
     private boolean isCaptchaFulfilled(Player player) {
-        if (registrationCaptchaManager.isCaptchaRequired(player.getName())) {
-            String code = registrationCaptchaManager.getCaptchaCodeOrGenerateNew(player.getName());
+        String playerName = player.getName();
+        if (registrationCaptchaManager.isCaptchaRequired(playerName)) {
+            String code = registrationCaptchaManager.getCaptchaCodeOrGenerateNew(playerName);
             commonService.send(player, MessageKey.CAPTCHA_FOR_REGISTRATION_REQUIRED, code);
             return false;
         }
@@ -199,9 +200,10 @@ public class RegisterCommand extends PlayerCommand {
                 long delayTicks = 60L * 20L
                     * commonService.getProperty(RegistrationSettings.UNREGISTER_AFTER_MINUTES);
                 bukkitService.runTaskLater(player, () -> {
-                    PlayerAuth auth = dataSource.getAuth(player.getName());
+                    String playerName = player.getName();
+                    PlayerAuth auth = dataSource.getAuth(playerName);
                     if (auth != null && auth.getLastLogin() == null) {
-                        management.performUnregisterByAdmin(null, player.getName(), player);
+                        management.performUnregisterByAdmin(null, playerName, player);
                     }
                 }, delayTicks);
             }

@@ -20,32 +20,34 @@ public final class EmailRecoveryDialogSpec {
     /** Dialog asking the player for the recovery code sent by e-mail. */
     public static DialogWindowSpec createCodeDialog(Function<MessageKey, String> text,
                                                     boolean showBody, boolean stackButtonsVertically) {
-        return new DialogWindowSpec(
-            text.apply(MessageKey.DIALOG_RECOVERY_CODE_TITLE),
-            Collections.singletonList(new DialogInputSpec("code",
-                text.apply(MessageKey.DIALOG_RECOVERY_CODE_INPUT), RECOVERY_CODE_MAX_INPUT_LENGTH)),
-            text.apply(MessageKey.DIALOG_RECOVERY_CODE_BUTTON),
-            text.apply(MessageKey.DIALOG_CANCEL_BUTTON),
-            false,
-            false,
-            null,
-            showBody ? text.apply(MessageKey.DIALOG_RECOVERY_CODE_BODY) : null,
-            stackButtonsVertically);
+        return createDialog(text, "code", RECOVERY_CODE_MAX_INPUT_LENGTH,
+            MessageKey.DIALOG_RECOVERY_CODE_TITLE, MessageKey.DIALOG_RECOVERY_CODE_INPUT,
+            MessageKey.DIALOG_RECOVERY_CODE_BUTTON, MessageKey.DIALOG_RECOVERY_CODE_BODY,
+            showBody, stackButtonsVertically);
     }
 
     /** Dialog asking the player for the new password after a valid recovery code. */
     public static DialogWindowSpec createNewPasswordDialog(Function<MessageKey, String> text,
                                                            boolean showBody, boolean stackButtonsVertically) {
+        return createDialog(text, "password", DEFAULT_MAX_INPUT_LENGTH,
+            MessageKey.DIALOG_NEW_PASSWORD_TITLE, MessageKey.DIALOG_NEW_PASSWORD_INPUT,
+            MessageKey.DIALOG_NEW_PASSWORD_BUTTON, MessageKey.DIALOG_NEW_PASSWORD_BODY,
+            showBody, stackButtonsVertically);
+    }
+
+    /** Shared construction for the single-input recovery dialogs; keys stay with the caller. */
+    private static DialogWindowSpec createDialog(Function<MessageKey, String> text, String inputId, int maxLength,
+                                                 MessageKey title, MessageKey inputLabel, MessageKey button,
+                                                 MessageKey body, boolean showBody, boolean stackButtonsVertically) {
         return new DialogWindowSpec(
-            text.apply(MessageKey.DIALOG_NEW_PASSWORD_TITLE),
-            Collections.singletonList(new DialogInputSpec("password",
-                text.apply(MessageKey.DIALOG_NEW_PASSWORD_INPUT), DEFAULT_MAX_INPUT_LENGTH)),
-            text.apply(MessageKey.DIALOG_NEW_PASSWORD_BUTTON),
+            text.apply(title),
+            Collections.singletonList(new DialogInputSpec(inputId, text.apply(inputLabel), maxLength)),
+            text.apply(button),
             text.apply(MessageKey.DIALOG_CANCEL_BUTTON),
             false,
             false,
             null,
-            showBody ? text.apply(MessageKey.DIALOG_NEW_PASSWORD_BODY) : null,
+            showBody ? text.apply(body) : null,
             stackButtonsVertically);
     }
 }

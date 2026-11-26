@@ -39,10 +39,8 @@ class OnJoinVerifierNicknamePatternTest {
     @ParameterizedTest(name = "{0} allows {1}")
     @MethodSource("allowedNicknames")
     void shouldAllowNameMatchingPattern(String pattern, String name) {
-        // given
         configureNicknamePattern(pattern);
 
-        // when / then
         assertDoesNotThrow(() -> onJoinVerifier.checkIsValidName(name));
     }
 
@@ -54,10 +52,8 @@ class OnJoinVerifierNicknamePatternTest {
 
     @Test
     void shouldStillRejectInvalidCharactersWithRestrictivePattern() {
-        // given
         configureNicknamePattern("[a-zA-Z0-9]+");
 
-        // when / then
         assertThrows(FailedVerificationException.class, () -> onJoinVerifier.checkIsValidName("Tester!"));
     }
 

@@ -163,9 +163,12 @@ public class CommandHandler {
         messages.send(sender, MessageKey.UNKNOWN_COMMAND);
 
         // Show a command suggestion if available and the difference isn't too big
-        if (result.getDifference() <= SUGGEST_COMMAND_THRESHOLD && result.getCommandDescription() != null) {
-            messages.send(sender, MessageKey.COMMAND_DID_YOU_MEAN,
-                CommandUtils.constructCommandPath(result.getCommandDescription()));
+        if (result.getDifference() <= SUGGEST_COMMAND_THRESHOLD) {
+            CommandDescription command = result.getCommandDescription();
+            if (command != null) {
+                messages.send(sender, MessageKey.COMMAND_DID_YOU_MEAN,
+                    CommandUtils.constructCommandPath(command));
+            }
         }
 
         messages.send(sender, MessageKey.COMMAND_SEE_HELP, result.getLabels().get(0) + " help");

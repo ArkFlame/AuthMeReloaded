@@ -12,11 +12,19 @@ import fr.xephi.authme.datasource.mysqlextensions.MySqlExtension;
 import fr.xephi.authme.datasource.columnshandler.AuthMeColumnsHandler;
 import fr.xephi.authme.security.crypts.HashedPassword;
 
+import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 import static ch.jalu.datasourcecolumns.data.UpdateValues.with;
 import static ch.jalu.datasourcecolumns.predicate.StandardPredicates.eq;
@@ -199,6 +207,60 @@ public abstract class AbstractSqlDataSource implements DataSource {
         } catch (SQLException e) {
             logSqlException(e);
             return DataSourceValueImpl.unknownRow();
+        }
+    }
+
+    /**
+     * Reads the names of all records to purge. The caller keeps ownership of the connection.
+     */
+    protected Set<String> findRecordsToPurge(Connection con, String sql, long until) throws SQLException {
+        Set<String> names = new HashSet<>();
+        try (PreparedStatement pst = con.prepareStatement(sql)) {
+            pst.setLong(1, until);
+            try (ResultSet rs = pst.executeQuery()) {
+                while (rs.next()) {
+                    names.add(rs.getString(col.NAME));
+                }
+            }
+        }
+        return names;
+    }
+
+    /**
+     * Deletes all records whose names are in the given collection. The caller keeps ownership of the connection.
+     */
+    protected void deleteRecords(Connection con, String sql, Collection<String> names) throws SQLException {
+        try (PreparedStatement pst = con.prepareStatement(sql)) {
+            for (String name : names) {
+                pst.setString(1, name.toLowerCase(Locale.ROOT));
+                pst.addBatch();
+            }
+            pst.executeBatch();
+        }
+    }
+
+    /**
+     * Reads the real names of logged-in players with an empty email address.
+     */
+    protected List<String> findLoggedWithEmptyMail(Connection con, String sql) throws SQLException {
+        List<String> players = new ArrayList<>();
+        try (PreparedStatement pst = con.prepareStatement(sql); ResultSet rs = pst.executeQuery()) {
+            while (rs.next()) {
+                players.add(rs.getString(1));
+            }
+        }
+        return players;
+    }
+
+    /**
+     * Updates the TOTP key of the given user.
+     */
+    protected boolean updateTotpKey(Connection con, String sql, String user, String totpKey) throws SQLException {
+        try (PreparedStatement pst = con.prepareStatement(sql)) {
+            pst.setString(1, totpKey);
+            pst.setString(2, user.toLowerCase(Locale.ROOT));
+            pst.executeUpdate();
+            return true;
         }
     }
 

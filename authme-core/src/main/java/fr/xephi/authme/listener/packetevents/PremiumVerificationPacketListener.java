@@ -128,9 +128,8 @@ public class PremiumVerificationPacketListener extends PacketListenerAbstract {
             // token so this should not happen; fall through to password auth without verifying.
             logger.warning("Player '" + username + "' returned a signed nonce during premium "
                 + "verification (expected plain verify token). Resuming without premium bypass.");
-            loginVerifier.cleanupPending(connectionKey);
             event.setCancelled(true);
-            resumeLogin(user, username, clientVersion, playerUUID);
+            abortVerificationAndResume(connectionKey, user, username, clientVersion, playerUUID);
             return;
         }
 
@@ -148,8 +147,7 @@ public class PremiumVerificationPacketListener extends PacketListenerAbstract {
             sharedSecret = loginVerifier.decryptData(encSharedSecret);
         } catch (GeneralSecurityException e) {
             logger.warning("RSA decryption failed for '" + username + "': " + e.getMessage());
-            loginVerifier.cleanupPending(connectionKey);
-            resumeLogin(user, username, clientVersion, playerUUID);
+            abortVerificationAndResume(connectionKey, user, username, clientVersion, playerUUID);
             return;
         }
 
@@ -201,6 +199,16 @@ public class PremiumVerificationPacketListener extends PacketListenerAbstract {
         } catch (GeneralSecurityException e) {
             logger.warning("Failed to install AES cipher handlers: " + e.getMessage());
         }
+    }
+
+    /**
+     * Clears a pending verification and re-injects {@code LOGIN_START} so the player continues
+     * with regular authentication after a failed verification attempt.
+     */
+    private void abortVerificationAndResume(String connectionKey, User user, String username,
+                                             ClientVersion clientVersion, UUID playerUUID) {
+        loginVerifier.cleanupPending(connectionKey);
+        resumeLogin(user, username, clientVersion, playerUUID);
     }
 
     /**

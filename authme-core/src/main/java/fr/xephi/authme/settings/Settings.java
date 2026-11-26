@@ -98,14 +98,14 @@ public class Settings extends SettingsManagerImpl {
      */
     private String readFile(String filename) {
         final File file = new File(pluginFolder, filename);
-        if (copyFileFromResource(file, filename)) {
-            try {
-                return Files.asCharSource(file, StandardCharsets.UTF_8).read();
-            } catch (IOException e) {
-                logger.logException("Failed to read file '" + filename + "':", e);
-            }
-        } else {
+        if (!copyFileFromResource(file, filename)) {
             logger.warning("Failed to copy file '" + filename + "' from JAR");
+            return "";
+        }
+        try {
+            return Files.asCharSource(file, StandardCharsets.UTF_8).read();
+        } catch (IOException e) {
+            logger.logException("Failed to read file '" + filename + "':", e);
         }
         return "";
     }

@@ -105,7 +105,7 @@ final class PreJoinRegisterProcessor {
                                         RegisterSecondaryArgument secondArg, DialogResponseView view) {
         String email = view.getText("email");
         String confirm = view.getText("confirm");
-        if (email == null || email.isBlank() || !validationService.validateEmail(email)) {
+        if (isBlank(email) || !validationService.validateEmail(email)) {
             showError(connection, playerName, MessageKey.INVALID_EMAIL);
             return;
         }
@@ -121,7 +121,7 @@ final class PreJoinRegisterProcessor {
                                            String playerName, RegisterSecondaryArgument secondArg,
                                            DialogResponseView view) {
         String password = view.getText("password");
-        if (password == null || password.isBlank()) {
+        if (isBlank(password)) {
             showError(connection, playerName, MessageKey.INVALID_PASSWORD_LENGTH);
             return;
         }
@@ -138,11 +138,11 @@ final class PreJoinRegisterProcessor {
         if (secondArg == RegisterSecondaryArgument.EMAIL_MANDATORY
             || secondArg == RegisterSecondaryArgument.EMAIL_OPTIONAL) {
             email = view.getText("email");
-            if (secondArg == RegisterSecondaryArgument.EMAIL_MANDATORY && (email == null || email.isBlank())) {
+            if (secondArg == RegisterSecondaryArgument.EMAIL_MANDATORY && isBlank(email)) {
                 showError(connection, playerName, MessageKey.INVALID_EMAIL);
                 return;
             }
-            if (email != null && !email.isBlank() && !validationService.validateEmail(email)) {
+            if (!isBlank(email) && !validationService.validateEmail(email)) {
                 showError(connection, playerName, MessageKey.INVALID_EMAIL);
                 return;
             }
@@ -162,5 +162,9 @@ final class PreJoinRegisterProcessor {
     private void showError(PlayerConfigurationConnection connection, String playerName,
                            MessageKey key, String... args) {
         showRegisterDialogWithError(connection, playerName, messages.retrieveSingle(playerName, key, args));
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 }

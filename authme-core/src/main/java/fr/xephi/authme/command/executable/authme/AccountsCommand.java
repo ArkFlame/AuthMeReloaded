@@ -37,11 +37,13 @@ public class AccountsCommand extends AbstractPlayerAuthCommand {
                 PlayerAuth auth = getAuthOrReportUnknown(sender, playerName.toLowerCase(Locale.ROOT));
                 if (auth == null) {
                     return;
-                } else if (auth.getLastIp() == null) {
+                }
+                String lastIp = auth.getLastIp();
+                if (lastIp == null) {
                     getCommonService().send(sender, MessageKey.ACCOUNTS_NO_LAST_IP);
                     return;
                 }
-                outputAccountsByIp(sender, playerName, auth.getLastIp(), MessageKey.UNKNOWN_USER);
+                outputAccountsByIp(sender, playerName, lastIp, MessageKey.UNKNOWN_USER);
             });
         }
     }

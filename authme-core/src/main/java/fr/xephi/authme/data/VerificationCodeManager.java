@@ -112,15 +112,8 @@ public class VerificationCodeManager implements SettingsDependent, HasCleanup {
      * @return true if the player is able to receive emails, false otherwise
      */
     public boolean hasEmail(String name) {
-        boolean result = false;
         DataSourceValue<String> emailResult = dataSource.getEmail(name);
-        if (emailResult.rowExists()) {
-            final String email = emailResult.getValue();
-            if (!Utils.isEmailEmpty(email)) {
-                result = true;
-            }
-        }
-        return result;
+        return emailResult.rowExists() && !Utils.isEmailEmpty(emailResult.getValue());
     }
 
     /**
@@ -174,12 +167,11 @@ public class VerificationCodeManager implements SettingsDependent, HasCleanup {
      * @return true if the code matches, false otherwise
      */
     public boolean checkCode(String name, String code) {
-        boolean correct = false;
-        if (code.equals(verificationCodes.get(normalize(name)))) {
-            verify(name);
-            correct = true;
+        if (!code.equals(verificationCodes.get(normalize(name)))) {
+            return false;
         }
-        return correct;
+        verify(name);
+        return true;
     }
 
     /**

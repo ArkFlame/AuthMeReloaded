@@ -19,11 +19,9 @@ import java.io.FileWriter;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * Persistence handler for LimboPlayer objects by distributing the objects to store
@@ -165,8 +163,10 @@ class DistributedFilesPersistenceHandler implements LimboPersistenceHandler {
             + limboBySegment.size() + " current segments");
         for (Map.Entry<String, Map<String, LimboPlayer>> entry : limboBySegment.entrySet()) {
             File file = getSegmentFile(entry.getKey());
-            Map<String, LimboPlayer> limbosToSave = Optional.ofNullable(readLimboPlayers(file))
-                .orElseGet(HashMap::new);
+            Map<String, LimboPlayer> limbosToSave = readLimboPlayers(file);
+            if (limbosToSave == null) {
+                limbosToSave = new HashMap<>();
+            }
             limbosToSave.putAll(entry.getValue());
             saveEntries(limbosToSave, file);
         }
@@ -195,11 +195,14 @@ class DistributedFilesPersistenceHandler implements LimboPersistenceHandler {
     private void deleteEmptyFiles() {
         File[] files = listFiles(cacheFolder);
 
-        long deletedFiles = Arrays.stream(files)
+        int deletedFiles = 0;
+        for (File file : files) {
             // typically the size is 2 because there's an empty JSON map: {}
-            .filter(f -> isLimboJsonFile(f) && f.length() < 3)
-            .peek(FileUtils::delete)
-            .count();
+            if (isLimboJsonFile(file) && file.length() < 3) {
+                FileUtils.delete(file);
+                deletedFiles++;
+            }
+        }
         logger.debug("Limbo: Deleted {0} empty segment files", deletedFiles);
     }
 

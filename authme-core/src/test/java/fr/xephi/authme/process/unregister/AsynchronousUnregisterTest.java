@@ -77,17 +77,14 @@ class AsynchronousUnregisterTest {
 
     @Test
     void shouldRejectWrongPassword() {
-        // given
         Player player = mock(Player.class);
         String name = "Bobby";
         HashedPassword password = givenRegisteredPlayer(player, name);
         String userPassword = "pass";
         given(passwordSecurity.comparePassword(userPassword, password, name)).willReturn(false);
 
-        // when
         asynchronousUnregister.unregister(player, userPassword);
 
-        // then
         verify(service).send(player, MessageKey.WRONG_PASSWORD);
         verify(passwordSecurity).comparePassword(userPassword, password, name);
         verifyNoInteractions(dataSource, limboService, teleportationService, bukkitService, bungeeSender);
@@ -96,22 +93,18 @@ class AsynchronousUnregisterTest {
 
     @Test
     void shouldDoNothingIfPlayerIsNoLongerLoggedIn() {
-        // given
         Player player = mock(Player.class);
         given(player.getName()).willReturn("Bobby");
         given(playerCache.getAuth("Bobby")).willReturn(null);
 
-        // when
         asynchronousUnregister.unregister(player, "pass");
 
-        // then
         verifyNoInteractions(passwordSecurity, dataSource, service);
     }
 
     @ParameterizedTest(name = "blind effect={0}")
     @ValueSource(booleans = {true, false})
     void shouldPerformUnregister(boolean applyBlindEffect) {
-        // given
         Player player = mock(Player.class);
         String name = "Frank21";
         HashedPassword password = givenRegisteredPlayer(player, name);
@@ -127,10 +120,8 @@ class AsynchronousUnregisterTest {
             given(bukkitService.createBlindnessEffect(21 * 20)).willReturn(mock(PotionEffect.class));
         }
 
-        // when
         asynchronousUnregister.unregister(player, userPassword);
 
-        // then
         verify(service).send(player, MessageKey.UNREGISTERED_SUCCESS);
         verify(passwordSecurity).comparePassword(userPassword, password, name);
         verify(dataSource).removeAuth(name);
@@ -145,7 +136,6 @@ class AsynchronousUnregisterTest {
 
     @Test
     void shouldNotApplyUnregisteredEffectsForNotForcedRegistration() {
-        // given
         Player player = mock(Player.class);
         String name = "__FranK";
         given(player.getName()).willReturn(name);
@@ -159,10 +149,8 @@ class AsynchronousUnregisterTest {
         given(service.getProperty(RegistrationSettings.FORCE)).willReturn(false);
         setBukkitServiceToScheduleSyncEntityTaskFromOptionallyAsyncTask(bukkitService);
 
-        // when
         asynchronousUnregister.unregister(player, userPassword);
 
-        // then
         verify(service).send(player, MessageKey.UNREGISTERED_SUCCESS);
         verify(passwordSecurity).comparePassword(userPassword, password, name);
         verify(dataSource).removeAuth(name);
@@ -174,7 +162,6 @@ class AsynchronousUnregisterTest {
 
     @Test
     void shouldHandleDatabaseError() {
-        // given
         Player player = mock(Player.class);
         String name = "Frank21";
         HashedPassword password = givenRegisteredPlayer(player, name);
@@ -182,10 +169,8 @@ class AsynchronousUnregisterTest {
         given(passwordSecurity.comparePassword(userPassword, password, name)).willReturn(true);
         given(dataSource.removeAuth(name)).willReturn(false);
 
-        // when
         asynchronousUnregister.unregister(player, userPassword);
 
-        // then
         verify(passwordSecurity).comparePassword(userPassword, password, name);
         verify(dataSource).removeAuth(name);
         verify(service).send(player, MessageKey.ERROR);
@@ -194,7 +179,6 @@ class AsynchronousUnregisterTest {
 
     @Test
     void shouldNotTeleportOfflinePlayer() {
-        // given
         Player player = mock(Player.class);
         String name = "Frank21";
         HashedPassword password = givenRegisteredPlayer(player, name);
@@ -203,10 +187,8 @@ class AsynchronousUnregisterTest {
         given(passwordSecurity.comparePassword(userPassword, password, name)).willReturn(true);
         given(dataSource.removeAuth(name)).willReturn(true);
 
-        // when
         asynchronousUnregister.unregister(player, userPassword);
 
-        // then
         verify(passwordSecurity).comparePassword(userPassword, password, name);
         verify(dataSource).removeAuth(name);
         verify(playerCache).removePlayer(name);
@@ -217,7 +199,6 @@ class AsynchronousUnregisterTest {
     // Initiator known and Player object available
     @Test
     void shouldPerformAdminUnregister() {
-        // given
         Player player = mock(Player.class);
         String name = "Frank21";
         given(player.isOnline()).willReturn(true);
@@ -227,10 +208,8 @@ class AsynchronousUnregisterTest {
         CommandSender initiator = mock(CommandSender.class);
         setBukkitServiceToScheduleSyncEntityTaskFromOptionallyAsyncTask(bukkitService);
 
-        // when
         asynchronousUnregister.adminUnregister(initiator, name, player);
 
-        // then
         verify(service).send(player, MessageKey.UNREGISTERED_SUCCESS);
         verify(service).send(initiator, MessageKey.UNREGISTERED_SUCCESS);
         verify(dataSource).removeAuth(name);
@@ -242,14 +221,11 @@ class AsynchronousUnregisterTest {
 
     @Test
     void shouldPerformAdminUnregisterWithoutInitiatorOrPlayer() {
-        // given
         String name = "billy";
         given(dataSource.removeAuth(name)).willReturn(true);
 
-        // when
         asynchronousUnregister.adminUnregister(null, name, null);
 
-        // then
         verify(dataSource).removeAuth(name);
         verify(playerCache).removePlayer(name);
         verifyNoInteractions(teleportationService);
@@ -258,15 +234,12 @@ class AsynchronousUnregisterTest {
 
     @Test
     void shouldHandleDatabaseErrorForAdminUnregister() {
-        // given
         String name = "TtOoLl";
         CommandSender initiator = mock(CommandSender.class);
         given(dataSource.removeAuth(name)).willReturn(false);
 
-        // when
         asynchronousUnregister.adminUnregister(initiator, name, null);
 
-        // then
         verify(dataSource).removeAuth(name);
         verify(service).send(initiator, MessageKey.ERROR);
         verifyNoInteractions(playerCache, teleportationService, bukkitService, bungeeSender);

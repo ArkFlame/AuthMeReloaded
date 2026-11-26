@@ -40,7 +40,6 @@ public class BungeeReceiver implements PluginMessageListener, SettingsDependent 
     private final DataSource dataSource;
     private final ProxyLoginRequestValidator proxyLoginRequestValidator;
 
-    private static final String AUTHME_CHANNEL = MessageType.CHANNEL;
     private static final long MAX_AGE_MILLIS = 30_000L;
 
     private boolean isEnabled;
@@ -74,17 +73,17 @@ public class BungeeReceiver implements PluginMessageListener, SettingsDependent 
         // Track our own registration rather than querying the channel: other listeners
         // (e.g. the Paper configuration-phase receiver) may register the same channel.
         if (this.isEnabled && !channelRegistered) {
-            messenger.registerIncomingPluginChannel(plugin, AUTHME_CHANNEL, this);
+            messenger.registerIncomingPluginChannel(plugin, MessageType.CHANNEL, this);
             channelRegistered = true;
         } else if (!this.isEnabled && channelRegistered) {
-            messenger.unregisterIncomingPluginChannel(plugin, AUTHME_CHANNEL, this);
+            messenger.unregisterIncomingPluginChannel(plugin, MessageType.CHANNEL, this);
             channelRegistered = false;
         }
     }
 
     @Override
     public void onPluginMessageReceived(String channel, Player player, byte[] data) {
-        if (!isEnabled || !channel.equals(AUTHME_CHANNEL)) {
+        if (!isEnabled || !channel.equals(MessageType.CHANNEL)) {
             return;
         }
 

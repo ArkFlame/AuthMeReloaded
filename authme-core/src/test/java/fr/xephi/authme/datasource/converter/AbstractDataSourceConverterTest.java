@@ -30,8 +30,7 @@ class AbstractDataSourceConverterTest extends AbstractConverterTest {
 
     @Test
     void shouldThrowForDestinationTypeMismatch() {
-        DataSource destination = mock(DataSource.class);
-        given(destination.getType()).willReturn(DataSourceType.MYSQL);
+        DataSource destination = mockDestination(DataSourceType.MYSQL);
         DataSourceType destinationType = DataSourceType.SQLITE;
         DataSource source = mock(DataSource.class);
         Converter converter = new DataSourceConverterTestImpl<>(source, destination, destinationType);
@@ -47,9 +46,8 @@ class AbstractDataSourceConverterTest extends AbstractConverterTest {
     @Test
     void shouldHandleSourceThrowingException() {
         DataSource source = mock(DataSource.class);
-        DataSource destination = mock(DataSource.class);
         DataSourceType destinationType = DataSourceType.SQLITE;
-        given(destination.getType()).willReturn(destinationType);
+        DataSource destination = mockDestination(destinationType);
         DataSourceConverterTestImpl<DataSource> converter =
             Mockito.spy(new DataSourceConverterTestImpl<>(source, destination, destinationType));
         doThrow(IllegalStateException.class).when(converter).getSource();
@@ -65,9 +63,8 @@ class AbstractDataSourceConverterTest extends AbstractConverterTest {
     @Test
     void shouldConvertAndSkipExistingPlayers() {
         DataSource source = mock(DataSource.class);
-        DataSource destination = mock(DataSource.class);
         DataSourceType destinationType = DataSourceType.MYSQL;
-        given(destination.getType()).willReturn(destinationType);
+        DataSource destination = mockDestination(destinationType);
 
         List<PlayerAuth> auths =
             Arrays.asList(mockAuthWithName("Steven"), mockAuthWithName("bobby"), mockAuthWithName("Jack"));
@@ -87,6 +84,12 @@ class AbstractDataSourceConverterTest extends AbstractConverterTest {
         verifyNoMoreInteractions(destination);
         verify(sender).sendMessage(argThat(containsString(auths.get(0).getNickname())));
         verify(sender).sendMessage(argThat(containsString("successfully converted")));
+    }
+
+    private static DataSource mockDestination(DataSourceType returnedType) {
+        DataSource destination = mock(DataSource.class);
+        given(destination.getType()).willReturn(returnedType);
+        return destination;
     }
 
     private static PlayerAuth mockAuthWithName(String name) {

@@ -16,6 +16,7 @@ import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
 /**
  * Encapsulates the Paper-derived dialog API calls used by Paper and Folia.
@@ -102,13 +103,12 @@ public final class PaperDialogHelper {
             .action(DialogAction.commandTemplate(commandTemplate))
             .build();
 
-        List<ActionButton> buttons = new ArrayList<>();
-        buttons.add(primaryButton);
-        if (dialog.showSecondaryButton() && dialog.secondaryButtonCommand() != null) {
-            buttons.add(ActionButton.builder(legacyComponent(dialog.secondaryButtonLabel()))
-                .action(DialogAction.commandTemplate(dialog.secondaryButtonCommand()))
-                .build());
-        }
+        List<ActionButton> buttons = createButtons(dialog, primaryButton, () -> {
+            String command = dialog.secondaryButtonCommand();
+            return command == null ? null : ActionButton.builder(legacyComponent(dialog.secondaryButtonLabel()))
+                .action(DialogAction.commandTemplate(command))
+                .build();
+        });
 
         return createButtonDialog(dialog, base, buttons);
     }
@@ -122,12 +122,25 @@ public final class PaperDialogHelper {
     private static List<ActionButton> createPreJoinButtons(DialogWindowSpec dialog,
                                                            ActionButton primaryButton,
                                                            Key cancelActionKey) {
-        List<ActionButton> buttons = new ArrayList<>();
+        return createButtons(dialog, primaryButton, () -> ActionButton.builder(
+            legacyComponent(dialog.secondaryButtonLabel()))
+            .action(DialogAction.customClick(cancelActionKey, null))
+            .build());
+    }
+
+    /**
+     * Assembles the buttons, creating the secondary one only when the spec asks for it. A supplier
+     * returning {@code null} leaves just the primary button.
+     */
+    private static List<ActionButton> createButtons(DialogWindowSpec dialog, ActionButton primaryButton,
+                                                    Supplier<ActionButton> secondaryButton) {
+        List<ActionButton> buttons = new ArrayList<>(2);
         buttons.add(primaryButton);
         if (dialog.showSecondaryButton()) {
-            buttons.add(ActionButton.builder(legacyComponent(dialog.secondaryButtonLabel()))
-                .action(DialogAction.customClick(cancelActionKey, null))
-                .build());
+            ActionButton extra = secondaryButton.get();
+            if (extra != null) {
+                buttons.add(extra);
+            }
         }
         return buttons;
     }
@@ -143,10 +156,9 @@ public final class PaperDialogHelper {
     }
 
     private static List<DialogBody> createBody(DialogWindowSpec dialog) {
-        if (dialog.body() == null) {
-            return List.of();
-        }
-        return List.of(DialogBody.plainMessage(legacyComponent(dialog.body())));
+        return dialog.body() == null
+            ? List.of()
+            : List.of(DialogBody.plainMessage(legacyComponent(dialog.body())));
     }
 
     private static String createRegisterTemplate(RegistrationType type, RegisterSecondaryArgument secondArg) {

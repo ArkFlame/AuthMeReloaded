@@ -15,9 +15,7 @@ final class PaperDialogSessionSupport {
 
     /** Unblocks a configuration thread whose connection is gone. */
     static void releaseResponse(CompletableFuture<String> response) {
-        if (response != null) {
-            response.complete(null);
-        }
+        completeIfPresent(response, null);
     }
 
     /**
@@ -37,9 +35,12 @@ final class PaperDialogSessionSupport {
 
     static void completeResponse(ConcurrentMap<Long, CompletableFuture<String>> pendingResponses,
                                  long sessionId, String kickMessage) {
-        CompletableFuture<String> response = pendingResponses.get(sessionId);
+        completeIfPresent(pendingResponses.get(sessionId), kickMessage);
+    }
+
+    private static void completeIfPresent(CompletableFuture<String> response, String value) {
         if (response != null) {
-            response.complete(kickMessage);
+            response.complete(value);
         }
     }
 }

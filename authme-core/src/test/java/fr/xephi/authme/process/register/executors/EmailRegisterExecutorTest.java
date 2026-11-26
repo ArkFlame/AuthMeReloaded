@@ -54,17 +54,14 @@ class EmailRegisterExecutorTest {
 
     @Test
     void shouldNotPassEmailValidation() {
-        // given
         given(commonService.getProperty(EmailSettings.MAX_REG_PER_EMAIL)).willReturn(3);
         String email = "test@example.com";
         given(dataSource.countAuthsByEmail(email)).willReturn(4);
         Player player = mock(Player.class);
         EmailRegisterParams params = EmailRegisterParams.of(player, email);
 
-        // when
         boolean result = executor.isRegistrationAdmitted(params);
 
-        // then
         assertThat(result, equalTo(false));
         verify(dataSource).countAuthsByEmail(email);
         verify(commonService).hasPermission(player, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS);
@@ -73,33 +70,27 @@ class EmailRegisterExecutorTest {
 
     @Test
     void shouldPassVerificationForPlayerWithPermission() {
-        // given
         given(commonService.getProperty(EmailSettings.MAX_REG_PER_EMAIL)).willReturn(3);
         Player player = mock(Player.class);
         given(commonService.hasPermission(player, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS)).willReturn(true);
         EmailRegisterParams params = EmailRegisterParams.of(player, "test@example.com");
 
-        // when
         boolean result = executor.isRegistrationAdmitted(params);
 
-        // then
         assertThat(result, equalTo(true));
         verify(commonService).hasPermission(player, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS);
     }
 
     @Test
     void shouldPassVerificationForPreviouslyUnregisteredIp() {
-        // given
         given(commonService.getProperty(EmailSettings.MAX_REG_PER_EMAIL)).willReturn(1);
         String email = "test@example.com";
         given(dataSource.countAuthsByEmail(email)).willReturn(0);
         Player player = mock(Player.class);
         EmailRegisterParams params = EmailRegisterParams.of(player, "test@example.com");
 
-        // when
         boolean result = executor.isRegistrationAdmitted(params);
 
-        // then
         assertThat(result, equalTo(true));
         verify(commonService).hasPermission(player, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS);
         verify(dataSource).countAuthsByEmail(email);
@@ -107,7 +98,6 @@ class EmailRegisterExecutorTest {
 
     @Test
     void shouldCreatePlayerAuth() {
-        // given
         given(commonService.getProperty(EmailSettings.RECOVERY_PASSWORD_LENGTH)).willReturn(12);
         given(passwordSecurity.computeHash(anyString(), anyString())).willAnswer(
             invocation -> new HashedPassword(invocation.getArgument(0)));
@@ -116,10 +106,8 @@ class EmailRegisterExecutorTest {
         given(player.getName()).willReturn("Veronica");
         EmailRegisterParams params = EmailRegisterParams.of(player, "test@example.com");
 
-        // when
         PlayerAuth auth = executor.buildPlayerAuth(params);
 
-        // then
         assertThat(auth, hasAuthBasicData("veronica", "Veronica", "test@example.com", null));
         assertThat(auth.getRegistrationIp(), equalTo("123.45.67.89"));
         assertIsCloseTo(auth.getRegistrationDate(), System.currentTimeMillis(), 1000);
@@ -129,7 +117,6 @@ class EmailRegisterExecutorTest {
     @ParameterizedTest(name = "mail sent={0}")
     @ValueSource(booleans = {true, false})
     void shouldPerformActionAfterDataSourceSave(boolean mailSent) {
-        // given
         given(emailService.sendPasswordMail(anyString(), anyString(), anyString())).willReturn(mailSent);
         Player player = mock(Player.class);
         given(player.getName()).willReturn("Laleh");
@@ -137,10 +124,8 @@ class EmailRegisterExecutorTest {
         String password = "A892C#@";
         params.setPassword(password);
 
-        // when
         executor.executePostPersistAction(params);
 
-        // then
         verify(emailService).sendPasswordMail("Laleh", "test@example.com", password);
         if (mailSent) {
             verify(syncProcessManager).processSyncEmailRegister(player);

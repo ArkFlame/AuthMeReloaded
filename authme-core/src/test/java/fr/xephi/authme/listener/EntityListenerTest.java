@@ -55,14 +55,11 @@ class EntityListenerTest {
 
     @Test
     void shouldCancelRegainHealthEvent() {
-        // given
         EntityRegainHealthEvent event = mock(EntityRegainHealthEvent.class);
         given(listenerService.shouldCancelEvent(event)).willReturn(true);
 
-        // when
         listener.entityRegainHealthEvent(event);
 
-        // then
         verify(listenerService).shouldCancelEvent(event);
         verify(event).setCancelled(true);
         verify(event).setAmount(0);
@@ -70,62 +67,50 @@ class EntityListenerTest {
 
     @Test
     void shouldNotCancelRegainedHealth() {
-        // given
         EntityRegainHealthEvent event = mock(EntityRegainHealthEvent.class);
         given(listenerService.shouldCancelEvent(event)).willReturn(false);
 
-        // when
         listener.entityRegainHealthEvent(event);
 
-        // then
         verify(listenerService).shouldCancelEvent(event);
         verifyNoInteractions(event);
     }
 
     @Test
     void shouldCancelEntityDamageByEntityEvent() {
-        // given
         EntityDamageByEntityEvent event = mock(EntityDamageByEntityEvent.class);
         Entity player = mock(Player.class);
         given(event.getDamager()).willReturn(player);
         given(listenerService.shouldCancelEvent(player)).willReturn(true);
 
-        // when
         listener.onAttack(event);
 
-        // then
         verify(listenerService).shouldCancelEvent(player);
         verify(event).setCancelled(true);
     }
 
     @Test
     void shouldNotCancelEntityDamageByEntityEvent() {
-        // given
         EntityDamageByEntityEvent event = mock(EntityDamageByEntityEvent.class);
         Entity player = mock(Player.class);
         given(event.getDamager()).willReturn(player);
         given(listenerService.shouldCancelEvent(player)).willReturn(false);
 
-        // when
         listener.onAttack(event);
 
-        // then
         verify(listenerService).shouldCancelEvent(player);
         verify(event, only()).getDamager();
     }
 
     @Test
     void shouldCancelEntityDamageEvent() {
-        // given
         EntityDamageEvent event = mock(EntityDamageEvent.class);
         Entity entity = mock(Entity.class);
         given(event.getEntity()).willReturn(entity);
         given(listenerService.shouldCancelEvent(event)).willReturn(true);
 
-        // when
         listener.onDamage(event);
 
-        // then
         verify(listenerService).shouldCancelEvent(event);
         verify(event).setCancelled(true);
         verify(event).setDamage(0);
@@ -134,38 +119,31 @@ class EntityListenerTest {
 
     @Test
     void shouldNotCancelEntityDamageEvent() {
-        // given
         EntityDamageEvent event = mock(EntityDamageEvent.class);
         given(listenerService.shouldCancelEvent(event)).willReturn(false);
 
-        // when
         listener.onDamage(event);
 
-        // then
         verify(listenerService).shouldCancelEvent(event);
         verifyNoInteractions(event);
     }
 
     @Test
     void shouldAllowProjectileLaunchFromNonHuman() {
-        // given
         Projectile projectile = mock(Projectile.class);
         ProjectileSource source = mock(ProjectileSource.class);
         given(projectile.getShooter()).willReturn(source);
         ProjectileLaunchEvent event = mock(ProjectileLaunchEvent.class);
         given(event.getEntity()).willReturn(projectile);
 
-        // when
         listener.onProjectileLaunch(event);
 
-        // then
         verifyNoInteractions(listenerService);
         verify(event, never()).setCancelled(anyBoolean());
     }
 
     @Test
     void shouldAllowProjectileLaunchFromAuthedHuman() {
-        // given
         Projectile projectile = mock(Projectile.class);
         Player player = mock(Player.class);
         given(projectile.getShooter()).willReturn(player);
@@ -173,17 +151,14 @@ class EntityListenerTest {
         given(event.getEntity()).willReturn(projectile);
         given(listenerService.shouldCancelEvent(player)).willReturn(false);
 
-        // when
         listener.onProjectileLaunch(event);
 
-        // then
         verify(listenerService).shouldCancelEvent(player);
         verify(event, never()).setCancelled(anyBoolean());
     }
 
     @Test
     void shouldRejectProjectileLaunchFromUnauthed() {
-        // given
         Projectile projectile = mock(Projectile.class);
         Player player = mock(Player.class);
         given(projectile.getShooter()).willReturn(player);
@@ -191,120 +166,97 @@ class EntityListenerTest {
         given(event.getEntity()).willReturn(projectile);
         given(listenerService.shouldCancelEvent(player)).willReturn(true);
 
-        // when
         listener.onProjectileLaunch(event);
 
-        // then
         verify(listenerService).shouldCancelEvent(player);
         verify(event).setCancelled(true);
     }
 
     @Test
     void shouldHandleOldShooterMethod() {
-        // given
         Projectile projectile = mock(Projectile.class);
         Player shooter = mock(Player.class);
         given(projectile.getShooter()).willReturn(shooter);
         ProjectileLaunchEvent event = new ProjectileLaunchEvent(projectile);
         given(listenerService.shouldCancelEvent(shooter)).willReturn(true);
 
-        // when
         listener.onProjectileLaunch(event);
 
-        // then
         verify(listenerService).shouldCancelEvent(shooter);
         assertThat(event.isCancelled(), equalTo(true));
     }
 
     @Test
     void shouldCancelEntityTargetEvent() {
-        // given
         EntityTargetEvent event = mock(EntityTargetEvent.class);
         Entity target = mock(Entity.class);
         given(event.getTarget()).willReturn(target);
         given(listenerService.shouldCancelEvent(target)).willReturn(true);
 
-        // when
         listener.onEntityTarget(event);
 
-        // then
         verify(listenerService).shouldCancelEvent(target);
         verify(event).setCancelled(true);
     }
 
     @Test
     void shouldNotCancelEntityTargetEvent() {
-        // given
         EntityTargetEvent event = mock(EntityTargetEvent.class);
         Entity target = mock(Entity.class);
         given(event.getTarget()).willReturn(target);
         given(listenerService.shouldCancelEvent(target)).willReturn(false);
 
-        // when
         listener.onEntityTarget(event);
 
-        // then
         verify(listenerService).shouldCancelEvent(target);
         verify(event, only()).getTarget();
     }
 
     @Test
     void shouldCancelHangingBreakByUnauthenticatedPlayer() {
-        // given
         HangingBreakByEntityEvent event = mock(HangingBreakByEntityEvent.class);
         Entity remover = mock(Player.class);
         given(event.getRemover()).willReturn(remover);
         given(listenerService.shouldCancelEvent(remover)).willReturn(true);
 
-        // when
         listener.onHangingBreakByEntity(event);
 
-        // then
         verify(event).setCancelled(true);
     }
 
     @Test
     void shouldCancelVehicleDamageByUnauthenticatedPlayer() {
-        // given
         VehicleDamageEvent event = mock(VehicleDamageEvent.class);
         Entity attacker = mock(Player.class);
         given(event.getAttacker()).willReturn(attacker);
         given(listenerService.shouldCancelEvent(attacker)).willReturn(true);
 
-        // when
         listener.onVehicleDamage(event);
 
-        // then
         verify(event).setCancelled(true);
     }
 
     @Test
     void shouldCancelVehicleDestroyByUnauthenticatedPlayer() {
-        // given
         VehicleDestroyEvent event = mock(VehicleDestroyEvent.class);
         Entity attacker = mock(Player.class);
         given(event.getAttacker()).willReturn(attacker);
         given(listenerService.shouldCancelEvent(attacker)).willReturn(true);
 
-        // when
         listener.onVehicleDestroy(event);
 
-        // then
         verify(event).setCancelled(true);
     }
 
     @Test
     void shouldNotCancelVehicleDestroyByAuthenticatedPlayer() {
-        // given
         VehicleDestroyEvent event = mock(VehicleDestroyEvent.class);
         Entity attacker = mock(Player.class);
         given(event.getAttacker()).willReturn(attacker);
         given(listenerService.shouldCancelEvent(attacker)).willReturn(false);
 
-        // when
         listener.onVehicleDestroy(event);
 
-        // then
         verify(event, never()).setCancelled(anyBoolean());
     }
 }

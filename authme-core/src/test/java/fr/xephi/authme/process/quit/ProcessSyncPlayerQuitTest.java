@@ -34,14 +34,11 @@ class ProcessSyncPlayerQuitTest {
     @ParameterizedTest(name = "online={0}")
     @ValueSource(booleans = {true, false})
     void shouldHandleQuitForOnlineState(boolean isOnline) {
-        // given
         Player player = mock(Player.class);
         given(player.isOnline()).willReturn(isOnline);
 
-        // when
         processSyncPlayerQuit.processSyncQuit(player, isOnline);
 
-        // then
         if (isOnline) {
             verify(commandManager).runCommandsOnLogout(player);
             verify(player).leaveVehicle();

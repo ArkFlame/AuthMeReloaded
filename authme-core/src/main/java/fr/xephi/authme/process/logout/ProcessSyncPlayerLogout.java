@@ -11,14 +11,10 @@ import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.service.CommonService;
 import fr.xephi.authme.service.TeleportationService;
 import fr.xephi.authme.settings.commandconfig.CommandManager;
-import fr.xephi.authme.settings.properties.RegistrationSettings;
 import fr.xephi.authme.settings.properties.RestrictionSettings;
 import org.bukkit.entity.Player;
 
 import javax.inject.Inject;
-
-import static fr.xephi.authme.service.BukkitService.TICKS_PER_SECOND;
-
 
 public class ProcessSyncPlayerLogout implements SynchronousProcess {
 
@@ -56,10 +52,7 @@ public class ProcessSyncPlayerLogout implements SynchronousProcess {
         player.leaveVehicle();
         teleportationService.teleportOnJoin(player);
 
-        if (service.getProperty(RegistrationSettings.APPLY_BLIND_EFFECT)) {
-            int timeout = service.getProperty(RestrictionSettings.LOGIN_TIMEOUT) * TICKS_PER_SECOND;
-            player.addPotionEffect(bukkitService.createBlindnessEffect(timeout));
-        }
+        LogoutActions.applyBlindEffect(player, service, bukkitService, RestrictionSettings.LOGIN_TIMEOUT);
         limboService.createLimboPlayer(player, true);
 
         commandManager.runCommandsOnLogout(player);

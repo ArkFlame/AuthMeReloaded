@@ -30,9 +30,13 @@ class GenerateTotpServiceTest {
     @Mock
     private TotpAuthenticator totpAuthenticator;
 
+    private static TotpGenerationResult generationResult() {
+        return new TotpGenerationResult("1234", "http://example.com/link/to/chart");
+    }
+
     @Test
     void shouldGenerateTotpKey() {
-        TotpGenerationResult givenGenerationResult = new TotpGenerationResult("1234", "http://example.com/link/to/chart");
+        TotpGenerationResult givenGenerationResult = generationResult();
         Player player = mockPlayerWithName("Spencer");
         given(totpAuthenticator.generateTotpKey(player)).willReturn(givenGenerationResult);
 
@@ -44,7 +48,7 @@ class GenerateTotpServiceTest {
 
     @Test
     void shouldRemoveGeneratedTotpKey() {
-        TotpGenerationResult givenGenerationResult = new TotpGenerationResult("1234", "http://example.com/link/to/chart");
+        TotpGenerationResult givenGenerationResult = generationResult();
         Player player = mockPlayerWithName("Hanna");
         given(totpAuthenticator.generateTotpKey(player)).willReturn(givenGenerationResult);
         generateTotpService.generateTotpKey(player);

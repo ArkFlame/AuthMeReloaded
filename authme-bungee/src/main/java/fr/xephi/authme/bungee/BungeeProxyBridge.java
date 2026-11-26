@@ -24,18 +24,7 @@ import net.md_5.bungee.api.plugin.Listener;
 import net.md_5.bungee.event.EventHandler;
 import net.md_5.bungee.event.EventPriority;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -59,9 +48,7 @@ public final class BungeeProxyBridge implements Listener {
     private final BungeeAuthenticationStore authenticationStore;
     private final Map<String, AtomicInteger> pendingAutoLogins = new ConcurrentHashMap<>();
     private final Set<String> notifiedAuthServers = ConcurrentHashMap.newKeySet();
-    private volatile Set<String> premiumUsernames = ConcurrentHashMap.newKeySet();
-    private List<String> premiumListBuffer = new ArrayList<>();
-    private int expectedPremiumListChunk = -1;
+    private final PremiumNames premiumNames;
     // Players with a pending premium verification (ran /premium but not yet confirmed via reconnect)
     private volatile Set<String> pendingPremiumUsernames = ConcurrentHashMap.newKeySet();
     private final BungeePremiumOnlineModeHandler premiumOnlineModeHandler;
@@ -71,7 +58,6 @@ public final class BungeeProxyBridge implements Listener {
         t.setDaemon(true);
         return t;
     });
-    private final Path cacheFile;
 
     BungeeProxyBridge(ProxyServer proxyServer, Logger logger, BungeeProxyConfiguration configuration,
                       BungeeAuthenticationStore authenticationStore, Path dataDirectory) {
@@ -79,54 +65,13 @@ public final class BungeeProxyBridge implements Listener {
         this.logger = logger;
         this.configuration = configuration;
         this.authenticationStore = authenticationStore;
+        this.premiumNames = new PremiumNames(dataDirectory, logger, retryScheduler);
         this.premiumOnlineModeHandler = new BungeePremiumOnlineModeHandler(this::requiresPremiumVerification);
         this.premiumVerificationManager =
             PremiumVerificationManagers.create(proxyServer, logger,
                 this::requiresPremiumVerification, this::isPendingPremiumVerification,
                 this::clearPendingPremiumVerification,
                 () -> this.configuration.keepOfflineUuidCompatibility());
-        this.cacheFile = dataDirectory != null ? dataDirectory.resolve("premium_names.cache") : null;
-        if (cacheFile != null) {
-            loadPremiumNamesCache();
-        }
-    }
-
-    private void loadPremiumNamesCache() {
-        Set<String> loaded = ConcurrentHashMap.newKeySet();
-        try (BufferedReader reader = Files.newBufferedReader(cacheFile, StandardCharsets.UTF_8)) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                String name = line.trim();
-                if (!name.isEmpty()) {
-                    loaded.add(name);
-                }
-            }
-            premiumUsernames = loaded;
-            logger.info("Loaded " + loaded.size() + " premium username(s) from cache");
-        } catch (NoSuchFileException ignored) {
-            // No cache yet — first startup
-        } catch (IOException e) {
-            logger.warning("Failed to load premium names cache: " + e.getMessage());
-        }
-    }
-
-    private void savePremiumNamesAsync() {
-        if (cacheFile == null) {
-            return;
-        }
-        Set<String> snapshot = new HashSet<>(premiumUsernames);
-        retryScheduler.execute(() -> {
-            Path tmp = cacheFile.resolveSibling(cacheFile.getFileName() + ".tmp");
-            try (BufferedWriter writer = Files.newBufferedWriter(tmp, StandardCharsets.UTF_8)) {
-                for (String name : snapshot) {
-                    writer.write(name);
-                    writer.newLine();
-                }
-                Files.move(tmp, cacheFile, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-            } catch (IOException e) {
-                logger.warning("Failed to save premium names cache: " + e.getMessage());
-            }
-        });
     }
 
     void reload(BungeeProxyConfiguration configuration) {
@@ -175,7 +120,7 @@ public final class BungeeProxyBridge implements Listener {
     }
 
     private boolean requiresPremiumVerification(String normalizedName) {
-        return premiumUsernames.contains(normalizedName) || pendingPremiumUsernames.contains(normalizedName);
+        return premiumNames.contains(normalizedName) || pendingPremiumUsernames.contains(normalizedName);
     }
 
     private boolean isPendingPremiumVerification(String normalizedName) {
@@ -281,82 +226,25 @@ public final class BungeeProxyBridge implements Listener {
                 cancelPendingLogin(playerName);
             }
             case PREMIUM_SET -> {
-                premiumUsernames.add(playerName);
+                premiumNames.add(playerName);
                 pendingPremiumUsernames.remove(playerName);
                 logger.fine(() -> "Premium enabled for '" + playerName + "' (proxy cache updated)");
-                savePremiumNamesAsync();
             }
             case PREMIUM_UNSET -> {
-                premiumUsernames.remove(playerName);
+                premiumNames.remove(playerName);
                 pendingPremiumUsernames.remove(playerName);
                 premiumVerificationManager.clearVerifiedPremium(playerName);
                 logger.fine(() -> "Premium disabled for '" + playerName + "' (proxy cache updated)");
-                savePremiumNamesAsync();
             }
             case PREMIUM_PENDING_SET -> {
                 pendingPremiumUsernames.add(playerName);
                 premiumVerificationManager.clearVerifiedPremium(playerName);
                 logger.fine(() -> "Pending premium verification started for '" + playerName + "'");
             }
-            case PREMIUM_LIST -> {
-                Set<String> newPremiumSet = ConcurrentHashMap.newKeySet();
-                addNormalizedPremiumNames(newPremiumSet, playerName);
-                replacePremiumNames(newPremiumSet);
-            }
-            case PREMIUM_LIST_CHUNK -> handlePremiumListChunk(playerName);
+            case PREMIUM_LIST -> premiumNames.replaceFromCsv(playerName);
+            case PREMIUM_LIST_CHUNK -> premiumNames.handleChunk(playerName);
             default -> {
                 // Outbound-only message types are never handled on the inbound channel.
-            }
-        }
-    }
-
-    private synchronized void handlePremiumListChunk(String payload) {
-        String[] parts = payload.split(":", 3);
-        int sequence;
-        try {
-            sequence = parts.length < 3 ? -1 : Integer.parseInt(parts[0]);
-        } catch (NumberFormatException e) {
-            sequence = -1;
-        }
-        if (sequence < 0) {
-            logger.warning("Malformed premium.list.chunk payload: " + payload);
-            return;
-        }
-        if (sequence == 0) {
-            premiumListBuffer = new ArrayList<>();
-            expectedPremiumListChunk = 0;
-        }
-        if (sequence != expectedPremiumListChunk) {
-            logger.warning("Discarding premium list: received chunk " + sequence + " instead of "
-                + expectedPremiumListChunk);
-            premiumListBuffer = new ArrayList<>();
-            expectedPremiumListChunk = -1;
-            return;
-        }
-        ++expectedPremiumListChunk;
-        addNormalizedPremiumNames(premiumListBuffer, parts[2]);
-        if ("1".equals(parts[1])) {
-            Set<String> newPremiumSet = ConcurrentHashMap.newKeySet();
-            newPremiumSet.addAll(premiumListBuffer);
-            premiumListBuffer = new ArrayList<>();
-            expectedPremiumListChunk = -1;
-            replacePremiumNames(newPremiumSet);
-        }
-    }
-
-    private void replacePremiumNames(Set<String> names) {
-        premiumUsernames = names;
-        logger.info("Premium list received from backend: " + premiumUsernames.size() + " premium player(s)");
-        savePremiumNamesAsync();
-    }
-
-    private static void addNormalizedPremiumNames(Collection<String> target, String csv) {
-        if (csv.isEmpty()) {
-            return;
-        }
-        for (String name : csv.split(",")) {
-            if (!name.isEmpty()) {
-                target.add(BungeeAuthenticationStore.normalizeName(name.trim()));
             }
         }
     }

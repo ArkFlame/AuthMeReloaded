@@ -40,41 +40,32 @@ class StrictInventoryWhitelistTest {
 
     @Test
     void shouldBlockSimilarTitleWhenStrictCheckIsEnabled() {
-        // given
         givenWhitelistWithStrictCheck(true);
         InventoryOpenEvent event = inventoryOpenEvent("/lx");
 
-        // when
         listener.onPlayerInventoryOpen(event);
 
-        // then
         assertThat(event.isCancelled(), equalTo(true));
     }
 
     @Test
     void shouldAllowExactTitleWhenStrictCheckIsEnabled() {
-        // given
         givenWhitelistWithStrictCheck(true);
         InventoryOpenEvent event = inventoryOpenEvent("/L");
 
-        // when
         listener.onPlayerInventoryOpen(event);
 
-        // then
         assertThat(event.isCancelled(), equalTo(false));
         verifyNoInteractions(bukkitService);
     }
 
     @Test
     void shouldAllowSimilarTitleWhenStrictCheckIsDisabled() {
-        // given
         givenWhitelistWithStrictCheck(false);
         InventoryOpenEvent event = inventoryOpenEvent("/lx");
 
-        // when
         listener.onPlayerInventoryOpen(event);
 
-        // then
         assertThat(event.isCancelled(), equalTo(false));
         verifyNoInteractions(bukkitService);
     }

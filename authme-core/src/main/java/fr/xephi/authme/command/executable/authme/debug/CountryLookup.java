@@ -78,11 +78,14 @@ class CountryLookup implements DebugSection {
         PlayerAuth auth = dataSource.getAuth(name);
         if (auth == null) {
             sender.sendMessage("No player with name '" + name + "'");
-        } else if (auth.getLastIp() == null) {
+            return;
+        }
+        String lastIp = auth.getLastIp();
+        if (lastIp == null) {
             sender.sendMessage("No last IP address known for '" + name + "'");
         } else {
-            sender.sendMessage("Player '" + name + "' has IP address " + auth.getLastIp());
-            outputInfoForIpAddr(sender, auth.getLastIp());
+            sender.sendMessage("Player '" + name + "' has IP address " + lastIp);
+            outputInfoForIpAddr(sender, lastIp);
         }
     }
 }

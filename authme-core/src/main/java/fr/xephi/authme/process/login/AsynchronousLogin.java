@@ -14,6 +14,7 @@ import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.events.AuthMeAsyncPreLoginEvent;
 import fr.xephi.authme.events.FailedLoginEvent;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
+import fr.xephi.authme.output.LogLevel;
 import fr.xephi.authme.mail.EmailService;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.permission.AdminPermission;
@@ -409,20 +410,24 @@ public class AsynchronousLogin implements AsynchronousProcess {
 
         String message = ChatColor.GRAY + String.join(", ", formattedNames) + ".";
 
-        logger.fine("The user " + playerName + " has " + accountCount + " accounts:");
-        logger.fine(message);
+        if (logger.getLogLevel().includes(LogLevel.FINE)) {
+            logger.fine("The user " + playerName + " has " + accountCount + " accounts:");
+            logger.fine(message);
+        }
 
         String accountCountText = Integer.toString(accountCount);
+        String[] selfHeaderArgs = {accountCountText};
+        String[] otherHeaderArgs = {playerName, accountCountText};
         for (Player onlinePlayer : bukkitService.getOnlinePlayers()) {
             MessageKey headerKey;
             String[] headerArgs;
             if (onlinePlayer.getName().equalsIgnoreCase(playerName)
                 && service.hasPermission(onlinePlayer, PlayerPermission.SEE_OWN_ACCOUNTS)) {
                 headerKey = MessageKey.ACCOUNTS_OWNED_SELF;
-                headerArgs = new String[]{accountCountText};
+                headerArgs = selfHeaderArgs;
             } else if (service.hasPermission(onlinePlayer, AdminPermission.SEE_OTHER_ACCOUNTS)) {
                 headerKey = MessageKey.ACCOUNTS_OWNED_OTHER;
-                headerArgs = new String[]{playerName, accountCountText};
+                headerArgs = otherHeaderArgs;
             } else {
                 continue;
             }

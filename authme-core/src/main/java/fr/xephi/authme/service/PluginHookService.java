@@ -126,33 +126,21 @@ public class PluginHookService {
      * Attempts to create a hook into Essentials.
      */
     public void tryHookToEssentials() {
-        try {
-            essentials = getPlugin(pluginManager, "Essentials", Essentials.class);
-        } catch (Exception | NoClassDefFoundError ignored) {
-            essentials = null;
-        }
+        essentials = tryHook("Essentials", Essentials.class);
     }
 
     /**
      * Attempts to create a hook into CMI.
      */
     public void tryHookToCmi() {
-        try {
-            cmi = getPlugin(pluginManager, "CMI", Plugin.class);
-        } catch (Exception | NoClassDefFoundError ignored) {
-            cmi = null;
-        }
+        cmi = tryHook("CMI", Plugin.class);
     }
 
     /**
      * Attempts to create a hook into Multiverse.
      */
     public void tryHookToMultiverse() {
-        try {
-            multiverse = getPlugin(pluginManager, "Multiverse-Core", MultiverseCore.class);
-        } catch (Exception | NoClassDefFoundError ignored) {
-            multiverse = null;
-        }
+        multiverse = tryHook("Multiverse-Core", MultiverseCore.class);
     }
 
     // ------
@@ -184,12 +172,15 @@ public class PluginHookService {
     // Helpers
     // ------
 
-    private <T extends Plugin> T getPlugin(PluginManager pluginManager, String name, Class<T> clazz)
-        throws Exception, NoClassDefFoundError {
-        if (pluginManager.isPluginEnabled(name)) {
-            T plugin = clazz.cast(pluginManager.getPlugin(name));
-            logger.info("Hooked successfully into " + name);
-            return plugin;
+    private <T extends Plugin> T tryHook(String name, Class<T> clazz) {
+        try {
+            if (pluginManager.isPluginEnabled(name)) {
+                T plugin = clazz.cast(pluginManager.getPlugin(name));
+                logger.info("Hooked successfully into " + name);
+                return plugin;
+            }
+        } catch (Exception | NoClassDefFoundError ignored) {
+            return null;
         }
         return null;
     }

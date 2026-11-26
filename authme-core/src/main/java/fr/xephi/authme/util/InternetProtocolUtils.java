@@ -20,19 +20,17 @@ public final class InternetProtocolUtils {
      */
     public static boolean isLocalAddress(String address) {
         InetAddress inetAddress = resolveAddress(address);
-        if (inetAddress != null) {
+        return inetAddress != null && (
             // Examples: 127.0.0.1, localhost or [::1]
-            return inetAddress.isLoopbackAddress()
-                    // Example: 10.0.0.0, 172.16.0.0, 192.168.0.0, fec0::/10 (deprecated)
-                    // Ref: https://en.wikipedia.org/wiki/IP_address#Private_addresses
-                    || inetAddress.isSiteLocalAddress()
-                    // Example: 169.254.0.0/16, fe80::/10
-                    // Ref: https://en.wikipedia.org/wiki/IP_address#Address_autoconfiguration
-                    || inetAddress.isLinkLocalAddress()
-                    // non deprecated unique site-local that java doesn't check yet -> fc00::/7
-                    || isIPv6UniqueSiteLocal(inetAddress);
-        }
-        return false;
+            inetAddress.isLoopbackAddress()
+            // Example: 10.0.0.0, 172.16.0.0, 192.168.0.0, fec0::/10 (deprecated)
+            // Ref: https://en.wikipedia.org/wiki/IP_address#Private_addresses
+            || inetAddress.isSiteLocalAddress()
+            // Example: 169.254.0.0/16, fe80::/10
+            // Ref: https://en.wikipedia.org/wiki/IP_address#Address_autoconfiguration
+            || inetAddress.isLinkLocalAddress()
+            // non deprecated unique site-local that java doesn't check yet -> fc00::/7
+            || isIPv6UniqueSiteLocal(inetAddress));
     }
 
     /**

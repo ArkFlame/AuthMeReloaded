@@ -77,13 +77,10 @@ class ProcessSyncPlayerLoginTest {
     @ParameterizedTest(name = "limbo player present={0}")
     @ValueSource(booleans = {true, false})
     void shouldRestoreLimboStateWhenLoggedIn(boolean hasLimboPlayer) {
-        // given
         given(limboService.getLimboPlayer(player)).willReturn(hasLimboPlayer ? mock(LimboPlayer.class) : null);
 
-        // when
         processSyncPlayerLogin.processPlayerLogin(player, false, Collections.emptyList());
 
-        // then
         if (hasLimboPlayer) {
             verify(limboService).restoreData(player);
             verify(limboService, never()).restorePendingOperator(player);

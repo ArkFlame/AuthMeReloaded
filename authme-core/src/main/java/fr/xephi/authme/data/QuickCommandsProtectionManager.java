@@ -27,29 +27,12 @@ public class QuickCommandsProtectionManager implements SettingsDependent, HasCle
     }
 
     /**
-     * Save the player in the set
-     * @param name the player's name
-     */
-    private void setJoin(String name) {
-        latestJoin.add(name);
-    }
-
-    /**
-     * Returns whether the given player has the permission and should be saved in the set
-     * @param player the player to check
-     * @return true if the player has the permission, false otherwise
-     */
-    private boolean shouldSavePlayer(Player player) {
-        return permissionsManager.hasPermission(player, PlayerPermission.QUICK_COMMANDS_PROTECTION);
-    }
-
-    /**
      * Process the player join
      * @param player the player to process
      */
     public void processJoin(Player player) {
-        if (shouldSavePlayer(player)) {
-            setJoin(player.getName());
+        if (permissionsManager.hasPermission(player, PlayerPermission.QUICK_COMMANDS_PROTECTION)) {
+            latestJoin.add(player.getName());
         }
     }
 

@@ -1,7 +1,6 @@
 package fr.xephi.authme.process.register;
 
 import ch.jalu.injector.factory.SingletonStore;
-import fr.xephi.authme.TestHelper;
 import fr.xephi.authme.data.auth.PlayerCache;
 import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.events.AuthMeAsyncPreRegisterEvent;
@@ -52,48 +51,39 @@ class AsyncRegisterTest {
 
     @Test
     void shouldDetectAlreadyLoggedInPlayer() {
-        // given
         String name = "robert";
         Player player = mockPlayerWithName(name);
         given(playerCache.isAuthenticated(name)).willReturn(true);
 
-        // when
         asyncRegister.register(RegistrationMethod.PASSWORD_REGISTRATION, PasswordRegisterParams.of(player, "abc", null));
 
-        // then
         verify(commonService).send(player, MessageKey.ALREADY_LOGGED_IN_ERROR);
         verifyNoInteractions(dataSource, registrationExecutorStore);
     }
 
     @Test
     void shouldStopForDisabledRegistration() {
-        // given
         String name = "albert";
         Player player = mockPlayerWithName(name);
         given(playerCache.isAuthenticated(name)).willReturn(false);
         given(commonService.getProperty(RegistrationSettings.IS_ENABLED)).willReturn(false);
 
-        // when
         asyncRegister.register(RegistrationMethod.TWO_FACTOR_REGISTRATION, TwoFactorRegisterParams.of(player));
 
-        // then
         verify(commonService).send(player, MessageKey.REGISTRATION_DISABLED);
         verifyNoInteractions(dataSource, registrationExecutorStore);
     }
 
     @Test
     void shouldStopForAlreadyRegisteredName() {
-        // given
         String name = "dilbert";
         Player player = mockPlayerWithName(name);
         given(playerCache.isAuthenticated(name)).willReturn(false);
         given(commonService.getProperty(RegistrationSettings.IS_ENABLED)).willReturn(true);
         given(dataSource.isAuthAvailable(name)).willReturn(true);
 
-        // when
         asyncRegister.register(RegistrationMethod.TWO_FACTOR_REGISTRATION, TwoFactorRegisterParams.of(player));
 
-        // then
         verify(commonService).send(player, MessageKey.NAME_ALREADY_REGISTERED);
         verify(dataSource, only()).isAuthAvailable(name);
         verifyNoInteractions(registrationExecutorStore);
@@ -102,7 +92,6 @@ class AsyncRegisterTest {
     @Test
     @SuppressWarnings("unchecked")
     void shouldStopForCanceledEvent() {
-        // given
         String name = "edbert";
         Player player = mockPlayerWithName(name);
         given(playerCache.isAuthenticated(name)).willReturn(false);
@@ -114,10 +103,8 @@ class AsyncRegisterTest {
         canceledEvent.setCanRegister(false);
         given(bukkitService.createAndCallEvent(any(Function.class))).willReturn(canceledEvent);
 
-        // when
         asyncRegister.register(RegistrationMethod.TWO_FACTOR_REGISTRATION, params);
 
-        // then
         verify(dataSource, only()).isAuthAvailable(name);
         verifyNoInteractions(registrationExecutorStore);
     }
@@ -125,7 +112,6 @@ class AsyncRegisterTest {
     @Test
     @SuppressWarnings("unchecked")
     void shouldStopForFailedExecutorCheck() {
-        // given
         String name = "edbert";
         Player player = mockPlayerWithName(name);
         given(playerCache.isAuthenticated(name)).willReturn(false);
@@ -140,10 +126,8 @@ class AsyncRegisterTest {
         given(bukkitService.createAndCallEvent(any(Function.class)))
             .willReturn(new AuthMeAsyncPreRegisterEvent(player, false));
 
-        // when
         asyncRegister.register(RegistrationMethod.TWO_FACTOR_REGISTRATION, params);
 
-        // then
         verify(dataSource, only()).isAuthAvailable(name);
         verify(executor, only()).isRegistrationAdmitted(params);
     }

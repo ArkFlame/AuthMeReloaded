@@ -4,12 +4,9 @@ import com.google.common.annotations.VisibleForTesting;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.pool.HikariPool.PoolInitializationException;
 import fr.xephi.authme.ConsoleLogger;
-import fr.xephi.authme.datasource.columnshandler.AuthMeColumnsHandler;
 import fr.xephi.authme.datasource.mysqlextensions.MySqlExtensionsFactory;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.settings.Settings;
-import fr.xephi.authme.settings.properties.DatabaseSettings;
-import fr.xephi.authme.settings.properties.HooksSettings;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -24,16 +21,8 @@ public class PostgreSqlDataSource extends AbstractHikariSqlDataSource {
 
     private final ConsoleLogger logger = ConsoleLoggerFactory.get(PostgreSqlDataSource.class);
 
-    private String host;
-    private String port;
-    private String username;
-    private String password;
-    private String database;
-    private int poolSize;
-    private int maxLifetime;
-
     public PostgreSqlDataSource(Settings settings, MySqlExtensionsFactory extensionsFactory) throws SQLException {
-        setParameters(settings, extensionsFactory);
+        setCommonParameters(settings, extensionsFactory);
 
         // Set the connection arguments (and check if connection is ok)
         try {
@@ -66,29 +55,7 @@ public class PostgreSqlDataSource extends AbstractHikariSqlDataSource {
     PostgreSqlDataSource(Settings settings, HikariDataSource hikariDataSource,
                          MySqlExtensionsFactory extensionsFactory) {
         ds = hikariDataSource;
-        setParameters(settings, extensionsFactory);
-    }
-
-    /**
-     * Retrieves various settings.
-     *
-     * @param settings          the settings to read properties from
-     * @param extensionsFactory factory to create the MySQL extension
-     */
-    private void setParameters(Settings settings, MySqlExtensionsFactory extensionsFactory) {
-        this.host = settings.getProperty(DatabaseSettings.MYSQL_HOST);
-        this.port = settings.getProperty(DatabaseSettings.MYSQL_PORT);
-        this.username = settings.getProperty(DatabaseSettings.MYSQL_USERNAME);
-        this.password = settings.getProperty(DatabaseSettings.MYSQL_PASSWORD);
-        this.database = settings.getProperty(DatabaseSettings.MYSQL_DATABASE);
-        this.tableName = settings.getProperty(DatabaseSettings.MYSQL_TABLE);
-        this.columnOthers = settings.getProperty(HooksSettings.MYSQL_OTHER_USERNAME_COLS);
-        this.col = new Columns(settings);
-        this.columnsHandler = AuthMeColumnsHandler.createForMySql(this::getConnection, settings);
-        this.sqlExtension = extensionsFactory.buildExtension(col);
-        this.poolSize = settings.getProperty(DatabaseSettings.MYSQL_POOL_SIZE);
-        this.maxLifetime = settings.getProperty(DatabaseSettings.MYSQL_CONNECTION_MAX_LIFETIME);
-        initSqlStrings();
+        setCommonParameters(settings, extensionsFactory);
     }
 
     /**
@@ -99,16 +66,16 @@ public class PostgreSqlDataSource extends AbstractHikariSqlDataSource {
         ds.setPoolName("AuthMePostgreSQLPool");
 
         // Pool Settings
-        ds.setMaximumPoolSize(poolSize);
-        ds.setMaxLifetime(maxLifetime * 1000);
+        ds.setMaximumPoolSize(getPoolSize());
+        ds.setMaxLifetime(getMaxLifetime() * 1000);
 
         // Database URL
         ds.setDriverClassName("org.postgresql.Driver");
-        ds.setJdbcUrl(this.getJdbcUrl(this.host, this.port, this.database));
+        ds.setJdbcUrl(this.getJdbcUrl(getHost(), getPort(), getDatabase()));
 
         // Auth
-        ds.setUsername(this.username);
-        ds.setPassword(this.password);
+        ds.setUsername(getUsername());
+        ds.setPassword(getPassword());
 
         // Random stuff
         ds.addDataSourceProperty("reWriteBatchedInserts", "true");

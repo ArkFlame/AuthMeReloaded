@@ -23,6 +23,7 @@ import javax.inject.Inject;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -175,12 +176,7 @@ public class SettingsMigrationService extends PlainMigrationService {
     }
 
     private static boolean hasDeprecatedProperties(PropertyReader reader) {
-        for (String deprecatedPath : DEPRECATED_PROPERTIES) {
-            if (reader.contains(deprecatedPath)) {
-                return true;
-            }
-        }
-        return false;
+        return Arrays.stream(DEPRECATED_PROPERTIES).anyMatch(reader::contains);
     }
 
     // --------
@@ -453,16 +449,16 @@ public class SettingsMigrationService extends PlainMigrationService {
                                               PropertyReader reader,
                                               ConfigurationData configData) {
         PropertyValue<T> oldPropertyValue = oldProperty.determineValue(reader);
-        if (oldPropertyValue.isValidInResource()) {
-            if (reader.contains(newProperty.getPath())) {
-                logger.info("Detected deprecated property " + oldProperty.getPath());
-            } else {
-                logger.info("Renaming " + oldProperty.getPath() + " to " + newProperty.getPath());
-                configData.setValue(newProperty, oldPropertyValue.getValue());
-            }
-            return true;
+        if (!oldPropertyValue.isValidInResource()) {
+            return false;
         }
-        return false;
+        if (reader.contains(newProperty.getPath())) {
+            logger.info("Detected deprecated property " + oldProperty.getPath());
+        } else {
+            logger.info("Renaming " + oldProperty.getPath() + " to " + newProperty.getPath());
+            configData.setValue(newProperty, oldPropertyValue.getValue());
+        }
+        return true;
     }
 
 }

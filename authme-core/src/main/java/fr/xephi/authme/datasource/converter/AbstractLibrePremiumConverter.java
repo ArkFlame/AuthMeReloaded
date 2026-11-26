@@ -46,19 +46,19 @@ abstract class AbstractLibrePremiumConverter implements Converter {
     @Override
     public void execute(CommandSender sender) {
         File configFile = new File(configPath);
-        if (!configFile.exists()) {
-            logAndSendMessage(sender, pluginName + " conversion failed: config not found at " + configPath);
+        if (!ConverterUtils.hasConfigFile(sender, configFile, pluginName)) {
             return;
         }
 
+        ResultSetImporter importer = rs -> importRows(rs, sender);
         String dbType = ConverterUtils.readHoconValue(configFile, "type", typePrefix + "sqlite");
         if ((typePrefix + "sqlite").equals(dbType)) {
             String sqliteFilename = ConverterUtils.readHoconValue(configFile, "path", DEFAULT_SQLITE_FILENAME);
             File dbFile = new File(sqliteFolder + sqliteFilename);
-            new SqliteImportTask(dataSource, dbFile, QUERY, pluginName, logger, rs -> importRows(rs, sender),
+            new SqliteImportTask(dataSource, dbFile, QUERY, pluginName, logger, importer,
                 pluginName + " conversion failed: SQLite database not found at " + dbFile.getPath()).execute(sender);
         } else if ((typePrefix + "mysql").equals(dbType) || (typePrefix + "postgresql").equals(dbType)) {
-            new SqlImportTask(dataSource, QUERY, pluginName, logger, rs -> importRows(rs, sender)).execute(sender);
+            new SqlImportTask(dataSource, QUERY, pluginName, logger, importer).execute(sender);
         } else {
             logAndSendMessage(sender, pluginName + " conversion: database type '" + dbType + "' is not supported.");
         }
@@ -104,8 +104,7 @@ abstract class AbstractLibrePremiumConverter implements Converter {
             ++imported;
         }
 
-        logAndSendMessage(sender, pluginName + " conversion: " + imported + " account(s) imported, "
-            + skipped + " skipped (already exist)");
+        ConverterUtils.logImportResult(sender, pluginName, imported, skipped);
     }
 
     /**

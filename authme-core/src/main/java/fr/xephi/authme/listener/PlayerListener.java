@@ -35,7 +35,7 @@ import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
-import org.bukkit.event.inventory.InventoryInteractEvent;
+import org.bukkit.event.inventory.InventoryEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
@@ -601,8 +601,9 @@ public class PlayerListener extends AbstractCancelListener implements Listener {
         return false;
     }
 
-    private boolean isUnauthorizedInventoryAccess(InventoryInteractEvent event) {
-        return getListenerService().shouldCancelEvent(event.getWhoClicked())
+    // Shared by open/click/drag: the player is passed in so each event keeps using its own getter.
+    private boolean isUnauthorizedInventoryAccess(InventoryEvent event, HumanEntity player) {
+        return getListenerService().shouldCancelEvent(player)
             && !isInventoryWhitelisted(event.getView());
     }
 
@@ -610,7 +611,7 @@ public class PlayerListener extends AbstractCancelListener implements Listener {
     public void onPlayerInventoryOpen(InventoryOpenEvent event) {
         final HumanEntity player = event.getPlayer();
 
-        if (getListenerService().shouldCancelEvent(player) && !isInventoryWhitelisted(event.getView())) {
+        if (isUnauthorizedInventoryAccess(event, player)) {
             event.setCancelled(true);
 
             /*
@@ -623,12 +624,12 @@ public class PlayerListener extends AbstractCancelListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onPlayerInventoryClick(InventoryClickEvent event) {
-        cancelEvent(isUnauthorizedInventoryAccess(event), event);
+        cancelEvent(isUnauthorizedInventoryAccess(event, event.getWhoClicked()), event);
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onPlayerInventoryDrag(InventoryDragEvent event) {
-        cancelEvent(isUnauthorizedInventoryAccess(event), event);
+        cancelEvent(isUnauthorizedInventoryAccess(event, event.getWhoClicked()), event);
     }
 
 }

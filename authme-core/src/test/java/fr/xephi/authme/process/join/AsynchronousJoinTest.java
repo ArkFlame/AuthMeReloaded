@@ -147,17 +147,14 @@ public class AsynchronousJoinTest {
 
     @Test
     public void shouldShowLoginDialogForUnauthenticatedRegisteredPlayer() {
-        // given
         Player player = givenRegisteredPlayer();
         given(playerCache.isAuthenticated("Bobby")).willReturn(false);
         given(service.getProperty(RegistrationSettings.USE_DIALOG_UI)).willReturn(true);
         given(dialogAdapter.isDialogSupported()).willReturn(true);
         given(dialogWindowService.createLoginDialog(player)).willReturn(createDialogSpec("Login", "Login"));
 
-        // when
         asynchronousJoin.processJoin(player);
 
-        // then
         verify(limboService).createLimboPlayer(player, true);
         verify(bukkitService).runTaskLater(eq(player), any(Runnable.class), eq(1L));
         verify(dialogAdapter).showLoginDialog(eq(player), any(DialogWindowSpec.class));
@@ -165,26 +162,17 @@ public class AsynchronousJoinTest {
 
     @Test
     public void shouldNotShowLoginDialogForAlreadyAuthenticatedPlayer() {
-        // given — player is already authenticated when the sync limbo task fires
         Player player = givenRegisteredPlayer();
         given(playerCache.isAuthenticated("Bobby")).willReturn(true);
 
-        // when
         asynchronousJoin.processJoin(player);
 
-        // then — sync guard detects authenticated state; limbo and dialog are both skipped
         verify(limboService, never()).createLimboPlayer(eq(player), eq(true));
         verifyNoLoginDialog(player);
     }
 
     @Test
     public void shouldNotShowDelayedDialogIfPlayerGetsAuthenticatedBeforeTaskRuns() {
-        // given — player is NOT yet authenticated when the sync guard and dialog-condition run,
-        // but IS authenticated by the time the 1-tick delayed task executes.
-        // Stub sequence (all calls use "Bobby" = player.getName(), not lowercased):
-        //   call 1 → sync guard                 → false (continues to createLimboPlayer)
-        //   call 2 → !isAuthenticated() in cond  → false (condition passes, schedules delayed task)
-        //   call 3 → inside showPostJoinDialog   → true  (dialog suppressed)
         Player player = givenRegisteredPlayer();
         given(player.isOnline()).willReturn(true);
         given(playerCache.isAuthenticated("Bobby")).willReturn(false, false, true);
@@ -198,26 +186,20 @@ public class AsynchronousJoinTest {
             return mock(fr.xephi.authme.service.CancellableTask.class);
         }).when(bukkitService).runTaskLater(eq(player), any(Runnable.class), eq(1L));
 
-        // when
         asynchronousJoin.processJoin(player);
         delayedTask.get().run();
 
-        // then — limbo was created (player was not authenticated when guard ran),
-        // but dialog was suppressed because player became authenticated before delayed task ran
         verify(limboService).createLimboPlayer(player, true);
         verifyNoLoginDialog(player);
     }
 
     @Test
     public void shouldResumeSessionWithoutOpeningDialog() {
-        // given
         Player player = givenRegisteredPlayer();
         given(sessionService.canResumeSession(player)).willReturn(true);
 
-        // when
         asynchronousJoin.processJoin(player);
 
-        // then
         verify(service).send(player, fr.xephi.authme.message.MessageKey.SESSION_RECONNECTION);
         verify(commandManager).runCommandsOnSessionLogin(player);
         verify(asynchronousLogin).forceLogin(player);
@@ -230,17 +212,13 @@ public class AsynchronousJoinTest {
 
     @Test
     public void shouldAutoLoginFromProxySessionWithoutCreatingLimbo() {
-        // given
         Player player = givenRegisteredPlayer();
         given(proxySessionManager.consumeLoginRequest("bobby"))
             .willReturn(new ProxySessionManager.ProxyLoginRequest("bobby", null));
         given(proxyLoginRequestValidator.validate(player, null)).willReturn(true);
 
-        // when
         asynchronousJoin.processJoin(player);
 
-        // then - uses forceLoginFromProxy (quiet, no redirect) so a concurrent BungeeReceiver
-        // login does not cause an "already logged in" error
         verify(service).send(player, fr.xephi.authme.message.MessageKey.SESSION_RECONNECTION);
         verify(commandManager).runCommandsOnSessionLogin(player);
         verify(asynchronousLogin).forceLoginFromProxy(player);
@@ -250,8 +228,6 @@ public class AsynchronousJoinTest {
 
     @Test
     public void shouldAutoLoginFromProxySessionEvenIfPreJoinDialogWasCancelled() {
-        // given — proxy-authenticated player cancelled the pre-join dialog before perform.login arrived,
-        // but by the time processJoin() runs the proxy session is available; the kick must be discarded.
         Player player = givenRegisteredPlayer();
         givenPendingDialogState(new PreJoinDialogService.PendingDialogState(
             null, null, null, false, false, "You have canceled the login."));
@@ -259,10 +235,8 @@ public class AsynchronousJoinTest {
             .willReturn(new ProxySessionManager.ProxyLoginRequest("bobby", null));
         given(proxyLoginRequestValidator.validate(player, null)).willReturn(true);
 
-        // when
         asynchronousJoin.processJoin(player);
 
-        // then — proxy auto-login wins; the dialog cancel kick is discarded
         verify(asynchronousLogin).forceLoginFromProxy(player);
         verify(player, never()).kickPlayer(any());
         verify(limboService, never()).createLimboPlayer(eq(player), eq(true));
@@ -270,16 +244,13 @@ public class AsynchronousJoinTest {
 
     @Test
     public void shouldProcessPendingPreJoinLoginInsteadOfShowingDialog() {
-        // given
         Player player = givenRegisteredPlayer();
         givenPendingDialogState(new PreJoinDialogService.PendingDialogState(
             "hunter2", null, null, false, false, null));
         given(playerCache.isAuthenticated("Bobby")).willReturn(false);
 
-        // when
         asynchronousJoin.processJoin(player);
 
-        // then
         verify(limboService).createLimboPlayer(player, true);
         verify(asynchronousLogin).login(player, "hunter2");
         verifyNoLoginDialog(player);
@@ -291,8 +262,6 @@ public class AsynchronousJoinTest {
     @ParameterizedTest(name = "queued proxy premium request={0}")
     @ValueSource(booleans = {true, false})
     public void shouldHandlePendingPremiumEnrollmentOnJoin(boolean hasQueuedRequest) {
-        // given — with a queued signed perform.login carrying the proxy-verified Mojang UUID the
-        // enrollment must finalize in-join; without one the player is deferred to limbo
         Player player = givenRegisteredPlayer();
         given(service.getProperty(PremiumSettings.ENABLE_PREMIUM)).willReturn(true);
         given(bungeeSender.isEnabled()).willReturn(true);
@@ -308,10 +277,8 @@ public class AsynchronousJoinTest {
             given(pendingPremiumCache.removePending("Bobby")).willReturn(mojangUuid);
         }
 
-        // when
         asynchronousJoin.processJoin(player);
 
-        // then
         verify(service, never()).send(eq(player), eq(fr.xephi.authme.message.MessageKey.PREMIUM_PENDING_FAIL));
         verify(bungeeSender, never()).sendPremiumUnset("Bobby");
         if (hasQueuedRequest) {
@@ -327,33 +294,25 @@ public class AsynchronousJoinTest {
 
     @Test
     public void shouldFallThroughToSessionOrLimboWhenProxyValidationFails() {
-        // given — proxy sends perform.login with a premium UUID, but the player just ran /freemium,
-        // so the proxy login request cannot be validated. Must fall through to session/limbo flow
-        // instead of leaving the player stuck with no authentication and no dialog.
         Player player = givenRegisteredPlayer();
         given(proxySessionManager.consumeLoginRequest("bobby"))
             .willReturn(new ProxySessionManager.ProxyLoginRequest("bobby", UUID.randomUUID()));
         given(proxyLoginRequestValidator.validate(eq(player), any())).willReturn(false);
 
-        // when
         asynchronousJoin.processJoin(player);
 
-        // then — falls through to session check; session is not valid so limbo + dialog
         verify(limboService).createLimboPlayer(player, true);
         verify(asynchronousLogin, never()).forceLoginFromProxy(player);
     }
 
     @Test
     public void shouldForceLoginPlayerApprovedViaPreJoinDialog() {
-        // given
         Player player = givenRegisteredPlayer();
         givenPendingDialogState(new PreJoinDialogService.PendingDialogState(
             null, null, null, false, true, null));
 
-        // when
         asynchronousJoin.processJoin(player);
 
-        // then
         verify(limboService).createLimboPlayer(player, true);
         verify(asynchronousLogin).forceLogin(player);
         verify(asynchronousLogin, never()).login(eq(player), any());
@@ -362,7 +321,6 @@ public class AsynchronousJoinTest {
 
     @Test
     public void shouldSkipPostJoinDialogWhenPreJoinDialogWasDeferred() {
-        // given
         Player player = givenRegisteredPlayer();
         givenPendingDialogState(new PreJoinDialogService.PendingDialogState(
             null, null, null, true, false, null));
@@ -370,56 +328,45 @@ public class AsynchronousJoinTest {
         given(service.getProperty(RegistrationSettings.USE_DIALOG_UI)).willReturn(true);
         given(dialogAdapter.isDialogSupported()).willReturn(true);
 
-        // when
         asynchronousJoin.processJoin(player);
 
-        // then
         verify(limboService).createLimboPlayer(player, true);
         verifyNoLoginDialog(player);
     }
 
     @Test
     public void shouldNotCreateLimboForPlayerWhoQuitBeforeSyncTaskRuns() {
-        // given
         Player player = givenRegisteredPlayer();
         given(player.isOnline()).willReturn(false);
 
-        // when
         asynchronousJoin.processJoin(player);
 
-        // then
         verify(limboService, never()).createLimboPlayer(eq(player), anyBoolean());
     }
 
     @Test
     public void shouldRestoreOperatorOfUnregisteredPlayerWhenRegistrationIsOptional() {
-        // given
         Player player = mockPlayer("Bobby");
         givenDefaultJoinRestrictions(player);
         given(database.getAuth("bobby")).willReturn(null);
         given(service.getProperty(RegistrationSettings.FORCE)).willReturn(false);
 
-        // when
         asynchronousJoin.processJoin(player);
 
-        // then
         verify(limboService).restorePendingOperator(player);
         verify(limboService, never()).createLimboPlayer(eq(player), anyBoolean());
     }
 
     @Test
     public void shouldAutoLoginRegisteredFloodgatePlayerWithoutCreatingLimbo() {
-        // given
         Player player = mockPlayer(".Bobby");
         UUID playerId = UUID.fromString("00000000-0000-0000-0009-01f163ba2c3a");
         given(player.getUniqueId()).willReturn(playerId);
         setUpRegisteredJoin(player);
         given(floodgateService.canAutoLogin(playerId)).willReturn(true);
 
-        // when
         asynchronousJoin.processJoin(player);
 
-        // then
         verify(asynchronousLogin).forceLogin(player);
         verify(limboService, never()).createLimboPlayer(eq(player), anyBoolean());
         verifyNoLoginDialog(player);
@@ -430,7 +377,6 @@ public class AsynchronousJoinTest {
 
     @Test
     public void shouldAutoRegisterUnregisteredFloodgatePlayer() {
-        // given
         Player player = mockPlayer(".Bobby");
         UUID playerId = UUID.fromString("00000000-0000-0000-0009-01f163ba2c3a");
         given(player.getUniqueId()).willReturn(playerId);
@@ -440,10 +386,8 @@ public class AsynchronousJoinTest {
         given(service.getProperty(SecuritySettings.MIN_PASSWORD_LENGTH)).willReturn(5);
         given(service.getProperty(SecuritySettings.MAX_PASSWORD_LENGTH)).willReturn(30);
 
-        // when
         asynchronousJoin.processJoin(player);
 
-        // then
         ArgumentCaptor<ApiPasswordRegisterParams> params = ArgumentCaptor.forClass(ApiPasswordRegisterParams.class);
         verify(asyncRegister).register(eq(RegistrationMethod.API_REGISTRATION), params.capture());
         assertThat(params.getValue().getPlayer(), is(player));
@@ -458,7 +402,6 @@ public class AsynchronousJoinTest {
 
     @Test
     public void shouldForceLoginWithoutPromptWhenListenerRequestsIt() {
-        // given - a listener (e.g. a premium plugin) calls event.forceLogin()
         Player player = givenRegisteredPlayer();
         AtomicReference<PlayerPreAuthEvent> seen = new AtomicReference<>();
         listenToPreAuth(event -> {
@@ -466,11 +409,8 @@ public class AsynchronousJoinTest {
             event.forceLogin();
         });
 
-        // when
         asynchronousJoin.processJoin(player);
 
-        // then - the sync event is dispatched before session/premium/limbo work, and the decision
-        // is applied with the account loaded for this join (no second lookup)
         assertThat(seen.get().isAsynchronous(), is(false));
         InOrder order = inOrder(bukkitService);
         order.verify(bukkitService).scheduleSyncTaskFromOptionallyAsyncTask(eq(player), any(Runnable.class));
@@ -487,7 +427,6 @@ public class AsynchronousJoinTest {
 
     @Test
     public void shouldSkipPromptWhenListenerCancelsPreAuthEvent() {
-        // given
         Player player = givenRegisteredPlayer();
         AtomicReference<PlayerPreAuthEvent> seen = new AtomicReference<>();
         listenToPreAuth(event -> {
@@ -495,10 +434,8 @@ public class AsynchronousJoinTest {
             event.skipAuthentication();
         });
 
-        // when
         asynchronousJoin.processJoin(player);
 
-        // then - cancelling alone never authenticates the player
         assertThat(seen.get().isAsynchronous(), is(false));
         verify(limboService, never()).createLimboPlayer(eq(player), anyBoolean());
         verify(asynchronousLogin, never()).forceLogin(player);
@@ -510,16 +447,13 @@ public class AsynchronousJoinTest {
 
     @Test
     public void shouldReportRegisteredFlagAndSourceToListeners() {
-        // given
         Player player = givenRegisteredPlayer();
         given(bungeeSender.isEnabled()).willReturn(true);
         AtomicReference<PlayerPreAuthEvent> seen = new AtomicReference<>();
         listenToPreAuth(seen::set);
 
-        // when
         asynchronousJoin.processJoin(player);
 
-        // then - not cancelled, so the normal flow continues after the listener has returned
         assertThat(seen.get().isRegistered(), is(true));
         assertThat(seen.get().getSource(), is(PlayerPreAuthEvent.Source.PROXY));
         assertThat(seen.get().isAsynchronous(), is(false));
@@ -530,21 +464,16 @@ public class AsynchronousJoinTest {
 
     @Test
     public void shouldShowPromptInSameCallWithoutAnyScheduledDelay() {
-        // given - fake clock: any delayed scheduling would go through runTaskLater, which is mocked to run
-        // immediately; we assert none is used for the prompt of a registered player without dialogs
         Player player = givenRegisteredPlayer();
 
-        // when
         asynchronousJoin.processJoin(player);
 
-        // then - limbo (which starts the login message task) is created synchronously within processJoin
         verify(limboService).createLimboPlayer(player, true);
         verify(bukkitService, never()).runTaskLater(any(Player.class), any(Runnable.class), org.mockito.ArgumentMatchers.anyLong());
     }
 
     @Test
     public void shouldContinueRegularJoinWhenPreAuthEventIsNeverDispatched() {
-        // given - the scheduler drops the first (event) task, e.g. because the player disconnected
         Player player = givenRegisteredPlayer();
         org.mockito.Mockito.doNothing().doAnswer(invocation -> {
             ((Runnable) invocation.getArgument(1)).run();
@@ -552,17 +481,14 @@ public class AsynchronousJoinTest {
         }).when(bukkitService).scheduleSyncTaskFromOptionallyAsyncTask(eq(player), any(Runnable.class));
         asynchronousJoin.setPreAuthEventTimeoutMillis(1L);
 
-        // when
         asynchronousJoin.processJoin(player);
 
-        // then - no hang, no login without a decision: the regular prompt flow runs
         verify(asynchronousLogin, never()).performLogin(any(Player.class), any(PlayerAuth.class));
         verify(limboService).createLimboPlayer(player, true);
     }
 
     @Test
     public void shouldLogInOnlyOnceWhenForceLoginIsRequestedTwice() {
-        // given - two listeners request a forced login and the continuation is submitted twice
         Player player = givenRegisteredPlayer();
         listenToPreAuth(event -> {
             event.forceLogin();
@@ -572,29 +498,24 @@ public class AsynchronousJoinTest {
         captureAsyncContinuation(continuation);
         given(playerCache.isAuthenticated("bobby")).willReturn(false, true);
 
-        // when
         asynchronousJoin.processJoin(player);
         continuation.get().run();
         continuation.get().run();
 
-        // then - the login is performed once; the second continuation sees an authenticated player
         verify(asynchronousLogin, times(1)).performLogin(player, auth);
     }
 
     @Test
     public void shouldSkipForcedLoginWhenPlayerQuitBeforeContinuationRuns() {
-        // given - the listener requested a login, but the player left before the async continuation
         Player player = givenRegisteredPlayer();
         listenToPreAuth(PlayerPreAuthEvent::forceLogin);
         AtomicReference<Runnable> continuation = new AtomicReference<>();
         captureAsyncContinuation(continuation);
         given(player.isOnline()).willReturn(false);
 
-        // when
         asynchronousJoin.processJoin(player);
         continuation.get().run();
 
-        // then - no login and no exception for an offline player
         verify(asynchronousLogin, never()).performLogin(eq(player), any(PlayerAuth.class));
         verify(asynchronousLogin, never()).forceLogin(player);
         verify(limboService, never()).createLimboPlayer(eq(player), anyBoolean());
@@ -602,7 +523,6 @@ public class AsynchronousJoinTest {
 
     @Test
     public void shouldShowRegisterPromptForUnregisteredPlayerRequestingForceLogin() {
-        // given - forceLogin is meaningless without an account
         Player player = mockPlayer("Bobby");
         givenDefaultJoinRestrictions(player);
         given(database.getAuth("bobby")).willReturn(null);
@@ -618,10 +538,8 @@ public class AsynchronousJoinTest {
             event.forceLogin();
         });
 
-        // when
         asynchronousJoin.processJoin(player);
 
-        // then - normal registration prompt, no login attempt and a single account lookup
         assertThat(seen.get().isForceLoginRequested(), is(false));
         verify(limboService).createLimboPlayer(player, false);
         verify(asynchronousLogin, never()).performLogin(eq(player), any(PlayerAuth.class));
@@ -632,29 +550,23 @@ public class AsynchronousJoinTest {
 
     @Test
     public void shouldSkipTotpForForcedLoginFromPreAuthEvent() {
-        // given - TOTP-enabled account, as for AsynchronousLogin.forceLogin()
         Player player = givenRegisteredPlayer();
         given(auth.getTotpKey()).willReturn("TOTPSECRET");
         listenToPreAuth(PlayerPreAuthEvent::forceLogin);
 
-        // when
         asynchronousJoin.processJoin(player);
 
-        // then - passwordless login succeeds without the TOTP step (login() would require the code)
         verify(asynchronousLogin).performLogin(player, auth);
         verify(asynchronousLogin, never()).login(eq(player), anyString());
     }
 
     @Test
     public void shouldContinueWithPromptWhenPreAuthListenerThrows() {
-        // given
         Player player = givenRegisteredPlayer();
         doThrow(new IllegalStateException("listener failed")).when(bukkitService).callEvent(any(Event.class));
 
-        // when
         asynchronousJoin.processJoin(player);
 
-        // then - the exception is contained and the regular join continues
         verify(limboService).createLimboPlayer(player, true);
         verify(asynchronousLogin, never()).performLogin(eq(player), any(PlayerAuth.class));
         verify(asynchronousLogin, never()).forceLogin(player);
@@ -662,7 +574,6 @@ public class AsynchronousJoinTest {
 
     @Test
     public void shouldUseSingleLookupAndOneSyncHopForPremiumBypass() {
-        // given
         Player player = givenRegisteredPlayer();
         given(service.getProperty(PremiumSettings.ENABLE_PREMIUM)).willReturn(true);
         UUID mojangUuid = UUID.randomUUID();
@@ -670,10 +581,8 @@ public class AsynchronousJoinTest {
         given(auth.isPremium()).willReturn(true);
         given(auth.getPremiumUuid()).willReturn(mojangUuid);
 
-        // when
         asynchronousJoin.processJoin(player);
 
-        // then - one getAuth for the whole join, event before the auto-login, no limbo
         InOrder order = inOrder(bukkitService, asynchronousLogin);
         order.verify(bukkitService).callEvent(any(PlayerPreAuthEvent.class));
         order.verify(asynchronousLogin).forceLogin(player);
@@ -685,14 +594,11 @@ public class AsynchronousJoinTest {
 
     @Test
     public void shouldUseOneSyncHopAndOneAsyncHopForForcedLogin() {
-        // given
         Player player = givenRegisteredPlayer();
         listenToPreAuth(PlayerPreAuthEvent::forceLogin);
 
-        // when
         asynchronousJoin.processJoin(player);
 
-        // then - event dispatch is the only sync hop; the login continuation is the only async hop
         verify(bukkitService, times(1)).scheduleSyncTaskFromOptionallyAsyncTask(eq(player), any(Runnable.class));
         verify(bukkitService, times(1)).runTaskOptionallyAsync(any(Runnable.class));
         verify(bukkitService, never()).createAndCallEvent(any());

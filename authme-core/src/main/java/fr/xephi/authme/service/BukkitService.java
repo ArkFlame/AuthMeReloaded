@@ -2,6 +2,7 @@ package fr.xephi.authme.service;
 
 import fr.xephi.authme.AuthMe;
 import fr.xephi.authme.initialization.SettingsDependent;
+import fr.xephi.authme.service.bungeecord.MessageType;
 import fr.xephi.authme.platform.SchedulingAdapter;
 import fr.xephi.authme.settings.Settings;
 import fr.xephi.authme.settings.properties.PluginSettings;
@@ -450,7 +451,7 @@ public class BukkitService implements SettingsDependent {
      * @param bytes the message
      */
     public void sendBungeeMessage(Player player, byte[] bytes) {
-        sendPluginMessage(player, "BungeeCord", bytes);
+        sendPluginMessage(player, MessageType.BUNGEE_CHANNEL, bytes);
     }
 
     /**
@@ -460,7 +461,7 @@ public class BukkitService implements SettingsDependent {
      * @param bytes the message
      */
     public void sendAuthMePluginMessage(Player player, byte[] bytes) {
-        sendPluginMessage(player, "authme:main", bytes);
+        sendPluginMessage(player, MessageType.CHANNEL, bytes);
     }
 
     private void sendPluginMessage(Player player, String channel, byte[] bytes) {

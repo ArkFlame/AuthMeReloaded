@@ -16,8 +16,6 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
-import static fr.xephi.authme.util.Utils.logAndSendMessage;
-
 /**
  * Converts data from Auth+ to AuthMe.
  * <p>
@@ -86,8 +84,7 @@ public class AuthPlusConverter implements Converter {
             ++successCount;
         }
 
-        logAndSendMessage(sender, "Auth+ conversion: " + successCount + " account(s) imported, "
-            + skippedCount + " skipped (already exist)");
+        ConverterUtils.logImportResult(sender, "Auth+", successCount, skippedCount);
     }
 
     private String resolveName(UUID uuid) {

@@ -4,8 +4,8 @@
 ## AuthMe Permission Nodes
 The following are the permission nodes that are currently supported by the latest dev builds.
 
-Unless noted otherwise, these nodes are available across the current Spigot Legacy, Spigot 1.21,
-and Paper 1.21 builds.
+Unless noted otherwise, these nodes are available across the three server jars —
+`-Spigot-1.8.jar`, `-Spigot.jar` and `-Paper.jar`.
 
 - **authme.admin.*** – Give access to all admin commands.
 - **authme.admin.accounts** – Administrator command to see all accounts associated with a user.

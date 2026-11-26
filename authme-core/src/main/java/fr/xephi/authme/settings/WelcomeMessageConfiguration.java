@@ -78,7 +78,7 @@ public class WelcomeMessageConfiguration implements Reloadable {
     @PostConstruct
     @Override
     public void reload() {
-        if (!(service.getProperty(RegistrationSettings.USE_WELCOME_MESSAGE))) {
+        if (!service.getProperty(RegistrationSettings.USE_WELCOME_MESSAGE)) {
             return;
         }
 
@@ -119,14 +119,14 @@ public class WelcomeMessageConfiguration implements Reloadable {
      */
     private List<String> readWelcomeFile() {
         File welcomeFile = new File(pluginFolder, "welcome.txt");
-        if (copyFileFromResource(welcomeFile, "welcome.txt")) {
-            try {
-                return Files.readAllLines(welcomeFile.toPath(), StandardCharsets.UTF_8);
-            } catch (IOException e) {
-                logger.logException("Failed to read welcome.txt file:", e);
-            }
-        } else {
+        if (!copyFileFromResource(welcomeFile, "welcome.txt")) {
             logger.warning("Failed to copy welcome.txt from JAR");
+            return Collections.emptyList();
+        }
+        try {
+            return Files.readAllLines(welcomeFile.toPath(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            logger.logException("Failed to read welcome.txt file:", e);
         }
         return Collections.emptyList();
     }

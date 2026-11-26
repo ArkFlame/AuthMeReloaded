@@ -24,9 +24,7 @@ public class RecoveryCodeService implements SettingsDependent, HasCleanup {
 
     @Inject
     RecoveryCodeService(Settings settings) {
-        recoveryCodeLength = settings.getProperty(SecuritySettings.RECOVERY_CODE_LENGTH);
-        recoveryCodeExpiration = settings.getProperty(SecuritySettings.RECOVERY_CODE_HOURS_VALID);
-        recoveryCodeMaxTries = settings.getProperty(SecuritySettings.RECOVERY_CODE_MAX_TRIES);
+        loadSettings(settings);
         recoveryCodes = new ExpiringMap<>(recoveryCodeExpiration, TimeUnit.HOURS);
         playerTries = new TimedCounter<>(recoveryCodeExpiration, TimeUnit.HOURS);
     }
@@ -97,10 +95,14 @@ public class RecoveryCodeService implements SettingsDependent, HasCleanup {
 
     @Override
     public void reload(Settings settings) {
+        loadSettings(settings);
+        recoveryCodes.setExpiration(recoveryCodeExpiration, TimeUnit.HOURS);
+    }
+
+    private void loadSettings(Settings settings) {
         recoveryCodeLength = settings.getProperty(SecuritySettings.RECOVERY_CODE_LENGTH);
         recoveryCodeExpiration = settings.getProperty(SecuritySettings.RECOVERY_CODE_HOURS_VALID);
         recoveryCodeMaxTries = settings.getProperty(SecuritySettings.RECOVERY_CODE_MAX_TRIES);
-        recoveryCodes.setExpiration(recoveryCodeExpiration, TimeUnit.HOURS);
     }
 
     @Override

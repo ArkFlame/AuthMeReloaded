@@ -53,12 +53,13 @@ public class TotpCodeCommand extends PlayerCommand {
 
     @Override
     protected void runCommand(Player player, List<String> arguments) {
-        if (playerCache.isAuthenticated(player.getName())) {
+        String playerName = player.getName();
+        if (playerCache.isAuthenticated(playerName)) {
             messages.send(player, MessageKey.ALREADY_LOGGED_IN_ERROR);
             return;
         }
 
-        PlayerAuth auth = dataSource.getAuth(player.getName());
+        PlayerAuth auth = dataSource.getAuth(playerName);
         if (auth == null) {
             messages.send(player, MessageKey.REGISTER_MESSAGE);
             return;
@@ -68,7 +69,7 @@ public class TotpCodeCommand extends PlayerCommand {
         if (limbo != null && limbo.getState() == LimboPlayerState.TOTP_REQUIRED) {
             processCode(player, auth, limbo, arguments.get(0));
         } else {
-            logger.debug(() -> "Aborting TOTP check for player '" + player.getName()
+            logger.debug(() -> "Aborting TOTP check for player '" + playerName
                 + "'. Invalid limbo state: " + (limbo == null ? "no limbo" : limbo.getState()));
             messages.send(player, MessageKey.LOGIN_MESSAGE);
         }

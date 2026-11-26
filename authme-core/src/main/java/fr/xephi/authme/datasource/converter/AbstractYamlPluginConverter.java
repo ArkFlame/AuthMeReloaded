@@ -38,14 +38,14 @@ abstract class AbstractYamlPluginConverter implements Converter {
     @Override
     public void execute(CommandSender sender) {
         File configFile = new File(configPath);
-        if (!configFile.exists()) {
-            logAndSendMessage(sender, pluginName + " conversion failed: config not found at " + configPath);
+        if (!ConverterUtils.hasConfigFile(sender, configFile, pluginName)) {
             return;
         }
 
         YamlConfiguration config = YamlConfiguration.loadConfiguration(configFile);
         String query = getQuery(config);
-        ResultSetImporter importer = rs -> importRows(rs, sender);
+        ResultSetImporter importer = rs -> ConverterUtils.importRows(
+            rs, dataSource, sender, pluginName, this::getName, this::buildAuth);
         switch (getBackend(config)) {
             case SQLITE:
                 new SqliteImportTask(dataSource, new File(sqliteDbPath), query, pluginName, logger, importer,
@@ -70,27 +70,4 @@ abstract class AbstractYamlPluginConverter implements Converter {
 
     /** @return the account to import, or {@code null} if the row has invalid data */
     protected abstract PlayerAuth buildAuth(ResultSet rs, String name) throws SQLException;
-
-    private void importRows(ResultSet rs, CommandSender sender) throws SQLException {
-        long imported = 0;
-        long skipped = 0;
-        while (rs.next()) {
-            String name = getName(rs);
-            if (name == null || name.isEmpty()) {
-                continue;
-            }
-            if (dataSource.isAuthAvailable(name)) {
-                ++skipped;
-                continue;
-            }
-            PlayerAuth auth = buildAuth(rs, name);
-            if (auth == null) {
-                continue;
-            }
-            dataSource.saveAuth(auth);
-            ++imported;
-        }
-        logAndSendMessage(sender, pluginName + " conversion: " + imported + " account(s) imported, "
-            + skipped + " skipped (already exist)");
-    }
 }

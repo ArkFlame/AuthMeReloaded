@@ -43,10 +43,8 @@ final class SpigotDialogHelper {
     }
 
     static void showTotpDialog(Player player, DialogWindowSpec dialog) {
-        DialogBase base = newDialogBase(dialog);
-
-        player.showDialog(new MultiActionDialog(base,
-            new ActionButton(toTextComponent(dialog.primaryButtonLabel()), new RunCommandAction("2fa code $(code)"))));
+        player.showDialog(newSingleActionDialog(
+            newDialogBase(dialog), dialog.primaryButtonLabel(), "2fa code $(code)"));
     }
 
     static void showRecoveryCodeDialog(Player player, DialogWindowSpec dialog) {
@@ -58,20 +56,20 @@ final class SpigotDialogHelper {
     }
 
     private static void showCommandDialog(Player player, DialogWindowSpec dialog, String commandTemplate) {
-        DialogBase base = newDialogBase(dialog);
-
-        player.showDialog(new MultiActionDialog(base,
-            new ActionButton(toTextComponent(dialog.primaryButtonLabel()), new RunCommandAction(commandTemplate)))
+        player.showDialog(newSingleActionDialog(newDialogBase(dialog), dialog.primaryButtonLabel(), commandTemplate)
             .columns(dialog.buttonColumns()));
     }
 
     static void showRegisterDialog(Player player, RegistrationType type, RegisterSecondaryArgument secondArg,
                                    DialogWindowSpec dialog) {
-        DialogBase base = newDialogBase(dialog);
+        player.showDialog(newSingleActionDialog(newDialogBase(dialog), dialog.primaryButtonLabel(),
+            createRegisterTemplate(type, secondArg)));
+    }
 
-        player.showDialog(new MultiActionDialog(base,
-            new ActionButton(toTextComponent(dialog.primaryButtonLabel()),
-                new RunCommandAction(createRegisterTemplate(type, secondArg)))));
+    /** Builds the common single-button dialog used by every dialog except the multi-button login dialog. */
+    private static MultiActionDialog newSingleActionDialog(DialogBase base, String buttonLabel, String commandTemplate) {
+        return new MultiActionDialog(base,
+            new ActionButton(toTextComponent(buttonLabel), new RunCommandAction(commandTemplate)));
     }
 
     static void closeDialog(Player player) {
@@ -95,10 +93,9 @@ final class SpigotDialogHelper {
     }
 
     private static List<DialogBody> createBody(DialogWindowSpec dialog) {
-        if (dialog.body() == null) {
-            return List.of();
-        }
-        return List.<DialogBody>of(new PlainMessageBody(toTextComponent(dialog.body())));
+        return dialog.body() == null
+            ? List.of()
+            : List.<DialogBody>of(new PlainMessageBody(toTextComponent(dialog.body())));
     }
 
     private static String createRegisterTemplate(RegistrationType type, RegisterSecondaryArgument secondArg) {

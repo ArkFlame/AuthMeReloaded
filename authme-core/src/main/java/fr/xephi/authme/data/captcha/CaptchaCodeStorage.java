@@ -89,7 +89,17 @@ public class CaptchaCodeStorage {
      * @return true if the code matches, false otherwise
      */
     public boolean checkCode(String name, String code) {
-        String key = normalize(name);
+        return checkCodeForNormalizedName(normalize(name), code);
+    }
+
+    /**
+     * Checks a code against the entry for an already normalized name.
+     *
+     * @param key the normalized name of the player to check
+     * @param code the supplied code
+     * @return true if the code matches, false otherwise
+     */
+    boolean checkCodeForNormalizedName(String key, String code) {
         String savedCode = captchaCodes.get(key);
         if (savedCode != null && savedCode.equalsIgnoreCase(code)) {
             captchaCodes.remove(key);

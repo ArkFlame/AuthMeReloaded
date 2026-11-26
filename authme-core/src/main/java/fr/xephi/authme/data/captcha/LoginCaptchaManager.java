@@ -53,7 +53,7 @@ public class LoginCaptchaManager implements CaptchaManager, SettingsDependent, H
     @Override
     public boolean checkCode(Player player, String code) {
         String nameLower = CaptchaCodeStorage.normalize(player.getName());
-        boolean isCodeCorrect = captchaCodeStorage.checkCode(nameLower, code);
+        boolean isCodeCorrect = captchaCodeStorage.checkCodeForNormalizedName(nameLower, code);
         if (isCodeCorrect) {
             playerCounts.remove(nameLower);
         }

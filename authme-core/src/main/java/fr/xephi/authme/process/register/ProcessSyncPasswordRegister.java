@@ -12,6 +12,7 @@ import fr.xephi.authme.service.bungeecord.BungeeSender;
 import fr.xephi.authme.settings.commandconfig.CommandManager;
 import fr.xephi.authme.settings.properties.EmailSettings;
 import fr.xephi.authme.settings.properties.RegistrationSettings;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
 import javax.inject.Inject;
@@ -68,8 +69,11 @@ public class ProcessSyncPasswordRegister implements SynchronousProcess {
         // Request login after registration
         if (service.getProperty(RegistrationSettings.FORCE_LOGIN_AFTER_REGISTER)) {
             limboService.replaceTasksAfterRegistration(player);
-            if (player.isInsideVehicle() && player.getVehicle() != null) {
-                player.getVehicle().eject();
+            if (player.isInsideVehicle()) {
+                Entity vehicle = player.getVehicle();
+                if (vehicle != null) {
+                    vehicle.eject();
+                }
             }
             return;
         }

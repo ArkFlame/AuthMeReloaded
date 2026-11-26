@@ -103,15 +103,12 @@ class AsynchronousLoginTest {
 
     @Test
     void shouldNotForceLoginAlreadyLoggedInPlayer() {
-        // given
         String name = "bobby";
         Player player = mockPlayer(name);
         given(playerCache.isAuthenticated(name)).willReturn(true);
 
-        // when
         asynchronousLogin.forceLogin(player);
 
-        // then
         verify(playerCache, only()).isAuthenticated(name);
         verify(commonService).send(player, MessageKey.ALREADY_LOGGED_IN_ERROR);
         verifyNoInteractions(dataSource);
@@ -119,16 +116,13 @@ class AsynchronousLoginTest {
 
     @Test
     void shouldNotForceLoginNonExistentUser() {
-        // given
         String name = "oscar";
         Player player = mockPlayer(name);
         given(playerCache.isAuthenticated(name)).willReturn(false);
         given(dataSource.getAuth(name)).willReturn(null);
 
-        // when
         asynchronousLogin.forceLogin(player);
 
-        // then
         verify(playerCache, only()).isAuthenticated(name);
         verify(commonService).send(player, MessageKey.UNKNOWN_USER);
         verify(dataSource, only()).getAuth(name);
@@ -136,7 +130,6 @@ class AsynchronousLoginTest {
 
     @Test
     void shouldNotForceLoginInactiveUser() {
-        // given
         String name = "oscar";
         Player player = mockPlayer(name);
         given(playerCache.isAuthenticated(name)).willReturn(false);
@@ -146,10 +139,8 @@ class AsynchronousLoginTest {
         given(commonService.getProperty(DatabaseSettings.MYSQL_COL_GROUP)).willReturn("group");
         given(commonService.getProperty(HooksSettings.NON_ACTIVATED_USERS_GROUP)).willReturn(groupId);
 
-        // when
         asynchronousLogin.forceLogin(player);
 
-        // then
         verify(playerCache, only()).isAuthenticated(name);
         verify(commonService).send(player, MessageKey.ACCOUNT_NOT_ACTIVATED);
         verify(dataSource, only()).getAuth(name);
@@ -157,7 +148,6 @@ class AsynchronousLoginTest {
 
     @Test
     void shouldNotForceLoginUserWithAlreadyOnlineIp() {
-        // given
         String name = "oscar";
         String ip = "1.1.1.245";
         Player player = mockPlayer(name);
@@ -168,10 +158,8 @@ class AsynchronousLoginTest {
         given(commonService.getProperty(DatabaseSettings.MYSQL_COL_GROUP)).willReturn("");
         doReturn(true).when(asynchronousLogin).hasReachedMaxLoggedInPlayersForIp(any(Player.class), anyString());
 
-        // when
         asynchronousLogin.forceLogin(player);
 
-        // then
         verify(playerCache, only()).isAuthenticated(name);
         verify(commonService).send(player, MessageKey.ALREADY_LOGGED_IN_ERROR);
         verify(dataSource, only()).getAuth(name);
@@ -180,7 +168,6 @@ class AsynchronousLoginTest {
 
     @Test
     void shouldNotForceLoginForCanceledEvent() {
-        // given
         String name = "oscar";
         String ip = "1.1.1.245";
         Player player = mockPlayer(name);
@@ -196,10 +183,8 @@ class AsynchronousLoginTest {
             return null;
         }).when(bukkitService).callEvent(any(AuthMeAsyncPreLoginEvent.class));
 
-        // when
         asynchronousLogin.forceLogin(player);
 
-        // then
         verify(playerCache, only()).isAuthenticated(name);
         verify(dataSource, only()).getAuth(name);
         verify(asynchronousLogin).hasReachedMaxLoggedInPlayersForIp(player, ip);
@@ -208,16 +193,13 @@ class AsynchronousLoginTest {
     @ParameterizedTest(name = "checked IP {0}")
     @CsvSource({"1.1.1.1, false", "2.2.2.2, true"})
     void shouldEvaluateMaxLoginPerIpCheck(String checkedIp, boolean expectedExceeded) {
-        // given
         Player player = mock(Player.class);
         given(commonService.getProperty(RestrictionSettings.MAX_LOGIN_PER_IP)).willReturn(2);
         given(commonService.hasPermission(player, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS)).willReturn(false);
         mockOnlinePlayersInBukkitService(checkedIp);
 
-        // when
         boolean result = asynchronousLogin.hasReachedMaxLoggedInPlayersForIp(player, checkedIp);
 
-        // then
         assertThat(result, equalTo(expectedExceeded));
         verify(commonService).hasPermission(player, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS);
         verify(bukkitService).getOnlinePlayers();
@@ -225,29 +207,23 @@ class AsynchronousLoginTest {
 
     @Test
     void shouldSkipIpCheckForZeroThreshold() {
-        // given
         Player player = mock(Player.class);
         given(commonService.getProperty(RestrictionSettings.MAX_LOGIN_PER_IP)).willReturn(0);
 
-        // when
         boolean result = asynchronousLogin.hasReachedMaxLoggedInPlayersForIp(player, "2.2.2.2");
 
-        // then
         assertThat(result, equalTo(false));
         verifyNoInteractions(bukkitService);
     }
 
     @Test
     void shouldSkipIpCheckForPlayerWithMultipleAccountsPermission() {
-        // given
         Player player = mock(Player.class);
         given(commonService.getProperty(RestrictionSettings.MAX_LOGIN_PER_IP)).willReturn(1);
         given(commonService.hasPermission(player, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS)).willReturn(true);
 
-        // when
         boolean result = asynchronousLogin.hasReachedMaxLoggedInPlayersForIp(player, "1.1.1.1");
 
-        // then
         assertThat(result, equalTo(false));
         verify(commonService).hasPermission(player, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS);
         verifyNoInteractions(bukkitService);
@@ -255,7 +231,6 @@ class AsynchronousLoginTest {
 
     @Test
     void shouldShowTotpDialogAfterSuccessfulPasswordCheckWhenDialogsAreEnabled() {
-        // given
         Player player = mockPlayer("bobby");
         TestHelper.mockIpAddressToPlayer(player, "203.0.113.5");
         PlayerAuth auth = PlayerAuth.builder().name("bobby").totpKey("secret").build();
@@ -272,10 +247,8 @@ class AsynchronousLoginTest {
             return mock(CancellableTask.class);
         }).when(bukkitService).runTaskLater(eq(player), any(Runnable.class), eq(1L));
 
-        // when
         asynchronousLogin.login(player, "hunter2");
 
-        // then
         verify(limboService).resetMessageTask(player, LimboMessageType.TOTP_CODE);
         verify(limboPlayer).setState(LimboPlayerState.TOTP_REQUIRED);
         verify(dialogAdapter).showTotpDialog(eq(player), any(DialogWindowSpec.class));
@@ -284,7 +257,6 @@ class AsynchronousLoginTest {
 
     @Test
     void shouldNotShowTotpDialogWhenDialogsAreDisabled() {
-        // given
         Player player = mockPlayer("bobby");
         TestHelper.mockIpAddressToPlayer(player, "203.0.113.5");
         PlayerAuth auth = PlayerAuth.builder().name("bobby").totpKey("secret").build();
@@ -295,10 +267,8 @@ class AsynchronousLoginTest {
         given(commonService.getProperty(RegistrationSettings.USE_DIALOG_UI)).willReturn(false);
         given(commonService.getProperty(RegistrationSettings.USE_PREJOIN_DIALOG_UI)).willReturn(false);
 
-        // when
         asynchronousLogin.login(player, "hunter2");
 
-        // then
         verify(limboService).resetMessageTask(player, LimboMessageType.TOTP_CODE);
         verify(limboPlayer).setState(LimboPlayerState.TOTP_REQUIRED);
         verify(dialogAdapter, never()).showTotpDialog(eq(player), any(DialogWindowSpec.class));
@@ -306,7 +276,6 @@ class AsynchronousLoginTest {
 
     @Test
     void shouldNotLogInTotpPlayerBeforeLimboIsCreated() {
-        // given
         Player player = mockPlayer("bobby");
         TestHelper.mockIpAddressToPlayer(player, "203.0.113.5");
         PlayerAuth auth = PlayerAuth.builder().name("bobby").totpKey("secret").build();
@@ -314,17 +283,14 @@ class AsynchronousLoginTest {
         givenExistingPlayerWithValidPassword(auth);
         given(limboService.getLimboPlayer(player)).willReturn(null);
 
-        // when
         asynchronousLogin.login(player, "hunter2");
 
-        // then
         verify(commonService).send(player, MessageKey.LOGIN_MESSAGE);
         verify(asynchronousLogin, never()).performLogin(player, auth);
     }
 
     @Test
     void shouldRevertLoginWhenPlayerQuitDuringLoginProcess() {
-        // given
         Player player = mockPlayer("bobby");
         TestHelper.mockIpAddressToPlayer(player, "203.0.113.5");
         PlayerAuth auth = PlayerAuth.builder().name("bobby").build();
@@ -332,10 +298,8 @@ class AsynchronousLoginTest {
         given(commonService.getProperty(RestrictionSettings.DISPLAY_OTHER_ACCOUNTS)).willReturn(false);
         given(commonService.getProperty(EmailSettings.RECALL_PLAYERS)).willReturn(false);
 
-        // when
         asynchronousLogin.performLogin(player, auth);
 
-        // then
         verify(playerCache).updatePlayer(auth);
         verify(playerCache).removePlayer("bobby");
         verify(dataSource).setUnlogged("bobby");

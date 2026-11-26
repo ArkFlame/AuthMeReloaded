@@ -75,7 +75,7 @@ public class ProxySessionManager implements HasCleanup {
      * @param name the player name
      */
     public void removeLoginRequest(String name) {
-        activeProxySessions.remove(name.toLowerCase(Locale.ROOT));
+        consumeLoginRequest(name);
     }
 
     @Override

@@ -96,10 +96,7 @@ public class PaperLoginValidationListener implements Listener {
             return;
         }
 
-        try {
-            onJoinVerifier.checkSingleSession(playerName);
-        } catch (FailedVerificationException e) {
-            denyConnection(event, playerName, e.getReason(), e.getArgs());
+        if (!passesSingleSessionCheck(event, playerName)) {
             return;
         }
 
@@ -128,15 +125,22 @@ public class PaperLoginValidationListener implements Listener {
             return;
         }
 
-        try {
-            onJoinVerifier.checkSingleSession(playerName);
-        } catch (FailedVerificationException e) {
-            denyConnection(event, playerName, e.getReason(), e.getArgs());
+        if (!passesSingleSessionCheck(event, playerName)) {
             return;
         }
 
         // Renew so the claim covers the remaining wait until the player is placed in the world
         pendingConnectionRegistry.tryClaim(playerName, connection, getClaimTtlMillis());
+    }
+
+    private boolean passesSingleSessionCheck(PlayerConnectionValidateLoginEvent event, String playerName) {
+        try {
+            onJoinVerifier.checkSingleSession(playerName);
+            return true;
+        } catch (FailedVerificationException e) {
+            denyConnection(event, playerName, e.getReason(), e.getArgs());
+            return false;
+        }
     }
 
     private void denyConnection(PlayerConnectionValidateLoginEvent event, String playerName,
@@ -155,8 +159,11 @@ public class PaperLoginValidationListener implements Listener {
 
     private static String getPlayerName(PlayerLoginConnection connection) {
         PlayerProfile profile = connection.getAuthenticatedProfile();
-        if (profile != null && profile.getName() != null) {
-            return profile.getName();
+        if (profile != null) {
+            String name = profile.getName();
+            if (name != null) {
+                return name;
+            }
         }
 
         profile = connection.getUnsafeProfile();

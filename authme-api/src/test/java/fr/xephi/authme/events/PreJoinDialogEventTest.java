@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.Mockito.mock;
 
 class PreJoinDialogEventTest {
@@ -42,6 +43,18 @@ class PreJoinDialogEventTest {
         assertThat(event.getAddress(), nullValue());
         assertThat(event.getDialogType(), equalTo(PreJoinDialogEvent.DialogType.LOGIN));
         assertThat(event.isRegistered(), equalTo(true));
+    }
+
+    @Test
+    void shouldAllowMissingPlayerId() {
+        PreJoinDialogEvent event = new PreJoinDialogEvent("Bobby", null, address,
+            PreJoinDialogEvent.DialogType.LOGIN, true, true);
+
+        assertThat(event.getPlayerId(), nullValue());
+        assertThat(event.getUuid(), nullValue());
+        assertThat(event.getPlayerName(), equalTo("Bobby"));
+        assertThat(event.getAddress(), sameInstance(address));
+        assertThat(event.getDialogType(), equalTo(PreJoinDialogEvent.DialogType.LOGIN));
     }
 
     @Test

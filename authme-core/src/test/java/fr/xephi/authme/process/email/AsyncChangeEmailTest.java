@@ -11,7 +11,6 @@ import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.service.CommonService;
 import fr.xephi.authme.service.PendingEmailVerificationCache;
 import fr.xephi.authme.service.ValidationService;
-import fr.xephi.authme.service.bungeecord.BungeeSender;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -56,8 +55,6 @@ class AsyncChangeEmailTest {
     @Mock
     private ValidationService validationService;
 
-    @Mock
-    private BungeeSender bungeeSender;
 
     @Mock
     private BukkitService bukkitService;
@@ -76,7 +73,6 @@ class AsyncChangeEmailTest {
     @ParameterizedTest(name = "save successful={0}")
     @CsvSource({"true, EMAIL_CHANGED_SUCCESS", "false, ERROR"})
     void shouldChangeEmail(boolean saveSuccessful, MessageKey expectedMessage) {
-        // given
         String newEmail = "new@mail.tld";
         PlayerAuth auth = givenAuthenticatedPlayerWithEmail("Bobby", "old@mail.tld");
         given(dataSource.updateEmail(auth)).willReturn(saveSuccessful);
@@ -86,10 +82,8 @@ class AsyncChangeEmailTest {
         EmailChangedEvent event = spy(new EmailChangedEvent(player, "old@mail.tld", newEmail, false));
         given(bukkitService.createAndCallEvent(any(Function.class))).willReturn(event);
 
-        // when
         process.changeEmail(player, "old@mail.tld", newEmail);
 
-        // then
         verify(dataSource).updateEmail(auth);
         if (saveSuccessful) {
             verify(playerCache).updatePlayerIfPresent(auth);
@@ -101,7 +95,6 @@ class AsyncChangeEmailTest {
 
     @Test
     void shouldNotBeCaseSensitiveWhenComparingEmails() {
-        // given
         String newEmail = "newmail@example.com";
         given(player.getName()).willReturn("Debra");
         given(playerCache.isAuthenticated("debra")).willReturn(true);
@@ -115,10 +108,8 @@ class AsyncChangeEmailTest {
         EmailChangedEvent event = spy(new EmailChangedEvent(player, oldEmail, newEmail, false));
         given(bukkitService.createAndCallEvent(any(Function.class))).willReturn(event);
 
-        // when
         process.changeEmail(player, "old-mail@example.org", newEmail);
 
-        // then
         verify(dataSource).updateEmail(auth);
         verify(playerCache).updatePlayerIfPresent(auth);
         verify(service).send(player, MessageKey.EMAIL_CHANGED_SUCCESS);
@@ -126,38 +117,31 @@ class AsyncChangeEmailTest {
 
     @Test
     void shouldShowAddEmailUsage() {
-        // given
         given(player.getName()).willReturn("Bobby");
         given(playerCache.isAuthenticated("bobby")).willReturn(true);
         PlayerAuth auth = authWithMail(null);
         given(playerCache.getAuth("bobby")).willReturn(auth);
 
-        // when
         process.changeEmail(player, "old@mail.tld", "new@mailt.tld");
 
-        // then
         verifyEmailNotUpdated();
         verify(service).send(player, MessageKey.USAGE_ADD_EMAIL);
     }
 
     @Test
     void shouldRejectInvalidNewMail() {
-        // given
         String newEmail = "bogus";
         PlayerAuth auth = givenAuthenticatedPlayerWithEmail("Bobby", "old@mail.tld");
         given(validationService.validateEmail(newEmail)).willReturn(false);
 
-        // when
         process.changeEmail(player, "old@mail.tld", newEmail);
 
-        // then
         verifyEmailNotUpdated();
         verify(service).send(player, MessageKey.INVALID_NEW_EMAIL);
     }
 
     @Test
     void shouldRejectInvalidOldEmail() {
-        // given
         String newEmail = "new@mail.tld";
         given(player.getName()).willReturn("Bobby");
         given(playerCache.isAuthenticated("bobby")).willReturn(true);
@@ -165,17 +149,14 @@ class AsyncChangeEmailTest {
         given(playerCache.getAuth("bobby")).willReturn(auth);
         given(validationService.validateEmail(newEmail)).willReturn(true);
 
-        // when
         process.changeEmail(player, "old@mail.tld", newEmail);
 
-        // then
         verifyEmailNotUpdated();
         verify(service).send(player, MessageKey.INVALID_OLD_EMAIL);
     }
 
     @Test
     void shouldRejectAlreadyUsedEmail() {
-        // given
         String newEmail = "new@example.com";
         given(player.getName()).willReturn("Username");
         given(playerCache.isAuthenticated("username")).willReturn(true);
@@ -184,10 +165,8 @@ class AsyncChangeEmailTest {
         given(validationService.validateEmail(newEmail)).willReturn(true);
         given(validationService.isEmailFreeForRegistration(newEmail, player)).willReturn(false);
 
-        // when
         process.changeEmail(player, "old@example.com", newEmail);
 
-        // then
         verifyEmailNotUpdated();
         verify(service).send(player, MessageKey.EMAIL_ALREADY_USED_ERROR);
     }
@@ -195,22 +174,18 @@ class AsyncChangeEmailTest {
     @ParameterizedTest(name = "registered={0}")
     @CsvSource({"true, LOGIN_MESSAGE", "false, REGISTER_MESSAGE"})
     void shouldShowLoginOrRegisterMessageForUnauthenticatedPlayer(boolean isRegistered, MessageKey expectedMessage) {
-        // given
         given(player.getName()).willReturn("Bobby");
         given(playerCache.isAuthenticated("bobby")).willReturn(false);
         given(dataSource.isAuthAvailable("Bobby")).willReturn(isRegistered);
 
-        // when
         process.changeEmail(player, "old@mail.tld", "new@mail.tld");
 
-        // then
         verifyEmailNotUpdated();
         verify(service).send(player, expectedMessage);
     }
 
     @Test
     void shouldNotChangeOnCancelledEvent() {
-        // given
         String newEmail = "new@example.com";
         String oldEmail = "old@example.com";
         given(player.getName()).willReturn("Username");
@@ -223,10 +198,8 @@ class AsyncChangeEmailTest {
         event.setCancelled(true);
         given(bukkitService.createAndCallEvent(any(Function.class))).willReturn(event);
 
-        // when
         process.changeEmail(player, oldEmail, newEmail);
 
-        // then
         verifyEmailNotUpdated();
         verify(service).send(player, MessageKey.EMAIL_CHANGE_NOT_ALLOWED);
     }

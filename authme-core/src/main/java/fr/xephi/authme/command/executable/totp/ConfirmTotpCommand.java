@@ -50,10 +50,11 @@ public class ConfirmTotpCommand extends AbstractTotpPlayerCommand {
 
     private void insertTotpKeyIntoDatabase(Player player, PlayerAuth auth, TotpGenerationResult totpDetails) {
         String totpKey = totpDetails.getTotpKey();
-        boolean updated = dataSource.setTotpKey(player.getName(), totpKey);
+        String playerName = player.getName();
+        boolean updated = dataSource.setTotpKey(playerName, totpKey);
         applyTotpKeyUpdate(player, auth, updated, totpKey, MessageKey.TWO_FACTOR_ENABLE_SUCCESS);
         if (updated) {
-            logger.info("Player '" + player.getName() + "' has successfully added a TOTP key to their account");
+            logger.info("Player '" + playerName + "' has successfully added a TOTP key to their account");
         }
     }
 }

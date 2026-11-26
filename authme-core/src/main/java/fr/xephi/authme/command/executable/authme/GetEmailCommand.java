@@ -29,10 +29,13 @@ public class GetEmailCommand implements ExecutableCommand {
         DataSourceValue<String> email = dataSource.getEmail(playerName);
         if (!email.rowExists()) {
             commonService.send(sender, MessageKey.UNKNOWN_USER);
-        } else if (Utils.isEmailEmpty(email.getValue())) {
+            return;
+        }
+        String emailValue = email.getValue();
+        if (Utils.isEmailEmpty(emailValue)) {
             commonService.send(sender, MessageKey.SHOW_NO_EMAIL);
         } else {
-            commonService.send(sender, MessageKey.ADMIN_EMAIL_SHOW, playerName, email.getValue());
+            commonService.send(sender, MessageKey.ADMIN_EMAIL_SHOW, playerName, emailValue);
         }
     }
 }

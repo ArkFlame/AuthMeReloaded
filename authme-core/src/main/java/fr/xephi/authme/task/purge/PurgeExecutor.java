@@ -131,18 +131,13 @@ public class PurgeExecutor {
     }
 
     private static String inventoryOwner(String file) {
-        String name = stripInventorySuffix(file);
-        return name.equals(file) ? null : name;
-    }
-
-    private static String stripInventorySuffix(String file) {
         for (String suffix : INVENTORY_FILE_SUFFIXES) {
             int idx = file.lastIndexOf(suffix);
             if (idx != -1) {
                 return file.substring(0, idx);
             }
         }
-        return file;
+        return null;
     }
 
     /**

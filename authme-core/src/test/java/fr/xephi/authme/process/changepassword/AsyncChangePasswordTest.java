@@ -7,7 +7,6 @@ import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.security.PasswordSecurity;
 import fr.xephi.authme.security.crypts.HashedPassword;
 import fr.xephi.authme.service.CommonService;
-import fr.xephi.authme.service.bungeecord.BungeeSender;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,8 +41,6 @@ class AsyncChangePasswordTest {
     private PlayerCache playerCache;
     @Mock
     private PasswordSecurity passwordSecurity;
-    @Mock
-    private BungeeSender bungeeSender;
 
     @BeforeEach
     void setUpLogger() {
@@ -52,39 +49,32 @@ class AsyncChangePasswordTest {
 
     @Test
     void shouldRejectCommandForUnknownUser() {
-        // given
         CommandSender sender = mock(CommandSender.class);
         String player = "player";
         String password = "password";
         given(playerCache.isAuthenticated(player)).willReturn(false);
         given(dataSource.isAuthAvailable(player)).willReturn(false);
 
-        // when
         asyncChangePassword.changePasswordAsAdmin(sender, player, password);
 
-        // then
         verify(commonService).send(sender, MessageKey.UNKNOWN_USER);
         verify(dataSource, only()).isAuthAvailable(player);
     }
 
     @Test
     void shouldDoNothingIfPlayerIsNoLongerLoggedIn() {
-        // given
         Player player = mock(Player.class);
         given(player.getName()).willReturn("Bobby");
         given(playerCache.getAuth("bobby")).willReturn(null);
 
-        // when
         asyncChangePassword.changePassword(player, "old", "new");
 
-        // then
         verifyNoInteractions(passwordSecurity, dataSource, commonService);
     }
 
     @ParameterizedTest(name = "update password of {0} user")
     @ValueSource(booleans = {true, false})
     void shouldUpdatePassword(boolean loggedIn) {
-        // given
         CommandSender sender = mock(CommandSender.class);
         String player = "my_user12";
         String password = "passPass";
@@ -97,10 +87,8 @@ class AsyncChangePasswordTest {
         given(passwordSecurity.computeHash(password, player)).willReturn(hashedPassword);
         given(dataSource.updatePassword(player, hashedPassword)).willReturn(true);
 
-        // when
         asyncChangePassword.changePasswordAsAdmin(sender, player, password);
 
-        // then
         verify(commonService).send(sender, MessageKey.PASSWORD_CHANGED_SUCCESS);
         verify(passwordSecurity).computeHash(password, player);
         verify(dataSource).updatePassword(player, hashedPassword);
@@ -108,7 +96,6 @@ class AsyncChangePasswordTest {
 
     @Test
     void shouldReportWhenSaveFailed() {
-        // given
         CommandSender sender = mock(CommandSender.class);
         String player = "my_user12";
         String password = "passPass";
@@ -118,10 +105,8 @@ class AsyncChangePasswordTest {
         given(passwordSecurity.computeHash(password, player)).willReturn(hashedPassword);
         given(dataSource.updatePassword(player, hashedPassword)).willReturn(false);
 
-        // when
         asyncChangePassword.changePasswordAsAdmin(sender, player, password);
 
-        // then
         verify(commonService).send(sender, MessageKey.ERROR);
         verify(passwordSecurity).computeHash(password, player);
         verify(dataSource).updatePassword(player, hashedPassword);

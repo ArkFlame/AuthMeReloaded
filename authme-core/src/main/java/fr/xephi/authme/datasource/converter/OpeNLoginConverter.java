@@ -44,46 +44,26 @@ public class OpeNLoginConverter extends AbstractSqlitePluginConverter {
             return;
         }
 
-        queryAndImport(dbFile, sender, QUERY, "OpeNLogin", logger, rs -> importRows(rs, sender));
+        queryAndImport(dbFile, sender, QUERY, "OpeNLogin", logger,
+            rs -> ConverterUtils.importRows(rs, getDataSource(), sender, "OpeNLogin",
+                row -> ConverterUtils.toLowerCaseOrNull(row.getString("name")), this::buildAuth));
     }
 
-    private void importRows(ResultSet rs, CommandSender sender) throws SQLException {
-        long imported = 0;
-        long skipped = 0;
-        while (rs.next()) {
-            String name = ConverterUtils.toLowerCaseOrNull(rs.getString("name"));
-            if (name == null) {
-                continue;
-            }
-
-            if (getDataSource().isAuthAvailable(name)) {
-                ++skipped;
-                continue;
-            }
-
-            String hash = rs.getString("password");
-            if (hash == null || hash.isEmpty()) {
-                logger.warning("No password for player '" + name + "', skipping");
-                continue;
-            }
-
-            String realName = rs.getString("realname");
-            long lastLogin = rs.getLong("lastlogin");
-
-            PlayerAuth auth = PlayerAuth.builder()
-                .name(name)
-                .realName(realName != null && !realName.isEmpty() ? realName : name)
-                .password(new HashedPassword(hash))
-                .lastIp(rs.getString("address"))
-                .registrationDate(rs.getLong("regdate"))
-                .lastLogin(lastLogin > 0 ? lastLogin : null)
-                .build();
-
-            getDataSource().saveAuth(auth);
-            ++imported;
+    private PlayerAuth buildAuth(ResultSet rs, String name) throws SQLException {
+        String hash = rs.getString("password");
+        if (!ConverterUtils.hasPassword(hash, name, logger)) {
+            return null;
         }
 
-        logAndSendMessage(sender, "OpeNLogin conversion: " + imported + " account(s) imported, "
-            + skipped + " skipped (already exist)");
+        String realName = rs.getString("realname");
+        long lastLogin = rs.getLong("lastlogin");
+        return PlayerAuth.builder()
+            .name(name)
+            .realName(realName != null && !realName.isEmpty() ? realName : name)
+            .password(new HashedPassword(hash))
+            .lastIp(rs.getString("address"))
+            .registrationDate(rs.getLong("regdate"))
+            .lastLogin(lastLogin > 0 ? lastLogin : null)
+            .build();
     }
 }

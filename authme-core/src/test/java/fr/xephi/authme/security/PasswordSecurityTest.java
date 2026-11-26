@@ -143,6 +143,15 @@ class PasswordSecurityTest {
         verify(method, never()).comparePassword(anyString(), any(HashedPassword.class), anyString());
     }
 
+    private void withAlgorithm(HashAlgorithm algorithm) {
+        given(settings.getProperty(SecuritySettings.PASSWORD_HASH)).willReturn(algorithm);
+    }
+
+    private void withAlgorithms(HashAlgorithm algorithm, HashAlgorithm... legacy) {
+        withAlgorithm(algorithm);
+        given(settings.getProperty(SecuritySettings.LEGACY_HASHES)).willReturn(newHashSet(legacy));
+    }
+
     @Test
     void shouldTryOtherMethodsForFailedPassword() {
         // BCRYPT hash for "Test"
@@ -157,8 +166,7 @@ class PasswordSecurityTest {
         given(dataSource.getPassword(argThat(equalToIgnoringCase(playerName)))).willReturn(password);
         given(method.comparePassword(clearTextPass, password, playerLowerCase)).willReturn(false);
         given(method.computeHash(clearTextPass, playerLowerCase)).willReturn(newPassword);
-        given(settings.getProperty(SecuritySettings.PASSWORD_HASH)).willReturn(HashAlgorithm.MD5);
-        given(settings.getProperty(SecuritySettings.LEGACY_HASHES)).willReturn(newHashSet(HashAlgorithm.BCRYPT));
+        withAlgorithms(HashAlgorithm.MD5, HashAlgorithm.BCRYPT);
         passwordSecurity.reload();
 
         boolean result = passwordSecurity.comparePassword(clearTextPass, playerName);
@@ -180,9 +188,8 @@ class PasswordSecurityTest {
         String clearTextPass = "someInvalidPassword";
         given(dataSource.getPassword(playerName)).willReturn(password);
         given(method.comparePassword(clearTextPass, password, playerName)).willReturn(false);
-        given(settings.getProperty(SecuritySettings.PASSWORD_HASH)).willReturn(HashAlgorithm.MD5);
-        given(settings.getProperty(SecuritySettings.LEGACY_HASHES)).willReturn(
-            newHashSet(HashAlgorithm.DOUBLEMD5, HashAlgorithm.JOOMLA, HashAlgorithm.SMF, HashAlgorithm.SHA256));
+        withAlgorithms(HashAlgorithm.MD5, HashAlgorithm.DOUBLEMD5, HashAlgorithm.JOOMLA,
+            HashAlgorithm.SMF, HashAlgorithm.SHA256);
         passwordSecurity.reload();
 
         boolean result = passwordSecurity.comparePassword(clearTextPass, playerName);
@@ -198,7 +205,7 @@ class PasswordSecurityTest {
         String usernameLowerCase = username.toLowerCase(Locale.ROOT);
         HashedPassword hashedPassword = new HashedPassword("$T$est#Hash", "__someSalt__");
         given(method.computeHash(password, usernameLowerCase)).willReturn(hashedPassword);
-        given(settings.getProperty(SecuritySettings.PASSWORD_HASH)).willReturn(HashAlgorithm.JOOMLA);
+        withAlgorithm(HashAlgorithm.JOOMLA);
         passwordSecurity.reload();
 
         HashedPassword result = passwordSecurity.computeHash(password, username);
@@ -215,7 +222,7 @@ class PasswordSecurityTest {
         String username = "someone12";
         HashedPassword hashedPassword = new HashedPassword("~T!est#Hash");
         given(method.hasSeparateSalt()).willReturn(true);
-        given(settings.getProperty(SecuritySettings.PASSWORD_HASH)).willReturn(HashAlgorithm.SHA256);
+        withAlgorithm(HashAlgorithm.SHA256);
         passwordSecurity.reload();
 
         boolean result = passwordSecurity.comparePassword(password, hashedPassword, username);
@@ -229,9 +236,7 @@ class PasswordSecurityTest {
 
     @Test
     void shouldReloadSettings() {
-        given(settings.getProperty(SecuritySettings.PASSWORD_HASH)).willReturn(HashAlgorithm.MD5);
-        given(settings.getProperty(SecuritySettings.LEGACY_HASHES))
-            .willReturn(newHashSet(HashAlgorithm.CUSTOM, HashAlgorithm.BCRYPT));
+        withAlgorithms(HashAlgorithm.MD5, HashAlgorithm.CUSTOM, HashAlgorithm.BCRYPT);
         reset(pluginManager); // reset behavior when the event is emitted to check that we create an instance of Md5.java
 
         passwordSecurity.reload();

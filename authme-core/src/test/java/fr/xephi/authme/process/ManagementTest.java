@@ -39,16 +39,13 @@ class ManagementTest {
 
     @Test
     void shouldForceLoginFromProxyByNameQueuesBeforeOnlineForceLogin() {
-        // given
         String playerName = "Connor";
         Player player = mock(Player.class);
         when(bukkitService.getPlayerExact(playerName)).thenReturn(player);
         when(player.isOnline()).thenReturn(true);
 
-        // when
         management.forceLoginFromProxy(playerName);
 
-        // then
         verify(proxySessionManager).processProxySessionMessage(playerName);
         verify(bukkitService).runTaskOptionallyAsync(any(Runnable.class));
     }
@@ -56,14 +53,11 @@ class ManagementTest {
     @ParameterizedTest(name = "{0}, approved={1}")
     @CsvSource({"ConNor, true", "OfflinePlayer, false"})
     void shouldForceLoginFromProxyByNameForOfflinePlayer(String playerName, boolean approved) {
-        // given
         when(bukkitService.getPlayerExact(playerName)).thenReturn(null);
         when(preJoinDialogService.approvePreJoinForceLogin(playerName.toLowerCase())).thenReturn(approved);
 
-        // when
         management.forceLoginFromProxy(playerName);
 
-        // then
         verify(proxySessionManager).processProxySessionMessage(playerName);
         verify(preJoinDialogService).approvePreJoinForceLogin(playerName.toLowerCase());
         verify(bukkitService, never()).runTaskOptionallyAsync(any());

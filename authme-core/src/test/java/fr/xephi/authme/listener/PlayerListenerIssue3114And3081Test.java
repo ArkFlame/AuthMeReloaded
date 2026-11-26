@@ -88,7 +88,6 @@ class PlayerListenerIssue3114And3081Test {
      */
     @Test
     void shouldCancelLocalizedDuplicateLoginKick() {
-        // given
         String reason = "Du bist von einem anderen Ort angemeldet.";
         given(settings.getProperty(RestrictionSettings.FORCE_SINGLE_SESSION)).willReturn(true);
 
@@ -101,16 +100,13 @@ class PlayerListenerIssue3114And3081Test {
 
         PlayerKickEvent event = new PlayerKickEvent(kicked, reason, "");
 
-        // when
         listener.onPlayerKick(event);
 
-        // then
         assertThat(event.isCancelled(), equalTo(true));
     }
 
     @Test
     void shouldNotCancelLocalizedKickWithoutDuplicateSession() {
-        // given
         String reason = "Verboten";
         given(settings.getProperty(RestrictionSettings.FORCE_SINGLE_SESSION)).willReturn(true);
         given(chatAdapter.getKickReason(any())).willReturn(reason);
@@ -118,10 +114,8 @@ class PlayerListenerIssue3114And3081Test {
         Player kicked = mock(Player.class);
         PlayerKickEvent event = new PlayerKickEvent(kicked, reason, "");
 
-        // when
         listener.onPlayerKick(event);
 
-        // then
         assertThat(event.isCancelled(), equalTo(false));
     }
 
@@ -131,7 +125,6 @@ class PlayerListenerIssue3114And3081Test {
      */
     @Test
     void shouldClampMovementAtRadiusInsteadOfTeleportingToSpawn() {
-        // given
         given(settings.getProperty(RestrictionSettings.ALLOW_UNAUTHED_MOVEMENT)).willReturn(true);
         given(settings.getProperty(RestrictionSettings.ALLOWED_MOVEMENT_RADIUS)).willReturn(12);
         given(settings.getProperty(RestrictionSettings.NO_TELEPORT)).willReturn(false);
@@ -147,10 +140,8 @@ class PlayerListenerIssue3114And3081Test {
         Location spawn = new Location(world, 0, 70, 0);
         given(spawnLoader.getSpawnLocation(player)).willReturn(spawn);
 
-        // when
         listener.onPlayerMove(event);
 
-        // then
         verify(event).setTo(from);
         verify(teleportAdapter, never()).teleportPlayer(any(Player.class), any(Location.class));
     }

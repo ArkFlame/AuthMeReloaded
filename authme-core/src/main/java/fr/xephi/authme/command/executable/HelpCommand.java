@@ -1,5 +1,6 @@
 package fr.xephi.authme.command.executable;
 
+import fr.xephi.authme.command.CommandDescription;
 import fr.xephi.authme.command.CommandMapper;
 import fr.xephi.authme.command.CommandUtils;
 import fr.xephi.authme.command.ExecutableCommand;
@@ -42,17 +43,20 @@ public class HelpCommand implements ExecutableCommand {
         if (MISSING_BASE_COMMAND.equals(resultStatus)) {
             sender.sendMessage(ChatColor.DARK_RED + "Could not get base command");
             return;
-        } else if (UNKNOWN_LABEL.equals(resultStatus)) {
-            if (result.getCommandDescription() == null) {
+        }
+
+        CommandDescription command = result.getCommandDescription();
+        if (UNKNOWN_LABEL.equals(resultStatus)) {
+            if (command == null) {
                 sender.sendMessage(ChatColor.DARK_RED + "Unknown command");
                 return;
             } else {
                 sender.sendMessage(ChatColor.GOLD + "Assuming " + ChatColor.WHITE
-                    + CommandUtils.constructCommandPath(result.getCommandDescription()));
+                    + CommandUtils.constructCommandPath(command));
             }
         }
 
-        int mappedCommandLevel = result.getCommandDescription().getLabelCount();
+        int mappedCommandLevel = command.getLabelCount();
         if (mappedCommandLevel == 1) {
             helpProvider.outputHelp(sender, result,
                 SHOW_COMMAND | SHOW_DESCRIPTION | SHOW_CHILDREN | SHOW_ALTERNATIVES);

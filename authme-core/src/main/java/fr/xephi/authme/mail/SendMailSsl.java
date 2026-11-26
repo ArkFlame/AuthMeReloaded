@@ -19,9 +19,6 @@ import java.security.Security;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static fr.xephi.authme.settings.properties.EmailSettings.MAIL_ACCOUNT;
-import static fr.xephi.authme.settings.properties.EmailSettings.MAIL_PASSWORD;
-
 
 /**
  * Sends emails to players on behalf of the server.
@@ -41,8 +38,8 @@ public class SendMailSsl {
      * @return true if the necessary email settings are set, false otherwise
      */
     public boolean hasAllInformation() {
-        return !settings.getProperty(MAIL_ACCOUNT).isEmpty()
-            && !settings.getProperty(MAIL_PASSWORD).isEmpty();
+        return !settings.getProperty(EmailSettings.MAIL_ACCOUNT).isEmpty()
+            && !settings.getProperty(EmailSettings.MAIL_PASSWORD).isEmpty();
     }
 
     /**

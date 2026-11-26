@@ -60,7 +60,6 @@ class PasswordRegisterExecutorTest {
     @ParameterizedTest(name = "valid password={0}")
     @ValueSource(booleans = {true, false})
     void shouldCheckPasswordValidity(boolean valid) {
-        // given
         String password = "myPass";
         String name = "player040";
         ValidationResult validationResult = valid
@@ -70,10 +69,8 @@ class PasswordRegisterExecutorTest {
         Player player = mockPlayerWithName(name);
         PasswordRegisterParams params = PasswordRegisterParams.of(player, password, null);
 
-        // when
         boolean result = executor.isRegistrationAdmitted(params);
 
-        // then
         assertThat(result, equalTo(valid));
         verify(validationService).validatePassword(password, name);
         if (!valid) {
@@ -83,17 +80,14 @@ class PasswordRegisterExecutorTest {
 
     @Test
     void shouldCreatePlayerAuth() {
-        // given
         given(passwordSecurity.computeHash(anyString(), anyString())).willAnswer(
             invocation -> new HashedPassword(invocation.getArgument(0)));
         Player player = mockPlayerWithName("S1m0N");
         TestHelper.mockIpAddressToPlayer(player, "123.45.67.89");
         PasswordRegisterParams params = PasswordRegisterParams.of(player, "pass", "mail@example.org");
 
-        // when
         PlayerAuth auth = executor.buildPlayerAuth(params);
 
-        // then
         assertThat(auth, hasAuthBasicData("s1m0n", "S1m0N", "mail@example.org", null));
         assertThat(auth.getRegistrationIp(), equalTo("123.45.67.89"));
         assertIsCloseTo(auth.getRegistrationDate(), System.currentTimeMillis(), 500);
@@ -103,7 +97,6 @@ class PasswordRegisterExecutorTest {
     @ParameterizedTest(name = "force login after register={0}")
     @ValueSource(booleans = {true, false})
     void shouldHandleForceLoginAfterRegistration(boolean forceLogin) {
-        // given
         given(commonService.getProperty(RegistrationSettings.FORCE_LOGIN_AFTER_REGISTER)).willReturn(forceLogin);
         Player player = mock(Player.class);
         PasswordRegisterParams params = PasswordRegisterParams.of(player, "pass", "mail@example.org");
@@ -112,10 +105,8 @@ class PasswordRegisterExecutorTest {
             setBukkitServiceToScheduleSyncDelayedTaskWithEntityAndDelay(bukkitService);
         }
 
-        // when
         executor.executePostPersistAction(params);
 
-        // then
         if (forceLogin) {
             verifyNoInteractions(bukkitService, asynchronousLogin);
         } else {

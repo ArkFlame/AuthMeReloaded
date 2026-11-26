@@ -27,18 +27,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.slf4j.Logger;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -64,9 +53,7 @@ final class VelocityProxyBridge {
     private final Map<String, AtomicInteger> pendingAutoLogins = new ConcurrentHashMap<>();
     private final Set<String> notifiedAuthServers = ConcurrentHashMap.newKeySet();
     private final Set<String> handshakeRetriesPending = ConcurrentHashMap.newKeySet();
-    private volatile Set<String> premiumUsernames = ConcurrentHashMap.newKeySet();
-    private List<String> premiumListBuffer = new ArrayList<>();
-    private int expectedPremiumListChunk = -1;
+    private final PremiumNames premiumNames;
     // Players with a pending premium verification (ran /premium but not yet confirmed via reconnect)
     private volatile Set<String> pendingPremiumUsernames = ConcurrentHashMap.newKeySet();
     private final VelocityPremiumVerificationManager premiumVerificationManager;
@@ -75,7 +62,6 @@ final class VelocityProxyBridge {
         t.setDaemon(true);
         return t;
     });
-    private final Path cacheFile;
 
     VelocityProxyBridge(ProxyServer proxyServer, Logger logger, VelocityProxyConfiguration configuration,
                         VelocityAuthenticationStore authenticationStore, Path dataDirectory) {
@@ -83,54 +69,13 @@ final class VelocityProxyBridge {
         this.logger = logger;
         this.configuration = configuration;
         this.authenticationStore = authenticationStore;
+        this.premiumNames = new PremiumNames(dataDirectory, logger, retryScheduler);
         this.premiumVerificationManager =
             new VelocityPremiumVerificationManager(logger,
                 this::requiresPremiumVerification, this::isPendingPremiumVerification,
                 this::clearPendingPremiumVerification,
                 () -> this.configuration.keepOfflineUuidCompatibility(),
                 name -> proxyServer.getPlayer(name).isPresent());
-        this.cacheFile = dataDirectory != null ? dataDirectory.resolve("premium_names.cache") : null;
-        if (cacheFile != null) {
-            loadPremiumNamesCache();
-        }
-    }
-
-    private void loadPremiumNamesCache() {
-        Set<String> loaded = ConcurrentHashMap.newKeySet();
-        try (BufferedReader reader = Files.newBufferedReader(cacheFile, StandardCharsets.UTF_8)) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                String name = line.trim();
-                if (!name.isEmpty()) {
-                    loaded.add(name);
-                }
-            }
-            premiumUsernames = loaded;
-            logger.info("Loaded {} premium username(s) from cache", loaded.size());
-        } catch (NoSuchFileException ignored) {
-            // No cache yet — first startup
-        } catch (IOException e) {
-            logger.warn("Failed to load premium names cache: {}", e.getMessage());
-        }
-    }
-
-    private void savePremiumNamesAsync() {
-        if (cacheFile == null) {
-            return;
-        }
-        Set<String> snapshot = new HashSet<>(premiumUsernames);
-        retryScheduler.execute(() -> {
-            Path tmp = cacheFile.resolveSibling(cacheFile.getFileName() + ".tmp");
-            try (BufferedWriter writer = Files.newBufferedWriter(tmp, StandardCharsets.UTF_8)) {
-                for (String name : snapshot) {
-                    writer.write(name);
-                    writer.newLine();
-                }
-                Files.move(tmp, cacheFile, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-            } catch (IOException e) {
-                logger.warn("Failed to save premium names cache: {}", e.getMessage());
-            }
-        });
     }
 
     void reload(VelocityProxyConfiguration configuration) {
@@ -146,7 +91,7 @@ final class VelocityProxyBridge {
     }
 
     private boolean requiresPremiumVerification(String normalizedName) {
-        return premiumUsernames.contains(normalizedName) || pendingPremiumUsernames.contains(normalizedName);
+        return premiumNames.contains(normalizedName) || pendingPremiumUsernames.contains(normalizedName);
     }
 
     private boolean isPendingPremiumVerification(String normalizedName) {
@@ -296,76 +241,22 @@ final class VelocityProxyBridge {
                 authenticationStore.markAuthenticated(parsedMessage.playerName());
             }
         } else if (parsedMessage.type() == ProxyMessageType.PREMIUM_SET) {
-            premiumUsernames.add(parsedMessage.playerName());
+            premiumNames.add(parsedMessage.playerName());
             pendingPremiumUsernames.remove(parsedMessage.playerName());
             logger.debug("Premium enabled for '{}' (proxy cache updated)", parsedMessage.playerName());
-            savePremiumNamesAsync();
         } else if (parsedMessage.type() == ProxyMessageType.PREMIUM_UNSET) {
-            premiumUsernames.remove(parsedMessage.playerName());
+            premiumNames.remove(parsedMessage.playerName());
             pendingPremiumUsernames.remove(parsedMessage.playerName());
             premiumVerificationManager.clearVerifiedPremium(parsedMessage.playerName());
             logger.debug("Premium disabled for '{}' (proxy cache updated)", parsedMessage.playerName());
-            savePremiumNamesAsync();
         } else if (parsedMessage.type() == ProxyMessageType.PREMIUM_PENDING_SET) {
             pendingPremiumUsernames.add(parsedMessage.playerName());
             premiumVerificationManager.clearVerifiedPremium(parsedMessage.playerName());
             logger.debug("Pending premium verification started for '{}'", parsedMessage.playerName());
         } else if (parsedMessage.type() == ProxyMessageType.PREMIUM_LIST) {
-            Set<String> newPremiumSet = ConcurrentHashMap.newKeySet();
-            addNormalizedPremiumNames(newPremiumSet, parsedMessage.playerName());
-            replacePremiumNames(newPremiumSet);
+            premiumNames.replaceFromCsv(parsedMessage.playerName());
         } else if (parsedMessage.type() == ProxyMessageType.PREMIUM_LIST_CHUNK) {
-            handlePremiumListChunk(parsedMessage.playerName());
-        }
-    }
-
-    private synchronized void handlePremiumListChunk(String payload) {
-        String[] parts = payload.split(":", 3);
-        int sequence;
-        try {
-            sequence = parts.length < 3 ? -1 : Integer.parseInt(parts[0]);
-        } catch (NumberFormatException e) {
-            sequence = -1;
-        }
-        if (sequence < 0) {
-            logger.warn("Malformed premium.list.chunk payload: {}", payload);
-            return;
-        }
-        if (sequence == 0) {
-            premiumListBuffer = new ArrayList<>();
-            expectedPremiumListChunk = 0;
-        }
-        if (sequence != expectedPremiumListChunk) {
-            logger.warn("Discarding premium list: received chunk {} instead of {}", sequence, expectedPremiumListChunk);
-            premiumListBuffer = new ArrayList<>();
-            expectedPremiumListChunk = -1;
-            return;
-        }
-        ++expectedPremiumListChunk;
-        addNormalizedPremiumNames(premiumListBuffer, parts[2]);
-        if ("1".equals(parts[1])) {
-            Set<String> newPremiumSet = ConcurrentHashMap.newKeySet();
-            newPremiumSet.addAll(premiumListBuffer);
-            premiumListBuffer = new ArrayList<>();
-            expectedPremiumListChunk = -1;
-            replacePremiumNames(newPremiumSet);
-        }
-    }
-
-    private void replacePremiumNames(Set<String> names) {
-        premiumUsernames = names;
-        logger.info("Premium list received from backend: {} premium player(s)", premiumUsernames.size());
-        savePremiumNamesAsync();
-    }
-
-    private static void addNormalizedPremiumNames(Collection<String> target, String csv) {
-        if (csv.isEmpty()) {
-            return;
-        }
-        for (String name : csv.split(",")) {
-            if (!name.isEmpty()) {
-                target.add(VelocityAuthenticationStore.normalizeName(name.trim()));
-            }
+            premiumNames.handleChunk(parsedMessage.playerName());
         }
     }
 

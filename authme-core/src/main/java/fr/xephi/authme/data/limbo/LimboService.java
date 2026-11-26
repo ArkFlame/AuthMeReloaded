@@ -16,15 +16,16 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import javax.inject.Inject;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 import static fr.xephi.authme.settings.properties.LimboSettings.RESTORE_ALLOW_FLIGHT;
 import static fr.xephi.authme.settings.properties.LimboSettings.RECREATE_ENDER_PEARLS;
@@ -349,9 +350,11 @@ public class LimboService {
      * @param pearlUuids entity UUIDs of the player's in-flight ender pearls
      */
     public void saveEnderPearlsForPlayer(Player player, Set<UUID> pearlUuids) {
-        saveEnderPearlsForPlayer(player, pearlUuids.stream()
-            .map(uuid -> new EnderPearlRestoreData(uuid, null, null))
-            .collect(Collectors.toList()));
+        List<EnderPearlRestoreData> pearls = new ArrayList<>(pearlUuids.size());
+        for (UUID uuid : pearlUuids) {
+            pearls.add(new EnderPearlRestoreData(uuid, null, null));
+        }
+        saveEnderPearlsForPlayer(player, pearls);
     }
 
     /**

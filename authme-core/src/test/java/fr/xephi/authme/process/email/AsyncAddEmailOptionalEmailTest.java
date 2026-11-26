@@ -63,7 +63,6 @@ class AsyncAddEmailOptionalEmailTest {
 
     @Test
     void shouldSaveEmailDirectlyWhenOptionalAndMailIsConfigured() {
-        // given
         String email = "my.mail@example.org";
         given(player.getName()).willReturn("testEr");
         given(playerCache.isAuthenticated("tester")).willReturn(true);
@@ -79,10 +78,8 @@ class AsyncAddEmailOptionalEmailTest {
         EmailChangedEvent event = spy(new EmailChangedEvent(player, null, email, false));
         given(bukkitService.createAndCallEvent(any(Function.class))).willReturn(event);
 
-        // when
         asyncAddEmail.addEmail(player, email);
 
-        // then
         verify(auth).setEmail(email);
         verify(dataSource).updateEmail(auth);
         verify(playerCache).updatePlayerIfPresent(auth);
@@ -93,7 +90,6 @@ class AsyncAddEmailOptionalEmailTest {
 
     @Test
     void shouldStillSendConfirmationCodeWhenEmailIsMandatory() {
-        // given
         String email = "my.mail@example.org";
         given(player.getName()).willReturn("testEr");
         given(playerCache.isAuthenticated("tester")).willReturn(true);
@@ -109,10 +105,8 @@ class AsyncAddEmailOptionalEmailTest {
         EmailChangedEvent event = spy(new EmailChangedEvent(player, null, email, false));
         given(bukkitService.createAndCallEvent(any(Function.class))).willReturn(event);
 
-        // when
         asyncAddEmail.addEmail(player, email);
 
-        // then
         verify(dataSource, never()).updateEmail(any());
         verify(pendingEmailVerificationCache).addPending(any(), any(), any());
         verify(service).send(player, MessageKey.EMAIL_CONFIRM_CODE_SENT, email);

@@ -217,15 +217,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
         }
 
         if (isAuthAvailable) {
-            // Protect inventory
-            if (service.getProperty(PROTECT_INVENTORY_BEFORE_LOGIN)) {
-                ProtectInventoryEvent ev = bukkitService.createAndCallEvent(
-                    isAsync -> new ProtectInventoryEvent(player, isAsync));
-                if (ev.isCancelled()) {
-                    bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, player::updateInventory);
-                    logger.fine("ProtectInventoryEvent has been cancelled for " + player.getName() + "...");
-                }
-            }
+            protectInventory(player);
 
             // Bedrock players verified by Floodgate (Xbox account) — same idea as premium below
             if (floodgateService.canAutoLogin(player.getUniqueId())) {
@@ -299,6 +291,18 @@ public class AsynchronousJoin implements AsynchronousProcess {
         }
 
         processJoinSync(player, name, isAuthAvailable, pendingLoginPassword, pendingRecoveryEmail, pendingRegistration, shouldSkipPostJoinDialog, pendingForceLogin);
+    }
+
+    /** Protects the inventory of a registered player before authentication. */
+    private void protectInventory(Player player) {
+        if (service.getProperty(PROTECT_INVENTORY_BEFORE_LOGIN)) {
+            ProtectInventoryEvent ev = bukkitService.createAndCallEvent(
+                isAsync -> new ProtectInventoryEvent(player, isAsync));
+            if (ev.isCancelled()) {
+                bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, player::updateInventory);
+                logger.fine("ProtectInventoryEvent has been cancelled for " + player.getName() + "...");
+            }
+        }
     }
 
     /**
@@ -490,11 +494,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
             if (pluginHookService.isEssentialsAvailable() && service.getProperty(HooksSettings.USE_ESSENTIALS_MOTD)) {
                 player.performCommand("motd");
             }
-            if (service.getProperty(RegistrationSettings.APPLY_BLIND_EFFECT)) {
-                // Allow infinite blindness effect
-                int blindTimeOut = (registrationTimeout <= 0) ? 99999 : registrationTimeout;
-                player.addPotionEffect(bukkitService.createBlindnessEffect(blindTimeOut));
-            }
+            applyJoinBlindEffect(player, registrationTimeout);
             commandManager.runCommandsOnJoin(player);
 
             // Pre-join dialog actions are mutually exclusive and all require the limbo created above.
@@ -511,6 +511,14 @@ public class AsynchronousJoin implements AsynchronousProcess {
                 bukkitService.runTaskLater(player, () -> showPostJoinDialogIfNecessary(player, isAuthAvailable), 1L);
             }
         });
+    }
+
+    /** Applies the blindness effect, allowing an effectively infinite duration for a non-positive timeout. */
+    private void applyJoinBlindEffect(Player player, int registrationTimeout) {
+        if (service.getProperty(RegistrationSettings.APPLY_BLIND_EFFECT)) {
+            int blindTimeOut = (registrationTimeout <= 0) ? 99999 : registrationTimeout;
+            player.addPotionEffect(bukkitService.createBlindnessEffect(blindTimeOut));
+        }
     }
 
     private void showPostJoinDialogIfNecessary(Player player, boolean isAuthAvailable) {

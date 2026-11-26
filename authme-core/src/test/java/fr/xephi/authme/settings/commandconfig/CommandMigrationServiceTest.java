@@ -11,6 +11,8 @@ import fr.xephi.authme.settings.SettingsMigrationService;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -45,28 +47,17 @@ class CommandMigrationServiceTest {
         TestHelper.setupLogger();
     }
 
-    @Test
-    void shouldRewriteForEmptyFile() {
-        boolean result = checkAndMigrate("commands.empty.yml");
+    @ParameterizedTest
+    @CsvSource({
+        "commands.empty.yml,     true",
+        "commands.incomplete.yml, true",
+        "commands.complete.yml,  false"
+    })
+    void shouldRewriteOnlyIncompleteFiles(String fileName, boolean expectedResult) {
+        boolean result = checkAndMigrate(fileName);
 
         // then
-        assertThat(result, equalTo(true));
-    }
-
-    @Test
-    void shouldRewriteIncompleteFile() {
-        boolean result = checkAndMigrate("commands.incomplete.yml");
-
-        // then
-        assertThat(result, equalTo(true));
-    }
-
-    @Test
-    void shouldNotChangeCompleteFile() {
-        boolean result = checkAndMigrate("commands.complete.yml");
-
-        // then
-        assertThat(result, equalTo(false));
+        assertThat(result, equalTo(expectedResult));
     }
 
     /**

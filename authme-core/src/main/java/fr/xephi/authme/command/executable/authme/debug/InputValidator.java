@@ -45,20 +45,25 @@ class InputValidator implements DebugSection {
 
     @Override
     public void execute(CommandSender sender, List<String> arguments) {
-        if (arguments.size() < 2 || !ValidationObject.matchesAny(arguments.get(0))) {
+        if (arguments.size() < 2) {
+            displayUsageHint(sender);
+            return;
+        }
+        String type = arguments.get(0);
+        if (!ValidationObject.matchesAny(type)) {
             displayUsageHint(sender);
 
-        } else if (PASS.matches(arguments.get(0))) {
+        } else if (PASS.matches(type)) {
             validatePassword(sender, arguments.get(1));
 
-        } else if (MAIL.matches(arguments.get(0))) {
+        } else if (MAIL.matches(type)) {
             validateEmail(sender, arguments.get(1));
 
-        } else if (NAME.matches(arguments.get(0))) {
+        } else if (NAME.matches(type)) {
             validateUsername(sender, arguments.get(1));
 
         } else {
-            throw new IllegalStateException("Unexpected validation object with arg[0] = '" + arguments.get(0) + "'");
+            throw new IllegalStateException("Unexpected validation object with arg[0] = '" + type + "'");
         }
     }
 

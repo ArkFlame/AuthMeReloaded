@@ -2,7 +2,12 @@ package fr.xephi.authme.datasource;
 
 import com.zaxxer.hikari.HikariDataSource;
 import fr.xephi.authme.data.auth.PlayerAuth;
+import fr.xephi.authme.datasource.columnshandler.AuthMeColumnsHandler;
 import fr.xephi.authme.datasource.mysqlextensions.MySqlExtension;
+import fr.xephi.authme.datasource.mysqlextensions.MySqlExtensionsFactory;
+import fr.xephi.authme.settings.Settings;
+import fr.xephi.authme.settings.properties.DatabaseSettings;
+import fr.xephi.authme.settings.properties.HooksSettings;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -27,6 +32,61 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
     private String findAuthSql;
     private String findRecordsToPurgeSql;
     private String updateOtherUsernamesSql;
+
+    private String host;
+    private String port;
+    private String username;
+    private String password;
+    private String database;
+    private int poolSize;
+    private int maxLifetime;
+
+    /**
+     * Loads the connection settings shared by every Hikari-based SQL data source.
+     */
+    protected void setCommonParameters(Settings settings, MySqlExtensionsFactory extensionsFactory) {
+        this.host = settings.getProperty(DatabaseSettings.MYSQL_HOST);
+        this.port = settings.getProperty(DatabaseSettings.MYSQL_PORT);
+        this.username = settings.getProperty(DatabaseSettings.MYSQL_USERNAME);
+        this.password = settings.getProperty(DatabaseSettings.MYSQL_PASSWORD);
+        this.database = settings.getProperty(DatabaseSettings.MYSQL_DATABASE);
+        this.tableName = settings.getProperty(DatabaseSettings.MYSQL_TABLE);
+        this.columnOthers = settings.getProperty(HooksSettings.MYSQL_OTHER_USERNAME_COLS);
+        this.col = new Columns(settings);
+        this.columnsHandler = AuthMeColumnsHandler.createForMySql(this::getConnection, settings);
+        this.sqlExtension = extensionsFactory.buildExtension(col);
+        this.poolSize = settings.getProperty(DatabaseSettings.MYSQL_POOL_SIZE);
+        this.maxLifetime = settings.getProperty(DatabaseSettings.MYSQL_CONNECTION_MAX_LIFETIME);
+        initSqlStrings();
+    }
+
+    protected String getHost() {
+        return host;
+    }
+
+    protected String getPort() {
+        return port;
+    }
+
+    protected String getUsername() {
+        return username;
+    }
+
+    protected String getPassword() {
+        return password;
+    }
+
+    protected String getDatabase() {
+        return database;
+    }
+
+    protected int getPoolSize() {
+        return poolSize;
+    }
+
+    protected int getMaxLifetime() {
+        return maxLifetime;
+    }
 
     @Override
     protected void initSqlStrings() {
@@ -112,19 +172,12 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
 
     @Override
     public Set<String> getRecordsToPurge(long until) {
-        Set<String> list = new HashSet<>();
-        try (Connection con = getConnection();
-             PreparedStatement selectPst = con.prepareStatement(findRecordsToPurgeSql)) {
-            selectPst.setLong(1, until);
-            try (ResultSet rs = selectPst.executeQuery()) {
-                while (rs.next()) {
-                    list.add(rs.getString(col.NAME));
-                }
-            }
+        try (Connection con = getConnection()) {
+            return findRecordsToPurge(con, findRecordsToPurgeSql, until);
         } catch (SQLException ex) {
             logSqlException(ex);
         }
-        return list;
+        return new HashSet<>();
     }
 
     @Override
@@ -160,17 +213,12 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
 
     @Override
     public List<String> getLoggedPlayersWithEmptyMail() {
-        List<String> players = new ArrayList<>();
-        try (Connection con = getConnection();
-             PreparedStatement pst = con.prepareStatement(findLoggedWithEmptyEmailSql);
-             ResultSet rs = pst.executeQuery()) {
-            while (rs.next()) {
-                players.add(rs.getString(1));
-            }
+        try (Connection con = getConnection()) {
+            return findLoggedWithEmptyMail(con, findLoggedWithEmptyEmailSql);
         } catch (SQLException ex) {
             logSqlException(ex);
         }
-        return players;
+        return new ArrayList<>();
     }
 
     @Override
@@ -190,12 +238,8 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
 
     @Override
     public void purgeRecords(Collection<String> toPurge) {
-        try (Connection con = getConnection(); PreparedStatement pst = con.prepareStatement(deleteByNameSql)) {
-            for (String name : toPurge) {
-                pst.setString(1, name.toLowerCase(Locale.ROOT));
-                pst.addBatch();
-            }
-            pst.executeBatch();
+        try (Connection con = getConnection()) {
+            deleteRecords(con, deleteByNameSql, toPurge);
         } catch (SQLException ex) {
             logSqlException(ex);
         }
@@ -203,11 +247,8 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
 
     @Override
     public boolean setTotpKey(String user, String totpKey) {
-        try (Connection con = getConnection(); PreparedStatement pst = con.prepareStatement(updateTotpSql)) {
-            pst.setString(1, totpKey);
-            pst.setString(2, user.toLowerCase(Locale.ROOT));
-            pst.executeUpdate();
-            return true;
+        try (Connection con = getConnection()) {
+            return updateTotpKey(con, updateTotpSql, user, totpKey);
         } catch (SQLException e) {
             logSqlException(e);
         }

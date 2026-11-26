@@ -28,32 +28,26 @@ class LegacyPlayerSpawnLocationListenerTest {
 
     @Test
     void shouldSetCustomSpawnLocationForLegacySpawnEvent() {
-        // given
         Player player = mock(Player.class);
         Location originalSpawn = mock(Location.class);
         Location customSpawn = mock(Location.class);
         PlayerSpawnLocationEvent event = spy(new PlayerSpawnLocationEvent(player, originalSpawn));
         given(teleportationService.prepareOnJoinSpawnLocation(player, originalSpawn)).willReturn(customSpawn);
 
-        // when
         listener.onPlayerSpawn(event);
 
-        // then
         verify(teleportationService).prepareOnJoinSpawnLocation(player, originalSpawn);
         verify(event).setSpawnLocation(customSpawn);
     }
 
     @Test
     void shouldLeaveOriginalSpawnWhenNoCustomSpawnIsProvided() {
-        // given
         Player player = mock(Player.class);
         Location originalSpawn = mock(Location.class);
         PlayerSpawnLocationEvent event = spy(new PlayerSpawnLocationEvent(player, originalSpawn));
 
-        // when
         listener.onPlayerSpawn(event);
 
-        // then
         verify(teleportationService).prepareOnJoinSpawnLocation(player, originalSpawn);
         verify(event, never()).setSpawnLocation(any(Location.class));
     }

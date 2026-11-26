@@ -19,6 +19,11 @@ public enum MessageType {
      */
     public static final String CHANNEL = "authme:main";
 
+    /**
+     * Standard BungeeCord plugin-messaging channel used to send players between servers.
+     */
+    public static final String BUNGEE_CHANNEL = "BungeeCord";
+
     private final String id;
 
     MessageType(String id) {

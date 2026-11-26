@@ -1,6 +1,8 @@
 package fr.xephi.authme.datasource.converter;
 
 import fr.xephi.authme.ConsoleLogger;
+import fr.xephi.authme.data.auth.PlayerAuth;
+import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.security.crypts.HashedPassword;
 import org.bukkit.command.CommandSender;
 
@@ -27,6 +29,22 @@ import static fr.xephi.authme.util.Utils.logAndSendMessage;
 final class ConverterUtils {
 
     private ConverterUtils() {
+    }
+
+    /**
+     * Checks that a plugin's config file is present before a conversion is started.
+     *
+     * @param sender the sender to report the problem to
+     * @param configFile the config file to check
+     * @param pluginName name of the source plugin, used in the error message
+     * @return true when the file exists and the conversion may proceed
+     */
+    static boolean hasConfigFile(CommandSender sender, File configFile, String pluginName) {
+        if (!configFile.exists()) {
+            logAndSendMessage(sender, pluginName + " conversion failed: config not found at " + configFile.getPath());
+            return false;
+        }
+        return true;
     }
 
     /**
@@ -89,6 +107,22 @@ final class ConverterUtils {
     }
 
     /**
+     * Verifies that a source account has a usable password hash, warning once when it does not.
+     *
+     * @param hash the stored hash
+     * @param name the lowercased player name, used in the warning
+     * @param logger logger for the warning
+     * @return true when the hash may be imported
+     */
+    static boolean hasPassword(String hash, String name, ConsoleLogger logger) {
+        if (hash == null || hash.isEmpty()) {
+            logger.warning("No password for player '" + name + "', skipping");
+            return false;
+        }
+        return true;
+    }
+
+    /**
      * Returns the Argon2 PHC string, decoding it from Base64 when necessary.
      *
      * @param value the stored Argon2 hash
@@ -142,6 +176,61 @@ final class ConverterUtils {
      */
     static String toLowerCaseOrNull(String name) {
         return name == null || name.isEmpty() ? null : name.toLowerCase(Locale.ROOT);
+    }
+
+    /**
+     * Shared account-import loop. Skips rows without a usable name, accounts that are already
+     * present in AuthMe and accounts whose source data cannot be converted.
+     *
+     * @param rs the query results
+     * @param dataSource the destination data source
+     * @param sender the sender to report the outcome to
+     * @param pluginName name of the source plugin, used in the summary
+     * @param nameReader extracts the lowercase account name from a row
+     * @param authBuilder turns a row into an account, or returns null to skip it
+     * @throws SQLException on a database error
+     */
+    static void importRows(ResultSet rs, DataSource dataSource, CommandSender sender, String pluginName,
+                           RowNameReader nameReader, RowAuthBuilder authBuilder) throws SQLException {
+        long imported = 0;
+        long skipped = 0;
+        while (rs.next()) {
+            String name = nameReader.read(rs);
+            if (name == null || name.isEmpty()) {
+                continue;
+            }
+            if (dataSource.isAuthAvailable(name)) {
+                ++skipped;
+                continue;
+            }
+            PlayerAuth auth = authBuilder.build(rs, name);
+            if (auth == null) {
+                continue;
+            }
+            dataSource.saveAuth(auth);
+            ++imported;
+        }
+        logImportResult(sender, pluginName, imported, skipped);
+    }
+
+    /**
+     * Reports how many accounts a conversion imported and how many it skipped.
+     */
+    static void logImportResult(CommandSender sender, String pluginName, long imported, long skipped) {
+        logAndSendMessage(sender, pluginName + " conversion: " + imported + " account(s) imported, "
+            + skipped + " skipped (already exist)");
+    }
+
+    /** Reads the account name of the current row of a converter query. */
+    @FunctionalInterface
+    interface RowNameReader {
+        String read(ResultSet rs) throws SQLException;
+    }
+
+    /** Builds the AuthMe account for the current row, or returns null to skip the row. */
+    @FunctionalInterface
+    interface RowAuthBuilder {
+        PlayerAuth build(ResultSet rs, String name) throws SQLException;
     }
 
     /** Opens the JDBC connection used by a converter query. */

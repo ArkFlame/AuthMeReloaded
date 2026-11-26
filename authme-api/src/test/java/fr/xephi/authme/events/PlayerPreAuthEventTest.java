@@ -24,6 +24,16 @@ class PlayerPreAuthEventTest {
     }
 
     @Test
+    void honorsAsyncFlagAndHandlerList() {
+        PlayerPreAuthEvent event = new PlayerPreAuthEvent(player, false, PlayerPreAuthEvent.Source.JOIN, true);
+
+        assertThat(event.getPlayer(), equalTo(player));
+        assertThat(event.getSource(), equalTo(PlayerPreAuthEvent.Source.JOIN));
+        assertThat(event.isAsynchronous(), equalTo(true));
+        assertThat(event.getHandlers() == PlayerPreAuthEvent.getHandlerList(), equalTo(true));
+    }
+
+    @Test
     void forceLoginOnlyHonoredForRegisteredPlayers() {
         PlayerPreAuthEvent registered = new PlayerPreAuthEvent(player, true, PlayerPreAuthEvent.Source.JOIN, false);
         registered.forceLogin();

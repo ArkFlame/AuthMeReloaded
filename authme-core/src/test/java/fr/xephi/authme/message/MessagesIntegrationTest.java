@@ -18,6 +18,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 
 import java.io.File;
@@ -288,38 +290,25 @@ class MessagesIntegrationTest {
         }
     }
 
-    @Test
-    void shouldUsePlayerLocaleForMessages() {
+    @ParameterizedTest
+    @CsvSource({
+        "ru_ru, §2Вы успешно вошли!",
+        "xx_xx, §2Successful login!" // unknown locale falls back to the server language
+    })
+    void shouldResolvePlayerLocaleForMessages(String locale, String expectedMessage) {
         // given
         BukkitCompatibilityAdapter adapter = mock(BukkitCompatibilityAdapter.class);
         Messages messagesWithLocale = createMessagesWithLocale(adapter);
 
         Player player = mockPlayer("TestPlayer", "TestPlayer");
-        given(adapter.getPlayerLocale(player)).willReturn(Optional.of("ru_ru"));
+        given(adapter.getPlayerLocale(player)).willReturn(Optional.of(locale));
 
         // when
         String[] result = messagesWithLocale.retrieve(MessageKey.LOGIN_SUCCESS, player);
 
-        // then - should get Russian message, not English
+        // then
         assertThat(result, arrayWithSize(1));
-        assertThat(result[0], equalTo("§2Вы успешно вошли!"));
-    }
-
-    @Test
-    void shouldFallBackToServerLanguageForUnknownLocale() {
-        // given
-        BukkitCompatibilityAdapter adapter = mock(BukkitCompatibilityAdapter.class);
-        Messages messagesWithLocale = createMessagesWithLocale(adapter);
-
-        Player player = mockPlayer("TestPlayer", "TestPlayer");
-        given(adapter.getPlayerLocale(player)).willReturn(Optional.of("xx_xx")); // no such language
-
-        // when
-        String[] result = messagesWithLocale.retrieve(MessageKey.LOGIN_SUCCESS, player);
-
-        // then - should fall back to English
-        assertThat(result, arrayWithSize(1));
-        assertThat(result[0], equalTo("§2Successful login!"));
+        assertThat(result[0], equalTo(expectedMessage));
     }
 
     private static CommandSender mockSender() {

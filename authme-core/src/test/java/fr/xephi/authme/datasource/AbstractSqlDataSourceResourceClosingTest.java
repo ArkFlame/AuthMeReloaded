@@ -29,7 +29,6 @@ public abstract class AbstractSqlDataSourceResourceClosingTest extends AbstractR
     static void initializeSettings() {
         settings = mock(Settings.class);
         TestHelper.returnDefaultsForAllProperties(settings);
-        TestHelper.setupLogger();
     }
 
     protected DataSource getObjectUnderTest() {

@@ -21,7 +21,6 @@ class PlayerAuthBuilderHelperTest {
 
     @Test
     void shouldConstructPlayerAuth() {
-        // given
         Player player = mock(Player.class);
         given(player.getName()).willReturn("Noah");
         String ip = "192.168.34.47";
@@ -29,10 +28,8 @@ class PlayerAuthBuilderHelperTest {
         HashedPassword hashedPassword = new HashedPassword("myHash0001");
         String email = "test@example.org";
 
-        // when
         PlayerAuth auth = PlayerAuthBuilderHelper.createPlayerAuth(player, hashedPassword, email);
 
-        // then
         assertThat(auth, hasAuthBasicData("noah", "Noah", email, null));
         assertThat(auth.getRegistrationIp(), equalTo("192.168.34.47"));
         assertThat(Math.abs(auth.getRegistrationDate() - System.currentTimeMillis()), lessThan(1000L));

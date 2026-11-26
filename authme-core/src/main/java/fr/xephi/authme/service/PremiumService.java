@@ -74,14 +74,8 @@ public class PremiumService implements HasCleanup {
      * @param player the player requesting premium mode
      */
     public void enablePremium(Player player) {
-        if (!settings.getProperty(PremiumSettings.ENABLE_PREMIUM)) {
-            messages.send(player, MessageKey.PREMIUM_FEATURE_DISABLED);
-            return;
-        }
-
-        PlayerAuth auth = playerCache.getAuth(player.getName());
+        PlayerAuth auth = getAuthForPlayerCommand(player);
         if (auth == null) {
-            messages.send(player, MessageKey.NOT_LOGGED_IN);
             return;
         }
 
@@ -119,14 +113,8 @@ public class PremiumService implements HasCleanup {
      * @param player the player requesting to disable premium mode
      */
     public void disablePremium(Player player) {
-        if (!settings.getProperty(PremiumSettings.ENABLE_PREMIUM)) {
-            messages.send(player, MessageKey.PREMIUM_FEATURE_DISABLED);
-            return;
-        }
-
-        PlayerAuth auth = playerCache.getAuth(player.getName());
+        PlayerAuth auth = getAuthForPlayerCommand(player);
         if (auth == null) {
-            messages.send(player, MessageKey.NOT_LOGGED_IN);
             return;
         }
 
@@ -282,6 +270,19 @@ public class PremiumService implements HasCleanup {
             return;
         }
         storePremiumUuid(auth, confirmedUuid, player, playerName, false);
+    }
+
+    /** Sends the shared error messages and returns the player's auth, or null if the command cannot proceed. */
+    private PlayerAuth getAuthForPlayerCommand(Player player) {
+        if (!settings.getProperty(PremiumSettings.ENABLE_PREMIUM)) {
+            messages.send(player, MessageKey.PREMIUM_FEATURE_DISABLED);
+            return null;
+        }
+        PlayerAuth auth = playerCache.getAuth(player.getName());
+        if (auth == null) {
+            messages.send(player, MessageKey.NOT_LOGGED_IN);
+        }
+        return auth;
     }
 
     private void storePremiumUuid(PlayerAuth auth, UUID uuid, CommandSender feedbackTarget, String playerName,

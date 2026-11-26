@@ -11,6 +11,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.event.server.PluginEnableEvent;
+import org.bukkit.event.server.PluginEvent;
 
 import javax.inject.Inject;
 
@@ -32,7 +33,7 @@ public class ServerListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPluginDisable(PluginDisableEvent event) {
-        final String pluginName = event.getPlugin().getName();
+        final String pluginName = getPluginName(event);
 
         // Call the onPluginDisable method in the permissions manager
         permissionsManager.onPluginDisable(pluginName);
@@ -58,7 +59,7 @@ public class ServerListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPluginEnable(PluginEnableEvent event) {
-        final String pluginName = event.getPlugin().getName();
+        final String pluginName = getPluginName(event);
 
         // Call the onPluginEnable method in the permissions manager
         permissionsManager.onPluginEnable(pluginName);
@@ -75,5 +76,9 @@ public class ServerListener implements Listener {
         } else if ("packetevents".equalsIgnoreCase(pluginName)) {
             packetEventsService.setup();
         }
+    }
+
+    private static String getPluginName(PluginEvent event) {
+        return event.getPlugin().getName();
     }
 }

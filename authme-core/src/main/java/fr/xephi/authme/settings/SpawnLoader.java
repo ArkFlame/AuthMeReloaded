@@ -286,19 +286,11 @@ public class SpawnLoader implements Reloadable {
             return baseY;
         }
         int margin = 10;
-        if (compatibilityAdapter.isBlockPassable(world.getBlockAt(x, baseY, z))) {
-            for (int dy = 1; dy <= margin; dy++) {
-                int y = baseY - dy;
-                if (isPassable(world, x, y, z) && isPassable(world, x, y + 1, z)) {
-                    return y;
-                }
-            }
-        } else {
-            for (int dy = 1; dy <= margin; dy++) {
-                int y = baseY + dy;
-                if (isPassable(world, x, y, z) && isPassable(world, x, y + 1, z)) {
-                    return y;
-                }
+        int direction = compatibilityAdapter.isBlockPassable(world.getBlockAt(x, baseY, z)) ? -1 : 1;
+        for (int dy = 1; dy <= margin; dy++) {
+            int y = baseY + dy * direction;
+            if (isPassable(world, x, y, z) && isPassable(world, x, y + 1, z)) {
+                return y;
             }
         }
         return null;

@@ -3,6 +3,7 @@ package fr.xephi.authme.events;
 import org.bukkit.event.Event;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
@@ -23,6 +24,10 @@ class ApiEventsConsistencyTest {
         UnregisterByAdminEvent.class, UnregisterByPlayerEvent.class
     };
 
+    static Class<?>[] events() {
+        return EVENTS.clone();
+    }
+
     @Test
     void shouldExtendCustomEventAndHaveHandlerList() throws Exception {
         for (Class<?> clazz : EVENTS) {
@@ -38,6 +43,19 @@ class ApiEventsConsistencyTest {
                 assertThat(clazz.getSimpleName(), m, nullValue());
             } else {
                 assertThat(clazz.getSimpleName(), m != null && Modifier.isStatic(m.getModifiers()), equalTo(true));
+            }
+        }
+    }
+
+    @Test
+    void eventStateIsOnlyEverHeldInPrivateFields() {
+        for (Class<?> clazz : EVENTS) {
+            for (Field field : clazz.getDeclaredFields()) {
+                if (field.isSynthetic() || field.getName().contains("$")) {
+                    continue;
+                }
+                assertThat(clazz.getSimpleName() + "." + field.getName() + " must be private",
+                    Modifier.isPrivate(field.getModifiers()), equalTo(true));
             }
         }
     }

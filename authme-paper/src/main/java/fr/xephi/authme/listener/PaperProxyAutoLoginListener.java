@@ -54,13 +54,15 @@ public class PaperProxyAutoLoginListener implements Listener, PluginMessageListe
         if (messenger == null) {
             return;
         }
-        if (enabled && !channelRegistered) {
-            messenger.registerIncomingPluginChannel(plugin, AUTHME_CHANNEL, this);
-            channelRegistered = true;
-        } else if (!enabled && channelRegistered) {
-            messenger.unregisterIncomingPluginChannel(plugin, AUTHME_CHANNEL, this);
-            channelRegistered = false;
+        if (enabled == channelRegistered) {
+            return;
         }
+        if (enabled) {
+            messenger.registerIncomingPluginChannel(plugin, AUTHME_CHANNEL, this);
+        } else {
+            messenger.unregisterIncomingPluginChannel(plugin, AUTHME_CHANNEL, this);
+        }
+        channelRegistered = enabled;
     }
 
     /**

@@ -42,7 +42,7 @@ public class RegistrationCaptchaManager implements CaptchaManager, SettingsDepen
     @Override
     public boolean checkCode(Player player, String code) {
         String nameLower = CaptchaCodeStorage.normalize(player.getName());
-        boolean isCodeCorrect = captchaCodeStorage.checkCode(nameLower, code);
+        boolean isCodeCorrect = captchaCodeStorage.checkCodeForNormalizedName(nameLower, code);
         if (isCodeCorrect) {
             verifiedNamesForRegistration.add(nameLower);
         }

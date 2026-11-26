@@ -20,8 +20,6 @@ import java.util.stream.Collectors;
 
 public class BungeeSender implements SettingsDependent {
 
-    private static final String BUNGEE_CHANNEL = "BungeeCord";
-    private static final String AUTHME_CHANNEL = MessageType.CHANNEL;
     private static final int PREMIUM_LIST_CHUNK_SIZE = 1000;
 
     private final ConsoleLogger logger = ConsoleLoggerFactory.get(BungeeSender.class);
@@ -46,8 +44,8 @@ public class BungeeSender implements SettingsDependent {
         if (messenger == null) {
             return;
         }
-        setOutgoingChannel(messenger, BUNGEE_CHANNEL, isEnabled);
-        setOutgoingChannel(messenger, AUTHME_CHANNEL, isEnabled);
+        setOutgoingChannel(messenger, MessageType.BUNGEE_CHANNEL, isEnabled);
+        setOutgoingChannel(messenger, MessageType.CHANNEL, isEnabled);
     }
 
     /**

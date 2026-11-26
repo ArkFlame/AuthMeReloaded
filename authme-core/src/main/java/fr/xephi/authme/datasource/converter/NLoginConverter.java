@@ -60,8 +60,7 @@ public class NLoginConverter extends AbstractYamlPluginConverter {
     @Override
     protected PlayerAuth buildAuth(ResultSet rs, String name) throws SQLException {
         String hash = rs.getString("password");
-        if (hash == null || hash.isEmpty()) {
-            logger.warning("No password for player '" + name + "', skipping");
+        if (!ConverterUtils.hasPassword(hash, name, logger)) {
             return null;
         }
         long creationDate = rs.getLong("creation_date");
