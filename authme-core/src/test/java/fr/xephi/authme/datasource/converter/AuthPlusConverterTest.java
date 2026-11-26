@@ -31,7 +31,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.withSettings;
@@ -91,7 +90,7 @@ class AuthPlusConverterTest extends AbstractConverterTest {
             converter.execute(sender);
         }
 
-        verify(dataSource, times(1)).saveAuth(authCaptor.capture());
+        verify(dataSource).saveAuth(authCaptor.capture());
         List<PlayerAuth> saved = authCaptor.getAllValues();
         assertThat(saved, hasSize(1));
         assertThat(saved.get(0).getNickname(), equalTo("testplayer"));

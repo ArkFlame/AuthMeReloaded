@@ -61,6 +61,7 @@ class TaskCloserTest {
         given(server.getScheduler()).willReturn(bukkitScheduler);
         given(authMe.getServer()).willReturn(server);
         given(authMe.getLogger()).willReturn(logger);
+        mockActiveWorkers();
         taskCloser = spy(new TaskCloser(authMe, dataSource));
     }
 
@@ -69,11 +70,9 @@ class TaskCloserTest {
     void shouldPollUntilTasksAreDone(boolean neverEnding, int expectedSleeps, int expectedChecks)
             throws InterruptedException {
         doNothing().when(taskCloser).sleep(); // avoid sleeping in tests
-        mockActiveWorkers();
         given(bukkitScheduler.isCurrentlyRunning(ACTIVE_WORKERS_ID[0])).willReturn(neverEnding);
-        given(bukkitScheduler.isCurrentlyRunning(ACTIVE_WORKERS_ID[1]))
-            .willReturn(!neverEnding) // first time
-            .willReturn(false); // second time
+        // first and second check of the second worker
+        given(bukkitScheduler.isCurrentlyRunning(ACTIVE_WORKERS_ID[1])).willReturn(!neverEnding, false);
 
         taskCloser.run();
 
@@ -90,7 +89,6 @@ class TaskCloserTest {
     @Test
     void shouldCloseDataSourceWhenSchedulerCheckFails() throws InterruptedException {
         doNothing().when(taskCloser).sleep(); // avoid sleeping in tests
-        mockActiveWorkers();
         given(bukkitScheduler.isCurrentlyRunning(ACTIVE_WORKERS_ID[0]))
             .willThrow(new IllegalStateException("scheduler unavailable"));
 
@@ -119,7 +117,6 @@ class TaskCloserTest {
         taskCloser = spy(new TaskCloser(authMe, null));
         // First two times do nothing, third time throw exception when we sleep
         doNothing().doNothing().doThrow(InterruptedException.class).when(taskCloser).sleep();
-        mockActiveWorkers();
         given(bukkitScheduler.isCurrentlyRunning(anyInt())).willReturn(true);
 
         taskCloser.run();

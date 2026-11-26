@@ -15,7 +15,6 @@ import java.util.concurrent.TimeUnit;
 public class QuickCommandsProtectionManager implements SettingsDependent, HasCleanup {
 
     private final PermissionsManager permissionsManager;
-
     private final ExpiringSet<String> latestJoin;
 
     @Inject
@@ -23,7 +22,6 @@ public class QuickCommandsProtectionManager implements SettingsDependent, HasCle
         this.permissionsManager = permissionsManager;
         long countTimeout = settings.getProperty(ProtectionSettings.QUICK_COMMANDS_DENIED_BEFORE_MILLISECONDS);
         latestJoin = new ExpiringSet<>(countTimeout, TimeUnit.MILLISECONDS);
-        reload(settings);
     }
 
     /**

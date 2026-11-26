@@ -24,10 +24,10 @@ final class MessageMigraterPropertyReader implements PropertyReader {
 
     private static final Charset CHARSET = StandardCharsets.UTF_8;
 
-    private Map<String, Object> root;
+    private final Map<String, Object> root;
 
     private MessageMigraterPropertyReader(Map<String, Object> valuesMap) {
-        root = valuesMap;
+        this.root = valuesMap;
     }
 
     /**
@@ -45,7 +45,15 @@ final class MessageMigraterPropertyReader implements PropertyReader {
     }
 
     public static MessageMigraterPropertyReader loadFromStream(InputStream inputStream) {
-        Map<String, Object> valuesMap = readStreamToMap(inputStream);
+        Map<String, Object> valuesMap;
+        try (InputStreamReader isr = new InputStreamReader(inputStream, CHARSET)) {
+            Object obj = new Yaml().load(isr);
+            valuesMap = obj == null ? new HashMap<>() : (Map<String, Object>) obj;
+        } catch (IOException e) {
+            throw new ConfigMeException("Could not read stream", e);
+        } catch (ClassCastException e) {
+            throw new ConfigMeException("Top-level is not a map", e);
+        }
         return new MessageMigraterPropertyReader(valuesMap);
     }
 
@@ -71,7 +79,10 @@ final class MessageMigraterPropertyReader implements PropertyReader {
         }
         Object node = root;
         for (String key : path.split("\\.")) {
-            node = node instanceof Map<?, ?> ? ((Map<?, ?>) node).get(key) : null;
+            if (!(node instanceof Map<?, ?>)) {
+                return null;
+            }
+            node = ((Map<?, ?>) node).get(key);
             if (node == null) {
                 return null;
             }
@@ -105,14 +116,4 @@ final class MessageMigraterPropertyReader implements PropertyReader {
         throw new UnsupportedOperationException();
     }
 
-    private static Map<String, Object> readStreamToMap(InputStream inputStream) {
-        try (InputStreamReader isr = new InputStreamReader(inputStream, CHARSET)) {
-            Object obj = new Yaml().load(isr);
-            return obj == null ? new HashMap<>() : (Map<String, Object>) obj;
-        } catch (IOException e) {
-            throw new ConfigMeException("Could not read stream", e);
-        } catch (ClassCastException e) {
-            throw new ConfigMeException("Top-level is not a map", e);
-        }
-    }
 }

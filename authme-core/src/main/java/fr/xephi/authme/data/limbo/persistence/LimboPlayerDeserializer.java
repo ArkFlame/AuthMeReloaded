@@ -112,7 +112,11 @@ class LimboPlayerDeserializer implements JsonDeserializer<LimboPlayer> {
             JsonObject pearlObject = pearlElement.getAsJsonObject();
             UUID pearlUuid = UUID.fromString(getString(pearlObject, PEARL_UUID));
             Location location = deserializeLocationObject(pearlObject.getAsJsonObject(LOCATION));
-            Vector velocity = deserializeVelocity(pearlObject.getAsJsonObject(VELOCITY));
+            JsonObject velocityObject = pearlObject.getAsJsonObject(VELOCITY);
+            Vector velocity = velocityObject == null ? null : new Vector(
+                getDouble(velocityObject, VEL_X),
+                getDouble(velocityObject, VEL_Y),
+                getDouble(velocityObject, VEL_Z));
             return new EnderPearlRestoreData(pearlUuid, location, velocity);
         } catch (IllegalArgumentException ignored) {
             return null;
@@ -135,16 +139,6 @@ class LimboPlayerDeserializer implements JsonDeserializer<LimboPlayer> {
         float yaw = getFloat(locationObject, LOC_YAW, 0.0f);
         float pitch = getFloat(locationObject, LOC_PITCH, 0.0f);
         return new Location(world, x, y, z, yaw, pitch);
-    }
-
-    private Vector deserializeVelocity(JsonObject velocityObject) {
-        if (velocityObject == null) {
-            return null;
-        }
-        return new Vector(
-            getDouble(velocityObject, VEL_X),
-            getDouble(velocityObject, VEL_Y),
-            getDouble(velocityObject, VEL_Z));
     }
 
     private static String getString(JsonObject jsonObject, String memberName) {

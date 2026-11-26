@@ -19,13 +19,12 @@ public class AddTotpCommand extends AbstractTotpPlayerCommand {
 
     @Override
     protected void handlePlayer(Player player, PlayerAuth auth, List<String> arguments) {
-        if (auth.getTotpKey() == null) {
-            TotpGenerationResult createdTotpInfo = generateTotpService.generateTotpKey(player);
-            messages.send(player, MessageKey.TWO_FACTOR_CREATE,
-                createdTotpInfo.getTotpKey(), createdTotpInfo.getAuthenticatorQrCodeUrl());
-            messages.send(player, MessageKey.TWO_FACTOR_CREATE_CONFIRMATION_REQUIRED);
-        } else {
+        if (auth.getTotpKey() != null) {
             messages.send(player, MessageKey.TWO_FACTOR_ALREADY_ENABLED);
+            return;
         }
+        TotpGenerationResult totp = generateTotpService.generateTotpKey(player);
+        messages.send(player, MessageKey.TWO_FACTOR_CREATE, totp.getTotpKey(), totp.getAuthenticatorQrCodeUrl());
+        messages.send(player, MessageKey.TWO_FACTOR_CREATE_CONFIRMATION_REQUIRED);
     }
 }

@@ -62,8 +62,7 @@ class EmailRegisterExecutorTest {
         given(commonService.getProperty(EmailSettings.MAX_REG_PER_EMAIL)).willReturn(maxReg);
         if (hasMultipleAccountsPermission) {
             given(commonService.hasPermission(player, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS)).willReturn(true);
-        }
-        if (!hasMultipleAccountsPermission) {
+        } else {
             given(dataSource.countAuthsByEmail(email)).willReturn(otherAccounts);
         }
         EmailRegisterParams params = EmailRegisterParams.of(player, email);

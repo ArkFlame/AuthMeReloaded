@@ -25,6 +25,9 @@ import static org.mockito.Mockito.verifyNoInteractions;
 @ExtendWith(MockitoExtension.class)
 class ChangePasswordAdminCommandTest {
 
+    private static final String NAME = "theUser";
+    private static final String PASS = "newPassword";
+
     @InjectMocks
     private ChangePasswordAdminCommand command;
 
@@ -39,35 +42,26 @@ class ChangePasswordAdminCommandTest {
 
     @Test
     void shouldForwardRequestToManagement() {
-        // given
-        String name = "theUser";
-        String pass = "newPassword";
-        given(validationService.validatePassword(pass, name)).willReturn(new ValidationResult());
-        CommandSender sender = mock(CommandSender.class);
+        CommandSender sender = executeWithPassword(new ValidationResult());
 
-        // when
-        command.executeCommand(sender, Arrays.asList(name, pass));
-
-        // then
-        verify(validationService).validatePassword(pass, name);
-        verify(management).performPasswordChangeAsAdmin(sender, name, pass);
+        verify(validationService).validatePassword(PASS, NAME);
+        verify(management).performPasswordChangeAsAdmin(sender, NAME, PASS);
     }
 
     @Test
     void shouldSendErrorToCommandSender() {
-        // given
-        String name = "theUser";
-        String pass = "newPassword";
-        given(validationService.validatePassword(pass, name)).willReturn(
+        CommandSender sender = executeWithPassword(
             new ValidationResult(MessageKey.INVALID_PASSWORD_LENGTH, "7"));
-        CommandSender sender = mock(CommandSender.class);
 
-        // when
-        command.executeCommand(sender, Arrays.asList(name, pass));
-
-        // then
-        verify(validationService).validatePassword(pass, name);
+        verify(validationService).validatePassword(PASS, NAME);
         verify(commonService).send(sender, MessageKey.INVALID_PASSWORD_LENGTH, "7");
         verifyNoInteractions(management);
+    }
+
+    private CommandSender executeWithPassword(ValidationResult result) {
+        given(validationService.validatePassword(PASS, NAME)).willReturn(result);
+        CommandSender sender = mock(CommandSender.class);
+        command.executeCommand(sender, Arrays.asList(NAME, PASS));
+        return sender;
     }
 }

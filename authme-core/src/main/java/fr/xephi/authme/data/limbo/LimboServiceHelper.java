@@ -7,7 +7,6 @@ import fr.xephi.authme.settings.Settings;
 import fr.xephi.authme.settings.properties.LimboSettings;
 import fr.xephi.authme.settings.properties.RestrictionSettings;
 import org.bukkit.Location;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 
 import javax.inject.Inject;
@@ -50,8 +49,7 @@ class LimboServiceHelper {
         Collection<UserGroup> playerGroups = permissionsManager.hasGroupSupport()
             ? permissionsManager.getGroups(player) : Collections.emptyList();
 
-        // Build the debug text lazily: joining group names is pure logging work and must not
-        // allocate a stream, a mapped list or a joined string on every single join.
+        // Joining group names is pure logging work: build the debug text lazily.
         logger.debug(() -> "Player `" + player.getName() + "` has groups `"
             + joinGroupNames(playerGroups) + "`");
         return new LimboPlayer(location, isOperator, playerGroups, flyEnabled, walkSpeed, flySpeed);
@@ -83,8 +81,7 @@ class LimboServiceHelper {
      */
     void revokeLimboStates(Player player) {
         player.setOp(false);
-        settings.getProperty(LimboSettings.RESTORE_ALLOW_FLIGHT)
-            .processPlayer(player);
+        settings.getProperty(LimboSettings.RESTORE_ALLOW_FLIGHT).processPlayer(player);
 
         if (!settings.getProperty(RestrictionSettings.ALLOW_UNAUTHED_MOVEMENT)) {
             player.setFlySpeed(0.0f);
@@ -122,9 +119,8 @@ class LimboServiceHelper {
         LimboPlayer merged = new LimboPlayer(location, isOperator, groups, canFly, walkSpeed, flySpeed);
         merged.setEnderPearls(mergeEnderPearls(newLimbo, oldLimbo));
 
-        UUID vehicleUuid = firstNotNull(oldLimbo.getVehicleUuid(), newLimbo.getVehicleUuid());
-        EntityType vehicleType = firstNotNull(oldLimbo.getVehicleType(), newLimbo.getVehicleType());
-        merged.setVehicle(vehicleUuid, vehicleType);
+        merged.setVehicle(firstNotNull(oldLimbo.getVehicleUuid(), newLimbo.getVehicleUuid()),
+            firstNotNull(oldLimbo.getVehicleType(), newLimbo.getVehicleType()));
 
         return merged;
     }
@@ -159,8 +155,7 @@ class LimboServiceHelper {
 
     private static EnderPearlRestoreData preferPearlWithMoreState(EnderPearlRestoreData existingPearl,
                                                                   EnderPearlRestoreData incomingPearl) {
-        return existingPearl.hasDetailedState() && !incomingPearl.hasDetailedState()
-            ? existingPearl : incomingPearl;
+        return existingPearl.hasDetailedState() && !incomingPearl.hasDetailedState() ? existingPearl : incomingPearl;
     }
 
     private static <T> T firstNotNull(T first, T second) {

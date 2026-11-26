@@ -38,8 +38,6 @@ public class ShowEmailCommand extends PlayerCommand {
 
     private String emailMask(String email) {
         String[] parts = email.split("@");
-        // split() drops trailing empties, so a missing domain leaves a single element;
-        // a missing local part yields an empty first element.
         String localPart = parts[0];
         String domain = parts.length > 1 ? parts[1] : "";
         int idLength = localPart.isEmpty() ? 0 : localPart.length() / 3 + 1;

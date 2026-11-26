@@ -72,8 +72,7 @@ class PlayerAuthViewer implements DebugSection {
         return DebugSectionPermissions.PLAYER_AUTH_VIEWER;
     }
 
-    /** Returns a fail-safe substring that never shows the entire String: the first {@code length} characters,
-     * or half of the string if it is shorter, or an empty string if it is blank. */
+    /** Returns a fail-safe substring: the first {@code length} characters, or half if shorter, or "" if blank. */
     private static String safeSubstring(String str, int length) {
         if (StringUtils.isBlank(str)) {
             return "";
@@ -83,10 +82,9 @@ class PlayerAuthViewer implements DebugSection {
 
     /** Formats the given (nullable) timestamp as a human readable date, or a placeholder if absent. */
     private static String formatDate(Long timestamp) {
-        if (timestamp == null || timestamp == 0) {
-            return "Not available (" + (timestamp == null ? "null" : "0") + ")";
-        }
-        return DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(
-            LocalDateTime.ofInstant(Instant.ofEpochMilli(timestamp), ZoneId.systemDefault()));
+        return timestamp == null || timestamp == 0
+            ? "Not available (" + timestamp + ")"
+            : DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(LocalDateTime.ofInstant(
+                Instant.ofEpochMilli(timestamp), ZoneId.systemDefault()));
     }
 }

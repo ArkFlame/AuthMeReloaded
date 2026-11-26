@@ -29,6 +29,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -88,11 +89,8 @@ class EmailRecoveryDialogServiceTest {
         // then
         verify(passwordRecoveryService).createAndSendRecoveryCode(player, EMAIL);
         verify(passwordRecoveryService, never()).generateAndSendNewPassword(player, EMAIL);
-        if (rateLimited) {
-            verify(dialogAdapter, never()).showRecoveryCodeDialog(eq(player), any(DialogWindowSpec.class));
-        } else {
-            verify(dialogAdapter).showRecoveryCodeDialog(eq(player), any(DialogWindowSpec.class));
-        }
+        verify(dialogAdapter, times(rateLimited ? 0 : 1))
+            .showRecoveryCodeDialog(eq(player), any(DialogWindowSpec.class));
     }
 
     @Test
@@ -151,11 +149,10 @@ class EmailRecoveryDialogServiceTest {
         givenDialogFlowEnabled(false);
 
         // when
-        boolean enabled = service.isDialogFlowEnabled();
         service.requestRecovery(player, EMAIL);
 
         // then
-        assertThat(enabled, is(false));
+        assertThat(service.isDialogFlowEnabled(), is(false));
         verify(passwordRecoveryService).createAndSendRecoveryCode(player, EMAIL);
         verifyNoInteractions(dialogAdapter);
     }

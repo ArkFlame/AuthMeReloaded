@@ -90,9 +90,6 @@ public final class MiniMessageConverter {
         private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
         private static final LegacyComponentSerializer SERIALIZER = LegacyComponentSerializer.legacySection();
 
-        private AdventureConverter() {
-        }
-
         static String convert(String message) {
             Component component = MINI_MESSAGE.deserialize(message);
             return SERIALIZER.serialize(component);

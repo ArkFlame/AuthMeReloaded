@@ -17,7 +17,6 @@ import javax.inject.Inject;
 public class TotpDisableAdminCommand extends AbstractTotpAdminCommand {
 
     private final ConsoleLogger logger = ConsoleLoggerFactory.get(TotpDisableAdminCommand.class);
-
     @Inject
     private BukkitService bukkitService;
 
@@ -28,7 +27,6 @@ public class TotpDisableAdminCommand extends AbstractTotpAdminCommand {
         } else if (getDataSource().removeTotpKey(playerName)) {
             sender.sendMessage("Disabled two-factor authentication successfully for '" + playerName + "'");
             logger.info(sender.getName() + " disable two-factor authentication for '" + playerName + "'");
-
             Player onlinePlayer = bukkitService.getPlayerExact(playerName);
             if (onlinePlayer != null) {
                 getMessages().send(onlinePlayer, MessageKey.TWO_FACTOR_REMOVED_SUCCESS);

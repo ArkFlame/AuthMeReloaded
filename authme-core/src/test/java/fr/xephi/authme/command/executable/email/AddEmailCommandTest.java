@@ -41,16 +41,9 @@ public class AddEmailCommandTest extends AbstractEmailCommandTest {
 
     @Test
     public void shouldForwardData() {
-        // given
-        Player sender = mock(Player.class);
-        String email = "mail@example.com";
-        given(validationService.validateEmail(email)).willReturn(true);
+        Player sender = executeCommand("mail@example.com", "mail@example.com", true);
 
-        // when
-        command.executeCommand(sender, Arrays.asList(email, email));
-
-        // then
-        verify(management).performAddEmail(sender, email);
+        verify(management).performAddEmail(sender, "mail@example.com");
     }
 
     @ParameterizedTest(name = "{3}")
@@ -60,15 +53,16 @@ public class AddEmailCommandTest extends AbstractEmailCommandTest {
     })
     public void shouldRejectInvalidEmail(String email, String confirmation, boolean emailValid,
                                          MessageKey expectedMessage) {
-        // given
-        Player sender = mock(Player.class);
-        given(validationService.validateEmail(email)).willReturn(emailValid);
+        Player sender = executeCommand(email, confirmation, emailValid);
 
-        // when
-        command.executeCommand(sender, Arrays.asList(email, confirmation));
-
-        // then
         verifyNoInteractions(management);
         verify(commonService).send(sender, expectedMessage);
+    }
+
+    private Player executeCommand(String email, String confirmation, boolean emailValid) {
+        Player sender = mock(Player.class);
+        given(validationService.validateEmail(email)).willReturn(emailValid);
+        command.executeCommand(sender, Arrays.asList(email, confirmation));
+        return sender;
     }
 }
