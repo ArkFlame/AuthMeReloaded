@@ -51,7 +51,7 @@ class UuidCommandTest {
         // given
         String playerName = "testUser";
         // when
-        command.executeCommand(sender, Collections.singletonList(playerName));
+        executeFor(playerName);
         // then
         verify(commonService).send(sender, MessageKey.ADMIN_UUID_OFFLINE, playerName, offlineUuid(playerName));
         verify(commonService).send(sender, MessageKey.ADMIN_UUID_MOJANG_UNKNOWN, playerName);
@@ -67,7 +67,7 @@ class UuidCommandTest {
         given(auth.getPremiumUuid()).willReturn(mojangUuid);
         given(dataSource.getAuth(playerName)).willReturn(auth);
         // when
-        command.executeCommand(sender, Collections.singletonList(playerName));
+        executeFor(playerName);
         // then
         verify(commonService).send(sender, MessageKey.ADMIN_UUID_MOJANG, playerName, mojangUuid.toString());
         verify(commonService).send(sender, MessageKey.ADMIN_UUID_FLOODGATE_UNKNOWN, playerName);
@@ -83,7 +83,7 @@ class UuidCommandTest {
         given(bukkitService.getPlayerExact(playerName)).willReturn(player);
         given(floodgateService.isFloodgatePlayer(floodgateUuid)).willReturn(true);
         // when
-        command.executeCommand(sender, Collections.singletonList(playerName));
+        executeFor(playerName);
         // then
         verify(commonService).send(sender, MessageKey.ADMIN_UUID_FLOODGATE, playerName, floodgateUuid.toString());
         verify(commonService).send(sender, MessageKey.ADMIN_UUID_MOJANG_UNKNOWN, playerName);
@@ -97,7 +97,7 @@ class UuidCommandTest {
         given(player.getUniqueId()).willReturn(UUID.randomUUID());
         given(bukkitService.getPlayerExact(playerName)).willReturn(player);
         // when
-        command.executeCommand(sender, Collections.singletonList(playerName));
+        executeFor(playerName);
         // then
         verify(commonService).send(sender, MessageKey.ADMIN_UUID_FLOODGATE_UNKNOWN, playerName);
     }
@@ -116,5 +116,9 @@ class UuidCommandTest {
     private static String offlineUuid(String playerName) {
         return UUID.nameUUIDFromBytes(("OfflinePlayer:" + playerName.toLowerCase(Locale.ROOT))
             .getBytes(StandardCharsets.UTF_8)).toString();
+    }
+
+    private void executeFor(String playerName) {
+        command.executeCommand(sender, Collections.singletonList(playerName));
     }
 }

@@ -47,45 +47,37 @@ class SwitchAntiBotCommandTest {
 
     @Test
     void shouldReturnAntiBotState() {
-        // given
         given(antiBot.getAntiBotStatus()).willReturn(AntiBotService.AntiBotStatus.ACTIVE);
         CommandSender sender = mock(CommandSender.class);
 
-        // when
         command.executeCommand(sender, Collections.emptyList());
 
-        // then
         verify(messages).send(sender, MessageKey.ANTIBOT_STATUS, "ACTIVE");
     }
 
     @ParameterizedTest
     @CsvSource({"on, true, ANTIBOT_OVERRIDE_ENABLED", "Off, false, ANTIBOT_OVERRIDE_DISABLED"})
     void shouldOverrideAntiBotState(String input, boolean expectedStatus, MessageKey expectedMessage) {
-        // given
         CommandSender sender = mock(CommandSender.class);
 
-        // when
         command.executeCommand(sender, Collections.singletonList(input));
 
-        // then
         verify(antiBot).overrideAntiBotStatus(expectedStatus);
         verify(messages).send(sender, expectedMessage);
     }
 
     @Test
     void shouldShowHelpForUnknownState() {
-        // given
         CommandSender sender = mock(CommandSender.class);
         FoundCommandResult foundCommandResult = mock(FoundCommandResult.class);
         given(commandMapper.mapPartsToCommand(sender, asList("authme", "antibot"))).willReturn(foundCommandResult);
 
-        // when
         command.executeCommand(sender, Collections.singletonList("wrong"));
 
-        // then
         verify(antiBot, never()).overrideAntiBotStatus(anyBoolean());
         verify(messages).send(sender, MessageKey.ANTIBOT_INVALID_MODE);
         verify(helpProvider).outputHelp(sender, foundCommandResult, HelpProvider.SHOW_ARGUMENTS);
         verify(messages).send(sender, MessageKey.COMMAND_DETAILED_HELP, "authme help antibot");
     }
+
 }

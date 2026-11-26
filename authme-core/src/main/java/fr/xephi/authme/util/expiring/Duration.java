@@ -41,16 +41,10 @@ public class Duration {
     public static Duration createWithSuitableUnit(long sourceDuration, TimeUnit sourceUnit) {
         long durationMillis = Math.abs(TimeUnit.MILLISECONDS.convert(sourceDuration, sourceUnit));
 
-        TimeUnit targetUnit;
-        if (durationMillis > TimeUnit.DAYS.toMillis(1)) {
-            targetUnit = TimeUnit.DAYS;
-        } else if (durationMillis > TimeUnit.HOURS.toMillis(1)) {
-            targetUnit = TimeUnit.HOURS;
-        } else if (durationMillis > TimeUnit.MINUTES.toMillis(1)) {
-            targetUnit = TimeUnit.MINUTES;
-        } else {
-            targetUnit = TimeUnit.SECONDS;
-        }
+        TimeUnit targetUnit = durationMillis > TimeUnit.DAYS.toMillis(1) ? TimeUnit.DAYS
+            : durationMillis > TimeUnit.HOURS.toMillis(1) ? TimeUnit.HOURS
+            : durationMillis > TimeUnit.MINUTES.toMillis(1) ? TimeUnit.MINUTES
+            : TimeUnit.SECONDS;
 
         long durationInTargetUnit = targetUnit.convert(sourceDuration, sourceUnit);
         return new Duration(durationInTargetUnit, targetUnit);
