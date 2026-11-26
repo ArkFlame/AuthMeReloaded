@@ -23,7 +23,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.function.Function;
 
 import static fr.xephi.authme.data.limbo.persistence.LimboPlayerSerializer.CAN_FLY;
 import static fr.xephi.authme.data.limbo.persistence.LimboPlayerSerializer.ENDER_PEARLS;
@@ -69,10 +68,6 @@ class LimboPlayerDeserializer implements JsonDeserializer<LimboPlayer> {
     @Override
     public LimboPlayer deserialize(JsonElement jsonElement, Type type, JsonDeserializationContext context) {
         JsonObject jsonObject = jsonElement.getAsJsonObject();
-        if (jsonObject == null) {
-            return null;
-        }
-
         Location loc = deserializeLocationObject(jsonObject.getAsJsonObject(LOCATION));
         boolean operator = getBoolean(jsonObject, IS_OP);
 
@@ -196,31 +191,24 @@ class LimboPlayerDeserializer implements JsonDeserializer<LimboPlayer> {
     }
 
     private static float getFloat(JsonObject jsonObject, String memberName, float defaultValue) {
-        return getNumberFromElement(jsonObject.get(memberName), JsonElement::getAsFloat, defaultValue);
-    }
-
-    private static double getDouble(JsonObject jsonObject, String memberName) {
-        return getNumberFromElement(jsonObject.get(memberName), JsonElement::getAsDouble, 0.0);
-    }
-
-    /**
-     * Gets a number from the given JsonElement safely.
-     *
-     * @param jsonElement    the element to retrieve the number from
-     * @param numberFunction the function to get the number from the element
-     * @param defaultValue   the value to return if the element is null or the number cannot be retrieved
-     * @param <N>            the number type
-     * @return the number from the given JSON element, or the default value
-     */
-    private static <N extends Number> N getNumberFromElement(JsonElement jsonElement,
-                                                             Function<JsonElement, N> numberFunction,
-                                                             N defaultValue) {
-        if (jsonElement != null) {
+        JsonElement element = jsonObject.get(memberName);
+        if (element != null) {
             try {
-                return numberFunction.apply(jsonElement);
+                return element.getAsFloat();
             } catch (NumberFormatException ignore) {
             }
         }
         return defaultValue;
+    }
+
+    private static double getDouble(JsonObject jsonObject, String memberName) {
+        JsonElement element = jsonObject.get(memberName);
+        if (element != null) {
+            try {
+                return element.getAsDouble();
+            } catch (NumberFormatException ignore) {
+            }
+        }
+        return 0.0;
     }
 }

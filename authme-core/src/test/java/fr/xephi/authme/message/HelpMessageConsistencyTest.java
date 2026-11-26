@@ -6,21 +6,19 @@ import fr.xephi.authme.TestHelper;
 import fr.xephi.authme.command.help.HelpMessage;
 import fr.xephi.authme.command.help.HelpSection;
 import fr.xephi.authme.permission.DefaultPermission;
-import org.hamcrest.Matcher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import static fr.xephi.authme.message.MessagePathHelper.MESSAGES_FOLDER;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.both;
-import static org.hamcrest.Matchers.emptyString;
+import static org.hamcrest.Matchers.emptyOrNullString;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
 
 /**
  * Tests that all help_xx.yml files contain all entries for
@@ -44,28 +42,28 @@ class HelpMessageConsistencyTest {
 
     @Test
     void shouldHaveRequiredEntries() {
+        List<String> keys = getRequiredKeys();
         for (File file : helpFiles) {
             PropertyReader reader = new YamlFileReader(file);
-
-            assertHasAllHelpSectionEntries(file.getName(), reader);
+            for (String key : keys) {
+                assertThat(file.getName() + " should have entry for '" + key + "'",
+                    reader.getString(key), not(emptyOrNullString()));
+            }
         }
     }
 
-    private void assertHasAllHelpSectionEntries(String filename, PropertyReader reader) {
+    private static List<String> getRequiredKeys() {
+        List<String> keys = new ArrayList<>();
         for (HelpSection section : HelpSection.values()) {
-            assertThat(filename + " should have entry for HelpSection '" + section + "'",
-                reader.getString(section.getKey()), notEmptyString());
+            keys.add(section.getKey());
         }
-
         for (HelpMessage message : HelpMessage.values()) {
-            assertThat(filename + " should have entry for HelpMessage '" + message + "'",
-                reader.getString(message.getKey()), notEmptyString());
+            keys.add(message.getKey());
         }
-
-        for (DefaultPermission defaultPermission : DefaultPermission.values()) {
-            assertThat(filename + " should have entry for DefaultPermission '" + defaultPermission + "'",
-                reader.getString(getPathForDefaultPermission(defaultPermission)), notEmptyString());
+        for (DefaultPermission permission : DefaultPermission.values()) {
+            keys.add(getPathForDefaultPermission(permission));
         }
+        return keys;
     }
 
     private static String getPathForDefaultPermission(DefaultPermission defaultPermission) {
@@ -80,9 +78,5 @@ class HelpMessageConsistencyTest {
             default:
                 throw new IllegalStateException("Unknown default permission '" + defaultPermission + "'");
         }
-    }
-
-    private static Matcher<String> notEmptyString() {
-        return both(not(emptyString())).and(not(nullValue()));
     }
 }

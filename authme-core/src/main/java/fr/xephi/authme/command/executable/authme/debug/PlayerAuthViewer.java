@@ -45,10 +45,11 @@ class PlayerAuthViewer implements DebugSection {
             return;
         }
 
-        PlayerAuth auth = dataSource.getAuth(arguments.get(0));
+        String name = arguments.get(0);
+        PlayerAuth auth = dataSource.getAuth(name);
         if (auth == null) {
             sendTitle(sender, "database viewer");
-            sender.sendMessage("No record exists for '" + arguments.get(0) + "'");
+            sender.sendMessage("No record exists for '" + name + "'");
         } else {
             displayAuthToSender(auth, sender);
         }
@@ -91,11 +92,9 @@ class PlayerAuthViewer implements DebugSection {
     private static String safeSubstring(String str, int length) {
         if (StringUtils.isBlank(str)) {
             return "";
-        } else if (str.length() < length) {
-            return str.substring(0, str.length() / 2) + "...";
-        } else {
-            return str.substring(0, length) + "...";
         }
+        int end = str.length() < length ? str.length() / 2 : length;
+        return str.substring(0, end) + "...";
     }
 
     /**
@@ -109,9 +108,8 @@ class PlayerAuthViewer implements DebugSection {
             return "Not available (null)";
         } else if (timestamp == 0) {
             return "Not available (0)";
-        } else {
-            LocalDateTime date = LocalDateTime.ofInstant(Instant.ofEpochMilli(timestamp), ZoneId.systemDefault());
-            return DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(date);
         }
+        return DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(
+            LocalDateTime.ofInstant(Instant.ofEpochMilli(timestamp), ZoneId.systemDefault()));
     }
 }

@@ -29,14 +29,12 @@ final class SpigotDialogHelper {
     }
 
     static void showLoginDialog(Player player, DialogWindowSpec dialog) {
-        DialogBase base = newDialogBase(dialog);
-
-        List<ActionButton> buttons = new ArrayList<>();
+        List<ActionButton> buttons = new ArrayList<>(2);
         buttons.add(newActionButton(dialog.primaryButtonLabel(), "login $(password)"));
         if (dialog.showSecondaryButton() && dialog.secondaryButtonCommand() != null) {
             buttons.add(newActionButton(dialog.secondaryButtonLabel(), dialog.secondaryButtonCommand()));
         }
-        player.showDialog(new MultiActionDialog(base, buttons.toArray(new ActionButton[0]))
+        player.showDialog(new MultiActionDialog(newDialogBase(dialog), buttons.toArray(new ActionButton[0]))
             .columns(dialog.buttonColumns()));
     }
 
@@ -86,7 +84,7 @@ final class SpigotDialogHelper {
     }
 
     private static List<DialogInput> createInputs(DialogWindowSpec dialog) {
-        List<DialogInput> inputs = new ArrayList<>();
+        List<DialogInput> inputs = new ArrayList<>(dialog.inputs().size());
         for (DialogInputSpec input : dialog.inputs()) {
             inputs.add(new TextInput(input.id(), toTextComponent(input.label())).maxLength(input.maxLength()));
         }

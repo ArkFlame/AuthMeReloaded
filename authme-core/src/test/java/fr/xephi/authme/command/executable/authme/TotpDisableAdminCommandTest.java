@@ -42,18 +42,10 @@ class TotpDisableAdminCommandTest extends AbstractTotpAdminCommandTest {
 
     @Test
     void shouldHandleUserWithNoTotpEnabled() {
-        // given
-        CommandSender sender = mock(CommandSender.class);
-        PlayerAuth auth = PlayerAuth.builder()
-            .name("Billy")
-            .totpKey(null)
-            .build();
-        given(dataSource.getAuth("Billy")).willReturn(auth);
+        given(dataSource.getAuth("Billy")).willReturn(auth("Billy", null));
 
-        // when
-        command.executeCommand(sender, Collections.singletonList("Billy"));
+        CommandSender sender = executeFor("Billy");
 
-        // then
         verify(sender).sendMessage(argThat(containsString("'Billy' does not have two-factor auth enabled")));
         verify(dataSource, only()).getAuth("Billy");
     }
@@ -61,29 +53,31 @@ class TotpDisableAdminCommandTest extends AbstractTotpAdminCommandTest {
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     void shouldHandleRemovalResult(boolean removed) {
-        // given
-        CommandSender sender = mock(CommandSender.class);
-        PlayerAuth auth = PlayerAuth.builder()
-            .name("Bobby")
-            .totpKey("56484998")
-            .build();
-        given(dataSource.getAuth("Bobby")).willReturn(auth);
+        given(dataSource.getAuth("Bobby")).willReturn(auth("Bobby", "56484998"));
         given(dataSource.removeTotpKey("Bobby")).willReturn(removed);
-
-        // when
+        Player player = null;
         if (removed) {
-            Player player = mock(Player.class);
+            player = mock(Player.class);
             given(bukkitService.getPlayerExact("Bobby")).willReturn(player);
-            command.executeCommand(sender, Collections.singletonList("Bobby"));
+        }
 
-            // then
+        CommandSender sender = executeFor("Bobby");
+
+        if (removed) {
             verify(sender).sendMessage(argThat(containsString("Disabled two-factor authentication successfully")));
             verify(messages).send(player, MessageKey.TWO_FACTOR_REMOVED_SUCCESS);
         } else {
-            command.executeCommand(sender, Collections.singletonList("Bobby"));
-
-            // then
             verify(messages).send(sender, MessageKey.ERROR);
         }
+    }
+
+    private static PlayerAuth auth(String name, String totpKey) {
+        return PlayerAuth.builder().name(name).totpKey(totpKey).build();
+    }
+
+    private CommandSender executeFor(String name) {
+        CommandSender sender = mock(CommandSender.class);
+        command.executeCommand(sender, Collections.singletonList(name));
+        return sender;
     }
 }

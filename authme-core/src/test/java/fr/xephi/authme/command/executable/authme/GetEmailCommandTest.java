@@ -15,7 +15,6 @@ import java.util.Collections;
 
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 /**
@@ -33,12 +32,14 @@ class GetEmailCommandTest {
     @Mock
     private CommonService service;
 
+    @Mock
+    private CommandSender sender;
+
     @Test
     void shouldReportUnknownUser() {
         // given
         String user = "myTestUser";
         given(dataSource.getEmail(user)).willReturn(DataSourceValueImpl.unknownRow());
-        CommandSender sender = mock(CommandSender.class);
 
         // when
         command.executeCommand(sender, Collections.singletonList(user));
@@ -53,7 +54,6 @@ class GetEmailCommandTest {
         String user = "userToView";
         String email = "user.email@example.org";
         given(dataSource.getEmail(user)).willReturn(DataSourceValueImpl.of(email));
-        CommandSender sender = mock(CommandSender.class);
 
         // when
         command.executeCommand(sender, Collections.singletonList(user));
@@ -67,7 +67,6 @@ class GetEmailCommandTest {
         // given
         String user = "userWithoutEmail";
         given(dataSource.getEmail(user)).willReturn(DataSourceValueImpl.of(null));
-        CommandSender sender = mock(CommandSender.class);
 
         // when
         command.executeCommand(sender, Collections.singletonList(user));

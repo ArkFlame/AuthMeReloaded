@@ -180,7 +180,6 @@ public class AsynchronousJoinTest {
     @Test
     public void shouldNotShowDelayedDialogIfPlayerGetsAuthenticatedBeforeTaskRuns() {
         Player player = givenRegisteredPlayer();
-        given(player.isOnline()).willReturn(true);
         given(playerCache.isAuthenticated("Bobby")).willReturn(false, false, true);
         givenDialogUi(player);
 
@@ -212,9 +211,14 @@ public class AsynchronousJoinTest {
         verifySingleAuthLookup("bobby");
     }
 
-    @Test
-    public void shouldAutoLoginFromProxySessionWithoutCreatingLimbo() {
+    @ParameterizedTest(name = "preJoinDialogCancelled={0}")
+    @ValueSource(booleans = {true, false})
+    public void shouldAutoLoginFromProxySessionWithoutCreatingLimbo(boolean preJoinDialogCancelled) {
         Player player = givenRegisteredPlayer();
+        if (preJoinDialogCancelled) {
+            givenPendingDialogState(new PreJoinDialogService.PendingDialogState(
+                null, null, null, false, false, "You have canceled the login."));
+        }
         given(proxySessionManager.consumeLoginRequest("bobby"))
             .willReturn(new ProxySessionManager.ProxyLoginRequest("bobby", null));
         given(proxyLoginRequestValidator.validate(player, null)).willReturn(true);
@@ -226,22 +230,7 @@ public class AsynchronousJoinTest {
         verify(asynchronousLogin).forceLoginFromProxy(player);
         verify(asynchronousLogin, never()).forceLogin(player);
         verify(limboService, never()).createLimboPlayer(player, true);
-    }
-
-    @Test
-    public void shouldAutoLoginFromProxySessionEvenIfPreJoinDialogWasCancelled() {
-        Player player = givenRegisteredPlayer();
-        givenPendingDialogState(new PreJoinDialogService.PendingDialogState(
-            null, null, null, false, false, "You have canceled the login."));
-        given(proxySessionManager.consumeLoginRequest("bobby"))
-            .willReturn(new ProxySessionManager.ProxyLoginRequest("bobby", null));
-        given(proxyLoginRequestValidator.validate(player, null)).willReturn(true);
-
-        asynchronousJoin.processJoin(player);
-
-        verify(asynchronousLogin).forceLoginFromProxy(player);
         verify(player, never()).kickPlayer(any());
-        verify(limboService, never()).createLimboPlayer(eq(player), eq(true));
     }
 
     @Test
@@ -392,7 +381,6 @@ public class AsynchronousJoinTest {
         verify(asynchronousLogin).forceLogin(player);
         verify(limboService, never()).createLimboPlayer(eq(player), anyBoolean());
         verifyNoLoginDialog(player);
-        // The account is read once and reused; no second availability lookup is performed.
         verifySingleAuthLookup(".bobby");
     }
 
@@ -616,7 +604,8 @@ public class AsynchronousJoinTest {
     private void givenDialogUi(Player player) {
         given(service.getProperty(RegistrationSettings.USE_DIALOG_UI)).willReturn(true);
         given(dialogAdapter.isDialogSupported()).willReturn(true);
-        given(dialogWindowService.createLoginDialog(player)).willReturn(createDialogSpec("Login", "Login"));
+        given(dialogWindowService.createLoginDialog(player)).willReturn(new DialogWindowSpec("Login",
+            List.of(new DialogInputSpec("password", "Password", 100)), "Login", "Cancel", false, false, null));
     }
 
     private void listenToPreAuth(Consumer<PlayerPreAuthEvent> listener) {
@@ -673,15 +662,5 @@ public class AsynchronousJoinTest {
         given(player.isOnline()).willReturn(true);
         TestHelper.mockIpAddressToPlayer(player, "127.0.0.1");
         return player;
-    }
-
-    private static DialogWindowSpec createDialogSpec(String title, String buttonLabel) {
-        return new DialogWindowSpec(title,
-            List.of(new DialogInputSpec("password", "Password", 100)),
-            buttonLabel,
-            "Cancel",
-            false,
-            false,
-            null);
     }
 }

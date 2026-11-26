@@ -43,7 +43,7 @@ public class PurgeService {
 
     /** Keeps track of whether a purge task is currently running.
      * Written by the async purge task and read by the command thread, so it must be visible. */
-    private volatile boolean isPurging = false;
+    private volatile boolean isPurging;
 
     /**
      * Purges players from the database. Runs on startup if enabled.

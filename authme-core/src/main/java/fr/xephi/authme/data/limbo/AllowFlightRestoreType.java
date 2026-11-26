@@ -35,11 +35,6 @@ public enum AllowFlightRestoreType {
     /** The user's flight handling is not modified. */
     NOTHING {
         @Override
-        public void restoreAllowFlight(Player player, LimboPlayer limbo) {
-            // noop
-        }
-
-        @Override
         public void processPlayer(Player player) {
             // noop
         }
@@ -47,12 +42,15 @@ public enum AllowFlightRestoreType {
 
     /**
      * Restores the "allow flight" property from the LimboPlayer to the Player.
-     * This method behaves differently for each restoration type.
+     * This method behaves differently for each restoration type; by default
+     * the player is left untouched.
      *
      * @param player the player to modify
      * @param limbo the limbo player to read from
      */
-    public abstract void restoreAllowFlight(Player player, LimboPlayer limbo);
+    public void restoreAllowFlight(Player player, LimboPlayer limbo) {
+        // noop
+    }
 
     /**
      * Processes the player when a LimboPlayer instance is created based on him. Typically this

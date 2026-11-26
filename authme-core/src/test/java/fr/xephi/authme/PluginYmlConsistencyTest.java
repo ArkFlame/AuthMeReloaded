@@ -72,15 +72,10 @@ class PluginYmlConsistencyTest {
      * @throws IOException if a file cannot be read
      */
     private static List<Set<String>> readPermissionsFromAllJars() throws IOException {
-        List<File> files = new ArrayList<>(PLUGIN_YML_PATHS.size());
+        List<Set<String>> result = new ArrayList<>(PLUGIN_YML_PATHS.size());
         for (String path : PLUGIN_YML_PATHS) {
             File file = new File(path);
             Assumptions.assumeTrue(file.isFile(), "Skipping: plugin.yml not found at " + file.getPath());
-            files.add(file);
-        }
-
-        List<Set<String>> result = new ArrayList<>(files.size());
-        for (File file : files) {
             result.add(readPermissionNames(file));
         }
         return result;

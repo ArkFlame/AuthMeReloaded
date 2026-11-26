@@ -71,9 +71,7 @@ public class HelpMessagesFileHandler extends AbstractMessageFileHandler {
             }
         }
         String message = defaultConfiguration.getString(key);
-        return message == null
-            ? "Error retrieving message '" + key + "'"
-            : message;
+        return message != null ? message : "Error retrieving message '" + key + "'";
     }
 
     @Override

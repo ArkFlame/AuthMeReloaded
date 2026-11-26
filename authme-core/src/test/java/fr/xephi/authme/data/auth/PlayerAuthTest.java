@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Test for {@link PlayerAuth} and its builder.
@@ -33,18 +33,10 @@ class PlayerAuthTest {
 
     @Test
     void shouldThrowForMissingName() {
-        try {
-            // given / when
-            PlayerAuth.builder()
-                .email("test@example.org")
-                .groupId(3)
-                .build();
-
-            // then
-            fail("Expected exception to be thrown");
-        } catch (NullPointerException e) {
-            // all good
-        }
+        assertThrows(NullPointerException.class, () -> PlayerAuth.builder()
+            .email("test@example.org")
+            .groupId(3)
+            .build());
     }
 
     @Test

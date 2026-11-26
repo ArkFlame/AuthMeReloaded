@@ -15,6 +15,8 @@ import fr.xephi.authme.settings.properties.AuthMeSettingsRetriever;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.File;
 import java.io.IOException;
@@ -55,42 +57,32 @@ class SettingsMigrationServiceTest {
         TestHelper.setupLogger();
     }
 
-    /* When settings are loaded, test that migrations are applied and immediately available in memory. */
-    @Test
-    void shouldPerformMigrationsInMemory() throws IOException {
-        // given
-        File configFile = copyOldConfigFile();
-        PropertyResource resource = new YamlFileResource(configFile);
-        SettingsMigrationService migrationService = new SettingsMigrationService(dataFolder);
-
-        // when
-        Settings settings = new Settings(
-            dataFolder, resource, migrationService, AuthMeSettingsRetriever.buildConfigurationData());
-
-        // then
-        verifyHasUpToDateSettings(settings, dataFolder);
-    }
-
     /*
-     * When settings are loaded, test that migrations are applied and persisted to disk,
-     * i.e. when the settings are loaded again from the file, no migrations should be necessary.
+     * When settings are loaded, test that migrations are applied and immediately available in memory;
+     * with persist enabled, also test that they are persisted to disk, i.e. reloading the file
+     * requires no further migrations.
      */
-    @Test
-    void shouldPerformMigrationsAndPersistToDisk() throws IOException {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void shouldPerformMigrationsAndOptionallyPersistToDisk(boolean persist) throws IOException {
         // given
         File configFile = copyOldConfigFile();
-        PropertyResource resource = new YamlFileResource(configFile);
         TestMigrationServiceExtension migrationService = new TestMigrationServiceExtension(dataFolder);
         ConfigurationData configurationData = AuthMeSettingsRetriever.buildConfigurationData();
 
         // when
-        new Settings(dataFolder, resource, migrationService, configurationData);
-        resource = new YamlFileResource(configFile);
-        Settings settings = new Settings(dataFolder, resource, migrationService, configurationData);
+        Settings settings = new Settings(dataFolder, new YamlFileResource(configFile), migrationService, configurationData);
+        if (persist) {
+            settings = new Settings(dataFolder, new YamlFileResource(configFile), migrationService, configurationData);
+        }
 
         // then
-        verifyHasUpToDateSettings(settings, dataFolder);
-        assertThat(migrationService.returnedValues, contains(true, false));
+        verifyHasUpToDateSettings(settings);
+        if (persist) {
+            assertThat(migrationService.returnedValues, contains(true, false));
+        } else {
+            assertThat(migrationService.returnedValues, contains(true));
+        }
     }
 
     @Test
@@ -115,7 +107,7 @@ class SettingsMigrationServiceTest {
         return configFile;
     }
 
-    private void verifyHasUpToDateSettings(Settings settings, File dataFolder) throws IOException {
+    private void verifyHasUpToDateSettings(Settings settings) throws IOException {
         assertThat(settings.getProperty(ALLOWED_NICKNAME_CHARACTERS), equalTo(ALLOWED_NICKNAME_CHARACTERS.getDefaultValue()));
         assertThat(settings.getProperty(DELAY_JOIN_MESSAGE), equalTo(true));
         assertThat(settings.getProperty(FORCE_SPAWN_LOCATION_AFTER_LOGIN), equalTo(true));

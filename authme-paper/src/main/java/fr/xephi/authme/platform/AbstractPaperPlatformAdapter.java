@@ -12,7 +12,6 @@ import fr.xephi.authme.listener.PlayerOpenSignListener;
 import fr.xephi.authme.listener.PlayerSwapHandItemsListener;
 import fr.xephi.authme.process.register.RegisterSecondaryArgument;
 import fr.xephi.authme.process.register.RegistrationType;
-import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -46,9 +45,8 @@ public abstract class AbstractPaperPlatformAdapter extends AbstractSpigotPlatfor
     @Override
     public void teleportPlayer(Player player, Location location) {
         UUID playerId = player.getUniqueId();
-        // compute() makes reading the pending teleport and installing the new one atomic, so two
-        // concurrent teleports for the same player are still applied in call order instead of both
-        // seeing an empty queue and racing each other.
+        // compute() atomically reads the pending teleport and installs the new one, so concurrent
+        // teleports for the same player are applied in call order instead of racing each other.
         CompletableFuture<Boolean> teleport = pendingTeleports.compute(playerId, (ignoredId, previous) -> {
             if (previous == null) {
                 return player.teleportAsync(location);
@@ -61,7 +59,7 @@ public abstract class AbstractPaperPlatformAdapter extends AbstractSpigotPlatfor
     }
 
     private void runChainedTeleport(Player player, Location location, CompletableFuture<Boolean> result) {
-        ScheduledTask task = player.getScheduler().run(JavaPlugin.getPlugin(AuthMe.class),
+        if (player.getScheduler().run(JavaPlugin.getPlugin(AuthMe.class),
             ignored -> player.teleportAsync(location).whenComplete((teleportResult, error) -> {
                 if (error == null) {
                     result.complete(teleportResult);
@@ -69,8 +67,7 @@ public abstract class AbstractPaperPlatformAdapter extends AbstractSpigotPlatfor
                     result.completeExceptionally(error);
                 }
             }),
-            () -> result.complete(false));
-        if (task == null) {
+            () -> result.complete(false)) == null) {
             result.complete(false);
         }
     }
@@ -138,7 +135,6 @@ public abstract class AbstractPaperPlatformAdapter extends AbstractSpigotPlatfor
 
     /**
      * Returns the listeners specific to the concrete Paper-derived platform.
-     * Platform adapters override this rather than duplicating the shared listener assembly.
      *
      * @return the platform-specific listeners
      */
@@ -147,8 +143,7 @@ public abstract class AbstractPaperPlatformAdapter extends AbstractSpigotPlatfor
     }
 
     /**
-     * Builds the listener list shared by Paper-derived platforms, placing the platform-specific
-     * chat and spawn listeners at the positions used by both Paper and Folia.
+     * Builds the listener list shared by Paper-derived platforms.
      *
      * @param chatListener the platform's chat listener
      * @param spawnListener the platform's spawn-location listener

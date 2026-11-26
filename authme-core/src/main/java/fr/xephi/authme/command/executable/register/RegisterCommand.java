@@ -122,15 +122,6 @@ public class RegisterCommand extends PlayerCommand {
     }
 
     /**
-     * Returns whether no second argument is needed, i.e. the secondary argument is disabled or
-     * optional and absent, so the argument checks can be skipped.
-     */
-    private static boolean isSecondArgNotRequired(List<String> arguments,
-                                                  RegisterSecondaryArgument secondArgType) {
-        return secondArgType == NONE || secondArgType == EMAIL_OPTIONAL && arguments.size() < 2;
-    }
-
-    /**
      * Verifies that the second argument is valid (based on the configuration) for either
      * registration flow. The player is informed if the check is unsuccessful.
      *
@@ -142,7 +133,8 @@ public class RegisterCommand extends PlayerCommand {
      */
     private boolean isSecondArgValid(Player player, List<String> arguments, boolean emailRegistration,
                                      RegisterSecondaryArgument secondArgType) {
-        if (isSecondArgNotRequired(arguments, secondArgType)) {
+        // No second argument needed if the type is disabled or optional and absent
+        if (secondArgType == NONE || secondArgType == EMAIL_OPTIONAL && arguments.size() < 2) {
             return true;
         }
         if (arguments.size() < 2) {
@@ -150,10 +142,9 @@ public class RegisterCommand extends PlayerCommand {
             return false;
         }
 
-        if (emailRegistration) {
-            return checkArgumentsMatch(player, arguments, MessageKey.USAGE_REGISTER);
-        } else if (secondArgType == CONFIRMATION) {
-            return checkArgumentsMatch(player, arguments, MessageKey.PASSWORD_MATCH_ERROR);
+        if (emailRegistration || secondArgType == CONFIRMATION) {
+            MessageKey errorMessage = emailRegistration ? MessageKey.USAGE_REGISTER : MessageKey.PASSWORD_MATCH_ERROR;
+            return checkArgumentsMatch(player, arguments, errorMessage);
         } else if (secondArgType == EMAIL_MANDATORY || secondArgType == EMAIL_OPTIONAL) {
             if (validationService.validateEmail(arguments.get(1))) {
                 return true;

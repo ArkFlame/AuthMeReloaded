@@ -34,21 +34,15 @@ final class LogFilterHelper {
      * @return True if it is a sensitive AuthMe command, false otherwise
      */
     static boolean isSensitiveAuthMeCommand(String message) {
-        if (message == null) {
-            return false;
-        }
         // Most log lines are not command lines, so look for the (ASCII) marker without
         // allocating a lowercased copy of the whole message first.
-        if (!containsIgnoreCase(message, ISSUED_COMMAND_TEXT)) {
-            return false;
-        }
-        String lowerMessage = message.toLowerCase(Locale.ROOT);
-        return StringUtils.containsAny(lowerMessage, COMMANDS_TO_SKIP);
+        return message != null
+            && containsIgnoreCase(message, ISSUED_COMMAND_TEXT)
+            && StringUtils.containsAny(message.toLowerCase(Locale.ROOT), COMMANDS_TO_SKIP);
     }
 
     private static boolean containsIgnoreCase(String text, String search) {
-        int lastStart = text.length() - search.length();
-        for (int i = 0; i <= lastStart; ++i) {
+        for (int i = text.length() - search.length(); i >= 0; --i) {
             if (text.regionMatches(true, i, search, 0, search.length())) {
                 return true;
             }

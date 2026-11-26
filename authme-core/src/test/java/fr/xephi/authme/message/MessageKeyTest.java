@@ -3,7 +3,6 @@ package fr.xephi.authme.message;
 import fr.xephi.authme.util.StringUtils;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -17,29 +16,19 @@ import static org.junit.jupiter.api.Assertions.fail;
 class MessageKeyTest {
 
     @Test
-    void shouldHaveUniqueMessageKeys() {
-        MessageKey[] messageKeys = MessageKey.values();
+    void shouldHaveUniqueKeysWithWellFormedPlaceholders() {
         Set<String> keys = new HashSet<>();
-
-        for (MessageKey messageKey : messageKeys) {
+        for (MessageKey messageKey : MessageKey.values()) {
             String key = messageKey.getKey();
             if (!keys.add(key)) {
-                fail("Found key '" + messageKey.getKey() + "' twice!");
+                fail("Found key '" + key + "' twice!");
             } else if (StringUtils.isBlank(key)) {
                 fail("Key for message key '" + messageKey + "' is empty");
             }
-        }
-    }
-
-    @Test
-    void shouldHaveWellFormedPlaceholders() {
-        MessageKey[] messageKeys = MessageKey.values();
-
-        for (MessageKey messageKey : messageKeys) {
-            String[] tags = messageKey.getTags();
-            Arrays.stream(tags)
-                .forEach(tag -> assertThat("Tag '" + tag + "' corresponds to valid format for key '" + messageKey + "'",
-                    tag, matchesPattern("^%[a-z_]+$")));
+            for (String tag : messageKey.getTags()) {
+                assertThat("Tag '" + tag + "' corresponds to valid format for key '" + messageKey + "'",
+                    tag, matchesPattern("^%[a-z_]+$"));
+            }
         }
     }
 }

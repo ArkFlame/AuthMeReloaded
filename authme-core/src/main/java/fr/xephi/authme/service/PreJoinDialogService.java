@@ -21,9 +21,6 @@ public class PreJoinDialogService {
     private final Map<String, Long> sessionByName = new ConcurrentHashMap<>();
     private final Map<Long, DialogSession> sessions = new ConcurrentHashMap<>();
 
-    public PreJoinDialogService() {
-    }
-
     /**
      * Opens a session for a connection entering the configuration phase, dropping the state of any
      * earlier session for that name so it can never be inherited.

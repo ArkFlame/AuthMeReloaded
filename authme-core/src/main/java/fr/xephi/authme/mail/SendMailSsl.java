@@ -143,9 +143,7 @@ public class SendMailSsl {
                 break;
             case 25:
                 if (settings.getProperty(EmailSettings.PORT25_USE_TLS)) {
-                    email.setStartTLSEnabled(true);
-                    email.setStartTLSRequired(true);
-                    email.setSSLCheckServerIdentity(checkServerIdentity);
+                    enableStartTls(email, checkServerIdentity);
                 }
                 break;
             case 465:

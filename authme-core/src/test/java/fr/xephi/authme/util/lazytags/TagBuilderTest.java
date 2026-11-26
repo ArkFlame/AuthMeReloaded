@@ -2,9 +2,6 @@ package fr.xephi.authme.util.lazytags;
 
 import org.junit.jupiter.api.Test;
 
-import java.util.function.Function;
-import java.util.function.Supplier;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
@@ -16,9 +13,7 @@ class TagBuilderTest {
 
     @Test
     void shouldCreateNoArgsTag() {
-        Supplier<String> supplier = () -> "hello";
-
-        Tag<String> tag = TagBuilder.createTag("hey", supplier);
+        Tag<String> tag = TagBuilder.createTag("hey", () -> "hello");
 
         assertThat(tag, instanceOf(SimpleTag.class));
         assertThat(tag.getValue(null), equalTo("hello"));
@@ -26,9 +21,7 @@ class TagBuilderTest {
 
     @Test
     void shouldCreateDependentTag() {
-        Function<Double, String> function = d -> Double.toString(d + d/10);
-
-        Tag<Double> tag = TagBuilder.createTag("%test", function);
+        Tag<Double> tag = TagBuilder.createTag("%test", d -> Double.toString(d + d / 10));
 
         assertThat(tag, instanceOf(DependentTag.class));
         assertThat(tag.getValue(24d), equalTo("26.4"));

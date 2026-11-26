@@ -43,17 +43,17 @@ class UuidCommandTest {
     @Mock
     private CommonService commonService;
 
+    @Mock
+    private CommandSender sender;
+
     @Test
     void shouldShowOfflineUuidAndReportUnknownOtherUuids() {
         // given
         String playerName = "testUser";
-        CommandSender sender = mock(CommandSender.class);
         // when
         command.executeCommand(sender, Collections.singletonList(playerName));
         // then
-        String offlineUuid = UUID.nameUUIDFromBytes(("OfflinePlayer:"
-            + playerName.toLowerCase(Locale.ROOT)).getBytes(StandardCharsets.UTF_8)).toString();
-        verify(commonService).send(sender, MessageKey.ADMIN_UUID_OFFLINE, playerName, offlineUuid);
+        verify(commonService).send(sender, MessageKey.ADMIN_UUID_OFFLINE, playerName, offlineUuid(playerName));
         verify(commonService).send(sender, MessageKey.ADMIN_UUID_MOJANG_UNKNOWN, playerName);
         verify(commonService).send(sender, MessageKey.ADMIN_UUID_FLOODGATE_UNKNOWN, playerName);
     }
@@ -66,7 +66,6 @@ class UuidCommandTest {
         PlayerAuth auth = mock(PlayerAuth.class);
         given(auth.getPremiumUuid()).willReturn(mojangUuid);
         given(dataSource.getAuth(playerName)).willReturn(auth);
-        CommandSender sender = mock(CommandSender.class);
         // when
         command.executeCommand(sender, Collections.singletonList(playerName));
         // then
@@ -83,7 +82,6 @@ class UuidCommandTest {
         given(player.getUniqueId()).willReturn(floodgateUuid);
         given(bukkitService.getPlayerExact(playerName)).willReturn(player);
         given(floodgateService.isFloodgatePlayer(floodgateUuid)).willReturn(true);
-        CommandSender sender = mock(CommandSender.class);
         // when
         command.executeCommand(sender, Collections.singletonList(playerName));
         // then
@@ -98,7 +96,6 @@ class UuidCommandTest {
         Player player = mock(Player.class);
         given(player.getUniqueId()).willReturn(UUID.randomUUID());
         given(bukkitService.getPlayerExact(playerName)).willReturn(player);
-        CommandSender sender = mock(CommandSender.class);
         // when
         command.executeCommand(sender, Collections.singletonList(playerName));
         // then
@@ -108,13 +105,16 @@ class UuidCommandTest {
     @Test
     void shouldDefaultToSenderNameWithoutArguments() {
         // given
-        CommandSender sender = mock(CommandSender.class);
         given(sender.getName()).willReturn("consoleSender");
         // when
         command.executeCommand(sender, Collections.emptyList());
         // then
-        String offlineUuid = UUID.nameUUIDFromBytes("OfflinePlayer:consolesender"
+        verify(commonService).send(sender, MessageKey.ADMIN_UUID_OFFLINE, "consoleSender",
+            offlineUuid("consoleSender"));
+    }
+
+    private static String offlineUuid(String playerName) {
+        return UUID.nameUUIDFromBytes(("OfflinePlayer:" + playerName.toLowerCase(Locale.ROOT))
             .getBytes(StandardCharsets.UTF_8)).toString();
-        verify(commonService).send(sender, MessageKey.ADMIN_UUID_OFFLINE, "consoleSender", offlineUuid);
     }
 }

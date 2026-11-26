@@ -95,35 +95,24 @@ class SqLiteMigrater {
         sqLite.reload();
 
         try (Statement st = getConnection(sqLite).createStatement()) {
-            String copySql = "INSERT INTO $table ($id, $name, $realName, $password, $lastIp, $lastLogin, $regIp, "
-                + "$regDate, $locX, $locY, $locZ, $locWorld, $locPitch, $locYaw, $email, $isLogged)"
-                + "SELECT $id, $name, $realName,"
-                + " $password, CASE WHEN $lastIp = '127.0.0.1' OR $lastIp = '' THEN NULL else $lastIp END,"
-                + " $lastLogin, $regIp, $regDate, $locX, $locY, $locZ, $locWorld, $locPitch, $locYaw,"
-                + " CASE WHEN $email = 'your@email.com' THEN NULL ELSE $email END, $isLogged"
-                + " FROM " + tempTable + ";";
-            int insertedEntries = st.executeUpdate(replaceColumnVariables(copySql));
+            String copySql = "INSERT INTO " + tableName + " ("
+                + col.ID + ", " + col.NAME + ", " + col.REAL_NAME + ", " + col.PASSWORD + ", "
+                + col.LAST_IP + ", " + col.LAST_LOGIN + ", " + col.REGISTRATION_IP + ", " + col.REGISTRATION_DATE
+                + ", " + col.LASTLOC_X + ", " + col.LASTLOC_Y + ", " + col.LASTLOC_Z + ", " + col.LASTLOC_WORLD
+                + ", " + col.LASTLOC_PITCH + ", " + col.LASTLOC_YAW + ", " + col.EMAIL + ", " + col.IS_LOGGED + ")"
+                + " SELECT " + col.ID + ", " + col.NAME + ", " + col.REAL_NAME + ", " + col.PASSWORD + ","
+                + " CASE WHEN " + col.LAST_IP + " = '127.0.0.1' OR " + col.LAST_IP + " = '' THEN NULL else "
+                + col.LAST_IP + " END,"
+                + " " + col.LAST_LOGIN + ", " + col.REGISTRATION_IP + ", " + col.REGISTRATION_DATE + ", "
+                + col.LASTLOC_X + ", " + col.LASTLOC_Y + ", " + col.LASTLOC_Z + ", " + col.LASTLOC_WORLD + ", "
+                + col.LASTLOC_PITCH + ", " + col.LASTLOC_YAW + ","
+                + " CASE WHEN " + col.EMAIL + " = 'your@email.com' THEN NULL ELSE " + col.EMAIL + " END, "
+                + col.IS_LOGGED + " FROM " + tempTable + ";";
+            int insertedEntries = st.executeUpdate(copySql);
             logger.info("Copied over " + insertedEntries + " from the old table to the new one");
 
             st.execute("DROP TABLE " + tempTable + ";");
         }
-    }
-
-    private String replaceColumnVariables(String sql) {
-        String replacedSql = sql.replace("$table", tableName).replace("$id", col.ID)
-            .replace("$name", col.NAME).replace("$realName", col.REAL_NAME)
-            .replace("$password", col.PASSWORD).replace("$lastIp", col.LAST_IP)
-            .replace("$lastLogin", col.LAST_LOGIN).replace("$regIp", col.REGISTRATION_IP)
-            .replace("$regDate", col.REGISTRATION_DATE).replace("$locX", col.LASTLOC_X)
-            .replace("$locY", col.LASTLOC_Y).replace("$locZ", col.LASTLOC_Z)
-            .replace("$locWorld", col.LASTLOC_WORLD).replace("$locPitch", col.LASTLOC_PITCH)
-            .replace("$locYaw", col.LASTLOC_YAW).replace("$email", col.EMAIL)
-            .replace("$isLogged", col.IS_LOGGED);
-        if (replacedSql.contains("$")) {
-            throw new IllegalStateException("SQL still statement still has '$' in it - was a tag not replaced?"
-                + " Replacement result: " + replacedSql);
-        }
-        return replacedSql;
     }
 
     /**

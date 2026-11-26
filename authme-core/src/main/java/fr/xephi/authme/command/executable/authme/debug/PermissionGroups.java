@@ -12,7 +12,7 @@ import org.bukkit.entity.Player;
 import javax.inject.Inject;
 import java.util.List;
 
-import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.joining;
 
 /**
  * Outputs the permission groups of a player.
@@ -39,16 +39,16 @@ class PermissionGroups implements DebugSection {
         Player player = Bukkit.getPlayer(name);
         if (player == null) {
             sender.sendMessage("Player " + name + " could not be found");
-        } else {
-            List<String> groupNames = permissionsManager.getGroups(player).stream()
-                .map(UserGroup::getGroupName)
-                .collect(toList());
-
-            sender.sendMessage("Player " + name + " has permission groups: " + String.join(", ", groupNames));
-            UserGroup primaryGroup = permissionsManager.hasGroupSupport()
-                ? permissionsManager.getPrimaryGroup(player) : null;
-            sender.sendMessage("Primary group is: " + (primaryGroup == null ? "N/A" : primaryGroup.getGroupName()));
+            return;
         }
+        String groupNames = permissionsManager.getGroups(player).stream()
+            .map(UserGroup::getGroupName)
+            .collect(joining(", "));
+
+        sender.sendMessage("Player " + name + " has permission groups: " + groupNames);
+        UserGroup primaryGroup = permissionsManager.hasGroupSupport()
+            ? permissionsManager.getPrimaryGroup(player) : null;
+        sender.sendMessage("Primary group is: " + (primaryGroup == null ? "N/A" : primaryGroup.getGroupName()));
     }
 
     @Override

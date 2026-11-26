@@ -7,7 +7,6 @@ import org.bukkit.command.CommandSender;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Utility functions for AuthMe commands and their {@link CommandDescription} objects.
@@ -94,14 +93,15 @@ public final class CommandUtils {
      * @return formatted command syntax incl. arguments
      */
     public static String buildSyntax(CommandDescription command, List<String> correctLabels) {
-        String commandSyntax = ChatColor.WHITE + "/" + correctLabels.get(0) + ChatColor.YELLOW;
+        StringBuilder syntax = new StringBuilder()
+            .append(ChatColor.WHITE).append('/').append(correctLabels.get(0)).append(ChatColor.YELLOW);
         for (int i = 1; i < correctLabels.size(); ++i) {
-            commandSyntax += " " + correctLabels.get(i);
+            syntax.append(' ').append(correctLabels.get(i));
         }
         for (CommandArgumentDescription argument : command.getArguments()) {
-            commandSyntax += " " + formatArgument(argument);
+            syntax.append(' ').append(formatArgument(argument));
         }
-        return commandSyntax;
+        return syntax.toString();
     }
 
     /**
@@ -129,13 +129,11 @@ public final class CommandUtils {
         }
         String trimmedInput = input.trim();
         if (trimmedInput.startsWith("/")) {
-            trimmedInput = trimmedInput.substring(1);
+            trimmedInput = trimmedInput.substring(1).trim();
         }
         if (trimmedInput.isEmpty()) {
             return new ArrayList<>();
         }
-        return Arrays.stream(trimmedInput.split("\\s+"))
-            .filter(part -> !part.isEmpty())
-            .collect(Collectors.toList());
+        return new ArrayList<>(Arrays.asList(trimmedInput.split("\\s+")));
     }
 }

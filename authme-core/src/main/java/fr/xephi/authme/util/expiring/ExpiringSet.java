@@ -43,14 +43,11 @@ public class ExpiringSet<E> extends AbstractExpiring<E, Long> {
      */
     public boolean contains(E entry) {
         Long expiration = getEntries().get(entry);
-        if (expiration == null) {
-            return false;
+        boolean present = expiration != null && expiration > System.currentTimeMillis();
+        if (expiration != null && !present) {
+            getEntries().remove(entry);
         }
-        if (expiration > System.currentTimeMillis()) {
-            return true;
-        }
-        getEntries().remove(entry);
-        return false;
+        return present;
     }
 
     /**
@@ -73,7 +70,8 @@ public class ExpiringSet<E> extends AbstractExpiring<E, Long> {
      * Removes all entries which have expired from the internal structure.
      */
     public void removeExpiredEntries() {
-        getEntries().entrySet().removeIf(entry -> isExpired(entry.getValue(), System.currentTimeMillis()));
+        long now = System.currentTimeMillis();
+        getEntries().entrySet().removeIf(entry -> isExpired(entry.getValue(), now));
     }
 
     /**
@@ -85,14 +83,13 @@ public class ExpiringSet<E> extends AbstractExpiring<E, Long> {
      */
     public Duration getExpiration(E entry) {
         Long expiration = getEntries().get(entry);
-        if (expiration == null) {
-            return new Duration(-1, TimeUnit.SECONDS);
-        }
-        long stillPresentMillis = expiration - System.currentTimeMillis();
-        if (stillPresentMillis < 0) {
+        if (expiration != null) {
+            long stillPresentMillis = expiration - System.currentTimeMillis();
+            if (stillPresentMillis >= 0) {
+                return Duration.createWithSuitableUnit(stillPresentMillis, TimeUnit.MILLISECONDS);
+            }
             getEntries().remove(entry);
-            return new Duration(-1, TimeUnit.SECONDS);
         }
-        return Duration.createWithSuitableUnit(stillPresentMillis, TimeUnit.MILLISECONDS);
+        return new Duration(-1, TimeUnit.SECONDS);
     }
 }

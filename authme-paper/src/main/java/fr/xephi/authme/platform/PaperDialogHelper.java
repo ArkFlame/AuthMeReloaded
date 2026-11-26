@@ -90,7 +90,11 @@ public final class PaperDialogHelper {
             .action(DialogAction.customClick(submitKey, null))
             .build();
 
-        return createButtonDialog(dialog, base, createPreJoinButtons(dialog, submitButton, cancelKey));
+        List<ActionButton> buttons = createButtons(dialog, submitButton, () -> ActionButton.builder(
+            legacyComponent(dialog.secondaryButtonLabel()))
+            .action(DialogAction.customClick(cancelKey, null))
+            .build());
+        return createButtonDialog(dialog, base, buttons);
     }
 
     private static Dialog createInGameCommandDialog(DialogWindowSpec dialog, String commandTemplate) {
@@ -118,15 +122,6 @@ public final class PaperDialogHelper {
         return Dialog.create(factory -> factory.empty()
             .base(base)
             .type(DialogType.multiAction(buttons).columns(dialog.buttonColumns()).build()));
-    }
-
-    private static List<ActionButton> createPreJoinButtons(DialogWindowSpec dialog,
-                                                           ActionButton primaryButton,
-                                                           Key cancelActionKey) {
-        return createButtons(dialog, primaryButton, () -> ActionButton.builder(
-            legacyComponent(dialog.secondaryButtonLabel()))
-            .action(DialogAction.customClick(cancelActionKey, null))
-            .build());
     }
 
     /**
@@ -162,15 +157,14 @@ public final class PaperDialogHelper {
 
     private static String createRegisterTemplate(RegistrationType type, RegisterSecondaryArgument secondArg) {
         boolean email = type == RegistrationType.EMAIL;
-        String field = email ? "$(email)" : "$(password)";
+        String template = "register " + (email ? "$(email)" : "$(password)");
         if (secondArg == RegisterSecondaryArgument.CONFIRMATION) {
-            return "register " + field + " $(confirm)";
+            return template + " $(confirm)";
         }
-        if (!email && (secondArg == RegisterSecondaryArgument.EMAIL_MANDATORY
-            || secondArg == RegisterSecondaryArgument.EMAIL_OPTIONAL)) {
-            return "register " + field + " $(email)";
-        }
-        return "register " + field;
+        return !email && (secondArg == RegisterSecondaryArgument.EMAIL_MANDATORY
+            || secondArg == RegisterSecondaryArgument.EMAIL_OPTIONAL)
+            ? template + " $(email)"
+            : template;
     }
 
     private static Component legacyComponent(String text) {

@@ -18,7 +18,7 @@ import javax.inject.Inject;
 
 public class ProcessSyncPlayerLogout implements SynchronousProcess {
 
-    private final ConsoleLogger logger = ConsoleLoggerFactory.get(ProcessSyncPlayerLogout.class);
+    private static final ConsoleLogger LOGGER = ConsoleLoggerFactory.get(ProcessSyncPlayerLogout.class);
 
     @Inject
     private CommonService service;
@@ -57,11 +57,11 @@ public class ProcessSyncPlayerLogout implements SynchronousProcess {
 
         commandManager.runCommandsOnLogout(player);
 
-        // Player is now logout... Time to fire event !
+        // Player is now logged out. Time to fire the event!
         bukkitService.callEvent(new LogoutEvent(player));
 
         service.send(player, MessageKey.LOGOUT_SUCCESS);
-        logger.info(player.getName() + " logged out");
+        LOGGER.info(player.getName() + " logged out");
     }
 
 }

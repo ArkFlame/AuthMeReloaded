@@ -13,7 +13,9 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -28,48 +30,41 @@ import static org.junit.jupiter.api.Assertions.fail;
 class SettingsClassConsistencyTest {
 
     private static final String SETTINGS_FOLDER = TestHelper.PROJECT_ROOT + "settings/properties";
-    private static List<Class<? extends SettingsHolder>> classes;
+    private static Map<Class<? extends SettingsHolder>, List<Field>> propertyFields;
 
     @BeforeAll
     static void scanForSettingsClasses() {
         ClassCollector collector = new ClassCollector(TestHelper.SOURCES_FOLDER, SETTINGS_FOLDER);
-        classes = collector.collectClasses(SettingsHolder.class);
+        List<Class<? extends SettingsHolder>> classes = collector.collectClasses(SettingsHolder.class);
 
         if (classes.isEmpty()) {
             throw new IllegalStateException("Did not find any SettingsHolder classes. Is the folder correct?");
         }
-        System.out.println("Found " + classes.size() + " SettingsHolder implementations");
-    }
-
-    /**
-     * Make sure that all {@link Property} instances we define are in public, static, final fields.
-     */
-    @Test
-    void shouldHavePublicStaticFinalFields() {
-        for (Class<?> clazz : classes) {
-            for (Field field : getPropertyFields(clazz)) {
-                String fieldName = "Field " + clazz.getSimpleName() + "#" + field.getName();
-                assertThat(fieldName + " should be public, static, and final",
-                    isValidConstantField(field), equalTo(true));
-            }
+        propertyFields = new LinkedHashMap<>();
+        for (Class<? extends SettingsHolder> clazz : classes) {
+            propertyFields.put(clazz, getPropertyFields(clazz));
         }
     }
 
     /**
-     * Make sure that no properties use the same path.
+     * Make sure that all {@link Property} instances are defined as public, static, final fields
+     * and that no two constants use the same path.
      */
     @Test
-    void shouldHaveUniquePaths() {
+    void shouldHaveValidPropertyFields() {
         Set<String> paths = new HashSet<>();
-        for (Class<?> clazz : classes) {
-            for (Field field : getPropertyFields(clazz)) {
+        propertyFields.forEach((clazz, fields) -> {
+            for (Field field : fields) {
+                assertThat("Field " + clazz.getSimpleName() + "#" + field.getName()
+                        + " should be public, static, and final",
+                    isValidConstantField(field), equalTo(true));
                 Property<?> property =
                     ReflectionTestUtils.getFieldValue(clazz, null, field.getName());
                 if (!paths.add(property.getPath())) {
                     fail("Path '" + property.getPath() + "' should be used by only one constant");
                 }
             }
-        }
+        });
     }
 
     /**
@@ -79,9 +74,9 @@ class SettingsClassConsistencyTest {
     @Test
     void shouldHaveAllClassesInConfigurationData() {
         // given
-        long totalProperties = classes.stream()
-            .flatMap(clazz -> getPropertyFields(clazz).stream())
-            .count();
+        long totalProperties = propertyFields.values().stream()
+            .mapToLong(List::size)
+            .sum();
 
         // when
         ConfigurationData configData = AuthMeSettingsRetriever.buildConfigurationData();
