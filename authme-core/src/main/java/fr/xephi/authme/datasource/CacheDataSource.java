@@ -290,7 +290,10 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public DataSourceValue<String> getEmail(String user) {
-        Optional<PlayerAuth> auth = cachedAuths.getUnchecked(user);
+        // Use the same normalized key as getAuth/getPassword: otherwise a mixed-case
+        // name creates a second cache entry and an extra DB load for the same account.
+        String key = user.toLowerCase(Locale.ROOT);
+        Optional<PlayerAuth> auth = cachedAuths.getUnchecked(key);
         if (auth.isPresent()) {
             return DataSourceValueImpl.of(auth.get().getEmail());
         }

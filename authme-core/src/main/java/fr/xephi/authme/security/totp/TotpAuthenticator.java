@@ -28,6 +28,7 @@ public class TotpAuthenticator implements HasCleanup {
 
     private final IGoogleAuthenticator authenticator;
     private final Settings settings;
+    // All access (contains/put and cleanup) is guarded by this table's monitor.
     private final Table<String, Integer, Long> usedCodes = HashBasedTable.create();
 
     @Inject
@@ -68,12 +69,29 @@ public class TotpAuthenticator implements HasCleanup {
     public boolean checkCode(String playerName, String totpKey, String inputCode) {
         String nameLower = normalizePlayerName(playerName);
         Integer totpCode = Ints.tryParse(inputCode);
-        if (totpCode != null && !usedCodes.contains(nameLower, totpCode)
-            && authenticator.authorize(totpKey, totpCode)) {
-            usedCodes.put(nameLower, totpCode, System.currentTimeMillis());
-            return true;
+        // Keep the replay decision and the write atomic: a concurrent checkCode call must not
+        // be able to accept the same still-unrecorded code, and cleanup must not purge mid-check.
+        synchronized (usedCodes) {
+            if (totpCode != null && !usedCodes.contains(nameLower, totpCode)
+                && authenticator.authorize(totpKey, totpCode)) {
+                usedCodes.put(nameLower, totpCode, System.currentTimeMillis());
+                return true;
+            }
+            return false;
         }
-        return false;
+    }
+
+    /**
+     * Verifies a code without recording it in the login replay cache. Used when confirming a newly
+     * generated (not yet installed) secret, so the same still-valid code remains usable at login.
+     *
+     * @param totpKey the key to check with
+     * @param inputCode the input code to verify
+     * @return true if code is valid, false otherwise
+     */
+    public boolean isValidCode(String totpKey, String inputCode) {
+        Integer totpCode = Ints.tryParse(inputCode);
+        return totpCode != null && authenticator.authorize(totpKey, totpCode);
     }
 
     public TotpGenerationResult generateTotpKey(Player player) {
@@ -94,7 +112,9 @@ public class TotpAuthenticator implements HasCleanup {
     @Override
     public void performCleanup() {
         long threshold = System.currentTimeMillis() - 5 * MILLIS_PER_MINUTE;
-        usedCodes.values().removeIf(value -> value < threshold);
+        synchronized (usedCodes) {
+            usedCodes.values().removeIf(value -> value < threshold);
+        }
     }
 
     public static final class TotpGenerationResult {

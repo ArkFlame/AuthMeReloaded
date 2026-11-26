@@ -39,8 +39,12 @@ public class ShowEmailCommand extends PlayerCommand {
 
     private String emailMask(String email) {
         String[] parts = email.split("@");
-        int idLength = parts[0].length() / 3 + 1; // required length >= 1
-        int domainStart = parts[1].length() / 3; // required length >= 0
-        return parts[0].substring(0, idLength) + "***@***" + parts[1].substring(domainStart);
+        // A value stored by the default validator may lack a local part or a domain
+        // (e.g. "user@" or "@example.com"); split() drops trailing empties, so pad.
+        String localPart = parts.length > 0 ? parts[0] : "";
+        String domain = parts.length > 1 ? parts[1] : "";
+        int idLength = Math.min(localPart.length(), localPart.length() / 3 + 1); // required length >= 1
+        int domainStart = domain.length() / 3; // required length >= 0
+        return localPart.substring(0, idLength) + "***@***" + domain.substring(domainStart);
     }
 }

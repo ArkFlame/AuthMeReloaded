@@ -1,6 +1,8 @@
 package fr.xephi.authme.service;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.hash.HashFunction;
+import com.google.common.hash.Hashing;
 import com.maxmind.geoip2.DatabaseReader;
 import com.maxmind.geoip2.model.CountryResponse;
 import com.maxmind.geoip2.record.Continent;
@@ -18,7 +20,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.HttpURLConnection;
 import java.net.InetAddress;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -26,9 +34,13 @@ import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -113,6 +125,39 @@ class GeoIpServiceTest {
         // then
         assertThat(result, equalTo("N/A"));
         verifyNoInteractions(lookupService);
+    }
+
+    @Test
+    void shouldRejectMissingChecksumAsCheckedFailure() throws Exception {
+        // given
+        Path database = dataFolder.toPath().resolve("GeoLite2-Country.mmdb");
+        Files.write(database, new byte[0]);
+        Method verifyChecksum = GeoIpService.class.getDeclaredMethod("verifyChecksum",
+            HashFunction.class, Path.class, String.class);
+        verifyChecksum.setAccessible(true);
+
+        // when
+        InvocationTargetException result = assertThrows(InvocationTargetException.class,
+            () -> verifyChecksum.invoke(geoIpService, Hashing.md5(), database, null));
+
+        // then
+        assertThat(result.getCause(), instanceOf(IOException.class));
+        assertThat(result.getCause().getMessage(), containsString("checksum"));
+    }
+
+    @Test
+    void shouldSetBoundedTimeoutsOnDownloadConnection() throws Exception {
+        // given
+        HttpURLConnection connection = mock(HttpURLConnection.class);
+        Method configureConnection = GeoIpService.class.getDeclaredMethod("configureConnection", HttpURLConnection.class);
+        configureConnection.setAccessible(true);
+
+        // when
+        configureConnection.invoke(null, connection);
+
+        // then
+        verify(connection).setConnectTimeout(5000);
+        verify(connection).setReadTimeout(5000);
     }
 
     private static CountryResponse createCountryResponse(String countryCode, String countryName) {

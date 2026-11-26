@@ -175,6 +175,11 @@ public class PasswordSecurity implements Reloadable {
     }
 
     private void hashAndSavePasswordWithNewAlgorithm(String password, String playerName) {
+        // CUSTOM / PLAINTEXT (or an event listener) may leave the current algorithm unavailable.
+        // A legacy match must still authenticate the player even when we cannot re-hash it.
+        if (encryptionMethod == null) {
+            return;
+        }
         HashedPassword hashedPassword = encryptionMethod.computeHash(password, playerName);
         dataSource.updatePassword(playerName, hashedPassword);
     }

@@ -1,10 +1,13 @@
 package fr.xephi.authme.process.register;
 
 import ch.jalu.injector.factory.SingletonStore;
+import fr.xephi.authme.TestHelper;
+import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.data.auth.PlayerCache;
 import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.events.AuthMeAsyncPreRegisterEvent;
 import fr.xephi.authme.message.MessageKey;
+import fr.xephi.authme.process.register.executors.ApiPasswordRegisterParams;
 import fr.xephi.authme.process.register.executors.PasswordRegisterParams;
 import fr.xephi.authme.process.register.executors.RegistrationExecutor;
 import fr.xephi.authme.process.register.executors.RegistrationMethod;
@@ -20,11 +23,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Collections;
 import java.util.function.Function;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.only;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -130,6 +135,50 @@ class AsyncRegisterTest {
 
         verify(dataSource, only()).isAuthAvailable(name);
         verify(executor, only()).isRegistrationAdmitted(params);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void shouldBypassIpLimitForApiRegistration() {
+        String name = "apbert";
+        Player player = mockPlayerWithName(name);
+        given(playerCache.isAuthenticated(name)).willReturn(false);
+        given(commonService.getProperty(RegistrationSettings.IS_ENABLED)).willReturn(true);
+        given(dataSource.isAuthAvailable(name)).willReturn(false);
+        given(bukkitService.createAndCallEvent(any(Function.class)))
+            .willReturn(new AuthMeAsyncPreRegisterEvent(player, false));
+        RegistrationExecutor executor = mock(RegistrationExecutor.class);
+        ApiPasswordRegisterParams params = ApiPasswordRegisterParams.of(player, "abc", false);
+        given(executor.isRegistrationAdmitted(params)).willReturn(true);
+        given(executor.buildPlayerAuth(params)).willReturn(PlayerAuth.builder().name(name).build());
+        given(dataSource.saveAuth(any(PlayerAuth.class))).willReturn(true);
+        singletonStoreWillReturn(registrationExecutorStore, executor);
+
+        asyncRegister.register(RegistrationMethod.API_REGISTRATION, params);
+
+        verify(commonService, never()).getProperty(RestrictionSettings.MAX_REGISTRATION_PER_IP);
+        verify(executor).executePostPersistAction(params);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void shouldRejectRegistrationWhenIpLimitIsExceeded() {
+        String name = "gbert";
+        Player player = mockPlayerWithName(name);
+        TestHelper.mockIpAddressToPlayer(player, "1.2.3.4");
+        given(playerCache.isAuthenticated(name)).willReturn(false);
+        given(commonService.getProperty(RegistrationSettings.IS_ENABLED)).willReturn(true);
+        given(commonService.getProperty(RestrictionSettings.MAX_REGISTRATION_PER_IP)).willReturn(1);
+        given(dataSource.isAuthAvailable(name)).willReturn(false);
+        given(dataSource.getAllAuthsByIp("1.2.3.4")).willReturn(Collections.singletonList("other"));
+        given(bukkitService.createAndCallEvent(any(Function.class)))
+            .willReturn(new AuthMeAsyncPreRegisterEvent(player, false));
+
+        asyncRegister.register(RegistrationMethod.PASSWORD_REGISTRATION,
+            PasswordRegisterParams.of(player, "abc", null));
+
+        verify(commonService).send(player, MessageKey.MAX_REGISTER_EXCEEDED, "1", "1", "other");
+        verifyNoInteractions(registrationExecutorStore);
     }
 
     private static Player mockPlayerWithName(String name) {

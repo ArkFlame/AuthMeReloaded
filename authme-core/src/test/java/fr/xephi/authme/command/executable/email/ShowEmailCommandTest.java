@@ -60,6 +60,25 @@ public class ShowEmailCommandTest {
         verify(commonService).send(sender, MessageKey.EMAIL_SHOW, expectedEmail);
     }
 
+    @ParameterizedTest(name = "malformed email {0} is masked to {1}")
+    @CsvSource({
+        "user@, us***@***",
+        "@example.com, ***@***mple.com"
+    })
+    public void shouldMaskMalformedEmailWithoutThrowing(String email, String expectedEmail) {
+        // given
+        Player sender = mock(Player.class);
+        given(sender.getName()).willReturn(USERNAME);
+        given(playerCache.getAuth(USERNAME)).willReturn(newAuthWithEmail(email));
+        given(commonService.getProperty(SecuritySettings.USE_EMAIL_MASKING)).willReturn(true);
+
+        // when
+        command.executeCommand(sender, Collections.emptyList());
+
+        // then
+        verify(commonService).send(sender, MessageKey.EMAIL_SHOW, expectedEmail);
+    }
+
     @Test
     public void shouldReturnNoEmailMessage() {
         // given

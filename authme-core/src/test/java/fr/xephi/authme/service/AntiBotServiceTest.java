@@ -14,6 +14,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.List;
 
@@ -169,6 +171,16 @@ class AntiBotServiceTest {
 
         // then
         assertThat(antiBotService.getAntiBotStatus(), equalTo(AntiBotService.AntiBotStatus.LISTENING));
+    }
+
+    @Test
+    void shouldKeepCrossThreadStateVolatile() throws NoSuchFieldException {
+        // status and task state is written on the region/command thread and read on async pre-login threads
+        for (String name : Arrays.asList("duration", "antiBotStatus", "disableTask", "flaggedCounter")) {
+            Field field = AntiBotService.class.getDeclaredField(name);
+            assertThat(name + " must be volatile for cross-thread visibility",
+                Modifier.isVolatile(field.getModifiers()), equalTo(true));
+        }
     }
 
 }

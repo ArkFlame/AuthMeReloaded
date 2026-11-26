@@ -97,6 +97,7 @@ public class RecoveryCodeService implements SettingsDependent, HasCleanup {
     public void reload(Settings settings) {
         loadSettings(settings);
         recoveryCodes.setExpiration(recoveryCodeExpiration, TimeUnit.HOURS);
+        playerTries.setExpiration(recoveryCodeExpiration, TimeUnit.HOURS);
     }
 
     private void loadSettings(Settings settings) {

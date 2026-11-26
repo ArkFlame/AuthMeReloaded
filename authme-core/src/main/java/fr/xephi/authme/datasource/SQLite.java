@@ -394,6 +394,16 @@ public class SQLite extends AbstractSqlDataSource {
     }
 
     @Override
+    public synchronized boolean updatePremiumUuid(PlayerAuth auth) {
+        return super.updatePremiumUuid(auth);
+    }
+
+    @Override
+    public synchronized List<String> getPremiumUsernames() {
+        return super.getPremiumUsernames();
+    }
+
+    @Override
     public synchronized boolean updateRealName(String user, String realName) {
         return super.updateRealName(user, realName);
     }

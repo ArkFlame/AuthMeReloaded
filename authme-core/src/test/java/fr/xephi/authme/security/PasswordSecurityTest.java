@@ -247,4 +247,22 @@ class PasswordSecurityTest {
         assertThat(ReflectionTestUtils.getFieldValue(PasswordSecurity.class, passwordSecurity, "legacyAlgorithms"),
             equalTo(legacyHashesSet));
     }
+
+    @Test
+    void shouldAuthenticateWithLegacyHashWhenCurrentAlgorithmIsUnavailable() {
+        String playerName = "somePlayer";
+        String clearTextPass = "Test";
+        // MD5 hash for "Test"
+        HashedPassword password = new HashedPassword("0cbc6611f5540bd0809a388dc95a615b");
+
+        given(dataSource.getPassword(playerName)).willReturn(password);
+        withAlgorithms(HashAlgorithm.CUSTOM, HashAlgorithm.MD5);
+        reset(pluginManager); // leave the null method from CUSTOM untouched by the encryption event
+        passwordSecurity.reload();
+
+        boolean result = passwordSecurity.comparePassword(clearTextPass, playerName);
+
+        assertThat(result, equalTo(true));
+        verify(dataSource, never()).updatePassword(anyString(), any(HashedPassword.class));
+    }
 }

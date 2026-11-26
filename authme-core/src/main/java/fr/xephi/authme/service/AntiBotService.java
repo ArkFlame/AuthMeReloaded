@@ -25,12 +25,12 @@ public class AntiBotService implements SettingsDependent {
     private final PermissionsManager permissionsManager;
     private final BukkitService bukkitService;
     // Settings
-    private int duration;
-    // Service status
-    private AntiBotStatus antiBotStatus;
+    private volatile int duration;
+    // Service status - read on the async pre-login thread, written on the region/command thread
+    private volatile AntiBotStatus antiBotStatus;
     private boolean startup;
-    private CancellableTask disableTask;
-    private AtomicIntervalCounter flaggedCounter;
+    private volatile CancellableTask disableTask;
+    private volatile AtomicIntervalCounter flaggedCounter;
 
     @Inject
     AntiBotService(Settings settings, Messages messages, PermissionsManager permissionsManager,

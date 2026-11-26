@@ -53,7 +53,7 @@ public class PostgreSqlDataSource extends AbstractHikariSqlDataSource {
 
         // Pool Settings
         ds.setMaximumPoolSize(getPoolSize());
-        ds.setMaxLifetime(getMaxLifetime() * 1000);
+        ds.setMaxLifetime(getMaxLifetime() * 1000L);
 
         // Database URL
         ds.setDriverClassName("org.postgresql.Driver");

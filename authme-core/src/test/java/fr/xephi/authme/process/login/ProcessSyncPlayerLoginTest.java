@@ -1,9 +1,11 @@
 package fr.xephi.authme.process.login;
 
+import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.data.auth.PlayerCache;
 import fr.xephi.authme.data.limbo.LimboPlayer;
 import fr.xephi.authme.data.limbo.LimboService;
 import fr.xephi.authme.permission.PermissionsManager;
+import fr.xephi.authme.permission.PlayerStatePermission;
 import fr.xephi.authme.platform.DialogAdapter;
 import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.service.CommonService;
@@ -13,6 +15,7 @@ import fr.xephi.authme.service.TeleportationService;
 import fr.xephi.authme.service.bungeecord.BungeeSender;
 import fr.xephi.authme.settings.WelcomeMessageConfiguration;
 import fr.xephi.authme.settings.commandconfig.CommandManager;
+import fr.xephi.authme.settings.properties.RegistrationSettings;
 import fr.xephi.authme.settings.properties.RestrictionSettings;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeEach;
@@ -88,6 +91,48 @@ class ProcessSyncPlayerLoginTest {
             verify(limboService).restorePendingOperator(player);
             verify(limboService).restoreSpeedsForAutoLogin(player);
             verify(limboService, never()).restoreData(player);
+        }
+    }
+
+    @ParameterizedTest(name = "dialog open={0}")
+    @ValueSource(booleans = {true, false})
+    void shouldCloseDialogOnlyWhenClearDialogOpenReturnsTrue(boolean dialogOpen) {
+        given(dialogStateService.clearDialogOpen(player)).willReturn(dialogOpen);
+
+        processSyncPlayerLogin.processPlayerLogin(player, false, Collections.emptyList());
+
+        if (dialogOpen) {
+            verify(dialogAdapter).closeDialog(player);
+        } else {
+            verify(dialogAdapter, never()).closeDialog(player);
+        }
+    }
+
+    @Test
+    void shouldNotSendBungeeRedirectForProxyInitiatedLogin() {
+        given(playerCache.getAuth("bobby")).willReturn(PlayerAuth.builder().name("bobby").build());
+        given(commonService.getProperty(RegistrationSettings.APPLY_BLIND_EFFECT)).willReturn(false);
+
+        processSyncPlayerLogin.processPlayerLoginFromProxy(player, false, Collections.emptyList());
+
+        verify(bungeeSender, never()).connectPlayerOnLogin(player);
+        verify(permissionsManager, never()).hasPermission(player, PlayerStatePermission.BYPASS_BUNGEE_SEND);
+    }
+
+    @ParameterizedTest(name = "bypass permission={0}")
+    @ValueSource(booleans = {true, false})
+    void shouldSendBungeeRedirectOnlyWithoutBypassPermission(boolean hasBypassPermission) {
+        given(playerCache.getAuth("bobby")).willReturn(PlayerAuth.builder().name("bobby").build());
+        given(commonService.getProperty(RegistrationSettings.APPLY_BLIND_EFFECT)).willReturn(false);
+        given(permissionsManager.hasPermission(player, PlayerStatePermission.BYPASS_BUNGEE_SEND))
+            .willReturn(hasBypassPermission);
+
+        processSyncPlayerLogin.processPlayerLogin(player, false, Collections.emptyList());
+
+        if (hasBypassPermission) {
+            verify(bungeeSender, never()).connectPlayerOnLogin(player);
+        } else {
+            verify(bungeeSender).connectPlayerOnLogin(player);
         }
     }
 }

@@ -16,7 +16,10 @@ import static fr.xephi.authme.listener.TestPlayerUtils.mockPlayerWithName;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 /**
  * Test for {@link GenerateTotpService}.
@@ -58,8 +61,8 @@ class GenerateTotpServiceTest {
         given(totpAuthenticator.generateTotpKey(player)).willReturn(givenGenerationResult);
         generateTotpService.generateTotpKey(player);
         String validCode = "928374";
-        given(totpAuthenticator.checkCode("Aria", generatedKey, validCode)).willReturn(true);
-        given(totpAuthenticator.checkCode("Aria", generatedKey, "000000")).willReturn(false);
+        given(totpAuthenticator.isValidCode(generatedKey, validCode)).willReturn(true);
+        given(totpAuthenticator.isValidCode(generatedKey, "000000")).willReturn(false);
 
         boolean invalidCodeResult = generateTotpService.isTotpCodeCorrectForGeneratedTotpKey(player, "000000");
         boolean validCodeResult = generateTotpService.isTotpCodeCorrectForGeneratedTotpKey(player, validCode);
@@ -68,6 +71,23 @@ class GenerateTotpServiceTest {
         assertThat(invalidCodeResult, equalTo(false));
         assertThat(validCodeResult, equalTo(true));
         assertThat(unknownPlayerResult, equalTo(false));
+    }
+
+    @Test
+    void shouldVerifySetupCodeWithoutRecordingItForLogin() {
+        String generatedKey = "ASLO43KDF2J";
+        Player player = mockPlayerWithName("Nora");
+        given(totpAuthenticator.generateTotpKey(player))
+            .willReturn(new TotpGenerationResult(generatedKey, "url"));
+        generateTotpService.generateTotpKey(player);
+        String code = "123456";
+        given(totpAuthenticator.isValidCode(generatedKey, code)).willReturn(true);
+
+        boolean result = generateTotpService.isTotpCodeCorrectForGeneratedTotpKey(player, code);
+
+        assertThat(result, equalTo(true));
+        verify(totpAuthenticator).isValidCode(generatedKey, code);
+        verify(totpAuthenticator, never()).checkCode(anyString(), anyString(), anyString());
     }
 
     @Test

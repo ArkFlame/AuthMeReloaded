@@ -30,6 +30,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.FileTime;
+import java.time.DateTimeException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -39,6 +40,7 @@ import java.util.Base64;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
 public class GeoIpService {
@@ -56,6 +58,12 @@ public class GeoIpService {
         "https://updates.maxmind.com/geoip/databases/" + DATABASE_NAME + "/update";
 
     private static final int UPDATE_INTERVAL_DAYS = 30;
+
+    // Bound the MaxMind download so a stalled connection cannot wedge the async update task
+    private static final int CONNECTION_TIMEOUT_MS = 5000;
+
+    // MD5 is 128 bits, i.e. 32 hexadecimal characters
+    private static final Pattern CHECKSUM_PATTERN = Pattern.compile("[0-9a-fA-F]{32}");
 
     private final ConsoleLogger logger = ConsoleLoggerFactory.get(GeoIpService.class);
     private final Path dataFile;
@@ -210,18 +218,46 @@ public class GeoIpService {
             return null;
         }
 
-        if (connection.getResponseCode() == HttpURLConnection.HTTP_NOT_MODIFIED) {
-            //we already have the newest version
-            connection.getInputStream().close();
-            return null;
-        }
+        try {
+            int responseCode = connection.getResponseCode();
+            if (responseCode == HttpURLConnection.HTTP_NOT_MODIFIED) {
+                //we already have the newest version
+                return null;
+            }
+            if (responseCode != HttpURLConnection.HTTP_OK) {
+                // Anything else (e.g. bad credentials, rate limit or server error) is not a database archive
+                throw new IOException("Failed to download GEO IP database: MaxMind responded with HTTP " + responseCode);
+            }
 
-        String hash = connection.getHeaderField("X-Database-MD5");
-        String rawModifiedDate = connection.getHeaderField("Last-Modified");
-        Instant modifiedDate = Instant.from(DateTimeFormatter.RFC_1123_DATE_TIME.parse(rawModifiedDate));
-        Files.copy(connection.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
-        Files.setLastModifiedTime(destination, FileTime.from(modifiedDate));
-        return hash;
+            String hash = connection.getHeaderField("X-Database-MD5");
+            String rawModifiedDate = connection.getHeaderField("Last-Modified");
+            Instant modifiedDate = parseModifiedDate(rawModifiedDate);
+            Files.copy(connection.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
+            Files.setLastModifiedTime(destination, FileTime.from(modifiedDate));
+            return hash;
+        } finally {
+            // Files.copy does not close the source stream, so release the socket on every path
+            connection.disconnect();
+        }
+    }
+
+    /**
+     * Parses the {@code Last-Modified} header, turning missing or malformed values into a checked
+     * failure so the async update task logs it instead of aborting with an unchecked exception.
+     *
+     * @param rawModifiedDate the raw header value, may be null
+     * @return the parsed modification timestamp
+     * @throws IOException if the header is missing or cannot be parsed
+     */
+    private static Instant parseModifiedDate(String rawModifiedDate) throws IOException {
+        if (rawModifiedDate == null) {
+            throw new IOException("Missing Last-Modified header in MaxMind response");
+        }
+        try {
+            return Instant.from(DateTimeFormatter.RFC_1123_DATE_TIME.parse(rawModifiedDate));
+        } catch (DateTimeException e) {
+            throw new IOException("Invalid Last-Modified header in MaxMind response: " + rawModifiedDate, e);
+        }
     }
 
     /**
@@ -241,6 +277,7 @@ public class GeoIpService {
         }
 
         HttpURLConnection connection = (HttpURLConnection) new URL(ARCHIVE_URL).openConnection();
+        configureConnection(connection);
         String basicAuth = "Basic " + new String(Base64.getEncoder().encode((clientId + ":" + licenseKey).getBytes()));
         connection.setRequestProperty("Authorization", basicAuth);
 
@@ -254,6 +291,16 @@ public class GeoIpService {
     }
 
     /**
+     * Applies bounded connect and read timeouts before any network I/O is performed.
+     *
+     * @param connection the freshly opened download connection
+     */
+    private static void configureConnection(HttpURLConnection connection) {
+        connection.setConnectTimeout(CONNECTION_TIMEOUT_MS);
+        connection.setReadTimeout(CONNECTION_TIMEOUT_MS);
+    }
+
+    /**
      * Verify if the expected checksum is equal to the checksum of the given file.
      *
      * @param function the checksum function like MD5, SHA256 used to generate the checksum from the file
@@ -262,6 +309,9 @@ public class GeoIpService {
      * @throws IOException on I/O error reading the file or the checksum verification failed
      */
     private void verifyChecksum(HashFunction function, Path file, String expectedChecksum) throws IOException {
+        if (expectedChecksum == null || !CHECKSUM_PATTERN.matcher(expectedChecksum).matches()) {
+            throw new IOException("Invalid or missing MaxMind checksum header");
+        }
         HashCode actualHash = function.hashBytes(Files.readAllBytes(file));
         HashCode expectedHash = HashCode.fromString(expectedChecksum);
         if (!Objects.equals(actualHash, expectedHash)) {

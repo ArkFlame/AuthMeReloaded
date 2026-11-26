@@ -1,5 +1,8 @@
 package fr.xephi.authme.service;
 
+import java.lang.reflect.Field;
+import java.util.concurrent.TimeUnit;
+
 import fr.xephi.authme.ReflectionTestUtils;
 import fr.xephi.authme.settings.Settings;
 import fr.xephi.authme.settings.properties.SecuritySettings;
@@ -120,11 +123,39 @@ class RecoveryCodeServiceTest {
         assertThat(getTriesCounter().get(player), equalTo(0));
     }
 
+    @Test
+    void shouldUpdateBothCodeAndTryExpirationsUponReload() {
+        // given: the initial expiration is 4 hours for both structures
+        assertThat(expirationMillis(getCodeMap()), equalTo(TimeUnit.HOURS.toMillis(4)));
+        assertThat(expirationMillis(getTriesCounter()), equalTo(TimeUnit.HOURS.toMillis(4)));
+
+        // when: the expiration is changed to 24 hours and the service is reloaded
+        given(settings.getProperty(SecuritySettings.RECOVERY_CODE_HOURS_VALID)).willReturn(24);
+        recoveryCodeService.reload(settings);
+
+        // then: both the code map and the try counter must use the new expiration
+        assertThat(expirationMillis(getCodeMap()), equalTo(TimeUnit.HOURS.toMillis(24)));
+        assertThat(expirationMillis(getTriesCounter()), equalTo(TimeUnit.HOURS.toMillis(24)));
+    }
+
     private ExpiringMap<String, String> getCodeMap() {
         return ReflectionTestUtils.getFieldValue(RecoveryCodeService.class, recoveryCodeService, "recoveryCodes");
     }
 
     private ExpiringMap<String, Integer> getTriesCounter() {
         return ReflectionTestUtils.getFieldValue(RecoveryCodeService.class, recoveryCodeService, "playerTries");
+    }
+
+    private long expirationMillis(Object expiringStructure) {
+        Class<?> clazz = expiringStructure.getClass();
+        while (clazz != null) {
+            try {
+                Field field = clazz.getDeclaredField("expirationMillis");
+                return (Long) ReflectionTestUtils.getFieldValue(field, expiringStructure);
+            } catch (NoSuchFieldException e) {
+                clazz = clazz.getSuperclass();
+            }
+        }
+        throw new IllegalStateException("Could not find expirationMillis field");
     }
 }

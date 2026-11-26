@@ -19,6 +19,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static fr.xephi.authme.AuthMeMatchers.stringWithLength;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -91,6 +99,19 @@ class TotpAuthenticatorTest {
     }
 
     @Test
+    void shouldNotBurnSetupCodeInReplayCache() {
+        String secret = "the_secret";
+        int code = 21398;
+        given(googleAuthenticator.authorize(secret, code)).willReturn(true);
+
+        boolean setupResult = totpAuthenticator.isValidCode(secret, Integer.toString(code));
+        boolean loginResult = totpAuthenticator.checkCode("pl", secret, Integer.toString(code));
+
+        assertThat(setupResult, equalTo(true));
+        assertThat(loginResult, equalTo(true));
+    }
+
+    @Test
     void shouldHandleInvalidNumberInput() {
         boolean result = totpAuthenticator.checkCode("foo", "Some_Secret", "123ZZ");
 
@@ -112,6 +133,46 @@ class TotpAuthenticatorTest {
 
         assertThat(result, equalTo(true));
         verify(googleAuthenticator).authorize(totpKey, 408435);
+    }
+
+    @Test
+    void shouldAcceptCodeOnlyOnceUnderConcurrentChecks() throws Exception {
+        String secret = "the_secret";
+        int code = 21398;
+        int threadCount = 8;
+        CyclicBarrier ready = new CyclicBarrier(threadCount + 1);
+        CountDownLatch releaseAuthorize = new CountDownLatch(1);
+
+        given(googleAuthenticator.authorize(secret, code)).willAnswer(invocation -> {
+            releaseAuthorize.await(5, TimeUnit.SECONDS);
+            return true;
+        });
+
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        List<Future<Boolean>> results = new ArrayList<>();
+        try {
+            for (int i = 0; i < threadCount; i++) {
+                results.add(executor.submit(() -> {
+                    ready.await();
+                    return totpAuthenticator.checkCode("pl", secret, Integer.toString(code));
+                }));
+            }
+            ready.await();
+            // Give every worker time to reach the replay check / authorize before releasing it.
+            Thread.sleep(300);
+            releaseAuthorize.countDown();
+
+            int accepted = 0;
+            for (Future<Boolean> result : results) {
+                if (result.get(5, TimeUnit.SECONDS)) {
+                    accepted++;
+                }
+            }
+            assertThat(accepted, equalTo(1));
+        } finally {
+            releaseAuthorize.countDown();
+            executor.shutdownNow();
+        }
     }
 
     @Test
