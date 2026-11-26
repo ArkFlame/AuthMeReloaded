@@ -130,28 +130,25 @@ public class AsynchronousJoinTest {
             .willReturn(PreJoinDialogService.PendingDialogState.NONE);
     }
 
-    @Test
-    public void shouldShowLoginDialogForUnauthenticatedRegisteredPlayer() {
+    @ParameterizedTest(name = "authenticated={0}")
+    @ValueSource(booleans = {true, false})
+    public void shouldShowLoginDialogOnlyForUnauthenticatedPlayer(boolean authenticated) {
         Player player = givenRegisteredPlayer();
-        given(playerCache.isAuthenticated("Bobby")).willReturn(false);
-        givenDialogUi(player);
+        given(playerCache.isAuthenticated("Bobby")).willReturn(authenticated);
+        if (!authenticated) {
+            givenDialogUi(player);
+        }
 
         asynchronousJoin.processJoin(player);
 
-        verify(limboService).createLimboPlayer(player, true);
-        verify(bukkitService).runTaskLater(eq(player), any(Runnable.class), eq(1L));
-        verify(dialogAdapter).showLoginDialog(eq(player), any(DialogWindowSpec.class));
-    }
-
-    @Test
-    public void shouldNotShowLoginDialogForAlreadyAuthenticatedPlayer() {
-        Player player = givenRegisteredPlayer();
-        given(playerCache.isAuthenticated("Bobby")).willReturn(true);
-
-        asynchronousJoin.processJoin(player);
-
-        verify(limboService, never()).createLimboPlayer(eq(player), eq(true));
-        verifyNoLoginDialog(player);
+        if (authenticated) {
+            verify(limboService, never()).createLimboPlayer(player, true);
+            verifyNoLoginDialog(player);
+        } else {
+            verify(limboService).createLimboPlayer(player, true);
+            verify(bukkitService).runTaskLater(eq(player), any(Runnable.class), eq(1L));
+            verify(dialogAdapter).showLoginDialog(eq(player), any(DialogWindowSpec.class));
+        }
     }
 
     @Test
@@ -215,7 +212,6 @@ public class AsynchronousJoinTest {
         Player player = givenRegisteredPlayer();
         givenPendingDialogState(new PreJoinDialogService.PendingDialogState(
             "hunter2", null, null, false, false, null));
-        given(playerCache.isAuthenticated("Bobby")).willReturn(false);
 
         asynchronousJoin.processJoin(player);
 
@@ -233,8 +229,6 @@ public class AsynchronousJoinTest {
         given(bungeeSender.isEnabled()).willReturn(true);
         UUID offlineUuid = UUID.fromString("f0647d73-8421-3979-bdb6-6b88dc3d03d4");
         given(player.getUniqueId()).willReturn(offlineUuid);
-
-        given(auth.isPremium()).willReturn(false);
 
         UUID mojangUuid = UUID.randomUUID();
         given(proxySessionManager.getLoginRequest("Bobby")).willReturn(
@@ -290,7 +284,6 @@ public class AsynchronousJoinTest {
         Player player = givenRegisteredPlayer();
         givenPendingDialogState(new PreJoinDialogService.PendingDialogState(
             null, null, null, true, false, null));
-        given(playerCache.isAuthenticated("Bobby")).willReturn(false);
         givenDialogUi(player);
 
         asynchronousJoin.processJoin(player);

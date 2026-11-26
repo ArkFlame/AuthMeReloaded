@@ -179,16 +179,14 @@ class OnJoinVerifierTest {
             MessageKey.MUST_REGISTER_MESSAGE);
     }
 
-    @Test
-    void shouldNotKickRegisteredPlayer() throws FailedVerificationException {
-        onJoinVerifier.checkKickNonRegistered(true);
-    }
+    @ParameterizedTest(name = "isAuthAvailable={0}")
+    @ValueSource(booleans = {true, false})
+    void shouldNotKickPlayer(boolean isAuthAvailable) throws FailedVerificationException {
+        if (!isAuthAvailable) {
+            given(settings.getProperty(RestrictionSettings.KICK_NON_REGISTERED)).willReturn(false);
+        }
 
-    @Test
-    void shouldNotKickUnregisteredPlayer() throws FailedVerificationException {
-        given(settings.getProperty(RestrictionSettings.KICK_NON_REGISTERED)).willReturn(false);
-
-        onJoinVerifier.checkKickNonRegistered(false);
+        onJoinVerifier.checkKickNonRegistered(isAuthAvailable);
     }
 
     @Test
@@ -258,15 +256,22 @@ class OnJoinVerifierTest {
         verifyNoInteractions(floodgateService);
     }
 
-    @Test
-    void shouldAllowProperlyCasedName() throws FailedVerificationException {
-        String name = "Bobby";
-        PlayerAuth auth = PlayerAuth.builder().name("bobby").realName("Bobby").build();
-        given(settings.getProperty(RegistrationSettings.PREVENT_OTHER_CASE)).willReturn(true);
+    @ParameterizedTest(name = "name={0}, stored={1}, real={2}, preventOtherCase={3}")
+    @MethodSource("acceptedCasingCases")
+    void shouldAcceptNameCasing(String name, String storedName, String realName, boolean preventOtherCase)
+            throws FailedVerificationException {
+        PlayerAuth auth = PlayerAuth.builder().name(storedName).realName(realName).build();
+        given(settings.getProperty(RegistrationSettings.PREVENT_OTHER_CASE)).willReturn(preventOtherCase);
 
         onJoinVerifier.checkNameCasing(name, auth);
 
         verifyNoInteractions(dataSource);
+    }
+
+    private static Stream<Arguments> acceptedCasingCases() {
+        return Stream.of(
+            Arguments.of("Bobby", "bobby", "Bobby", true),
+            Arguments.of("Test", "test", "TEST", false));
     }
 
     @Test
@@ -300,33 +305,18 @@ class OnJoinVerifierTest {
     }
 
     @Test
-    void shouldAcceptCasingMismatchForDisabledSetting() throws FailedVerificationException {
-        String name = "Test";
-        PlayerAuth auth = PlayerAuth.builder().name("test").realName("TEST").build();
-        given(settings.getProperty(RegistrationSettings.PREVENT_OTHER_CASE)).willReturn(false);
-
-        onJoinVerifier.checkNameCasing(name, auth);
-
-        verifyNoInteractions(dataSource);
-    }
-
-    @Test
     void shouldAcceptNameForUnregisteredAccount() throws FailedVerificationException {
-        String name = "MyPlayer";
-        PlayerAuth auth = null;
-
-        onJoinVerifier.checkNameCasing(name, auth);
+        onJoinVerifier.checkNameCasing("MyPlayer", null);
 
         verifyNoInteractions(dataSource);
     }
 
     @Test
     void shouldAcceptNameThatIsNotOnline() throws FailedVerificationException {
-        String name = "bobby";
         given(settings.getProperty(RestrictionSettings.FORCE_SINGLE_SESSION)).willReturn(true);
         given(bukkitService.getOnlinePlayers()).willReturn(Collections.emptyList());
 
-        onJoinVerifier.checkSingleSession(name);
+        onJoinVerifier.checkSingleSession("bobby");
 
         verify(bukkitService).getOnlinePlayers();
     }
@@ -369,10 +359,7 @@ class OnJoinVerifierTest {
 
     @Test
     void shouldAllowUserWithAuth() throws FailedVerificationException {
-        String name = "Lacey";
-        boolean isAuthAvailable = true;
-
-        onJoinVerifier.checkAntibot(name, isAuthAvailable);
+        onJoinVerifier.checkAntibot("Lacey", true);
 
         verifyNoInteractions(permissionsManager, antiBotService);
     }
@@ -419,36 +406,30 @@ class OnJoinVerifierTest {
         verifyNoInteractions(validationService);
     }
 
-    @ParameterizedTest(name = "{0}, authAvailable={2}")
-    @MethodSource("acceptedCountries")
-    void shouldCheckAndAcceptPlayerCountry(String name, String ip, boolean authAvailable)
+    @ParameterizedTest(name = "{0}, authAvailable={2}, admitted={3}")
+    @MethodSource("countryCheckCases")
+    void shouldCheckPlayerCountry(String name, String ip, boolean authAvailable, boolean admitted)
             throws FailedVerificationException {
         given(settings.getProperty(ProtectionSettings.ENABLE_PROTECTION)).willReturn(true);
         if (authAvailable) {
             given(settings.getProperty(ProtectionSettings.ENABLE_PROTECTION_REGISTERED)).willReturn(true);
         }
-        given(validationService.isCountryAdmitted(ip)).willReturn(true);
+        given(validationService.isCountryAdmitted(ip)).willReturn(admitted);
 
-        onJoinVerifier.checkPlayerCountry(name, ip, authAvailable);
-
-        verify(validationService).isCountryAdmitted(ip);
+        if (admitted) {
+            onJoinVerifier.checkPlayerCountry(name, ip, authAvailable);
+            verify(validationService).isCountryAdmitted(ip);
+        } else {
+            expectValidationExceptionWith(() -> onJoinVerifier.checkPlayerCountry(name, ip, authAvailable),
+                MessageKey.COUNTRY_BANNED_ERROR);
+        }
     }
 
-    private static Stream<Arguments> acceptedCountries() {
+    private static Stream<Arguments> countryCheckCases() {
         return Stream.of(
-            Arguments.of("lucas", "192.168.0.1", false),
-            Arguments.of("gabriel", "192.168.10.24", true));
-    }
-
-    @Test
-    void shouldThrowForBannedCountry() {
-        String ip = "192.168.40.0";
-        String name = "bob";
-        given(settings.getProperty(ProtectionSettings.ENABLE_PROTECTION)).willReturn(true);
-        given(validationService.isCountryAdmitted(ip)).willReturn(false);
-
-        expectValidationExceptionWith(() -> onJoinVerifier.checkPlayerCountry(name, ip, false),
-            MessageKey.COUNTRY_BANNED_ERROR);
+            Arguments.of("lucas", "192.168.0.1", false, true),
+            Arguments.of("gabriel", "192.168.10.24", true, true),
+            Arguments.of("bob", "192.168.40.0", false, false));
     }
 
     @Test

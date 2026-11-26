@@ -181,10 +181,7 @@ public class LimboService {
     }
 
     /**
-     * Restores walk/fly speed for a player that has been auto-logged in (premium bypass or session),
-     * bypassing the normal limbo lifecycle. Repairs zero speeds left in Bukkit playerdata by a
-     * previous session that crashed while the player was unauthenticated, and cleans up any
-     * stale disk or in-memory limbo.
+     * Restores walk/fly speed for an auto-logged-in player, cleaning up any stale disk or in-memory limbo.
      *
      * @param player the auto-logged-in player
      */
@@ -195,7 +192,7 @@ public class LimboService {
             // Disk limbo captured speeds before revokeLimboStates ran — restore from it
             String lowerName = player.getName().toLowerCase(Locale.ROOT);
             logger.debug("Restored speeds from disk LimboPlayer for `{0}` during auto-login", lowerName);
-            doRestoreEntities(player, diskLimbo, lowerName);
+            doRestoreEntities(player, diskLimbo);
         }
         // The player is authenticated, so any in-memory limbo left over from the join flow must
         // be dropped as well: otherwise the entry and its scheduled tasks leak for the session.
@@ -207,13 +204,7 @@ public class LimboService {
     }
 
     /**
-     * Restores walk/fly speed synchronously in the quit event handler, before
-     * the player's data is saved to disk. This ensures the .dat file contains
-     * the correct speed so the player is never stuck with 0.0f after leaving.
-     * <p>
-     * Unlike {@link #restoreData(Player)}, this only touches speed and does
-     * <b>not</b> remove the in-memory limbo entry ({@code get} vs {@code remove}),
-     * so the async quit process can still perform full cleanup afterwards.
+     * Restores walk/fly speed synchronously in the quit handler, without removing the in-memory limbo entry.
      *
      * @param player the player whose speed should be restored
      */
@@ -369,17 +360,14 @@ public class LimboService {
      * @param player the player whose entities should be restored
      */
     public void restoreEntities(Player player) {
-        LimboPlayer limbo = entries.get(player.getUniqueId());
+        LimboPlayer limbo = getLimboPlayer(player);
         if (limbo != null) {
-            doRestoreEntities(player, limbo, null);
+            doRestoreEntities(player, limbo);
         }
     }
 
-    /**
-     * Restores entities using the given already-computed lower-case name, or computes it lazily
-     * when {@code name} is null and only after confirming there is anything to restore.
-     */
-    private void doRestoreEntities(Player player, LimboPlayer limbo, String name) {
+    /** Restores ender pearl shooters and the player's vehicle in a single world pass. */
+    private void doRestoreEntities(Player player, LimboPlayer limbo) {
         Map<UUID, EnderPearlRestoreData> pendingPearls = limbo.copyEnderPearlsByUuid();
         UUID vehicleUuid = limbo.getVehicleUuid();
         EntityType vehicleType = limbo.getVehicleType();
@@ -387,7 +375,7 @@ public class LimboService {
         if (pendingPearls.isEmpty() && vehicleUuid == null) {
             return;
         }
-        String playerName = name != null ? name : player.getName().toLowerCase(Locale.ROOT);
+        String playerName = player.getName().toLowerCase(Locale.ROOT);
 
         int pearlTotal = pendingPearls.size();
         boolean vehicleDone = vehicleUuid == null;

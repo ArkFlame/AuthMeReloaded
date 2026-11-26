@@ -50,7 +50,6 @@ import java.io.File;
 import java.util.Iterator;
 import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
-import java.util.function.Consumer;
 
 import static fr.xephi.authme.service.BukkitService.TICKS_PER_MINUTE;
 
@@ -132,7 +131,15 @@ public class AuthMe extends JavaPlugin {
     @Override
     public void onEnable() {
         // Load the plugin version data from the plugin description file
-        loadPluginInfo(getDescription().getVersion());
+        String versionRaw = getDescription().getVersion();
+        int versionSeparator = versionRaw.lastIndexOf("-");
+        if (versionSeparator != -1) {
+            pluginVersion = versionRaw.substring(0, versionSeparator);
+            pluginBuildNumber = versionRaw.substring(versionSeparator + 1);
+            if (pluginBuildNumber.startsWith("b")) {
+                pluginBuildNumber = pluginBuildNumber.substring(1);
+            }
+        }
 
         // Set the Logger instance and log file path
         ConsoleLogger.initialize(getLogger(), new File(getDataFolder(), LOG_FILENAME));
@@ -207,22 +214,6 @@ public class AuthMe extends JavaPlugin {
             return false;
         }
         return true;
-    }
-
-    /**
-     * Load the version and build number of the plugin from the description file.
-     *
-     * @param versionRaw the version as given by the plugin description file
-     */
-    private static void loadPluginInfo(String versionRaw) {
-        int index = versionRaw.lastIndexOf("-");
-        if (index != -1) {
-            pluginVersion = versionRaw.substring(0, index);
-            pluginBuildNumber = versionRaw.substring(index + 1);
-            if (pluginBuildNumber.startsWith("b")) {
-                pluginBuildNumber = pluginBuildNumber.substring(1);
-            }
-        }
     }
 
     /**
@@ -406,8 +397,12 @@ public class AuthMe extends JavaPlugin {
         new TaskCloser(this, database).run();
 
         // Disabled correctly
-        Consumer<String> infoLogMethod = logger == null ? getLogger()::info : logger::info;
-        infoLogMethod.accept("AuthMe " + this.getDescription().getVersion() + " disabled!");
+        String disabledMessage = "AuthMe " + this.getDescription().getVersion() + " disabled!";
+        if (logger == null) {
+            getLogger().info(disabledMessage);
+        } else {
+            logger.info(disabledMessage);
+        }
         ConsoleLogger.closeFileWriter();
     }
 

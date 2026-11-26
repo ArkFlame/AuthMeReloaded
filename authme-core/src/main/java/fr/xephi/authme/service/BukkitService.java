@@ -52,9 +52,7 @@ public class BukkitService implements SettingsDependent {
     }
 
     /**
-     * Schedules a once off task to occur as soon as possible.
-     * <p>
-     * This task will be executed by the main server thread.
+     * Schedules a once off task to occur as soon as possible on the main server thread.
      *
      * @param task Task to be executed
      * @return Task id number (-1 if scheduling failed)
@@ -64,9 +62,7 @@ public class BukkitService implements SettingsDependent {
     }
 
     /**
-     * Schedules a once off task to occur after a delay.
-     * <p>
-     * This task will be executed by the main server thread.
+     * Schedules a once off task to occur after a delay on the main server thread.
      *
      * @param task Task to be executed
      * @param delay Delay in server ticks before executing task
@@ -77,8 +73,7 @@ public class BukkitService implements SettingsDependent {
     }
 
     /**
-     * Returns whether the current thread may interact with the given entity. On Folia, this is only
-     * the case if the entity belongs to the region ticked by the current thread.
+     * Returns whether the current thread may interact with the given entity.
      *
      * @param entity the entity to check
      * @return true if the entity can be safely accessed from the current thread
@@ -88,8 +83,7 @@ public class BukkitService implements SettingsDependent {
     }
 
     /**
-     * Returns whether the current thread may interact with the world at the given location. On Folia,
-     * this is only the case if the location belongs to the region ticked by the current thread.
+     * Returns whether the current thread may interact with the world at the given location.
      *
      * @param location the location to check
      * @return true if the location can be safely accessed from the current thread
@@ -173,22 +167,17 @@ public class BukkitService implements SettingsDependent {
      *
      * @param task the task to be run
      * @return a BukkitTask that contains the id number
-     * @throws IllegalArgumentException if plugin is null
-     * @throws IllegalArgumentException if task is null
      */
     public BukkitTask runTask(Runnable task) {
         return Bukkit.getScheduler().runTask(authMe, task);
     }
 
     /**
-     * Returns a task that will run after the specified number of server
-     * ticks.
+     * Returns a task that will run after the specified number of server ticks.
      *
      * @param task the task to be run
      * @param delay the ticks to wait before running the task
      * @return a BukkitTask that contains the id number
-     * @throws IllegalArgumentException if plugin is null
-     * @throws IllegalArgumentException if task is null
      */
     public BukkitTask runTaskLater(Runnable task, long delay) {
         return Bukkit.getScheduler().runTaskLater(authMe, task, delay);
@@ -221,48 +210,36 @@ public class BukkitService implements SettingsDependent {
     }
 
     /**
-     * <b>Asynchronous tasks should never access any API in Bukkit. Great care
-     * should be taken to assure the thread-safety of asynchronous tasks.</b>
-     * <p>
-     * Returns a task that will run asynchronously.
+     * Returns a task that will run asynchronously. Asynchronous tasks should never access the Bukkit API.
      *
      * @param task the task to be run
      * @return the scheduled task handle
-     * @throws IllegalArgumentException if plugin is null
-     * @throws IllegalArgumentException if task is null
      */
     public CancellableTask runTaskAsynchronously(Runnable task) {
         return schedulingAdapter.runAsyncTask(authMe, task);
     }
 
     /**
-     * <b>Asynchronous tasks should never access any API in Bukkit. Great care
-     * should be taken to assure the thread-safety of asynchronous tasks.</b>
-     * <p>
-     * Returns a task that will repeatedly run asynchronously until cancelled,
-     * starting after the specified number of server ticks.
+     * Returns a task that will repeatedly run asynchronously until cancelled, starting after the
+     * specified number of server ticks. Asynchronous tasks should never access the Bukkit API.
      *
      * @param task the task to be run
-     * @param delay the ticks to wait before running the task for the first
-     *     time
+     * @param delay the ticks to wait before running the task for the first time
      * @param period the ticks to wait between runs
      * @return the scheduled task handle
-     * @throws IllegalArgumentException if task is null
      */
     public CancellableTask runTaskTimerAsynchronously(Runnable task, long delay, long period) {
         return schedulingAdapter.runAsyncTaskTimer(authMe, task, delay, period);
     }
 
     /**
-     * Schedules the given task to repeatedly run until cancelled, starting after the
-     * specified number of server ticks.
+     * Schedules the given task to repeatedly run until cancelled, starting after the specified
+     * number of server ticks.
      *
      * @param task the task to schedule
      * @param delay the ticks to wait before running the task
      * @param period the ticks to wait between runs
      * @return a BukkitTask that contains the id number
-     * @throws IllegalArgumentException if plugin is null
-     * @throws IllegalStateException if this was already scheduled
      */
     public BukkitTask runTaskTimer(BukkitRunnable task, long delay, long period) {
         return task.runTaskTimer(authMe, delay, period);
@@ -326,14 +303,7 @@ public class BukkitService implements SettingsDependent {
     }
 
     /**
-     * Gets the player by the given name, regardless if they are offline or
-     * online.
-     * <p>
-     * This method may involve a blocking web request to get the UUID for the
-     * given name.
-     * <p>
-     * This will return an object even if the player does not exist. To this
-     * method, all players will exist.
+     * Gets the player by the given name, regardless if they are offline or online.
      *
      * @param name the name the player to retrieve
      * @return an offline player
@@ -374,8 +344,6 @@ public class BukkitService implements SettingsDependent {
      * Calls an event with the given details.
      *
      * @param event Event details
-     * @throws IllegalStateException Thrown when an asynchronous event is
-     *     fired from synchronous code.
      */
     public void callEvent(Event event) {
         Bukkit.getPluginManager().callEvent(event);
@@ -437,7 +405,7 @@ public class BukkitService implements SettingsDependent {
     }
 
     /**
-     * Send the specified bytes to bungeecord using the specified player connection.
+     * Sends the specified bytes to bungeecord using the specified player connection.
      *
      * @param player the player
      * @param bytes the message
@@ -447,7 +415,7 @@ public class BukkitService implements SettingsDependent {
     }
 
     /**
-     * Send the specified bytes on the dedicated AuthMe plugin messaging channel.
+     * Sends the specified bytes on the dedicated AuthMe plugin messaging channel.
      *
      * @param player the player
      * @param bytes the message
@@ -457,16 +425,13 @@ public class BukkitService implements SettingsDependent {
     }
 
     /**
-     * Adds a ban to the list. If a previous ban exists, this will
-     * update the previous entry.
+     * Adds a ban to the list. If a previous ban exists, this will update the previous entry.
      *
      * @param ip the ip of the ban
      * @param reason reason for the ban, null indicates implementation default
-     * @param expires date for the ban's expiration (unban), or null to imply
-     *     forever
+     * @param expires date for the ban's expiration (unban), or null to imply forever
      * @param source source of the ban, null indicates implementation default
-     * @return the entry for the newly created ban, or the entry for the
-     *     (updated) previous ban
+     * @return the entry for the newly created ban, or the entry for the (updated) previous ban
      */
     public BanEntry banIp(String ip, String reason, Date expires, String source) {
         return Bukkit.getServer().getBanList(BanList.Type.IP).addBan(ip, reason, expires, source);

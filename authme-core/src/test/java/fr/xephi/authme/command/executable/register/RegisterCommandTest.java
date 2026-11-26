@@ -144,8 +144,7 @@ public class RegisterCommandTest {
     @Test
     public void shouldReturnErrorForMissingConfirmation() {
         // given
-        given(commonService.getProperty(RegistrationSettings.REGISTRATION_TYPE)).willReturn(RegistrationType.PASSWORD);
-        given(commonService.getProperty(RegistrationSettings.REGISTER_SECOND_ARGUMENT)).willReturn(RegisterSecondaryArgument.CONFIRMATION);
+        givenPasswordRegistration(RegisterSecondaryArgument.CONFIRMATION);
         Player player = mock(Player.class);
 
         // when
@@ -193,9 +192,7 @@ public class RegisterCommandTest {
     public void shouldRejectInvalidEmail() {
         // given
         String playerMail = "player@example.org";
-        given(validationService.validateEmail(playerMail)).willReturn(false);
-        given(commonService.getProperty(RegistrationSettings.REGISTRATION_TYPE)).willReturn(RegistrationType.EMAIL);
-        given(emailService.hasAllInformation()).willReturn(true);
+        givenEmailRegistration(playerMail, RegisterSecondaryArgument.NONE, false);
         Player player = mock(Player.class);
 
         // when
@@ -211,10 +208,7 @@ public class RegisterCommandTest {
     public void shouldRejectInvalidEmailConfirmation() {
         // given
         String playerMail = "bobber@bobby.org";
-        given(validationService.validateEmail(playerMail)).willReturn(true);
-        given(commonService.getProperty(RegistrationSettings.REGISTRATION_TYPE)).willReturn(RegistrationType.EMAIL);
-        given(commonService.getProperty(RegistrationSettings.REGISTER_SECOND_ARGUMENT)).willReturn(RegisterSecondaryArgument.CONFIRMATION);
-        given(emailService.hasAllInformation()).willReturn(true);
+        givenEmailRegistration(playerMail, RegisterSecondaryArgument.CONFIRMATION, true);
         Player player = mock(Player.class);
 
         // when
@@ -230,10 +224,7 @@ public class RegisterCommandTest {
     public void shouldPerformEmailRegistration() {
         // given
         String playerMail = "asfd@lakjgre.lds";
-        given(validationService.validateEmail(playerMail)).willReturn(true);
-        given(commonService.getProperty(RegistrationSettings.REGISTRATION_TYPE)).willReturn(RegistrationType.EMAIL);
-        given(commonService.getProperty(RegistrationSettings.REGISTER_SECOND_ARGUMENT)).willReturn(RegisterSecondaryArgument.CONFIRMATION);
-        given(emailService.hasAllInformation()).willReturn(true);
+        givenEmailRegistration(playerMail, RegisterSecondaryArgument.CONFIRMATION, true);
         Player player = mockPlayerWithName("brett");
 
         // when
@@ -275,12 +266,20 @@ public class RegisterCommandTest {
         verify(management, never()).performUnregisterByAdmin(null, "verifieduser", player);
     }
 
-    private Player givenEmailVerificationRegistration(String email, String name, long minutes, Long lastLogin) {
-        given(validationService.validateEmail(email)).willReturn(true);
+    private void givenEmailRegistration(String email, RegisterSecondaryArgument secondArg, boolean validEmail) {
+        given(validationService.validateEmail(email)).willReturn(validEmail);
         given(commonService.getProperty(RegistrationSettings.REGISTRATION_TYPE)).willReturn(RegistrationType.EMAIL);
-        given(commonService.getProperty(RegistrationSettings.REGISTER_SECOND_ARGUMENT))
-            .willReturn(RegisterSecondaryArgument.NONE);
+        given(commonService.getProperty(RegistrationSettings.REGISTER_SECOND_ARGUMENT)).willReturn(secondArg);
         given(emailService.hasAllInformation()).willReturn(true);
+    }
+
+    private void givenPasswordRegistration(RegisterSecondaryArgument secondArg) {
+        given(commonService.getProperty(RegistrationSettings.REGISTRATION_TYPE)).willReturn(RegistrationType.PASSWORD);
+        given(commonService.getProperty(RegistrationSettings.REGISTER_SECOND_ARGUMENT)).willReturn(secondArg);
+    }
+
+    private Player givenEmailVerificationRegistration(String email, String name, long minutes, Long lastLogin) {
+        givenEmailRegistration(email, RegisterSecondaryArgument.NONE, true);
         given(commonService.getProperty(RegistrationSettings.UNREGISTER_ON_EMAIL_VERIFICATION_FAILURE))
             .willReturn(true);
         given(commonService.getProperty(RegistrationSettings.UNREGISTER_AFTER_MINUTES)).willReturn(minutes);
@@ -295,11 +294,7 @@ public class RegisterCommandTest {
     public void shouldNotScheduleUnregisterByDefault() {
         // given
         String email = "default@example.org";
-        given(validationService.validateEmail(email)).willReturn(true);
-        given(commonService.getProperty(RegistrationSettings.REGISTRATION_TYPE)).willReturn(RegistrationType.EMAIL);
-        given(commonService.getProperty(RegistrationSettings.REGISTER_SECOND_ARGUMENT))
-            .willReturn(RegisterSecondaryArgument.NONE);
-        given(emailService.hasAllInformation()).willReturn(true);
+        givenEmailRegistration(email, RegisterSecondaryArgument.NONE, true);
 
         // when
         command.executeCommand(mockPlayerWithName("defaultuser"), Collections.singletonList(email));
@@ -311,8 +306,7 @@ public class RegisterCommandTest {
     @Test
     public void shouldRejectInvalidPasswordConfirmation() {
         // given
-        given(commonService.getProperty(RegistrationSettings.REGISTRATION_TYPE)).willReturn(RegistrationType.PASSWORD);
-        given(commonService.getProperty(RegistrationSettings.REGISTER_SECOND_ARGUMENT)).willReturn(RegisterSecondaryArgument.CONFIRMATION);
+        givenPasswordRegistration(RegisterSecondaryArgument.CONFIRMATION);
         Player player = mock(Player.class);
 
         // when
@@ -340,8 +334,7 @@ public class RegisterCommandTest {
     @Test
     public void shouldPerformMailValidationForPasswordWithEmail() {
         // given
-        given(commonService.getProperty(RegistrationSettings.REGISTRATION_TYPE)).willReturn(RegistrationType.PASSWORD);
-        given(commonService.getProperty(RegistrationSettings.REGISTER_SECOND_ARGUMENT)).willReturn(RegisterSecondaryArgument.EMAIL_MANDATORY);
+        givenPasswordRegistration(RegisterSecondaryArgument.EMAIL_MANDATORY);
         String email = "email@example.org";
         given(validationService.validateEmail(email)).willReturn(true);
         Player player = mock(Player.class);
@@ -358,8 +351,7 @@ public class RegisterCommandTest {
     @Test
     public void shouldStopForInvalidEmail() {
         // given
-        given(commonService.getProperty(RegistrationSettings.REGISTRATION_TYPE)).willReturn(RegistrationType.PASSWORD);
-        given(commonService.getProperty(RegistrationSettings.REGISTER_SECOND_ARGUMENT)).willReturn(RegisterSecondaryArgument.EMAIL_OPTIONAL);
+        givenPasswordRegistration(RegisterSecondaryArgument.EMAIL_OPTIONAL);
         String email = "email@example.org";
         given(validationService.validateEmail(email)).willReturn(false);
         Player player = mockPlayerWithName("Waaa");
@@ -377,8 +369,7 @@ public class RegisterCommandTest {
     @Test
     public void shouldPerformNormalPasswordRegisterForOneArgument() {
         // given
-        given(commonService.getProperty(RegistrationSettings.REGISTRATION_TYPE)).willReturn(RegistrationType.PASSWORD);
-        given(commonService.getProperty(RegistrationSettings.REGISTER_SECOND_ARGUMENT)).willReturn(RegisterSecondaryArgument.EMAIL_OPTIONAL);
+        givenPasswordRegistration(RegisterSecondaryArgument.EMAIL_OPTIONAL);
         Player player = mockPlayerWithName("Doa");
 
         // when
@@ -409,5 +400,3 @@ public class RegisterCommandTest {
     }
 
 }
-
-

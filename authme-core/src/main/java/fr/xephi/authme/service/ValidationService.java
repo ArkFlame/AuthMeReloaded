@@ -164,9 +164,8 @@ public class ValidationService implements Reloadable {
         }
 
         InetSocketAddress socketAddress = player.getAddress();
-        String ip = socketAddress.getAddress().getHostAddress();
-        String domain = getHostName(socketAddress);
-        return matchesRestrictions(restrictions, ip, domain);
+        return matchesRestrictions(restrictions, socketAddress.getAddress().getHostAddress(),
+            getHostName(socketAddress));
     }
 
     /**
@@ -182,18 +181,13 @@ public class ValidationService implements Reloadable {
         if (Utils.isCollectionEmpty(restrictions)) {
             return true;
         }
-        String ip = address.getHostAddress();
-        String domain = getHostName(new InetSocketAddress(address, 0));
-        return matchesRestrictions(restrictions, ip, domain);
+        return matchesRestrictions(restrictions, address.getHostAddress(),
+            getHostName(new InetSocketAddress(address, 0)));
     }
 
     private boolean matchesRestrictions(Collection<Pattern> restrictions, String ip, String domain) {
-        for (Pattern restriction : restrictions) {
-            if (restriction.matcher(ip).matches() || restriction.matcher(domain).matches()) {
-                return true;
-            }
-        }
-        return false;
+        return restrictions.stream().anyMatch(restriction ->
+            restriction.matcher(ip).matches() || restriction.matcher(domain).matches());
     }
 
     @VisibleForTesting
@@ -222,12 +216,7 @@ public class ValidationService implements Reloadable {
     }
 
     private static boolean containsIgnoreCase(Collection<String> coll, String needle) {
-        for (String entry : coll) {
-            if (entry.equalsIgnoreCase(needle)) {
-                return true;
-            }
-        }
-        return false;
+        return coll.stream().anyMatch(needle::equalsIgnoreCase);
     }
 
     /**

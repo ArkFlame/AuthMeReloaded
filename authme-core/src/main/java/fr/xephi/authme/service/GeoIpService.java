@@ -73,8 +73,7 @@ public class GeoIpService {
     private final BukkitService bukkitService;
     private final Settings settings;
 
-    // Addresses without a known country in the current database, so repeated lookups do not redo
-    // the same work. Cleared whenever a new database reader is installed, keeping results identical.
+    // Addresses without a known country in the current database, cleared when a new reader is installed
     private final Cache<InetAddress, Boolean> unknownCountries = CacheBuilder.newBuilder()
         .maximumSize(MAX_NEGATIVE_CACHE_SIZE)
         .build();
@@ -104,7 +103,6 @@ public class GeoIpService {
      * @return True if the data is available, false otherwise.
      */
     private synchronized boolean isDataAvailable() {
-
         // If this feature is disabled or an update download is in progress, stop
         if (!settings.getProperty(ProtectionSettings.ENABLE_GEOIP) || downloading) {
             return false;
@@ -130,11 +128,10 @@ public class GeoIpService {
             }
         }
 
-        //set the downloading flag in order to fix race conditions outside
+        // set the downloading flag in order to fix race conditions outside
         downloading = true;
 
-        // File is outdated or doesn't exist - let's try to download the data file!
-        // use bukkit's cached threads
+        // File is outdated or doesn't exist - download it on a cached Bukkit thread
         bukkitService.runTaskAsynchronously(this::updateDatabase);
         return false;
     }
@@ -278,9 +275,7 @@ public class GeoIpService {
         return connection;
     }
 
-    /**
-     * Applies bounded connect and read timeouts before any network I/O is performed.
-     */
+    /** Applies bounded connect and read timeouts before any network I/O is performed. */
     private static void configureConnection(HttpURLConnection connection) {
         connection.setConnectTimeout(CONNECTION_TIMEOUT_MS);
         connection.setReadTimeout(CONNECTION_TIMEOUT_MS);
@@ -306,7 +301,7 @@ public class GeoIpService {
     }
 
     /**
-     * Extract the database from gzipped data. Existing outputFile will be replaced if it already exists.
+     * Extract the database from gzipped data, replacing {@code outputFile} if it exists.
      *
      * @param inputFile gzipped database input file
      * @param outputFile destination file for the database

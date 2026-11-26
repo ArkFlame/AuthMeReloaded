@@ -241,17 +241,15 @@ public class AsynchronousLogin implements AsynchronousProcess {
     private void showTotpDialogIfEnabled(Player player, String lowerCaseName) {
         boolean dialogEnabled = service.getProperty(RegistrationSettings.USE_DIALOG_UI)
             || service.getProperty(RegistrationSettings.USE_PREJOIN_DIALOG_UI);
-        if (!dialogEnabled || !dialogAdapter.isDialogSupported()) {
-            return;
+        if (dialogEnabled && dialogAdapter.isDialogSupported()) {
+            bukkitService.runTaskLater(player, () -> {
+                if (!player.isOnline() || playerCache.isAuthenticated(lowerCaseName)) {
+                    return;
+                }
+                dialogAdapter.showTotpDialog(player, dialogWindowService.createTotpDialog(player));
+                dialogStateService.markDialogOpen(player);
+            }, 1L);
         }
-
-        bukkitService.runTaskLater(player, () -> {
-            if (!player.isOnline() || playerCache.isAuthenticated(lowerCaseName)) {
-                return;
-            }
-            dialogAdapter.showTotpDialog(player, dialogWindowService.createTotpDialog(player));
-            dialogStateService.markDialogOpen(player);
-        }, 1L);
     }
 
     /** Sets the player to the logged in state. */

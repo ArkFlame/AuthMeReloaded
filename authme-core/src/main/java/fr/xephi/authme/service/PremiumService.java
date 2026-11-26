@@ -88,7 +88,8 @@ public class PremiumService implements HasCleanup {
             // UUID v4 = Mojang-issued UUID: either the server is in online mode (Mojang already
             // verified the session at the connection level) or the proxy forwarded a real Mojang
             // UUID. No extra API call needed — the server's own auth is the source of truth.
-            storePremiumUuid(auth, playerUuid, player, player.getName(), true);
+            storePremiumUuid(auth, playerUuid, player, player.getName(), true,
+                MessageKey.PREMIUM_ENABLE_SUCCESS);
         } else {
             // UUID v3 = Bukkit offline UUID: fetch the Mojang UUID and hold it as pending.
             // The player must reconnect; a cryptographic Mojang session check on reconnect is
@@ -189,11 +190,8 @@ public class PremiumService implements HasCleanup {
         // verified their identity; save directly. Otherwise hold as pending and require the
         // player to reconnect so the crypto Mojang session check can confirm ownership.
         if (onlineUuid != null && onlineUuid.version() == 4 && mojangUuid.equals(onlineUuid)) {
-            if (savePremiumUuid(auth, mojangUuid, playerName, true)) {
-                messages.send(sender, MessageKey.PREMIUM_ADMIN_ENABLE_SUCCESS, playerName);
-            } else {
-                messages.send(sender, MessageKey.PREMIUM_ERROR);
-            }
+            storePremiumUuid(auth, mojangUuid, sender, playerName, true,
+                MessageKey.PREMIUM_ADMIN_ENABLE_SUCCESS, playerName);
         } else {
             setPendingPremium(playerName, mojangUuid);
             messages.send(sender, MessageKey.PREMIUM_ADMIN_PENDING, playerName);
@@ -269,7 +267,7 @@ public class PremiumService implements HasCleanup {
             logger.warning("Could not finalize pending premium for " + playerName + ": no auth record found");
             return;
         }
-        storePremiumUuid(auth, confirmedUuid, player, playerName, false);
+        storePremiumUuid(auth, confirmedUuid, player, playerName, false, MessageKey.PREMIUM_ENABLE_SUCCESS);
     }
 
     /** Sends the shared error messages and returns the player's auth, or null if the command cannot proceed. */
@@ -293,9 +291,9 @@ public class PremiumService implements HasCleanup {
     }
 
     private void storePremiumUuid(PlayerAuth auth, UUID uuid, CommandSender feedbackTarget, String playerName,
-                                    boolean updateCache) {
+                                    boolean updateCache, MessageKey successKey, String... successArgs) {
         if (savePremiumUuid(auth, uuid, playerName, updateCache)) {
-            messages.send(feedbackTarget, MessageKey.PREMIUM_ENABLE_SUCCESS);
+            messages.send(feedbackTarget, successKey, successArgs);
         } else {
             messages.send(feedbackTarget, MessageKey.PREMIUM_ERROR);
         }

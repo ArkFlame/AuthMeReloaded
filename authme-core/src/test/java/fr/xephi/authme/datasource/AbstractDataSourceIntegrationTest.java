@@ -13,6 +13,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -25,7 +26,6 @@ import static fr.xephi.authme.AuthMeMatchers.hasRegistrationInfo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
@@ -47,6 +47,11 @@ public abstract class AbstractDataSourceIntegrationTest {
     /** Sets a database setting on the given mock settings instance. */
     protected static <T> void setProperty(Settings settings, Property<T> property, T value) {
         when(settings.getProperty(property)).thenReturn(value);
+    }
+
+    private static void saveAuthAndUpdateSession(DataSource dataSource, PlayerAuth auth) {
+        dataSource.saveAuth(auth);
+        dataSource.updateSession(auth);
     }
 
     @Test
@@ -202,17 +207,24 @@ public abstract class AbstractDataSourceIntegrationTest {
         assertThat(dataSource.getAuth("user"), hasAuthLocation(user));
     }
 
-    @Test
-    void shouldDeletePlayers() {
+    @ParameterizedTest(name = "purge {0} -> {1} remaining")
+    @MethodSource("purgeCases")
+    void shouldPurgeRecords(Collection<String> names, int expectedRemaining) {
         DataSource dataSource = getDataSource();
-        Set<String> playersToDelete = new HashSet<>(Arrays.asList("bobby", "doesNotExist"));
         assertThat(dataSource.getAccountsRegistered(), equalTo(2)); // Make sure we start as expected
 
-        dataSource.purgeRecords(playersToDelete);
+        dataSource.purgeRecords(names);
 
-        assertThat(dataSource.getAccountsRegistered(), equalTo(1));
+        assertThat(dataSource.getAccountsRegistered(), equalTo(expectedRemaining));
+        assertThat(dataSource.getAllAuths(), hasSize(expectedRemaining));
         assertThat(dataSource.isAuthAvailable("bobby"), equalTo(false));
-        assertThat(dataSource.isAuthAvailable("user"), equalTo(true));
+        assertThat(dataSource.isAuthAvailable("user"), equalTo(expectedRemaining == 1));
+    }
+
+    private static Stream<Arguments> purgeCases() {
+        return Stream.of(
+            Arguments.of(Arrays.asList("Bobby", "USER", "DoesnotExist"), 0),
+            Arguments.of(new HashSet<>(Arrays.asList("bobby", "doesNotExist")), 1));
     }
 
     @Test
@@ -252,8 +264,7 @@ public abstract class AbstractDataSourceIntegrationTest {
         List<String> emptyList = dataSource.getAllAuthsByIp("8.8.8.8");
         for (int i = 0; i < 3; ++i) {
             PlayerAuth auth = PlayerAuth.builder().name("test-" + i).lastIp("123.45.67.89").build();
-            dataSource.saveAuth(auth);
-            dataSource.updateSession(auth); // trigger storage of last IP
+            saveAuthAndUpdateSession(dataSource, auth); // trigger storage of last IP
         }
         List<String> updatedList = dataSource.getAllAuthsByIp("123.45.67.89");
 
@@ -290,10 +301,7 @@ public abstract class AbstractDataSourceIntegrationTest {
             .registrationDate(1_400_000_000L).lastLogin(1_453_000_000L).build();
         PlayerAuth onion = PlayerAuth.builder().name("onion")
             .registrationDate(1_200_000_000L).lastLogin(1_300_000_000L).build();
-        Stream.of(potato, tomato, lettuce, onion).forEach(auth -> {
-            dataSource.saveAuth(auth);
-            dataSource.updateSession(auth);
-        });
+        Stream.of(potato, tomato, lettuce, onion).forEach(auth -> saveAuthAndUpdateSession(dataSource, auth));
 
         Set<String> records1 = dataSource.getRecordsToPurge(1_450_000_000);
         Set<String> records2 = dataSource.getRecordsToPurge(1_460_000_000);
@@ -337,23 +345,11 @@ public abstract class AbstractDataSourceIntegrationTest {
     }
 
     @Test
-    void shouldPerformPurgeOperation() {
-        List<String> names = Arrays.asList("Bobby", "USER", "DoesnotExist");
-        DataSource dataSource = getDataSource();
-
-        dataSource.purgeRecords(names);
-
-        assertThat(dataSource.getAllAuths(), empty());
-    }
-
-    @Test
     void shouldFetchEmail() {
-        String user1 = "user";
-        String user2 = "Bogus";
         DataSource dataSource = getDataSource();
 
-        DataSourceValue<String> email1 = dataSource.getEmail(user1);
-        DataSourceValue<String> email2 = dataSource.getEmail(user2);
+        DataSourceValue<String> email1 = dataSource.getEmail("user");
+        DataSourceValue<String> email2 = dataSource.getEmail("Bogus");
 
         assertThat(email1.getValue(), equalTo("user@example.org"));
         assertThat(email2, is(DataSourceValueImpl.unknownRow()));
@@ -402,8 +398,7 @@ public abstract class AbstractDataSourceIntegrationTest {
                 .registrationDate(1234567)
                 .lastLogin(timestamp + i * 3600)
                 .build();
-            dataSource.saveAuth(auth);
-            dataSource.updateSession(auth);
+            saveAuthAndUpdateSession(dataSource, auth);
         }
 
         List<PlayerAuth> recentPlayers = dataSource.getRecentlyLoggedInPlayers();

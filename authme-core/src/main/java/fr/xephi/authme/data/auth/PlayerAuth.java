@@ -7,8 +7,6 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 /**
  * AuthMe player data.
  */
@@ -196,8 +194,7 @@ public class PlayerAuth {
 
     @Override
     public String toString() {
-        return "Player : " + nickname + " | " + realName
-            + " ! IP : " + lastIp
+        return "Player : " + nickname + " | " + realName + " ! IP : " + lastIp
             + " ! LastLogin : " + getLastLogin()
             + " ! LastPosition : " + x + "," + y + "," + z + "," + world
             + " ! Email : " + email
@@ -237,7 +234,7 @@ public class PlayerAuth {
          */
         public PlayerAuth build() {
             PlayerAuth auth = new PlayerAuth();
-            auth.nickname = checkNotNull(name).toLowerCase(Locale.ROOT);
+            auth.nickname = Objects.requireNonNull(name).toLowerCase(Locale.ROOT);
             auth.realName = realName == null ? "Player" : realName;
             // Use a null check rather than Optional.orElse: orElse would allocate a default
             // HashedPassword even when a real password was supplied.

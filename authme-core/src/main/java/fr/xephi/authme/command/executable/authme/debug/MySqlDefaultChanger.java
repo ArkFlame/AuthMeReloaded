@@ -79,13 +79,13 @@ class MySqlDefaultChanger implements DebugSection {
             return;
         }
 
-        Operation operation = matchToEnum(arguments, 0, Operation.class);
+        Operation operation = arguments.size() > 0 ? matchEnumByName(Operation.class, arguments.get(0)) : null;
         if (operation == Operation.DETAILS) {
             showColumnDetails(sender);
             return;
         }
 
-        Columns column = matchToEnum(arguments, 1, Columns.class);
+        Columns column = arguments.size() > 1 ? matchEnumByName(Columns.class, arguments.get(1)) : null;
         if (operation == null || column == null) {
             displayUsageHints(sender);
             return;
@@ -122,7 +122,6 @@ class MySqlDefaultChanger implements DebugSection {
         alterColumn(con, tableName, columnName, column.getNotNullDefinition());
         sender.sendMessage("Changed column '" + columnName + "' to have NOT NULL constraint");
 
-        // Log success message
         logger.info("Changed MySQL column '" + columnName + "' to be NOT NULL"
             + ", as initiated by '" + sender.getName() + "'");
     }
@@ -145,7 +144,6 @@ class MySqlDefaultChanger implements DebugSection {
         sender.sendMessage("Replaced default value ('" + column.getDefaultValue()
             + "') to be NULL, modifying " + updatedRows + " entries");
 
-        // Log success message
         logger.info("Changed MySQL column '" + columnName + "' to allow NULL"
             + ", as initiated by '" + sender.getName() + "'");
     }
@@ -187,10 +185,9 @@ class MySqlDefaultChanger implements DebugSection {
                 String columnName = settings.getProperty(col.getColumnNameProperty());
                 boolean isNotNull = isNotNullColumn(metaData, tableName, columnName);
                 Object defaultValue = getColumnDefaultValue(metaData, tableName, columnName);
-                String isNullText = isNotNull ? "NOT NULL" : "nullable";
-                String defaultText = defaultValue == null ? "no default" : "default: '" + defaultValue + "'";
                 sender.sendMessage(formatColumn(col, isNotNull, defaultValue != null)
-                    + " (" + columnName + "): " + isNullText + ", " + defaultText);
+                    + " (" + columnName + "): " + (isNotNull ? "NOT NULL" : "nullable")
+                    + ", " + (defaultValue == null ? "no default" : "default: '" + defaultValue + "'"));
             }
         } catch (SQLException e) {
             logger.logException("Failed while showing column details:", e);
@@ -256,10 +253,6 @@ class MySqlDefaultChanger implements DebugSection {
         } catch (SQLException e) {
             throw new IllegalStateException("Could not get MySQL connection", e);
         }
-    }
-
-    private static <E extends Enum<E>> E matchToEnum(List<String> arguments, int index, Class<E> clazz) {
-        return arguments.size() > index ? matchEnumByName(clazz, arguments.get(index)) : null;
     }
 
     private enum Operation {

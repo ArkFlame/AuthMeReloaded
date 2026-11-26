@@ -171,8 +171,7 @@ public class AuthMeApi {
      */
     @Deprecated
     public Date getLastLogin(String playerName) {
-        Instant lastLogin = getLastLoginTime(playerName);
-        return lastLogin == null ? null : Date.from(lastLogin);
+        return Optional.ofNullable(getLastLoginTime(playerName)).map(Date::from).orElse(null);
     }
 
     /**
@@ -293,10 +292,9 @@ public class AuthMeApi {
     }
 
     /**
-     * Register an ONLINE player with the given password.
+     * Register an ONLINE player with the given password, authenticating the player automatically.
      *
-     * @param player   The player to register
-     * @param password The password to use
+     * @see #forceRegister(Player, String, boolean)
      */
     public void forceRegister(Player player, String password) {
         forceRegister(player, password, true);

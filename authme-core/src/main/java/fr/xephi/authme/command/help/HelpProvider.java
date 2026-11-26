@@ -92,13 +92,6 @@ public class HelpProvider implements Reloadable {
 
         CommandDescription command = helpMessagesService.buildLocalizedDescription(matchedCommand, language);
         List<String> correctLabels = filterCorrectLabels(command, result.getLabels());
-        addSections(lines, command, correctLabels, sender, options, language);
-        return lines;
-    }
-
-    /** Appends the enabled help sections to the output in the order in which they are shown. */
-    private void addSections(List<String> lines, CommandDescription command, List<String> correctLabels,
-                             CommandSender sender, int options, String language) {
         if (hasFlag(SHOW_COMMAND, options)) {
             lines.add(ChatColor.GOLD + helpMessagesService.getMessage(HelpSection.COMMAND, language) + ": "
                 + CommandUtils.buildSyntax(command, correctLabels));
@@ -123,6 +116,7 @@ public class HelpProvider implements Reloadable {
         if (hasFlag(SHOW_CHILDREN, options)) {
             addChildrenInfo(command, correctLabels, lines, language);
         }
+        return lines;
     }
 
     /**
@@ -185,14 +179,14 @@ public class HelpProvider implements Reloadable {
         }
 
         addSectionHeader(lines, HelpSection.ARGUMENTS, language);
-        String optionalText = " (" + helpMessagesService.getMessage(HelpMessage.OPTIONAL, language) + ")";
         for (CommandArgumentDescription argument : arguments) {
             StringBuilder argumentLine = new StringBuilder()
                 .append(" ").append(ChatColor.YELLOW).append(ChatColor.ITALIC).append(argument.getName())
                 .append(": ").append(ChatColor.WHITE).append(argument.getDescription());
 
             if (argument.isOptional()) {
-                argumentLine.append(ChatColor.GRAY).append(ChatColor.ITALIC).append(optionalText);
+                argumentLine.append(ChatColor.GRAY).append(ChatColor.ITALIC)
+                    .append(" (").append(helpMessagesService.getMessage(HelpMessage.OPTIONAL, language)).append(")");
             }
             lines.add(argumentLine.toString());
         }
@@ -244,7 +238,8 @@ public class HelpProvider implements Reloadable {
         addSectionHeader(lines, HelpSection.PERMISSIONS, language);
 
         boolean hasPermission = permissionsManager.hasPermission(sender, permission);
-        String permissionText = getLocalPermissionText(hasPermission, language);
+        String permissionText = helpMessagesService.getMessage(
+            hasPermission ? HelpMessage.HAS_PERMISSION : HelpMessage.NO_PERMISSION, language);
         lines.add(String.format(" " + ChatColor.YELLOW + ChatColor.ITALIC + "%s" + ChatColor.GRAY + " (%s)",
             permission.getNode(), permissionText));
 
@@ -252,20 +247,17 @@ public class HelpProvider implements Reloadable {
         final DefaultPermission defaultPermission = permission.getDefaultPermission();
         String addendum = "";
         if (DefaultPermission.OP_ONLY.equals(defaultPermission)) {
-            addendum = " (" + getLocalPermissionText(defaultPermission.evaluate(sender), language) + ")";
+            addendum = " (" + helpMessagesService.getMessage(defaultPermission.evaluate(sender)
+                ? HelpMessage.HAS_PERMISSION : HelpMessage.NO_PERMISSION, language) + ")";
         }
         lines.add(ChatColor.GOLD + helpMessagesService.getMessage(HelpMessage.DEFAULT, language) + ": "
-            + ChatColor.GRAY + ChatColor.ITALIC + helpMessagesService.getMessage(defaultPermission, language) + addendum);
+            + ChatColor.GRAY + ChatColor.ITALIC + helpMessagesService.getMessage(defaultPermission, language)
+            + addendum);
 
         // Evaluate if the sender has permission to the command
         ChatColor permissionColor = hasPermission ? ChatColor.GREEN : ChatColor.DARK_RED;
         lines.add(String.format(ChatColor.GOLD + " %s: %s" + ChatColor.ITALIC + "%s",
             helpMessagesService.getMessage(HelpMessage.RESULT, language), permissionColor, permissionText));
-    }
-
-    private String getLocalPermissionText(boolean hasPermission, String language) {
-        return helpMessagesService.getMessage(
-            hasPermission ? HelpMessage.HAS_PERMISSION : HelpMessage.NO_PERMISSION, language);
     }
 
     /**

@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class CacheDataSource implements DataSource, SqlConnectionSource {
@@ -124,18 +125,18 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
      * Applies a cache change only when the underlying data source update succeeded. On failure the
      * entry is dropped instead, because the cache may no longer reflect the database state.
      */
-    private boolean updateCacheOnSuccess(boolean succeeded, String name, Runnable cacheChange) {
+    private boolean updateCacheOnSuccess(boolean succeeded, String name, Consumer<String> cacheChange) {
+        String key = name == null ? null : normalize(name);
         if (succeeded) {
-            cacheChange.run();
-        } else if (name != null) {
-            cachedAuths.invalidate(normalize(name));
+            cacheChange.accept(key);
+        } else if (key != null) {
+            cachedAuths.invalidate(key);
         }
         return succeeded;
     }
 
     private boolean updateCacheOnSuccess(boolean succeeded, PlayerAuth auth) {
-        String name = auth.getNickname();
-        return updateCacheOnSuccess(succeeded, name, () -> cachedAuths.refresh(normalize(name)));
+        return updateCacheOnSuccess(succeeded, auth.getNickname(), cachedAuths::refresh);
     }
 
     @Override
@@ -152,9 +153,7 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
     public HashedPassword getPassword(String user) {
         user = normalize(user);
         Optional<PlayerAuth> auth = cachedAuths.getIfPresent(user);
-        return auth != null && auth.isPresent()
-            ? auth.get().getPassword()
-            : source.getPassword(user);
+        return auth != null && auth.isPresent() ? auth.get().getPassword() : source.getPassword(user);
     }
 
     @Override
@@ -175,9 +174,7 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public boolean updatePassword(String user, HashedPassword password) {
-        String key = normalize(user);
-        return updateCacheOnSuccess(source.updatePassword(key, password), user,
-            () -> cachedAuths.refresh(key));
+        return updateCacheOnSuccess(source.updatePassword(normalize(user), password), user, cachedAuths::refresh);
     }
 
     @Override
@@ -197,8 +194,7 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public boolean removeAuth(String name) {
-        String key = normalize(name);
-        return updateCacheOnSuccess(source.removeAuth(key), name, () -> cachedAuths.invalidate(key));
+        return updateCacheOnSuccess(source.removeAuth(normalize(name)), name, cachedAuths::invalidate);
     }
 
     @Override
@@ -221,7 +217,7 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
     @Override
     public boolean updatePremiumUuid(PlayerAuth auth) {
         return updateCacheOnSuccess(source.updatePremiumUuid(auth), auth.getNickname(),
-            () -> cachedAuths.put(normalize(auth.getNickname()), Optional.of(auth)));
+            key -> cachedAuths.put(key, Optional.of(auth)));
     }
 
     @Override
@@ -301,17 +297,14 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public boolean updateRealName(String user, String realName) {
-        return updateCacheOnSuccess(source.updateRealName(user, realName), user,
-            () -> cachedAuths.refresh(normalize(user)));
+        return updateCacheOnSuccess(source.updateRealName(user, realName), user, cachedAuths::refresh);
     }
 
     @Override
     public DataSourceValue<String> getEmail(String user) {
         // Normalized like getAuth: a mixed-case name must not create a second cache entry.
         PlayerAuth auth = getAuth(user);
-        return auth != null
-            ? DataSourceValueImpl.of(auth.getEmail())
-            : DataSourceValueImpl.unknownRow();
+        return auth != null ? DataSourceValueImpl.of(auth.getEmail()) : DataSourceValueImpl.unknownRow();
     }
 
     @Override
@@ -334,8 +327,7 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public boolean setTotpKey(String user, String totpKey) {
-        return updateCacheOnSuccess(source.setTotpKey(user, totpKey), user,
-            () -> cachedAuths.refresh(normalize(user)));
+        return updateCacheOnSuccess(source.setTotpKey(user, totpKey), user, cachedAuths::refresh);
     }
 
     @Override

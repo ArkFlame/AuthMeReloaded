@@ -95,9 +95,9 @@ class AsynchronousLoginTest {
     @Mock
     private DialogAdapter dialogAdapter;
     @Mock
-    private DialogWindowService dialogWindowService;
-    @Mock
     private DialogStateService dialogStateService;
+    @Mock
+    private DialogWindowService dialogWindowService;
 
     @BeforeAll
     static void initLogger() {
@@ -234,8 +234,7 @@ class AsynchronousLoginTest {
     @ParameterizedTest(name = "dialogs enabled={0}")
     @ValueSource(booleans = {true, false})
     void shouldHandleTotpDialogAccordingToAvailability(boolean dialogsEnabled) {
-        Player player = mockPlayer("bobby");
-        TestHelper.mockIpAddressToPlayer(player, "203.0.113.5");
+        Player player = mockPlayer("bobby", "203.0.113.5");
         PlayerAuth auth = PlayerAuth.builder().name("bobby").totpKey("secret").build();
         LimboPlayer limboPlayer = mock(LimboPlayer.class);
         given(playerCache.isAuthenticated("bobby")).willReturn(false, false);
@@ -268,8 +267,7 @@ class AsynchronousLoginTest {
 
     @Test
     void shouldNotLogInTotpPlayerBeforeLimboIsCreated() {
-        Player player = mockPlayer("bobby");
-        TestHelper.mockIpAddressToPlayer(player, "203.0.113.5");
+        Player player = mockPlayer("bobby", "203.0.113.5");
         PlayerAuth auth = PlayerAuth.builder().name("bobby").totpKey("secret").build();
         given(playerCache.isAuthenticated("bobby")).willReturn(false);
         givenExistingPlayerWithValidPassword(auth);
@@ -283,8 +281,7 @@ class AsynchronousLoginTest {
 
     @Test
     void shouldIgnoreConcurrentLoginForSamePlayer() {
-        Player player = mockPlayer("bobby");
-        TestHelper.mockIpAddressToPlayer(player, "203.0.113.5");
+        Player player = mockPlayer("bobby", "203.0.113.5");
         PlayerAuth auth = PlayerAuth.builder().name("bobby").build();
         given(playerCache.isAuthenticated("bobby")).willReturn(false);
         given(dataSource.getAuth("bobby")).willReturn(auth);
@@ -308,8 +305,7 @@ class AsynchronousLoginTest {
 
     @Test
     void shouldRevertLoginWhenPlayerQuitDuringLoginProcess() {
-        Player player = mockPlayer("bobby");
-        TestHelper.mockIpAddressToPlayer(player, "203.0.113.5");
+        Player player = mockPlayer("bobby", "203.0.113.5");
         PlayerAuth auth = PlayerAuth.builder().name("bobby").build();
         given(player.isOnline()).willReturn(true, false);
         given(commonService.getProperty(RestrictionSettings.DISPLAY_OTHER_ACCOUNTS)).willReturn(false);
@@ -339,9 +335,14 @@ class AsynchronousLoginTest {
         return player;
     }
 
-    private Player prepareForceLoginPlayer(String name, String ip) {
+    private static Player mockPlayer(String name, String ip) {
         Player player = mockPlayer(name);
         TestHelper.mockIpAddressToPlayer(player, ip);
+        return player;
+    }
+
+    private Player prepareForceLoginPlayer(String name, String ip) {
+        Player player = mockPlayer(name, ip);
         given(playerCache.isAuthenticated(name)).willReturn(false);
         PlayerAuth auth = PlayerAuth.builder().name(name).build();
         given(dataSource.getAuth(name)).willReturn(auth);
@@ -365,26 +366,21 @@ class AsynchronousLoginTest {
         Player extraSameIpOnline = mock(Player.class);
 
         if ("1.1.1.1".equals(checkedIp)) {
-            primaryOnline = mockPlayer("albania");
-            TestHelper.mockIpAddressToPlayer(primaryOnline, "1.1.1.1");
+            primaryOnline = mockPlayer("albania", "1.1.1.1");
             given(dataSource.isLogged("albania")).willReturn(true);
 
-            primaryOffline = mockPlayer("brazil");
-            TestHelper.mockIpAddressToPlayer(primaryOffline, "1.1.1.1");
+            primaryOffline = mockPlayer("brazil", "1.1.1.1");
             given(dataSource.isLogged("brazil")).willReturn(false);
 
             TestHelper.mockIpAddressToPlayer(extraSameIpOnline, "2.2.2.2");
         } else {
-            primaryOnline = mockPlayer("congo");
-            TestHelper.mockIpAddressToPlayer(primaryOnline, "2.2.2.2");
+            primaryOnline = mockPlayer("congo", "2.2.2.2");
             given(dataSource.isLogged("congo")).willReturn(true);
 
-            primaryOffline = mockPlayer("denmark");
-            TestHelper.mockIpAddressToPlayer(primaryOffline, "2.2.2.2");
+            primaryOffline = mockPlayer("denmark", "2.2.2.2");
             given(dataSource.isLogged("denmark")).willReturn(false);
 
-            Player playerE = mockPlayer("ecuador");
-            TestHelper.mockIpAddressToPlayer(playerE, "2.2.2.2");
+            Player playerE = mockPlayer("ecuador", "2.2.2.2");
             given(dataSource.isLogged("ecuador")).willReturn(true);
             extraSameIpOnline = playerE;
         }

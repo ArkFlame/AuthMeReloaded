@@ -84,11 +84,7 @@ class LimboPlayerTaskManagerTest {
         LimboPlayer limboPlayer = mock(LimboPlayer.class);
         MessageKey key = MessageKey.REGISTER_MESSAGE;
         given(messages.retrieveSingle(player, key)).willReturn("Please register!");
-        int interval = 12;
-        given(settings.getProperty(RegistrationSettings.MESSAGE_INTERVAL)).willReturn(interval);
-        given(settings.getProperty(RegistrationSettings.REGISTER_MESSAGE_DELAY)).willReturn(1);
-        given(bukkitService.runTaskLater(eq(player), any(Runnable.class), anyLong()))
-            .willReturn(mock(CancellableTask.class));
+        stubRegistration(player, 12);
 
         // when
         limboPlayerTaskManager.registerMessageTask(player, limboPlayer, LimboMessageType.REGISTER);
@@ -161,10 +157,7 @@ class LimboPlayerTaskManagerTest {
         Player player = mock(Player.class);
         LimboPlayer limboPlayer = mock(LimboPlayer.class);
         given(messages.retrieveSingle(player, MessageKey.REGISTER_MESSAGE)).willReturn("Please register!");
-        given(settings.getProperty(RegistrationSettings.MESSAGE_INTERVAL)).willReturn(5);
-        given(settings.getProperty(RegistrationSettings.REGISTER_MESSAGE_DELAY)).willReturn(1);
-        given(bukkitService.runTaskLater(eq(player), any(Runnable.class), anyLong()))
-            .willReturn(mock(CancellableTask.class));
+        stubRegistration(player, 5);
 
         // when
         limboPlayerTaskManager.registerMessageTask(player, limboPlayer, LimboMessageType.REGISTER);
@@ -179,7 +172,7 @@ class LimboPlayerTaskManagerTest {
         String name = "registered_during_delay";
         Player player = mock(Player.class);
         LimboPlayer limboPlayer = mock(LimboPlayer.class);
-        stubDelayedRegistrationMessage(player, limboPlayer, name, 5);
+        stubDelayedRegistrationMessage(player, name, 5);
         CancellableTask lookupTask = mock(CancellableTask.class);
         doAnswer(invocation -> {
             ((Runnable) invocation.getArgument(0)).run();
@@ -206,7 +199,7 @@ class LimboPlayerTaskManagerTest {
         Player player = mock(Player.class);
         LimboPlayer limboPlayer = mock(LimboPlayer.class);
         int interval = 5;
-        stubDelayedRegistrationMessage(player, limboPlayer, name, interval);
+        stubDelayedRegistrationMessage(player, name, interval);
         CancellableTask lookupTask = mock(CancellableTask.class);
         doAnswer(invocation -> {
             ((Runnable) invocation.getArgument(0)).run();
@@ -237,7 +230,7 @@ class LimboPlayerTaskManagerTest {
         String name = "force_logged_in";
         Player player = mock(Player.class);
         LimboPlayer limboPlayer = mock(LimboPlayer.class);
-        stubDelayedRegistrationMessage(player, limboPlayer, name, 5);
+        stubDelayedRegistrationMessage(player, name, 5);
         given(playerCache.isAuthenticated(name)).willReturn(true);
         ArgumentCaptor<Runnable> delayedAction = ArgumentCaptor.forClass(Runnable.class);
 
@@ -275,10 +268,7 @@ class LimboPlayerTaskManagerTest {
         LimboPlayer limboPlayer = new LimboPlayer(null, true, Collections.singletonList(new UserGroup("grp")), false, 0.1f, 0.0f);
         MessageTask existingMessageTask = mock(MessageTask.class);
         limboPlayer.setMessageTask(existingMessageTask);
-        given(settings.getProperty(RegistrationSettings.MESSAGE_INTERVAL)).willReturn(8);
-        given(settings.getProperty(RegistrationSettings.REGISTER_MESSAGE_DELAY)).willReturn(1);
-        given(bukkitService.runTaskLater(eq(player), any(Runnable.class), eq(1L * TICKS_PER_SECOND)))
-            .willReturn(mock(CancellableTask.class));
+        stubRegistration(player, 8);
         given(messages.retrieveSingle(player, MessageKey.REGISTER_MESSAGE)).willReturn("Please register!");
 
         // when
@@ -299,10 +289,7 @@ class LimboPlayerTaskManagerTest {
         Player player = mock(Player.class);
         given(player.getName()).willReturn(name);
         LimboPlayer limboPlayer = new LimboPlayer(null, true, Collections.singletonList(new UserGroup("grp")), false, 0.1f, 0.0f);
-        given(settings.getProperty(RegistrationSettings.MESSAGE_INTERVAL)).willReturn(12);
-        given(settings.getProperty(RegistrationSettings.REGISTER_MESSAGE_DELAY)).willReturn(1);
-        given(bukkitService.runTaskLater(eq(player), any(Runnable.class), eq(1L * TICKS_PER_SECOND)))
-            .willReturn(mock(CancellableTask.class));
+        stubRegistration(player, 12);
         given(registrationCaptchaManager.isCaptchaRequired(name)).willReturn(true);
         String captcha = "M032";
         given(registrationCaptchaManager.getCaptchaCodeOrGenerateNew(name)).willReturn(captcha);
@@ -384,13 +371,17 @@ class LimboPlayerTaskManagerTest {
         verify(messages).retrieveSingle(player, MessageKey.LOGIN_TIMEOUT_ERROR);
     }
 
-    private void stubDelayedRegistrationMessage(Player player, LimboPlayer limboPlayer, String name, int interval) {
+    private void stubDelayedRegistrationMessage(Player player, String name, int interval) {
         given(player.getName()).willReturn(name);
         given(player.isOnline()).willReturn(true);
+        stubRegistration(player, interval);
+        given(messages.retrieveSingle(player, MessageKey.REGISTER_MESSAGE)).willReturn("Please register!");
+    }
+
+    private void stubRegistration(Player player, int interval) {
         given(settings.getProperty(RegistrationSettings.MESSAGE_INTERVAL)).willReturn(interval);
         given(settings.getProperty(RegistrationSettings.REGISTER_MESSAGE_DELAY)).willReturn(1);
-        given(messages.retrieveSingle(player, MessageKey.REGISTER_MESSAGE)).willReturn("Please register!");
-        given(bukkitService.runTaskLater(eq(player), any(Runnable.class), eq(1L * TICKS_PER_SECOND)))
+        given(bukkitService.runTaskLater(eq(player), any(Runnable.class), anyLong()))
             .willReturn(mock(CancellableTask.class));
     }
 

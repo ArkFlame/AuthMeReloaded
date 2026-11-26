@@ -53,10 +53,7 @@ public abstract class AbstractSqlDataSource implements DataSource {
     private String findAuthSql;
     private String findRecordsToPurgeSql;
 
-    /**
-     * Initializes the SQL strings shared by all SQL data sources. Requires the table name and column
-     * names to be assigned, plus the dialect's name-matching condition and purge aggregate function.
-     */
+    /** Initializes the shared SQL strings; requires the table/column names and dialect settings to be set. */
     protected void initSqlStrings(String authNameCondition, String purgeFunction) {
         findAllSql = "SELECT * FROM " + tableName + ";";
         deleteByNameSql = "DELETE FROM " + tableName + " WHERE " + col.NAME + "=?;";
