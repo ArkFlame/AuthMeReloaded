@@ -78,6 +78,18 @@ class CrazyLoginConverterTest extends AbstractConverterTest {
     }
 
     @Test
+    void shouldNotImportAnAccountThatIsAlreadyRegistered() throws IOException {
+        Files.write(new File(tempFolder, "accounts.db").toPath(), Arrays.asList(
+            "TestPlayer|plain-text-password|extra", "SecondPlayer|other-password|extra"), StandardCharsets.UTF_8);
+        given(dataSource.isAuthAvailable("testplayer")).willReturn(true);
+
+        converter.execute(mock(CommandSender.class));
+
+        verify(dataSource).saveAuth(authCaptor.capture());
+        assertThat(authCaptor.getValue().getNickname(), equalTo("secondplayer"));
+    }
+
+    @Test
     void shouldInformSenderAboutMissingFile() {
         CommandSender sender = mock(CommandSender.class);
 

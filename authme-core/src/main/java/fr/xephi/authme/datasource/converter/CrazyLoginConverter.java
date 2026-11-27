@@ -59,8 +59,12 @@ public class CrazyLoginConverter implements Converter {
                     continue;
                 }
                 String playerName = args[0];
+                String lowerCaseName = playerName.toLowerCase(Locale.ROOT);
+                if (database.isAuthAvailable(lowerCaseName)) {
+                    continue;
+                }
                 database.saveAuth(PlayerAuth.builder()
-                    .name(playerName.toLowerCase(Locale.ROOT))
+                    .name(lowerCaseName)
                     .realName(playerName)
                     .password(args[1], null)
                     .build());
