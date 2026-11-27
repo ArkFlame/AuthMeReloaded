@@ -42,6 +42,7 @@ public class TaskCloser implements Runnable {
         List<Integer> pendingTasks = pendingWorkerIds();
         logger.log(Level.INFO, "Waiting for {0} tasks to finish", pendingTasks.size());
         int progress = 0;
+        final int total = pendingTasks.size();
 
         try {
             //one minute + some time checking the running state
@@ -59,7 +60,7 @@ public class TaskCloser implements Runnable {
                     if (!scheduler.isCurrentlyRunning(taskId)) {
                         iterator.remove();
                         progress++;
-                        logger.log(Level.INFO, "Progress: {0} / {1}", new Object[]{progress, pendingTasks.size()});
+                        logger.log(Level.INFO, "Progress: {0} / {1}", new Object[]{progress, total});
                     }
                 }
 
@@ -67,7 +68,7 @@ public class TaskCloser implements Runnable {
             }
 
             if (tries <= 0 && !pendingTasks.isEmpty()) {
-                logger.log(Level.INFO, "Async tasks times out after to many tries {0}", pendingTasks);
+                logger.log(Level.INFO, "Async tasks times out after too many tries {0}", pendingTasks);
             }
         } finally {
             // Close the data source even if polling the scheduler fails unexpectedly
