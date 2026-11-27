@@ -45,7 +45,7 @@ final class ProxyPremiumLoginVerifier {
         if (clock.getAsLong() - verifiedSession.verifiedAt() > VERIFIED_TTL_MS) {
             warningLogger.accept("Verified premium session for '" + normalizedName + "' expired (TTL "
                 + VERIFIED_TTL_MS + "ms) before perform.login could use it");
-            verified.remove(normalizedName);
+            verified.remove(normalizedName, verifiedSession);
             return null;
         }
         return verifiedSession.mojangUuid();

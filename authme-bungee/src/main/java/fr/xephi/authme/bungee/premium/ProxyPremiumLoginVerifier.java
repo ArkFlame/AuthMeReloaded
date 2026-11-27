@@ -150,7 +150,7 @@ final class ProxyPremiumLoginVerifier {
             return null;
         }
         if (clock.getAsLong() - verifiedSession.verifiedAt() > VERIFIED_TTL_MS) {
-            verified.remove(normalizedName);
+            verified.remove(normalizedName, verifiedSession);
             return null;
         }
         return verifiedSession.mojangUuid();
