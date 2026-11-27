@@ -218,23 +218,23 @@ public abstract class AbstractSqlDataSource implements DataSource {
         }
     }
 
-    /** Reads the first column of the given query; the caller keeps ownership of the connection. */
-    private List<String> readStringColumn(Connection con, String sql, Long parameter) throws SQLException {
+    /** Reads the first column of the given query into the supplied collection; parameters stay primitive. */
+    private static <T extends Collection<String>> T readStringColumn(Connection con, String sql,
+            boolean bind, long parameter, T values) throws SQLException {
         try (PreparedStatement pst = con.prepareStatement(sql)) {
-            if (parameter != null) pst.setLong(1, parameter);
+            if (bind) pst.setLong(1, parameter);
             try (ResultSet rs = pst.executeQuery()) {
-                List<String> values = new ArrayList<>();
                 while (rs.next()) {
                     values.add(rs.getString(1));
                 }
-                return values;
             }
         }
+        return values;
     }
 
     /** Reads the names of all records to purge; the caller keeps ownership of the connection. */
     protected Set<String> findRecordsToPurge(Connection con, String sql, long until) throws SQLException {
-        return new HashSet<>(readStringColumn(con, sql, until));
+        return readStringColumn(con, sql, true, until, new HashSet<String>());
     }
 
     /** Deletes all records whose names are in the given collection; the caller keeps ownership of the connection. */
@@ -251,7 +251,7 @@ public abstract class AbstractSqlDataSource implements DataSource {
 
     /** Reads the real names of logged-in players with an empty email address. */
     protected List<String> findLoggedWithEmptyMail(Connection con, String sql) throws SQLException {
-        return readStringColumn(con, sql, null);
+        return readStringColumn(con, sql, false, 0, new ArrayList<String>());
     }
 
     /** Updates the TOTP key of the given user. */
@@ -304,7 +304,7 @@ public abstract class AbstractSqlDataSource implements DataSource {
     private boolean isFlagSet(String user, DataSourceColumn<Integer> column) {
         try {
             DataSourceValue<Integer> result = columnsHandler.retrieve(user, column);
-            return result.rowExists() && Integer.valueOf(1).equals(result.getValue());
+            return result.rowExists() && result.getValue() != null && result.getValue() == 1;
         } catch (SQLException e) {
             logSqlException(e);
             return false;

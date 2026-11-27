@@ -147,12 +147,10 @@ public class PermissionsManager implements Reloadable {
         }
 
         // Return default if sender is not a player or no permission system is in use
-        if (!(sender instanceof Player) || !isEnabled()) {
-            return permissionNode.getDefaultPermission().evaluate(sender);
+        if (sender instanceof Player && isEnabled()) {
+            return ((Player) sender).hasPermission(permissionNode.getNode());
         }
-
-        Player player = (Player) sender;
-        return player.hasPermission(permissionNode.getNode());
+        return permissionNode.getDefaultPermission().evaluate(sender);
     }
 
     /** Check a player's permission offline, falling back to the default permission when no system is hooked. */
@@ -219,12 +217,10 @@ public class PermissionsManager implements Reloadable {
 
         boolean result = false;
         for (UserGroup group : groupNames) {
-            if (group != null) {
-                String groupName = group.getGroupName();
-                if (groupName != null && !groupName.isEmpty()) {
-                    result |= add ? currentHandler.addToGroup(player, group)
-                                  : currentHandler.removeFromGroup(player, group);
-                }
+            String groupName = group == null ? null : group.getGroupName();
+            if (groupName != null && !groupName.isEmpty()) {
+                result |= add ? currentHandler.addToGroup(player, group)
+                              : currentHandler.removeFromGroup(player, group);
             }
         }
         return result;

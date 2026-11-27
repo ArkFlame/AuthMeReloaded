@@ -1,7 +1,6 @@
 package fr.xephi.authme.initialization;
 
 import fr.xephi.authme.AuthMe;
-import fr.xephi.authme.ConsoleLogger;
 import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.message.Messages;
@@ -30,8 +29,6 @@ import static fr.xephi.authme.settings.properties.EmailSettings.RECALL_PLAYERS;
  * Contains actions such as migrations that should be performed on startup.
  */
 public class OnStartupTasks {
-
-    private static final ConsoleLogger consoleLogger = ConsoleLoggerFactory.get(OnStartupTasks.class);
 
     @Inject
     private DataSource dataSource;
@@ -73,7 +70,8 @@ public class OnStartupTasks {
             log4jLogger.addFilter(new Log4JFilter());
         } catch (ClassNotFoundException | NoClassDefFoundError e) {
             // log4j is not available
-            consoleLogger.info("You're using Minecraft 1.6.x or older, Log4J support will be disabled");
+            ConsoleLoggerFactory.get(OnStartupTasks.class)
+                .info("You're using Minecraft 1.6.x or older, Log4J support will be disabled");
             ConsoleFilter filter = new ConsoleFilter();
             logger.setFilter(filter);
             Bukkit.getLogger().setFilter(filter);

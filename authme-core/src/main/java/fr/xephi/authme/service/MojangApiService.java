@@ -40,25 +40,7 @@ public class MojangApiService {
      * @return the Mojang online UUID, or empty if the account does not exist or an error occurred
      */
     public Optional<UUID> fetchUuidByName(String username) {
-        try {
-            HttpURLConnection conn = openGet(PROFILE_URL + username);
-            int code = conn.getResponseCode();
-            if (code == HttpURLConnection.HTTP_NO_CONTENT || code == HttpURLConnection.HTTP_NOT_FOUND) {
-                return Optional.empty();
-            }
-            if (code == 429) {
-                logger.warning("Mojang profile API rate-limited (429) for '" + username + "'; try again later");
-                return Optional.empty();
-            }
-            if (code != HttpURLConnection.HTTP_OK) {
-                logger.warning("Mojang profile API returned " + code + " for '" + username + "'");
-                return Optional.empty();
-            }
-            return parseUuid(readBody(conn), username);
-        } catch (IOException e) {
-            logger.warning("Failed to contact Mojang profile API for '" + username + "': " + e.getMessage());
-            return Optional.empty();
-        }
+        return fetchUuid(PROFILE_URL + username, username, "Mojang profile API", "Mojang profile API", true);
     }
 
     /**
@@ -69,20 +51,30 @@ public class MojangApiService {
      * @return the Mojang online UUID on a valid session, or empty on any failure
      */
     public Optional<UUID> hasJoined(String username, String serverHash) {
+        return fetchUuid(HAS_JOINED_URL + "?username=" + username + "&serverId=" + serverHash,
+            username, "Mojang hasJoined", "Mojang session server", false);
+    }
+
+    /** Shared GET/response handling for both Mojang endpoints; log names keep each endpoint's wording. */
+    private Optional<UUID> fetchUuid(String url, String username, String statusLogName, String failureLogName,
+                                     boolean checkRateLimit) {
         try {
-            String url = HAS_JOINED_URL + "?username=" + username + "&serverId=" + serverHash;
             HttpURLConnection conn = openGet(url);
             int code = conn.getResponseCode();
             if (code == HttpURLConnection.HTTP_NO_CONTENT || code == HttpURLConnection.HTTP_NOT_FOUND) {
                 return Optional.empty();
             }
+            if (checkRateLimit && code == 429) {
+                logger.warning("Mojang profile API rate-limited (429) for '" + username + "'; try again later");
+                return Optional.empty();
+            }
             if (code != HttpURLConnection.HTTP_OK) {
-                logger.warning("Mojang hasJoined returned " + code + " for '" + username + "'");
+                logger.warning(statusLogName + " returned " + code + " for '" + username + "'");
                 return Optional.empty();
             }
             return parseUuid(readBody(conn), username);
         } catch (IOException e) {
-            logger.warning("Failed to contact Mojang session server for '" + username + "': " + e.getMessage());
+            logger.warning("Failed to contact " + failureLogName + " for '" + username + "': " + e.getMessage());
             return Optional.empty();
         }
     }

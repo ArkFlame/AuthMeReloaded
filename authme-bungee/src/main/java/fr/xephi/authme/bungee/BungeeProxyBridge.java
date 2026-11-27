@@ -27,8 +27,6 @@ import net.md_5.bungee.event.EventHandler;
 import net.md_5.bungee.event.EventPriority;
 
 import java.nio.file.Path;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -45,17 +43,7 @@ public final class BungeeProxyBridge implements Listener {
 
     private static final String PROXY_IDENTITY = "bungee";
     private static final int MAX_RETRIES = 3;
-    // Avoid cloning the values() array on every incoming plugin message (ProxyMessageType.fromId does).
-    private static final Map<String, ProxyMessageType> MESSAGE_TYPES_BY_ID = createMessageTypeMap();
     private static final ParsedPluginMessage INVALID_MESSAGE = new ParsedPluginMessage(null, null);
-
-    private static Map<String, ProxyMessageType> createMessageTypeMap() {
-        Map<String, ProxyMessageType> map = new HashMap<>();
-        for (ProxyMessageType type : ProxyMessageType.values()) {
-            map.put(type.id(), type);
-        }
-        return Collections.unmodifiableMap(map);
-    }
 
     private final ProxyServer proxyServer;
     private final Logger logger;
@@ -244,7 +232,7 @@ public final class BungeeProxyBridge implements Listener {
             authenticationStore.markAuthenticated(playerName);
 
             sendAutoLoginIfAlreadySwitched(playerName, server.getInfo());
-            redirectToLoginServer(playerName);
+            redirectPlayer(playerName, configuration.loginServer(), "authentication", false);
         } else if (pendingAutoLogins.containsKey(playerName)) {
             // Implicit ACK: login from non-auth server confirms perform.login was processed
             logger.info("Auto-login confirmed for " + playerName
@@ -260,7 +248,9 @@ public final class BungeeProxyBridge implements Listener {
             proxyServer.getPluginManager().callEvent(new AuthMeBungeeLogoutEvent(player));
         }
 
-        redirectLoggedOutPlayer(playerName);
+        if (configuration.sendOnLogoutEnabled()) {
+            redirectPlayer(playerName, configuration.sendOnLogoutTarget(), "logout", true);
+        }
     }
 
     @EventHandler
@@ -323,12 +313,12 @@ public final class BungeeProxyBridge implements Listener {
     }
 
     private boolean shouldBlockUnauthenticated(ChatEvent event, ProxiedPlayer player, boolean command) {
-        if (authenticationStore.isAuthenticated(player)
-            || player.getServer() == null
-            || !configuration.isAuthServer(player.getServer().getInfo())) {
+        if (authenticationStore.isAuthenticated(player)) {
             return false;
         }
-        return !command || !configuration.isWhitelistedCommand(event.getMessage());
+        Server server = player.getServer();
+        return server != null && configuration.isAuthServer(server.getInfo())
+            && (!command || !configuration.isWhitelistedCommand(event.getMessage()));
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -431,40 +421,38 @@ public final class BungeeProxyBridge implements Listener {
     }
 
     private void scheduleRetry(String normalizedName, AtomicInteger attempts) {
-        retryScheduler.schedule(() -> processAutoLoginRetry(normalizedName, attempts), 1, TimeUnit.SECONDS);
-    }
+        retryScheduler.schedule(() -> {
+            // A retry from an older pending login must not consume the counter of a newer one.
+            if (pendingAutoLogins.get(normalizedName) != attempts) {
+                return;
+            }
+            int current = attempts.getAndIncrement();
+            if (current >= MAX_RETRIES) {
+                pendingAutoLogins.remove(normalizedName);
+                logger.warning("No auto-login ACK received for " + normalizedName
+                    + " after " + MAX_RETRIES + " retries; giving up");
+                return;
+            }
+            ProxiedPlayer player = proxyServer.getPlayer(normalizedName);
+            if (player == null) {
+                pendingAutoLogins.remove(normalizedName);
+                logger.fine("Auto-login retry cancelled for " + normalizedName + " (player no longer online)");
+                return;
+            }
+            Server server = player.getServer();
+            if (server == null) {
+                pendingAutoLogins.remove(normalizedName);
+                logger.fine("Auto-login retry cancelled for " + normalizedName + " (player has no active server)");
+                return;
+            }
 
-    private void processAutoLoginRetry(String normalizedName, AtomicInteger attempts) {
-        // A retry from an older pending login must not consume the counter of a newer one.
-        if (pendingAutoLogins.get(normalizedName) != attempts) {
-            return;
-        }
-        int current = attempts.getAndIncrement();
-        if (current >= MAX_RETRIES) {
-            pendingAutoLogins.remove(normalizedName);
-            logger.warning("No auto-login ACK received for " + normalizedName
-                + " after " + MAX_RETRIES + " retries; giving up");
-            return;
-        }
-        ProxiedPlayer player = proxyServer.getPlayer(normalizedName);
-        if (player == null) {
-            pendingAutoLogins.remove(normalizedName);
-            logger.fine("Auto-login retry cancelled for " + normalizedName + " (player no longer online)");
-            return;
-        }
-        Server server = player.getServer();
-        if (server == null) {
-            pendingAutoLogins.remove(normalizedName);
-            logger.fine("Auto-login retry cancelled for " + normalizedName + " (player has no active server)");
-            return;
-        }
-
-        String serverName = server.getInfo().getName();
-        logger.fine("Retrying auto-login for " + normalizedName + " on server '" + serverName
-            + "' (attempt " + (current + 1) + "/" + MAX_RETRIES + ")");
-        UUID verifiedPremiumUuid = premiumVerificationManager.getVerifiedPremiumUuid(normalizedName);
-        sendPerformLogin(normalizedName, server.getInfo(), verifiedPremiumUuid);
-        scheduleRetry(normalizedName, attempts);
+            String serverName = server.getInfo().getName();
+            logger.fine("Retrying auto-login for " + normalizedName + " on server '" + serverName
+                + "' (attempt " + (current + 1) + "/" + MAX_RETRIES + ")");
+            UUID verifiedPremiumUuid = premiumVerificationManager.getVerifiedPremiumUuid(normalizedName);
+            sendPerformLogin(normalizedName, server.getInfo(), verifiedPremiumUuid);
+            scheduleRetry(normalizedName, attempts);
+        }, 1, TimeUnit.SECONDS);
     }
 
     private void sendPerformLogin(String normalizedName, ServerInfo serverInfo, UUID verifiedPremiumUuid) {
@@ -484,7 +472,7 @@ public final class BungeeProxyBridge implements Listener {
         ByteArrayDataInput input = ByteStreams.newDataInput(data);
 
         try {
-            ProxyMessageType type = MESSAGE_TYPES_BY_ID.get(input.readUTF());
+            ProxyMessageType type = ProxyMessageType.fromId(input.readUTF());
             if (type == null || type == ProxyMessageType.PERFORM_LOGIN || type == ProxyMessageType.PROXY_STARTED) {
                 return INVALID_MESSAGE;
             }
@@ -506,48 +494,28 @@ public final class BungeeProxyBridge implements Listener {
         }
     }
 
-    private void redirectToLoginServer(String normalizedPlayerName) {
-        if (configuration.loginServer().isEmpty()) {
+    /** Shared redirect path for the post-login and post-logout server transfers. */
+    private void redirectPlayer(String normalizedPlayerName, String target, String reason, boolean warnIfNoTarget) {
+        if (target.isEmpty()) {
+            if (warnIfNoTarget) {
+                logger.warning("Received logout for " + normalizedPlayerName
+                    + " but sendOnLogout has no configured target server");
+            }
             return;
         }
         ProxiedPlayer player = proxyServer.getPlayer(normalizedPlayerName);
         if (player == null) {
-            logger.fine("Cannot redirect " + normalizedPlayerName + " to loginServer: player no longer on proxy");
+            logger.fine("Cannot redirect " + normalizedPlayerName + " to " + reason
+                + ": player no longer on proxy");
             return;
         }
-        ServerInfo targetServer = proxyServer.getServerInfo(configuration.loginServer());
+        ServerInfo targetServer = proxyServer.getServerInfo(target);
         if (targetServer == null) {
-            logger.warning("loginServer '" + configuration.loginServer()
-                + "' is not registered on the proxy; cannot redirect " + normalizedPlayerName);
+            logger.warning("Target server '" + target + "' is not registered on the proxy;"
+                + " cannot redirect " + normalizedPlayerName + " after " + reason);
             return;
         }
-        logger.info("Redirecting " + normalizedPlayerName + " to login server '"
-            + configuration.loginServer() + "' after authentication");
-        player.connect(targetServer);
-    }
-
-    private void redirectLoggedOutPlayer(String normalizedPlayerName) {
-        if (!configuration.sendOnLogoutEnabled()) {
-            return;
-        }
-        if (configuration.sendOnLogoutTarget().isEmpty()) {
-            logger.warning("Received logout for " + normalizedPlayerName
-                + " but sendOnLogout has no configured target server");
-            return;
-        }
-
-        ProxiedPlayer player = proxyServer.getPlayer(normalizedPlayerName);
-        if (player == null) {
-            return;
-        }
-
-        ServerInfo targetServer = proxyServer.getServerInfo(configuration.sendOnLogoutTarget());
-        if (targetServer == null) {
-            logger.warning("Received logout for " + normalizedPlayerName + " but target server '"
-                + configuration.sendOnLogoutTarget() + "' is not registered on the proxy");
-            return;
-        }
-
+        logger.info("Redirecting " + normalizedPlayerName + " to server '" + target + "' after " + reason);
         player.connect(targetServer);
     }
 

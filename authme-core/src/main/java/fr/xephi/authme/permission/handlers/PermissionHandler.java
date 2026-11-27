@@ -3,7 +3,6 @@ package fr.xephi.authme.permission.handlers;
 import fr.xephi.authme.data.limbo.UserGroup;
 import fr.xephi.authme.permission.PermissionNode;
 import fr.xephi.authme.permission.PermissionsSystemType;
-import fr.xephi.authme.util.Utils;
 import org.bukkit.OfflinePlayer;
 
 import java.util.Collection;
@@ -71,7 +70,7 @@ public interface PermissionHandler {
      */
     default UserGroup getPrimaryGroup(OfflinePlayer player) {
         Collection<UserGroup> groups = getGroups(player);
-        return Utils.isCollectionEmpty(groups) ? null : groups.iterator().next();
+        return groups == null || groups.isEmpty() ? null : groups.iterator().next();
     }
 
     /**

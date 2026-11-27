@@ -89,17 +89,8 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
     @Override
     protected void initSqlStrings(String authNameCondition, String purgeFunction) {
         super.initSqlStrings(authNameCondition, purgeFunction);
-        updateOtherUsernamesSql = buildOtherUsernamesUpdateSql();
-    }
-
-    /**
-     * Builds the single UPDATE statement for all configured extra username columns, or null if none are configured.
-     */
-    private String buildOtherUsernamesUpdateSql() {
-        if (columnOthers.isEmpty()) {
-            return null;
-        }
-        return "UPDATE " + tableName + " SET " + String.join("=?, ", columnOthers) + "=? WHERE "
+        updateOtherUsernamesSql = columnOthers.isEmpty() ? null
+            : "UPDATE " + tableName + " SET " + String.join("=?, ", columnOthers) + "=? WHERE "
             + col.NAME + "=?;";
     }
 
