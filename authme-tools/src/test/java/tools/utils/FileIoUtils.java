@@ -30,7 +30,7 @@ public final class FileIoUtils {
      */
     public static void writeToFile(Path path, String contents) {
         try {
-            Files.write(path, contents.getBytes());
+            Files.write(path, contents.getBytes(StandardCharsets.UTF_8));
         } catch (IOException e) {
             throw new UnsupportedOperationException("Failed to write to file '" + path + "'", e);
         }
