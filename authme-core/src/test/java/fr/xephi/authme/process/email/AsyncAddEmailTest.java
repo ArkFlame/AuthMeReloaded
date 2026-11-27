@@ -77,7 +77,6 @@ class AsyncAddEmailTest {
     private PlayerAuth givenAuthenticatedPlayerWithoutEmail(String name) {
         String normalized = name.toLowerCase();
         given(player.getName()).willReturn(name);
-        given(playerCache.isAuthenticated(normalized)).willReturn(true);
         PlayerAuth auth = mock(PlayerAuth.class);
         given(auth.getEmail()).willReturn(null);
         given(playerCache.getAuth(normalized)).willReturn(auth);
@@ -131,7 +130,6 @@ class AsyncAddEmailTest {
     @Test
     void shouldNotAddMailIfPlayerAlreadyHasEmail() {
         given(player.getName()).willReturn("my_Player");
-        given(playerCache.isAuthenticated("my_player")).willReturn(true);
         PlayerAuth auth = mock(PlayerAuth.class);
         given(auth.getEmail()).willReturn("another@mail.tld");
         given(playerCache.getAuth("my_player")).willReturn(auth);
@@ -165,7 +163,6 @@ class AsyncAddEmailTest {
     void shouldShowLoginOrRegisterMessageForUnauthenticatedPlayer(
         String name, boolean isRegistered, MessageKey expectedMessage) {
         given(player.getName()).willReturn(name);
-        given(playerCache.isAuthenticated(name.toLowerCase())).willReturn(false);
         given(dataSource.isAuthAvailable(name)).willReturn(isRegistered);
 
         asyncAddEmail.addEmail(player, "test@mail.com");
@@ -177,7 +174,6 @@ class AsyncAddEmailTest {
     @Test
     void shouldSendUnloggedMessageWhenCacheEntryVanished() {
         given(player.getName()).willReturn("TestName");
-        given(playerCache.isAuthenticated("testname")).willReturn(true);
         given(playerCache.getAuth("testname")).willReturn(null);
         given(dataSource.isAuthAvailable("TestName")).willReturn(true);
 
@@ -208,7 +204,6 @@ class AsyncAddEmailTest {
         RegisterSecondaryArgument argument = RegisterSecondaryArgument.valueOf(settingName);
         String email = "my.mail@example.org";
         given(player.getName()).willReturn("testEr");
-        given(playerCache.isAuthenticated("tester")).willReturn(true);
         PlayerAuth auth = mock(PlayerAuth.class);
         given(auth.getEmail()).willReturn(null);
         given(playerCache.getAuth("tester")).willReturn(auth);

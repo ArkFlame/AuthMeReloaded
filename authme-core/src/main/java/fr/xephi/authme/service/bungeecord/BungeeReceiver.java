@@ -22,8 +22,10 @@ import org.bukkit.plugin.messaging.PluginMessageListener;
 
 import javax.inject.Inject;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 public class BungeeReceiver implements PluginMessageListener, SettingsDependent {
@@ -39,6 +41,17 @@ public class BungeeReceiver implements PluginMessageListener, SettingsDependent 
     private final ProxyLoginRequestValidator proxyLoginRequestValidator;
 
     private static final long MAX_AGE_MILLIS = 30_000L;
+
+    // Avoid cloning values() and wrapping an Optional on every incoming plugin message.
+    private static final Map<String, MessageType> MESSAGE_TYPES_BY_ID = createMessageTypeMap();
+
+    private static Map<String, MessageType> createMessageTypeMap() {
+        Map<String, MessageType> map = new HashMap<>();
+        for (MessageType type : MessageType.values()) {
+            map.put(type.getId(), type);
+        }
+        return Collections.unmodifiableMap(map);
+    }
 
     private boolean isEnabled;
     private boolean premiumEnabled;
@@ -91,15 +104,16 @@ public class BungeeReceiver implements PluginMessageListener, SettingsDependent 
             return;
         }
 
-        MessageType messageType = MessageType.fromId(typeId).orElse(null);
+        MessageType messageType = MESSAGE_TYPES_BY_ID.get(typeId);
         if (messageType == null) {
             logger.debug("Received unsupported AuthMe plugin message type: {0}", typeId);
             return;
         }
 
-        String argument = readField(in,
-            "Received invalid AuthMe plugin message of type " + messageType.name() + ": argument is missing!");
+        String argument = readField(in, null);
         if (argument == null) {
+            logger.warning("Received invalid AuthMe plugin message of type " + messageType.name()
+                + ": argument is missing!");
             return;
         }
 

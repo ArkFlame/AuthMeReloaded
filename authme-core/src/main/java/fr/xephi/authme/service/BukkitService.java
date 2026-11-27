@@ -425,11 +425,4 @@ public class BukkitService implements SettingsDependent {
     public PotionEffect createBlindnessEffect(int timeoutInTicks) {
         return new PotionEffect(PotionEffectType.BLINDNESS, timeoutInTicks, 2);
     }
-
-    /**
-     * @return the IP string that this server is bound to, otherwise empty string
-     */
-    public String getIp() {
-        return Bukkit.getServer().getIp();
-    }
 }

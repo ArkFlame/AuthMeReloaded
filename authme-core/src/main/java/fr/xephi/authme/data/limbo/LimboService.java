@@ -84,9 +84,8 @@ public class LimboService {
             logger.debug("LimboPlayer for `{0}` already exists on disk", name);
         }
 
-        LimboPlayer existingLimbo = entries.remove(uuid);
+        LimboPlayer existingLimbo = removeLimboEntry(uuid);
         if (existingLimbo != null) {
-            existingLimbo.clearTasks();
             logger.debug("LimboPlayer for `{0}` already present in memory", name);
         }
 
@@ -151,6 +150,14 @@ public class LimboService {
         return entries.containsKey(player.getUniqueId());
     }
 
+    private LimboPlayer removeLimboEntry(UUID uuid) {
+        LimboPlayer limbo = entries.remove(uuid);
+        if (limbo != null) {
+            limbo.clearTasks();
+        }
+        return limbo;
+    }
+
     /**
      * Restores the limbo data and subsequently deletes the entry.
      * <p>
@@ -161,15 +168,13 @@ public class LimboService {
      */
     public void restoreData(Player player) {
         String lowerName = player.getName().toLowerCase(Locale.ROOT);
-        LimboPlayer limbo = entries.remove(player.getUniqueId());
-
+        LimboPlayer limbo = removeLimboEntry(player.getUniqueId());
         if (limbo == null) {
             logger.debug("No LimboPlayer found for `{0}` - cannot restore", lowerName);
             restoreSpeedStates(player, null);
         } else {
             player.setOp(limbo.isOperator());
             restoreSpeedStates(player, limbo);
-            limbo.clearTasks();
             logger.debug("Restored LimboPlayer stats for `{0}`", lowerName);
         }
         // Always remove the disk limbo regardless of whether an in-memory limbo was present.
@@ -187,18 +192,12 @@ public class LimboService {
      */
     public void restoreSpeedsForAutoLogin(Player player) {
         LimboPlayer diskLimbo = persistence.getLimboPlayer(player);
+        removeLimboEntry(player.getUniqueId());
         restoreSpeedStates(player, diskLimbo);
         if (diskLimbo != null) {
-            // Disk limbo captured speeds before revokeLimboStates ran — restore from it
-            String lowerName = player.getName().toLowerCase(Locale.ROOT);
-            logger.debug("Restored speeds from disk LimboPlayer for `{0}` during auto-login", lowerName);
+            logger.debug("Restored speeds from disk LimboPlayer for `{0}` during auto-login",
+                player.getName().toLowerCase(Locale.ROOT));
             doRestoreEntities(player, diskLimbo);
-        }
-        // The player is authenticated, so any in-memory limbo left over from the join flow must
-        // be dropped as well: otherwise the entry and its scheduled tasks leak for the session.
-        LimboPlayer inMemoryLimbo = entries.remove(player.getUniqueId());
-        if (inMemoryLimbo != null) {
-            inMemoryLimbo.clearTasks();
         }
         persistence.removeLimboPlayer(player);
     }

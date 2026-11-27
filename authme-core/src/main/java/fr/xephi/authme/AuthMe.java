@@ -138,10 +138,7 @@ public class AuthMe extends JavaPlugin {
         int versionSeparator = versionRaw.lastIndexOf("-");
         if (versionSeparator != -1) {
             pluginVersion = versionRaw.substring(0, versionSeparator);
-            pluginBuildNumber = versionRaw.substring(versionSeparator + 1);
-            if (pluginBuildNumber.startsWith("b")) {
-                pluginBuildNumber = pluginBuildNumber.substring(1);
-            }
+            pluginBuildNumber = versionRaw.substring(versionSeparator + 1).replaceFirst("^b", "");
         }
 
         // Set the Logger instance and log file path
@@ -207,10 +204,8 @@ public class AuthMe extends JavaPlugin {
             YamlParseException yamlParseException = ExceptionUtils.findThrowableInCause(YamlParseException.class, th);
             if (yamlParseException == null) {
                 logger.logException("Aborting initialization of AuthMe:", th);
-                th.printStackTrace();
             } else {
-                logger.logException("File '" + yamlParseException.getFile() + "' contains invalid YAML. "
-                    + "Please run its contents through http://yamllint.com", yamlParseException);
+                logger.logException("File '" + yamlParseException.getFile() + "' contains invalid YAML. Please run its contents through http://yamllint.com", yamlParseException);
             }
             stopOrUnload();
             return false;
@@ -437,8 +432,7 @@ public class AuthMe extends JavaPlugin {
 
     private String getServerNameVersionSafe() {
         try {
-            Server server = getServer();
-            return server.getName() + " v. " + server.getVersion();
+            return getServer().getName() + " v. " + getServer().getVersion();
         } catch (Throwable ignore) {
             return "-";
         }

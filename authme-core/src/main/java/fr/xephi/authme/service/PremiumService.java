@@ -259,8 +259,8 @@ public class PremiumService implements HasCleanup {
      */
     public void finalizePendingPremium(Player player, UUID confirmedUuid) {
         String playerName = player.getName();
-        PlayerAuth auth = Optional.ofNullable(playerCache.getAuth(playerName))
-                .orElseGet(() -> dataSource.getAuth(playerName.toLowerCase(java.util.Locale.ROOT)));
+        PlayerAuth auth = playerCache.getAuth(playerName);
+        if (auth == null) auth = dataSource.getAuth(playerName.toLowerCase(java.util.Locale.ROOT));
         if (auth == null) {
             logger.warning("Could not finalize pending premium for " + playerName + ": no auth record found");
             return;

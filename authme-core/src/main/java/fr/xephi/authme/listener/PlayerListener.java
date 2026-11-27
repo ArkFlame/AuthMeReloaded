@@ -24,6 +24,7 @@ import fr.xephi.authme.settings.properties.RegistrationSettings;
 import fr.xephi.authme.settings.properties.RestrictionSettings;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.EnderPearl;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.HumanEntity;
@@ -67,7 +68,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static fr.xephi.authme.settings.properties.RestrictionSettings.ALLOWED_MOVEMENT_RADIUS;
 import static fr.xephi.authme.settings.properties.RestrictionSettings.ALLOW_UNAUTHED_MOVEMENT;
@@ -257,10 +257,9 @@ public class PlayerListener extends AbstractCancelListener implements Listener {
         Player player = event.getPlayer();
 
         // Note: quit message can be null, despite api documentation says not
-        if (settings.getProperty(RegistrationSettings.REMOVE_LEAVE_MESSAGE)) {
-            event.setQuitMessage(null);
-        } else if (settings.getProperty(RegistrationSettings.REMOVE_UNLOGGED_LEAVE_MESSAGE)
-            && getListenerService().shouldCancelEvent(event)) {
+        if (settings.getProperty(RegistrationSettings.REMOVE_LEAVE_MESSAGE)
+            || settings.getProperty(RegistrationSettings.REMOVE_UNLOGGED_LEAVE_MESSAGE)
+                && getListenerService().shouldCancelEvent(event)) {
             event.setQuitMessage(null);
         }
 
@@ -285,12 +284,16 @@ public class PlayerListener extends AbstractCancelListener implements Listener {
     }
 
     private void saveStateBeforeQuit(Player player) {
-        Set<EnderPearlRestoreData> pearls = player.getServer().getWorlds().stream()
-            .flatMap(world -> world.getEntitiesByClass(EnderPearl.class).stream())
-            .filter(bukkitService::isOwnedByCurrentThread)
-            .filter(pearl -> player.equals(pearl.getShooter()))
-            .map(pearl -> new EnderPearlRestoreData(pearl.getUniqueId(), pearl.getLocation(), pearl.getVelocity()))
-            .collect(Collectors.toSet());
+        // Imperative scan: no per-quit stream, capturing filter/map lambdas or collector allocation.
+        Set<EnderPearlRestoreData> pearls = new HashSet<>();
+        for (World world : player.getServer().getWorlds()) {
+            for (EnderPearl pearl : world.getEntitiesByClass(EnderPearl.class)) {
+                // Folia: check region ownership before touching the pearl's data.
+                if (bukkitService.isOwnedByCurrentThread(pearl) && player.equals(pearl.getShooter())) {
+                    pearls.add(new EnderPearlRestoreData(pearl.getUniqueId(), pearl.getLocation(), pearl.getVelocity()));
+                }
+            }
+        }
         if (!pearls.isEmpty()) {
             limboService.saveEnderPearlsForPlayer(player, pearls);
         }
@@ -310,17 +313,14 @@ public class PlayerListener extends AbstractCancelListener implements Listener {
         }
 
         // #3114: kick reasons are localized (and differ on Folia), so identify a duplicate login
-        // by the second online session instead of matching the English reason text.
-        if (isDuplicateLoginKick(event)) {
+        // by the second online session; #831: also match the legacy English reason offline.
+        if (isDuplicateLoginKick(event) || isLegacyDuplicateKick(chatAdapter.getKickReason(event))) {
             event.setCancelled(true);
-            return;
         }
+    }
 
-        // #831: offline CraftBukkit may hide the second session, leaving only the legacy reason.
-        String reason = chatAdapter.getKickReason(event);
-        if (reason != null && reason.contains("You logged in from another location")) {
-            event.setCancelled(true);
-        }
+    private static boolean isLegacyDuplicateKick(String reason) {
+        return reason != null && reason.contains("You logged in from another location");
     }
 
     private boolean isDuplicateLoginKick(PlayerKickEvent event) {
@@ -333,9 +333,6 @@ public class PlayerListener extends AbstractCancelListener implements Listener {
         if (name == null) {
             return false;
         }
-        boolean authenticated = playerCache.isAuthenticated(name);
-        boolean pending = limboService.hasLimboPlayer(kicked);
-
         boolean kickedIsOnline = false;
         boolean duplicateSession = false;
         for (Player online : onlinePlayers) {
@@ -345,7 +342,9 @@ public class PlayerListener extends AbstractCancelListener implements Listener {
                 duplicateSession = true;
             }
         }
-        return duplicateSession && (kickedIsOnline || authenticated || pending);
+        // Defer the cache/limbo lookups until a second session is confirmed: most kicks have none.
+        return duplicateSession
+            && (playerCache.isAuthenticated(name) || limboService.hasLimboPlayer(kicked) || kickedIsOnline);
     }
 
     /*

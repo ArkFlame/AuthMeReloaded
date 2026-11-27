@@ -115,8 +115,7 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
      * Applies a cache change only when the underlying data source update succeeded. On failure the
      * entry is dropped instead, because the cache may no longer reflect the database state.
      */
-    private boolean updateCacheOnSuccess(boolean succeeded, String name, Consumer<String> cacheChange) {
-        String key = name == null ? null : normalize(name);
+    private boolean updateCacheOnSuccess(boolean succeeded, String key, Consumer<String> cacheChange) {
         if (succeeded) {
             cacheChange.accept(key);
         } else if (key != null) {
@@ -159,7 +158,8 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public boolean updatePassword(String user, HashedPassword password) {
-        return updateCacheOnSuccess(source.updatePassword(normalize(user), password), user, cachedAuths::invalidate);
+        String key = normalize(user);
+        return updateCacheOnSuccess(source.updatePassword(key, password), key, cachedAuths::invalidate);
     }
 
     @Override
@@ -186,7 +186,8 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public boolean removeAuth(String name) {
-        return updateCacheOnSuccess(source.removeAuth(normalize(name)), name, cachedAuths::invalidate);
+        String key = normalize(name);
+        return updateCacheOnSuccess(source.removeAuth(key), key, cachedAuths::invalidate);
     }
 
     @Override
@@ -289,7 +290,7 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public boolean updateRealName(String user, String realName) {
-        return updateCacheOnSuccess(source.updateRealName(user, realName), user, cachedAuths::refresh);
+        return updateCacheOnSuccess(source.updateRealName(user, realName), normalize(user), cachedAuths::refresh);
     }
 
     @Override
@@ -319,7 +320,7 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public boolean setTotpKey(String user, String totpKey) {
-        return updateCacheOnSuccess(source.setTotpKey(user, totpKey), user, cachedAuths::invalidate);
+        return updateCacheOnSuccess(source.setTotpKey(user, totpKey), normalize(user), cachedAuths::invalidate);
     }
 
     @Override

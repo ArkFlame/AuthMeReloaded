@@ -322,17 +322,4 @@ class BukkitServiceTest {
         assertThat(event.isAsynchronous(), equalTo(async));
         assertThat(event.getPlayer(), equalTo(player));
     }
-
-    @Test
-    void shouldReturnServerIp() {
-        // given
-        String ip = "99.99.99.99";
-        given(server.getIp()).willReturn(ip);
-
-        // when
-        String result = bukkitService.getIp();
-
-        // then
-        assertThat(result, equalTo(ip));
-    }
 }

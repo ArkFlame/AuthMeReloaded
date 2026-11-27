@@ -26,6 +26,8 @@ import net.md_5.bungee.event.EventHandler;
 import net.md_5.bungee.event.EventPriority;
 
 import java.nio.file.Path;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,6 +44,16 @@ public final class BungeeProxyBridge implements Listener {
 
     private static final String PROXY_IDENTITY = "bungee";
     private static final int MAX_RETRIES = 3;
+    // Avoid cloning the values() array on every incoming plugin message (ProxyMessageType.fromId does).
+    private static final Map<String, ProxyMessageType> MESSAGE_TYPES_BY_ID = createMessageTypeMap();
+
+    private static Map<String, ProxyMessageType> createMessageTypeMap() {
+        Map<String, ProxyMessageType> map = new HashMap<>();
+        for (ProxyMessageType type : ProxyMessageType.values()) {
+            map.put(type.id(), type);
+        }
+        return Collections.unmodifiableMap(map);
+    }
 
     private final ProxyServer proxyServer;
     private final Logger logger;
@@ -50,6 +62,7 @@ public final class BungeeProxyBridge implements Listener {
     private final BungeeAuthenticationStore authenticationStore;
     private final Map<String, AtomicInteger> pendingAutoLogins = new ConcurrentHashMap<>();
     private final Set<String> notifiedAuthServers = ConcurrentHashMap.newKeySet();
+    private final Set<String> handshakeRetriesPending = ConcurrentHashMap.newKeySet();
     private final PremiumNames premiumNames;
     // Players with a pending premium verification (ran /premium but not yet confirmed via reconnect)
     private volatile Set<String> pendingPremiumUsernames = ConcurrentHashMap.newKeySet();
@@ -167,6 +180,7 @@ public final class BungeeProxyBridge implements Listener {
         Object sender = event.getSender();
         event.setCancelled(true);
         if (!(sender instanceof Server server)) {
+            logger.fine("Blocked authme:main message from non-server source (client-side spoofing attempt?)");
             return;
         }
 
@@ -392,22 +406,35 @@ public final class BungeeProxyBridge implements Listener {
         } else {
             notifiedAuthServers.remove(serverName);
             logger.info("Failed to send deferred proxy.started handshake to '" + serverName + "'; scheduling retry");
-            retryScheduler.schedule(() -> sendProxyStartedHandshakeIfPending(server), 1, TimeUnit.SECONDS);
+            scheduleHandshakeRetry(server, serverName);
         }
     }
 
+    private void scheduleHandshakeRetry(ServerInfo server, String serverName) {
+        if (!handshakeRetriesPending.add(serverName)) {
+            return;
+        }
+        retryScheduler.schedule(() -> {
+            handshakeRetriesPending.remove(serverName);
+            if (!notifiedAuthServers.contains(serverName)) {
+                sendProxyStartedHandshakeIfPending(server);
+            }
+        }, 1, TimeUnit.SECONDS);
+    }
+
     private void initiatePendingLogin(String normalizedName) {
-        pendingAutoLogins.put(normalizedName, new AtomicInteger(0));
-        scheduleRetry(normalizedName);
+        AtomicInteger attempts = new AtomicInteger(0);
+        pendingAutoLogins.put(normalizedName, attempts);
+        scheduleRetry(normalizedName, attempts);
     }
 
-    private void scheduleRetry(String normalizedName) {
-        retryScheduler.schedule(() -> processAutoLoginRetry(normalizedName), 1, TimeUnit.SECONDS);
+    private void scheduleRetry(String normalizedName, AtomicInteger attempts) {
+        retryScheduler.schedule(() -> processAutoLoginRetry(normalizedName, attempts), 1, TimeUnit.SECONDS);
     }
 
-    private void processAutoLoginRetry(String normalizedName) {
-        AtomicInteger attempts = pendingAutoLogins.get(normalizedName);
-        if (attempts == null) {
+    private void processAutoLoginRetry(String normalizedName, AtomicInteger attempts) {
+        // A retry from an older pending login must not consume the counter of a newer one.
+        if (pendingAutoLogins.get(normalizedName) != attempts) {
             return;
         }
         int current = attempts.getAndIncrement();
@@ -435,7 +462,7 @@ public final class BungeeProxyBridge implements Listener {
             + "' (attempt " + (current + 1) + "/" + MAX_RETRIES + ")");
         UUID verifiedPremiumUuid = premiumVerificationManager.getVerifiedPremiumUuid(normalizedName);
         sendPerformLogin(normalizedName, server.getInfo(), verifiedPremiumUuid);
-        scheduleRetry(normalizedName);
+        scheduleRetry(normalizedName, attempts);
     }
 
     private void sendPerformLogin(String normalizedName, ServerInfo serverInfo, UUID verifiedPremiumUuid) {
@@ -455,7 +482,7 @@ public final class BungeeProxyBridge implements Listener {
         ByteArrayDataInput input = ByteStreams.newDataInput(data);
 
         try {
-            ProxyMessageType type = ProxyMessageType.fromId(input.readUTF());
+            ProxyMessageType type = MESSAGE_TYPES_BY_ID.get(input.readUTF());
             if (type == null || type == ProxyMessageType.PERFORM_LOGIN || type == ProxyMessageType.PROXY_STARTED) {
                 return new ParsedPluginMessage(null, null);
             }

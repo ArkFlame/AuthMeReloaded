@@ -18,13 +18,13 @@ import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.settings.Settings;
 import fr.xephi.authme.settings.properties.ProtectionSettings;
 import fr.xephi.authme.util.FileUtils;
-import fr.xephi.authme.util.InternetProtocolUtils;
 
 import javax.inject.Inject;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.URL;
 import java.net.UnknownHostException;
@@ -342,19 +342,30 @@ public class GeoIpService {
 
     private String getCountryValue(String ip, Function<Country, String> extractor, String fallback,
                                    String localAddressValue) {
-        if (InternetProtocolUtils.isLocalAddress(ip)) {
-            return localAddressValue;
-        }
-        if (ip == null || ip.isEmpty() || !isDataAvailable()) {
+        // Resolve once: the locality check and the database lookup used to allocate two InetAddress
+        // objects per lookup (and could block twice on DNS for a hostname).
+        InetAddress address;
+        try {
+            address = InetAddress.getByName(ip);
+        } catch (UnknownHostException e) {
+            // Ignore invalid ip addresses
+            // Legacy GEO IP Database returned an unknown country object with Country-Code: '--' and Country-Name: 'N/A'
             return fallback;
         }
 
+        if (address.isLoopbackAddress() || address.isSiteLocalAddress() || address.isLinkLocalAddress()
+            || isIpv6UniqueSiteLocal(address)) {
+            return localAddressValue;
+        }
+        if (!isDataAvailable()) {
+            return fallback;
+        }
+
+        // A miss for the current database cannot change until a new reader is installed
+        if (unknownCountries.getIfPresent(address) != null) {
+            return fallback;
+        }
         try {
-            InetAddress address = InetAddress.getByName(ip);
-            // A miss for the current database cannot change until a new reader is installed
-            if (unknownCountries.getIfPresent(address) != null) {
-                return fallback;
-            }
             AbstractCountryResponse response = databaseReader.country(address);
             // Reader.getCountry() can be null for unknown addresses
             Country country = response == null ? null : response.getCountry();
@@ -363,13 +374,18 @@ public class GeoIpService {
                 return fallback;
             }
             return extractor.apply(country);
-        } catch (UnknownHostException e) {
-            // Ignore invalid ip addresses
-            // Legacy GEO IP Database returned an unknown country object with Country-Code: '--' and Country-Name: 'N/A'
         } catch (GeoIp2Exception | IOException ioEx) {
             logger.logException("Cannot lookup country for " + ip + " at GEO IP database", ioEx);
         }
 
         return fallback;
+    }
+
+    private static boolean isIpv6UniqueSiteLocal(InetAddress address) {
+        if (!(address instanceof Inet6Address)) {
+            return false;
+        }
+        int firstByte = address.getAddress()[0] & 0xFF;
+        return firstByte == 0xFC || firstByte == 0xFD;
     }
 }

@@ -46,9 +46,6 @@ public class AsyncChangeEmail implements AsynchronousProcess {
     @Inject
     private PendingEmailVerificationCache pendingEmailVerificationCache;
 
-    AsyncChangeEmail() {
-    }
-
     /**
      * Handles the request to change the player's email address.
      * If email sending is available, the new address is held pending confirmation via
@@ -86,9 +83,9 @@ public class AsyncChangeEmail implements AsynchronousProcess {
             if (emailService.hasAllInformation()) {
                 EmailProcessHelper.sendConfirmationCode(service, emailService, pendingEmailVerificationCache,
                     logger, player, newEmail);
-            } else {
-                EmailProcessHelper.persistEmail(service, dataSource, playerCache, auth, player, newEmail,
-                    MessageKey.EMAIL_CHANGED_SUCCESS);
+            } else if (!EmailProcessHelper.persistEmail(service, dataSource, playerCache, auth, player, newEmail,
+                MessageKey.EMAIL_CHANGED_SUCCESS)) {
+                logger.warning("Could not change email for player '" + player + "'");
             }
         }
     }
