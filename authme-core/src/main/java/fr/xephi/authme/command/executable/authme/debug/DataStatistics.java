@@ -15,6 +15,7 @@ import org.bukkit.command.CommandSender;
 
 import javax.inject.Inject;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import static fr.xephi.authme.command.executable.authme.debug.DebugSectionUtils.applyToLimboPlayersMap;
@@ -57,7 +58,7 @@ class DataStatistics implements DebugSection {
             sender.sendMessage("Cached PlayerAuth objects: " + cacheDataSource.getCachedAuths().size());
         }
         sender.sendMessage("Singleton Java classes: " + singletonStore.retrieveAllOfType().size());
-        sender.sendMessage(String.format("(Reloadable: %d / SettingsDependent: %d / HasCleanup: %d)",
+        sender.sendMessage(String.format(Locale.ROOT, "(Reloadable: %d / SettingsDependent: %d / HasCleanup: %d)",
             singletonStore.retrieveAllOfType(Reloadable.class).size(),
             singletonStore.retrieveAllOfType(SettingsDependent.class).size(),
             singletonStore.retrieveAllOfType(HasCleanup.class).size()));
