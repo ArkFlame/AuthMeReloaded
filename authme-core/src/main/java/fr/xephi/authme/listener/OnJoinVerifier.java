@@ -59,7 +59,7 @@ public class OnJoinVerifier implements Reloadable {
     @Inject
     private Server server;
 
-    private Pattern nicknamePattern;
+    private volatile Pattern nicknamePattern;
 
     OnJoinVerifier() {
     }
