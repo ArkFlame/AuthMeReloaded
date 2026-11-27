@@ -261,6 +261,20 @@
                         <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                     </transformers>
                     <relocations>
+                        <!-- jsr305 annotations (Guava's @CheckForNull etc.) clash with sealed javax.annotation packages on some 1.8 servers;
+                             keep the JDK-provided PostConstruct, PreDestroy and Resource at their original names -->
+                        <relocation>
+                            <pattern>javax.annotation</pattern>
+                            <shadedPattern>fr.xephi.authme.libs.javax.annotation</shadedPattern>
+                            <excludes>
+                                <exclude>javax.annotation.PostConstruct</exclude>
+                                <exclude>javax.annotation.PreDestroy</exclude>
+                                <exclude>javax.annotation.Resource</exclude>
+                                <exclude>javax.annotation.Resource.*</exclude>
+                                <exclude>javax.annotation.Resources</exclude>
+                                <exclude>javax.annotation.Generated</exclude>
+                            </excludes>
+                        </relocation>
                         <relocation>
                             <pattern>com.google.common</pattern>
                             <shadedPattern>fr.xephi.authme.libs.com.google.common</shadedPattern>

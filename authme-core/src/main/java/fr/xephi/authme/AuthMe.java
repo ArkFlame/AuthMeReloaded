@@ -204,6 +204,13 @@ public class AuthMe extends JavaPlugin {
             YamlParseException yamlParseException = ExceptionUtils.findThrowableInCause(YamlParseException.class, th);
             if (yamlParseException == null) {
                 logger.logException("Aborting initialization of AuthMe:", th);
+                Throwable root = th;
+                while (root.getCause() != null && root.getCause() != root) {
+                    root = root.getCause();
+                }
+                if (root != th) {
+                    logger.warning("Root cause: " + ExceptionUtils.formatException(root) + System.lineSeparator() + com.google.common.base.Throwables.getStackTraceAsString(root));
+                }
             } else {
                 logger.logException("File '" + yamlParseException.getFile() + "' contains invalid YAML. Please run its contents through http://yamllint.com", yamlParseException);
             }
