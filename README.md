@@ -16,9 +16,8 @@ Every commit to `master` is built and published automatically:
 
 | File | For |
 |------|-----|
-| `AuthMeRemastered-<version>-<sha>-Spigot.jar` | Spigot 1.16-1.21.x (one jar, Java 17+; Java 21 enables dialogs) |
+| `AuthMeRemastered-<version>-<sha>-Spigot.jar` | Spigot 1.16-1.21.x, Paper and Folia (one jar, adapter chosen at startup; Java 17+, Java 21 for Paper and dialogs) |
 | `AuthMeRemastered-<version>-<sha>-Spigot-1.8.jar` | Spigot 1.8.8-1.15.2 (Java 8) |
-| `AuthMeRemastered-<version>-<sha>-Paper.jar` | Paper and Folia 1.21.11+ (one jar, Folia detected at startup) |
 | `AuthMeRemastered-<version>-<sha>-Bungee.jar` / `-Velocity.jar` | Proxies |
 | `AuthMeRemastered-API-<version>-<sha>.jar` | Developer API (events only), see [docs/API.md](docs/API.md) |
 
@@ -29,8 +28,8 @@ configs, permissions and databases keep working.
 
 The long-term goal is a **single Java 8 server jar** using runtime capability detection instead of
 separate bytecode builds. `authme-core` already stays at Java 8, and the proxies remain separate
-because they target different APIs. Paper and Folia already share one `-Paper.jar` (Folia selected at
-startup), and Spigot 1.16–1.21.x shares one `-Spigot.jar` (Java 17+, dialog adapter on Java 21).
+because they target different APIs. Spigot, Paper and Folia already share one `-Spigot.jar` (adapter selected at
+startup; Java 17+, Java 21 for Paper and the dialog adapter).
 Until the Java 8 single-jar consolidation lands, the jars listed above continue to ship.
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/MODULES.md](docs/MODULES.md) for the
 platform adapters, the two-pass Spigot build, adapter selection and module layout.
@@ -47,7 +46,6 @@ Together they produce five plugin jars (Spigot-1.8, Spigot, Paper, Bungee, Veloc
 | `authme-tools` | build/converter tooling (no server jar) | Java 17 (21 on JDK 21+) |
 | `authme-spigot-1.8` | `-Spigot-1.8.jar` | Spigot 1.8.8–1.15.2, Java 8, shaded libraries |
 | `authme-spigot` | `-Spigot.jar` | merged Spigot 1.16–1.21.x, Java 17+ (Java 21 enables dialogs) |
-| `authme-paper` | `-Paper.jar` | merged Paper/Folia 1.21.11+, Java 21 |
 | `authme-bungee` | `-Bungee.jar` | BungeeCord/Waterfall, Java 21 |
 | `authme-velocity` | `-Velocity.jar` | Velocity 4.x (built against 4.3.1), Java 25 |
 
@@ -170,7 +168,7 @@ Minecraft login phase — no password prompt is ever shown.
 
 ##### Compiling requirements:
 >- JDK 17+ for the default modules: `authme-api`, `authme-core`, `authme-tools` and `authme-spigot-1.8`
->- JDK 21+ for the `java21-modules` profile (`authme-bungee`, `authme-spigot`, `authme-paper` (Paper and Folia))
+>- JDK 21+ for the `java21-modules` profile (`authme-bungee`, `authme-spigot` (Spigot, Paper and Folia))
 >- JDK 25+ for `authme-velocity` (Java 25 bytecode), so the full reactor requires JDK 25+
 >- Maven (3.8.8+)
 >- Git/GitHub (Optional)
@@ -186,8 +184,7 @@ Minecraft login phase — no password prompt is ever shown.
 ##### Running requirements:
 >- Use the jar matching your server platform/version:
 >  - Java 8+: `AuthMeRemastered-*-Spigot-1.8.jar` — Bukkit/Spigot 1.8.8–1.15.2
->  - Java 17+: `AuthMeRemastered-*-Spigot.jar` — one merged jar for Spigot 1.16.x–1.21.x (Java 21 enables the dialog adapter)
->  - Java 21+: `AuthMeRemastered-*-Paper.jar` — one merged jar for Paper and Folia 1.21.11+ (Folia detected at startup)
+>  - Java 17+: `AuthMeRemastered-*-Spigot.jar` — one merged jar for Spigot, Paper and Folia 1.16.x–1.21.x (Java 21 enables Paper and the dialog adapter)
 >  - Java 21+: `AuthMeRemastered-*-Bungee.jar` — BungeeCord / Waterfall proxy (built against the 1.21 API)
 >  - Java 25+: `AuthMeRemastered-*-Velocity.jar` — Velocity 4.x proxy (built against 4.3.1)
 >- [PacketEvents](https://github.com/retrooper/packetevents) 2.x (optional plugin; required for inventory protection, tab-complete blocking, and premium bypass in direct-connection mode)

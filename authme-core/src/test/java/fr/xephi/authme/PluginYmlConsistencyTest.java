@@ -34,8 +34,7 @@ class PluginYmlConsistencyTest {
     /** plugin.yml locations relative to the authme-core module directory. */
     private static final List<String> PLUGIN_YML_PATHS = Collections.unmodifiableList(Arrays.asList(
         "../authme-spigot-1.8/src/main/resources/plugin.yml",
-        "../authme-spigot/src/main/resources/plugin.yml",
-        "../authme-paper/src/main/resources/plugin.yml"));
+        "../authme-spigot/src/main/resources/plugin.yml"));
 
     @Test
     void shouldDeclareIdenticalPermissionsInAllJars() throws IOException {

@@ -23,11 +23,11 @@ public class SpigotDialogHelperTest {
 
     @Test
     public void showDialogsSendCorrectCommandTemplates() {
-        Player loginPlayer = mock(Player.class);
+        SpigotDialogPlayer loginPlayer = mock(SpigotDialogPlayer.class);
         SpigotDialogHelper.showLoginDialog(loginPlayer, createDialogSpec("Login", "Password", "Login"));
         assertThat(captureRunCommandAction(loginPlayer).template(), is("login $(password)"));
 
-        Player totpPlayer = mock(Player.class);
+        SpigotDialogPlayer totpPlayer = mock(SpigotDialogPlayer.class);
         SpigotDialogHelper.showTotpDialog(totpPlayer, createDialogSpec("2FA", "Code", "Verify"));
         assertThat(captureRunCommandAction(totpPlayer).template(), is("2fa code $(code)"));
     }
@@ -36,7 +36,7 @@ public class SpigotDialogHelperTest {
     @MethodSource("loginDialogs")
     public void showLoginDialogBuildsExpectedActions(List<DialogInputSpec> inputs, boolean stackButtons,
                                                       int expectedColumns) {
-        Player player = mock(Player.class);
+        SpigotDialogPlayer player = mock(SpigotDialogPlayer.class);
         DialogWindowSpec dialog = new DialogWindowSpec("Login", inputs, "Login", "Forgot Password?", true,
             false, "email recover $(email)", null, stackButtons);
 
@@ -62,7 +62,7 @@ public class SpigotDialogHelperTest {
     public void showRegisterDialogSendsExpectedTemplate(String inputLabel, RegistrationType type,
                                                          RegisterSecondaryArgument secondArg,
                                                          String expectedTemplate) {
-        Player player = mock(Player.class);
+        SpigotDialogPlayer player = mock(SpigotDialogPlayer.class);
         DialogWindowSpec dialog = createDialogSpec("Register", inputLabel, "Register");
         SpigotDialogHelper.showRegisterDialog(player, type, secondArg, dialog);
         assertThat(captureRunCommandAction(player).template(), is(expectedTemplate));
@@ -84,13 +84,13 @@ public class SpigotDialogHelperTest {
                 "register $(email) $(confirm)"));
     }
 
-    private static MultiActionDialog captureDialog(Player player) {
+    private static MultiActionDialog captureDialog(SpigotDialogPlayer player) {
         ArgumentCaptor<MultiActionDialog> captor = ArgumentCaptor.forClass(MultiActionDialog.class);
         verify(player).showDialog(captor.capture());
         return captor.getValue();
     }
 
-    private static RunCommandAction captureRunCommandAction(Player player) {
+    private static RunCommandAction captureRunCommandAction(SpigotDialogPlayer player) {
         return (RunCommandAction) captureDialog(player).actions().get(0).action();
     }
 

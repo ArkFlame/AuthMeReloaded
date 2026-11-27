@@ -183,7 +183,6 @@
             <modules>
                 <module>authme-bungee</module>
                 <module>authme-spigot</module>
-                <module>authme-paper</module>
                 <module>authme-velocity</module>
             </modules>
         </profile>

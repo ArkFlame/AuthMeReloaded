@@ -15,7 +15,7 @@ below.
 - JDK 17+ for the default reactor modules: `authme-api`, `authme-core`, `authme-tools` and
   `authme-spigot-1.8` (Spigot 1.8.8, shaded libraries, Java 8 bytecode)
 - JDK 21+ for the `java21-modules` profile, which adds `authme-bungee`, `authme-spigot`,
-  `authme-paper` (the merged Paper/Folia jar) and `authme-velocity`. The merged `authme-spigot`
+  and `authme-velocity`. The merged `authme-spigot` (Spigot, Paper and Folia)
   module needs JDK 21 at build time to compile its dialog adapter; on a Java 17 server that adapter
   is skipped at runtime and the legacy adapter is used instead.
 - JDK 25+ to compile `authme-velocity` (Java 25 bytecode), so the full reactor requires JDK 25+
@@ -52,7 +52,7 @@ mvn clean package -DskipLongHashTests
 # Build one deliverable with its dependencies
 mvn clean package -pl authme-bungee -am
 mvn clean package -pl authme-velocity -am
-mvn clean package -pl authme-paper -am
+mvn clean package -pl authme-spigot -am
 
 # Build the merged Spigot jar (Java 17 baseline + Java 21 dialog adapter)
 mvn clean package -pl authme-spigot -am
@@ -78,10 +78,10 @@ mvn test -pl authme-bungee -am
 mvn test -pl authme-velocity -am
 
 # Run tests in the merged Paper/Folia module
-mvn test -am -pl authme-paper
+mvn test -am -pl authme-spigot
 
 # Run tests in the merged Spigot module and Paper
-mvn test -am -pl authme-spigot,authme-paper
+mvn test -am -pl authme-spigot
 
 # Run the full test suite
 mvn test -P skipLongHashTests

@@ -81,7 +81,7 @@ public class Spigot121PlatformAdapterTest {
 
     @Test
     public void showLoginDialogDelegatesToPlayer() {
-        Player player = mock(Player.class);
+        SpigotDialogPlayer player = mock(SpigotDialogPlayer.class);
 
         adapter.showLoginDialog(player, dialog);
 
@@ -90,7 +90,7 @@ public class Spigot121PlatformAdapterTest {
 
     @Test
     public void showTotpDialogDelegatesToPlayer() {
-        Player player = mock(Player.class);
+        SpigotDialogPlayer player = mock(SpigotDialogPlayer.class);
 
         adapter.showTotpDialog(player, dialog);
 
@@ -99,7 +99,7 @@ public class Spigot121PlatformAdapterTest {
 
     @Test
     public void showRegisterDialogDelegatesToPlayer() {
-        Player player = mock(Player.class);
+        SpigotDialogPlayer player = mock(SpigotDialogPlayer.class);
 
         adapter.showRegisterDialog(player, RegistrationType.PASSWORD, RegisterSecondaryArgument.NONE, dialog);
 

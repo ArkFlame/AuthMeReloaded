@@ -31,20 +31,25 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>org.spigotmc</groupId>
-            <artifactId>spigot-api</artifactId>
-            <version>${spigot.api.version}</version>
+            <groupId>io.papermc.paper</groupId>
+            <artifactId>paper-api</artifactId>
             <scope>provided</scope>
             <exclusions>
-                <exclusion>
-                    <groupId>org.joml</groupId>
-                    <artifactId>joml</artifactId>
-                </exclusion>
                 <exclusion>
                     <groupId>net.md-5</groupId>
                     <artifactId>bungeecord-chat</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>ch.jalu</groupId>
+            <artifactId>datasourcecolumns</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>ch.jalu</groupId>
+            <artifactId>injector</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>javax.inject</groupId>
@@ -55,7 +60,6 @@
         <dependency>
             <groupId>ch.jalu</groupId>
             <artifactId>configme</artifactId>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -78,14 +82,14 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>net.md-5</groupId>
-            <artifactId>bungeecord-dialog</artifactId>
-            <version>1.21-R0.4</version>
+            <groupId>com.github.retrooper</groupId>
+            <artifactId>packetevents-spigot</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>com.github.retrooper</groupId>
-            <artifactId>packetevents-spigot</artifactId>
+            <groupId>net.md-5</groupId>
+            <artifactId>bungeecord-dialog</artifactId>
+            <version>1.21-R0.4</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
@@ -127,6 +131,11 @@
                                 <exclude>**/SpigotDialogHelper.java</exclude>
                                 <exclude>**/DialogApiAvailability.java</exclude>
                                 <exclude>**/PlayerSignOpenListener.java</exclude>
+                                <exclude>**/*Paper*.java</exclude>
+                                <exclude>**/*Folia*.java</exclude>
+                                <exclude>**/PreJoin*.java</exclude>
+                                <exclude>**/PlayerOpenSignListener.java</exclude>
+                                <exclude>**/PendingConnectionRegistry.java</exclude>
                             </excludes>
                         </configuration>
                     </execution>
@@ -144,6 +153,11 @@
                                 <include>**/SpigotDialogHelper.java</include>
                                 <include>**/DialogApiAvailability.java</include>
                                 <include>**/PlayerSignOpenListener.java</include>
+                                <include>**/*Paper*.java</include>
+                                <include>**/*Folia*.java</include>
+                                <include>**/PreJoin*.java</include>
+                                <include>**/PlayerOpenSignListener.java</include>
+                                <include>**/PendingConnectionRegistry.java</include>
                             </includes>
                         </configuration>
                     </execution>

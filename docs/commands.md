@@ -4,9 +4,9 @@
 ## AuthMe Commands
 You can use the following commands to use the features of AuthMe. Mandatory arguments are marked with `< >`
 brackets; optional arguments are enclosed in square brackets (`[ ]`).
-
-The command tree is shared across the three server jars: `-Spigot-1.8.jar`, `-Spigot.jar`
-and `-Paper.jar`.
+The command tree is shared across the two server jars: `-Spigot-1.8.jar` and `-Spigot.jar`
+(Spigot, Paper and Folia).
+(Spigot, Paper and Folia).
 
 - **/authme**: The main AuthMeRemastered command. The root for all admin commands.
 - **/authme register** &lt;player> &lt;password>: Register the specified player with the specified password.

@@ -17,7 +17,6 @@ design; [build.md](build.md) covers build commands and JDK requirements.
 | `authme-tools` | — | Build-time tooling |
 | `authme-spigot-1.8` | `<name>-<version>-Spigot-1.8.jar` | Spigot 1.8.8; Java 8 bytecode, libraries shaded into the jar |
 | `authme-spigot` | `<name>-<version>-Spigot.jar` | Spigot 1.16 through 1.21.x in one jar; two compile passes (see below) |
-| `authme-paper` | Paper jar | Paper and Folia in a single jar with runtime adapter selection |
 | `authme-bungee` | Bungee jar | BungeeCord proxy plugin |
 | `authme-velocity` | Velocity jar | Velocity proxy plugin |
 
@@ -69,7 +68,6 @@ behavior behind capability detection, preserving behavior across the whole
 
 - `authme-spigot-1.8` stays separate for Spigot 1.8.8: it is Java 8 bytecode and
   shades its libraries, since those servers cannot load libraries from `plugin.yml`.
-- `authme-paper` is one jar for Paper and Folia, with runtime adapter selection.
 - `authme-bungee` and `authme-velocity` are proxy plugins and do not share the Bukkit
   platform layer.
 - `authme-api`, `authme-core` and `authme-tools` are not plugin deliverables;

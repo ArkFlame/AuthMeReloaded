@@ -1,2 +1,4 @@
+fr.xephi.authme.platform.FoliaPlatformAdapter
+fr.xephi.authme.platform.PaperPlatformAdapter
 fr.xephi.authme.platform.Spigot121PlatformAdapter
 fr.xephi.authme.platform.SpigotLegacyPlatformAdapter

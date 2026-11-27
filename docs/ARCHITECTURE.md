@@ -19,17 +19,16 @@ modules marked **JDK 21+ profile** on JDK 21+ (Velocity itself needs JDK 25+ to 
 | `authme-tools` | always | jar, Java 17 (21 on JDK 21+) | Standalone converter/utility tooling built on core. |
 | `authme-spigot-1.8` | always | jar, Java 8 | Shaded jar for Spigot 1.8.8; carries 14 library relocations and uses the Bukkit scheduler. |
 | `authme-bungee` | JDK 21+ profile | jar, Java 21 | BungeeCord proxy plugin. |
-| `authme-spigot` | JDK 21+ profile | jar (`-Spigot.jar`), Java 17 + Java 21 | One jar for Spigot 1.16–1.21.x, built in two compiler passes (see below). |
-| `authme-paper` | JDK 21+ profile | jar, Java 21 | One shaded jar for Paper and Folia; the Folia adapter is chosen only on Folia. |
+| `authme-spigot` | JDK 21+ profile | jar (`-Spigot.jar`), Java 17 + Java 21 | One jar for Spigot 1.16–1.21.x, Paper and Folia; the adapter is chosen at startup (see below). |
 | `authme-velocity` | JDK 21+ profile | jar, Java 25 | Velocity proxy plugin. |
 
-That is **8 build modules** and **5 plugin jars** — `authme-spigot-1.8`, `authme-spigot`
-(`-Spigot.jar`), `authme-paper` (`-Paper.jar`), `authme-bungee` and `authme-velocity` — plus the
+That is **7 build modules** and **4 plugin jars** — `authme-spigot-1.8`, `authme-spigot`
+(`-Spigot.jar`), `authme-bungee` and `authme-velocity` — plus the
 `authme-api` jar. `authme-core` and `authme-tools` are support jars, not plugin deliverables.
 
-`authme-paper` is the merged Paper/Folia deliverable: its single `-Paper.jar` bundles both
-`PaperPlatformAdapter` and `FoliaPlatformAdapter` in one service file, and startup selects the Folia
-adapter when `RegionizedServer` is present. There is no separate Folia jar.
+`authme-spigot` is also the Paper/Folia deliverable: its single `-Spigot.jar` bundles the Folia, Paper and Spigot
+adapters in one service file (Folia, Paper, Spigot 1.21, Spigot legacy, in that order); startup picks the first one whose required classes exist, so Folia wins on Folia
+and Paper wins on Paper. There is no separate Paper or Folia jar.
 
 Server jars differ mostly in packaging and in which platform adapter they bundle; the reusable code
 lives in core and the public surface in api. `authme-spigot-1.8` keeps the Java 8 floor with shaded
@@ -79,4 +78,4 @@ entity-owned tasks. The 1.8 jar reaches the same core provider through its Spigo
   across Bukkit, Paper and Folia.
 
 Spigot 1.8 remains the guaranteed floor via `authme-spigot-1.8`, with Folia safety provided by
-capability detection in `authme-paper` rather than a separate build.
+capability detection in `authme-spigot` rather than a separate build.

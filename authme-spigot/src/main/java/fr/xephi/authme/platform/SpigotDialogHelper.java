@@ -2,6 +2,9 @@ package fr.xephi.authme.platform;
 
 import fr.xephi.authme.process.register.RegisterSecondaryArgument;
 import fr.xephi.authme.process.register.RegistrationType;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import net.md_5.bungee.api.dialog.Dialog;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.dialog.DialogBase;
 import net.md_5.bungee.api.dialog.MultiActionDialog;
@@ -25,6 +28,44 @@ import java.util.List;
  */
 final class SpigotDialogHelper {
 
+    /**
+     * Paper's Player API replaces Spigot's showDialog/clearDialog overloads, and this module compiles against
+     * paper-api, so the Spigot-only methods are resolved once by reflection. They are only ever called on Spigot.
+     */
+    private static final ClassValue<Method> SHOW_DIALOG = methodLookup("showDialog", Dialog.class);
+    private static final ClassValue<Method> CLEAR_DIALOG = methodLookup("clearDialog");
+
+    private static ClassValue<Method> methodLookup(String name, Class<?>... parameters) {
+        return new ClassValue<Method>() {
+            @Override
+            protected Method computeValue(Class<?> type) {
+                try {
+                    return type.getMethod(name, parameters);
+                } catch (NoSuchMethodException e) {
+                    return null;
+                }
+            }
+        };
+    }
+
+    private static void show(Player player, Dialog dialog) {
+        invoke(SHOW_DIALOG, player, dialog);
+    }
+
+    private static void invoke(ClassValue<Method> lookup, Player player, Object... arguments) {
+        Method method = lookup.get(player.getClass());
+        if (method == null) {
+            throw new UnsupportedOperationException("This server has no Spigot dialog API");
+        }
+        try {
+            method.invoke(player, arguments);
+        } catch (IllegalAccessException e) {
+            throw new IllegalStateException(e);
+        } catch (InvocationTargetException e) {
+            throw new IllegalStateException(e.getCause());
+        }
+    }
+
     private SpigotDialogHelper() {
     }
 
@@ -36,25 +77,25 @@ final class SpigotDialogHelper {
             buttons.add(new ActionButton(toTextComponent(dialog.secondaryButtonLabel()),
                 new RunCommandAction(dialog.secondaryButtonCommand())));
         }
-        player.showDialog(new MultiActionDialog(newDialogBase(dialog), buttons.toArray(new ActionButton[0]))
+        show(player, new MultiActionDialog(newDialogBase(dialog), buttons.toArray(new ActionButton[0]))
             .columns(dialog.buttonColumns()));
     }
 
     static void showTotpDialog(Player player, DialogWindowSpec dialog) {
-        player.showDialog(newSingleActionDialog(dialog, "2fa code $(code)"));
+        show(player, newSingleActionDialog(dialog, "2fa code $(code)"));
     }
 
     static void showRecoveryCodeDialog(Player player, DialogWindowSpec dialog) {
-        player.showDialog(newSingleActionDialog(dialog, "email code $(code)").columns(dialog.buttonColumns()));
+        show(player, newSingleActionDialog(dialog, "email code $(code)").columns(dialog.buttonColumns()));
     }
 
     static void showNewPasswordDialog(Player player, DialogWindowSpec dialog) {
-        player.showDialog(newSingleActionDialog(dialog, "email setpassword $(password)").columns(dialog.buttonColumns()));
+        show(player, newSingleActionDialog(dialog, "email setpassword $(password)").columns(dialog.buttonColumns()));
     }
 
     static void showRegisterDialog(Player player, RegistrationType type, RegisterSecondaryArgument secondArg,
                                    DialogWindowSpec dialog) {
-        player.showDialog(newSingleActionDialog(dialog, createRegisterTemplate(type, secondArg)));
+        show(player, newSingleActionDialog(dialog, createRegisterTemplate(type, secondArg)));
     }
 
     /** Builds the common single-button dialog used by every dialog except the multi-button login dialog. */
@@ -64,7 +105,7 @@ final class SpigotDialogHelper {
     }
 
     static void closeDialog(Player player) {
-        player.clearDialog();
+        invoke(CLEAR_DIALOG, player);
     }
 
     /** Builds the dialog shell shared by every dialog type in this renderer. */
