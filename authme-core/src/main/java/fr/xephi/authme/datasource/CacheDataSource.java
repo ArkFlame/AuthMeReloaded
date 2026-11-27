@@ -197,6 +197,7 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
             executorService.awaitTermination(5, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             logger.logException("Could not close executor service:", e);
+            Thread.currentThread().interrupt();
         }
         cachedAuths.invalidateAll();
         source.closeConnection();
