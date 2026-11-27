@@ -99,6 +99,25 @@ class EmailServiceTest {
     }
 
     @Test
+    void shouldKeepPasswordImageInsideTheDataFolderForUnusualNames() throws EmailException {
+        given(settings.getPasswordEmailMessage()).willReturn("Your password is <generatedpass /> <image />");
+        given(settings.getProperty(EmailSettings.PASSWORD_AS_IMAGE)).willReturn(true);
+        given(settings.getProperty(PluginSettings.SERVER_NAME)).willReturn("serverName");
+        HtmlEmail email = mock(HtmlEmail.class);
+        given(sendMailSsl.hasAllInformation()).willReturn(true);
+        given(sendMailSsl.initializeMail("user@example.com")).willReturn(email);
+        given(sendMailSsl.sendEmail(anyString(), eq(email))).willReturn(true);
+
+        emailService.sendPasswordMail("../evil", "user@example.com", "new_password");
+
+        org.mockito.ArgumentCaptor<javax.activation.DataSource> source =
+            org.mockito.ArgumentCaptor.forClass(javax.activation.DataSource.class);
+        org.mockito.Mockito.verify(email).embed(source.capture(), anyString());
+        File image = ((javax.activation.FileDataSource) source.getValue()).getFile();
+        assertThat(image.getParentFile(), equalTo(dataFolder));
+    }
+
+    @Test
     void shouldDeletePasswordImageWhenSendingFails() throws EmailException {
         given(settings.getPasswordEmailMessage()).willReturn("Your password is <generatedpass />");
         given(settings.getProperty(EmailSettings.PASSWORD_AS_IMAGE)).willReturn(true);

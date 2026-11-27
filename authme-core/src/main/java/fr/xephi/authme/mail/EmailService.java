@@ -61,7 +61,8 @@ public class EmailService {
         File file = null;
         if (settings.getProperty(EmailSettings.PASSWORD_AS_IMAGE)) {
             try {
-                File generated = new File(dataFolder, name + "_new_pass.jpg");
+                // The name only seeds a temporary file name; never let it leave the data folder
+                File generated = new File(dataFolder, name.replaceAll("[^A-Za-z0-9_]", "_") + "_new_pass.jpg");
                 ImageIO.write(new ImageGenerator(newPass).generateImage(), "jpg", generated);
                 file = generated;
                 mailText = embedImageIntoEmailContent(file, email, mailText);
