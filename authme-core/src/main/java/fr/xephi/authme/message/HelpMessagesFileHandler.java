@@ -24,7 +24,7 @@ public class HelpMessagesFileHandler extends AbstractMessageFileHandler {
 
     private final ConsoleLogger logger = ConsoleLoggerFactory.get(HelpMessagesFileHandler.class);
 
-    private FileConfiguration defaultConfiguration;
+    private volatile FileConfiguration defaultConfiguration;
 
     @Inject
     public HelpMessagesFileHandler(@DataFolder File dataFolder, Settings settings) {
@@ -40,10 +40,12 @@ public class HelpMessagesFileHandler extends AbstractMessageFileHandler {
 
         logger.warning("Error getting message with key '" + key + "'. Please update your config file '"
             + getFilename() + "' or run /authme messages help");
-        if (defaultConfiguration == null) {
-            defaultConfiguration = loadDefaultConfiguration();
+        FileConfiguration fallback = defaultConfiguration;
+        if (fallback == null) {
+            fallback = loadDefaultConfiguration();
+            defaultConfiguration = fallback;
         }
-        return defaultConfiguration.getString(key, "Error retrieving message '" + key + "'");
+        return fallback.getString(key, "Error retrieving message '" + key + "'");
     }
 
     private FileConfiguration loadDefaultConfiguration() {
