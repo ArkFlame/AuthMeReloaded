@@ -9,6 +9,7 @@ import fr.xephi.authme.service.CommonService;
 import fr.xephi.authme.service.PendingEmailVerificationCache;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -16,6 +17,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -73,5 +75,17 @@ class AsyncConfirmEmailTest {
         } else {
             verify(pendingEmailVerificationCache, never()).removePending("TestEr");
         }
+    }
+
+    @Test
+    void shouldNotFailWhenCachedAuthIsGoneAfterAuthenticationCheck() {
+        given(player.getName()).willReturn("TestEr");
+        given(playerCache.isAuthenticated("tester")).willReturn(true);
+        given(playerCache.getAuth("tester")).willReturn(null);
+
+        asyncConfirmEmail.confirmEmail(player, "123456");
+
+        verify(dataSource, never()).updateEmail(any(PlayerAuth.class));
+        verify(pendingEmailVerificationCache, never()).removePending("TestEr");
     }
 }

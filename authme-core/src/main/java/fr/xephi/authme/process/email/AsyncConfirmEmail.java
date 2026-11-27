@@ -40,7 +40,9 @@ public class AsyncConfirmEmail implements AsynchronousProcess {
         String playerName = player.getName();
         String authName = playerName.toLowerCase(Locale.ROOT);
 
-        if (!playerCache.isAuthenticated(authName)) {
+        PlayerAuth auth = playerCache.isAuthenticated(authName) ? playerCache.getAuth(authName) : null;
+        if (auth == null) {
+            // Not authenticated, or the cache entry was removed while this async task was queued.
             EmailProcessHelper.sendUnloggedMessage(service, dataSource, player);
             return;
         }
@@ -52,7 +54,6 @@ public class AsyncConfirmEmail implements AsynchronousProcess {
             return;
         }
 
-        PlayerAuth auth = playerCache.getAuth(authName);
         if (EmailProcessHelper.persistEmail(service, dataSource, playerCache, auth, player, entry.email(),
                 MessageKey.EMAIL_CONFIRM_SUCCESS)) {
             pendingEmailVerificationCache.removePending(playerName);

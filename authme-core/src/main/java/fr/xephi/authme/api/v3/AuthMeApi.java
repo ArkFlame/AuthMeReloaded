@@ -322,18 +322,20 @@ public class AuthMeApi {
     }
 
     /**
-     * Get all the registered names (lowercase)
+     * Get all the registered names (lowercase). This reads every account from the database, so it blocks:
+     * do not call it from the main or a region thread.
      *
-     * @return registered names
+     * @return a new list of the registered names
      */
     public List<String> getRegisteredNames() {
         return dataSource.getAllAuths().stream().map(PlayerAuth::getNickname).collect(Collectors.toList());
     }
 
     /**
-     * Get all the registered real-names (original case)
+     * Get all the registered real-names (original case). This reads every account from the database, so it
+     * blocks: do not call it from the main or a region thread.
      *
-     * @return registered real-names
+     * @return a new list of the registered real-names
      */
     public List<String> getRegisteredRealNames() {
         return dataSource.getAllAuths().stream().map(PlayerAuth::getRealName).collect(Collectors.toList());
