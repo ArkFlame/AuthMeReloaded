@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static com.google.common.collect.Sets.newHashSet;
+import static fr.xephi.authme.service.BukkitServiceTestHelper.setBukkitServiceToRunTaskAsynchronously;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -86,6 +87,7 @@ class PurgeServiceTest {
         given(settings.getProperty(PurgeSettings.DAYS_BEFORE_REMOVE_PLAYER)).willReturn(60);
         Set<String> playerNames = newHashSet("alpha", "bravo", "charlie", "delta");
         given(dataSource.getRecordsToPurge(anyLong())).willReturn(playerNames);
+        setBukkitServiceToRunTaskAsynchronously(bukkitService);
 
         purgeService.runAutoPurge();
 
@@ -102,13 +104,14 @@ class PurgeServiceTest {
         final long delay = 123012301L;
         given(dataSource.getRecordsToPurge(delay)).willReturn(Collections.emptySet());
         CommandSender sender = mock(CommandSender.class);
+        setBukkitServiceToRunTaskAsynchronously(bukkitService);
 
         purgeService.runPurge(sender, delay);
 
         verify(dataSource).getRecordsToPurge(delay);
         verify(dataSource, never()).purgeRecords(anyCollection());
         verify(sender).sendMessage("No players to purge");
-        verifyNoInteractions(bukkitService, permissionsManager);
+        verifyNoInteractions(permissionsManager);
     }
 
     @Test
@@ -119,6 +122,7 @@ class PurgeServiceTest {
         Player sender = mock(Player.class);
         UUID uuid = UUID.randomUUID();
         given(sender.getUniqueId()).willReturn(uuid);
+        setBukkitServiceToRunTaskAsynchronously(bukkitService);
 
         purgeService.runPurge(sender, delay);
 

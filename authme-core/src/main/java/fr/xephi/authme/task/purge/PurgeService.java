@@ -74,14 +74,18 @@ public class PurgeService {
      * @param until The last login threshold in milliseconds
      */
     public void runPurge(CommandSender sender, long until) {
-        //todo: note this should may run async because it may executes a SQL-Query
-        Set<String> toPurge = dataSource.getRecordsToPurge(until);
-        if (Utils.isCollectionEmpty(toPurge)) {
-            logAndSendMessage(sender, "No players to purge");
+        if (isPurging) {
+            logAndSendMessage(sender, "Purge is already in progress! Aborting purge request");
             return;
         }
-
-        purgePlayers(sender, toPurge, bukkitService.getOfflinePlayers());
+        bukkitService.runTaskAsynchronously(() -> {
+            Set<String> toPurge = dataSource.getRecordsToPurge(until);
+            if (Utils.isCollectionEmpty(toPurge)) {
+                logAndSendMessage(sender, "No players to purge");
+                return;
+            }
+            purgePlayers(sender, toPurge, bukkitService.getOfflinePlayers());
+        });
     }
 
     /**

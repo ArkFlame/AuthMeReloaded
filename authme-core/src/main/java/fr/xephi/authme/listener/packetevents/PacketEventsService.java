@@ -39,6 +39,9 @@ public class PacketEventsService implements SettingsDependent {
     private final PacketInterceptionAdapter packetInterceptionAdapter;
     private final PremiumLoginVerifier premiumLoginVerifier;
     private final PendingPremiumCache pendingPremiumCache;
+    private final Runnable unregisterInventoryAction;
+    private final Runnable unregisterTabCompleteAction;
+    private final Runnable unregisterPremiumAction;
 
     @Inject
     PacketEventsService(Settings settings, BukkitService bukkitService, PlayerCache playerCache,
@@ -50,6 +53,9 @@ public class PacketEventsService implements SettingsDependent {
         this.packetInterceptionAdapter = packetInterceptionAdapter;
         this.premiumLoginVerifier = premiumLoginVerifier;
         this.pendingPremiumCache = pendingPremiumCache;
+        this.unregisterInventoryAction = () -> packetInterceptionAdapter.unregisterInventoryProtection();
+        this.unregisterTabCompleteAction = () -> packetInterceptionAdapter.unregisterTabCompleteBlock();
+        this.unregisterPremiumAction = () -> packetInterceptionAdapter.unregisterPremiumVerification();
         reload(settings);
     }
 
@@ -90,7 +96,7 @@ public class PacketEventsService implements SettingsDependent {
                 }
             }
         } else {
-            unregister(inventoryProtectionRegistered, () -> packetInterceptionAdapter.unregisterInventoryProtection());
+            unregister(inventoryProtectionRegistered, unregisterInventoryAction);
         }
 
         if (denyTabCompleteBeforeLogin) {
@@ -99,7 +105,7 @@ public class PacketEventsService implements SettingsDependent {
                 tabCompleteBlockRegistered.set(true);
             }
         } else {
-            unregister(tabCompleteBlockRegistered, () -> packetInterceptionAdapter.unregisterTabCompleteBlock());
+            unregister(tabCompleteBlockRegistered, unregisterTabCompleteAction);
         }
 
         if (needsPremiumPacketVerification) {
@@ -109,7 +115,7 @@ public class PacketEventsService implements SettingsDependent {
                 premiumVerificationRegistered.set(true);
             }
         } else {
-            unregister(premiumVerificationRegistered, () -> packetInterceptionAdapter.unregisterPremiumVerification());
+            unregister(premiumVerificationRegistered, unregisterPremiumAction);
         }
     }
 
@@ -117,9 +123,9 @@ public class PacketEventsService implements SettingsDependent {
      * Stops all PacketEvents-based features.
      */
     public void disable() {
-        unregister(inventoryProtectionRegistered, () -> packetInterceptionAdapter.unregisterInventoryProtection());
-        unregister(tabCompleteBlockRegistered, () -> packetInterceptionAdapter.unregisterTabCompleteBlock());
-        unregister(premiumVerificationRegistered, () -> packetInterceptionAdapter.unregisterPremiumVerification());
+        unregister(inventoryProtectionRegistered, unregisterInventoryAction);
+        unregister(tabCompleteBlockRegistered, unregisterTabCompleteAction);
+        unregister(premiumVerificationRegistered, unregisterPremiumAction);
     }
 
     /** Unregisters a feature only if it is currently registered, preserving the previous flag state on failure. */
@@ -152,7 +158,7 @@ public class PacketEventsService implements SettingsDependent {
 
         // If inventory protection was on and is now disabled, restore inventories for online players
         if (oldProtectInventory && !protectInvBeforeLogin && inventoryProtectionRegistered.get()) {
-            unregister(inventoryProtectionRegistered, () -> packetInterceptionAdapter.unregisterInventoryProtection());
+            unregister(inventoryProtectionRegistered, unregisterInventoryAction);
             for (Player onlinePlayer : bukkitService.getOnlinePlayers()) {
                 if (!playerCache.isAuthenticated(onlinePlayer.getName())) {
                     onlinePlayer.updateInventory();

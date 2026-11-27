@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -182,7 +183,8 @@ public class ValidationService implements Reloadable {
 
     private boolean matchesRestrictions(Collection<Pattern> restrictions, String ip, String domain) {
         for (Pattern restriction : restrictions) {
-            if (restriction.matcher(ip).matches() || restriction.matcher(domain).matches()) {
+            Matcher matcher = restriction.matcher(ip);
+            if (matcher.matches() || matcher.reset(domain).matches()) {
                 return true;
             }
         }

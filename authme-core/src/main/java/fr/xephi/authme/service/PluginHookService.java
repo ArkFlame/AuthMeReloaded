@@ -64,8 +64,7 @@ public class PluginHookService {
      * @return The CMI data folder, or null if unavailable
      */
     public File getCmiDataFolder() {
-        Plugin plugin = pluginManager.getPlugin("CMI");
-        return plugin == null ? null : plugin.getDataFolder();
+        return cmi == null ? null : cmi.getDataFolder();
     }
 
     /**

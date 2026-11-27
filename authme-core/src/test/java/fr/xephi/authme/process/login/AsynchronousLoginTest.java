@@ -56,6 +56,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.only;
@@ -301,6 +302,23 @@ class AsynchronousLoginTest {
         asynchronousLogin.login(player, "hunter2");
 
         verify(passwordSecurity, only()).comparePassword("hunter2", auth.getPassword(), "bobby");
+    }
+
+    @Test
+    void shouldNotLogInPlayerAlreadyAuthenticatedByConcurrentAttempt() {
+        Player player = mockPlayer("bobby");
+        // Lenient: the guard returns before the online check, so this stub may go unused
+        lenient().when(player.isOnline()).thenReturn(true);
+        PlayerAuth auth = PlayerAuth.builder().name("bobby").build();
+        given(playerCache.isAuthenticated("bobby")).willReturn(true);
+
+        asynchronousLogin.performLogin(player, auth);
+
+        verify(playerCache).isAuthenticated("bobby");
+        verify(player, never()).isOnline();
+        verify(playerCache, never()).updatePlayer(auth);
+        verify(dataSource, never()).updateSession(auth);
+        verify(dataSource, never()).setLogged("bobby");
     }
 
     @Test

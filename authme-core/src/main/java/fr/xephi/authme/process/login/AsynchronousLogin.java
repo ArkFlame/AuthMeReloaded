@@ -259,6 +259,11 @@ public class AsynchronousLogin implements AsynchronousProcess {
     }
 
     private void doPerformLogin(Player player, String name, String ip, PlayerAuth auth, boolean proxyInitiated) {
+        // A concurrent login attempt may have authenticated the player already; never log in twice
+        if (playerCache.isAuthenticated(name)) {
+            logger.fine("Player '" + name + "' is already authenticated, aborted duplicate login");
+            return;
+        }
         if (!player.isOnline()) {
             logger.warning("Player '" + name + "' wasn't online during login process, aborted...");
             return;

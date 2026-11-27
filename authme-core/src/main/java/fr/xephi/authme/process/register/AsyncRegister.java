@@ -19,7 +19,6 @@ import org.bukkit.entity.Player;
 
 import javax.inject.Inject;
 import java.util.List;
-import java.util.Locale;
 
 /**
  * Asynchronous processing of a request for registration.
@@ -62,7 +61,8 @@ public class AsyncRegister implements AsynchronousProcess {
      * Checks if the player is able to register, in that case the {@link AuthMeAsyncPreRegisterEvent} is invoked.
      */
     private boolean preRegisterCheck(RegistrationMethod<?> variant, Player player) {
-        String name = player.getName().toLowerCase(Locale.ROOT);
+        // Both the cache and the data source normalize names internally; avoid a lowercase copy here.
+        String name = player.getName();
         if (playerCache.isAuthenticated(name)) {
             service.send(player, MessageKey.ALREADY_LOGGED_IN_ERROR);
             return false;

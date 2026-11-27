@@ -84,7 +84,7 @@ public class PremiumVerificationPacketListener extends PacketListenerAbstract {
             String lowerName = username.toLowerCase(Locale.ROOT);
             PlayerAuth auth = dataSource.getAuth(lowerName);
 
-            if ((auth != null && auth.isPremium()) || pendingPremiumCache.isPending(username)) {
+            if ((auth != null && auth.isPremium()) || pendingPremiumCache.isPending(lowerName)) {
                 byte[] verifyToken = loginVerifier.startVerification(connectionKey, username, playerUUID);
                 user.sendPacket(new WrapperLoginServerEncryptionRequest(
                     "", loginVerifier.getPublicKey(), verifyToken, true));
@@ -121,7 +121,7 @@ public class PremiumVerificationPacketListener extends PacketListenerAbstract {
             // RSA-decrypt the shared secret synchronously on the event loop so that Netty
             // encryption is installed before the client's next (already AES-encrypted) packet.
             try {
-                sharedSecret = loginVerifier.decryptData(wrapper.getEncryptedSharedSecret().clone());
+                sharedSecret = loginVerifier.decryptData(wrapper.getEncryptedSharedSecret());
             } catch (GeneralSecurityException e) {
                 logger.warning("RSA decryption failed for '" + username + "': " + e.getMessage());
             }
@@ -136,7 +136,7 @@ public class PremiumVerificationPacketListener extends PacketListenerAbstract {
         enableChannelEncryption(user.getChannel(), sharedSecret);
 
         // Step 3: Async — verify the token and call Mojang's hasJoined endpoint.
-        loginVerifier.completeVerification(connectionKey, sharedSecret, encVerifyToken.clone())
+        loginVerifier.completeVerification(connectionKey, sharedSecret, encVerifyToken)
             .thenAccept(maybeUuid -> {
                 maybeUuid.ifPresent(uuid -> loginVerifier.storeVerified(username, uuid));
                 resumeLogin(user, username, clientVersion, playerUUID);
