@@ -6,6 +6,7 @@ import fr.xephi.authme.datasource.DataSource;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitWorker;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
@@ -38,10 +39,7 @@ public class TaskCloser implements Runnable {
 
     @Override
     public void run() {
-        List<Integer> pendingTasks = scheduler.getActiveWorkers().stream()
-            .filter(worker -> worker.getOwner().equals(plugin) && !scheduler.isQueued(worker.getTaskId()))
-            .map(BukkitWorker::getTaskId)
-            .collect(Collectors.toList());
+        List<Integer> pendingTasks = pendingWorkerIds();
         logger.log(Level.INFO, "Waiting for {0} tasks to finish", pendingTasks.size());
         int progress = 0;
 
@@ -76,6 +74,18 @@ public class TaskCloser implements Runnable {
             if (dataSource != null) {
                 dataSource.closeConnection();
             }
+        }
+    }
+
+    /** Folia's scheduler rejects worker queries: there is nothing to wait for there, the data source is still closed. */
+    private List<Integer> pendingWorkerIds() {
+        try {
+            return scheduler.getActiveWorkers().stream()
+                .filter(worker -> worker.getOwner().equals(plugin) && !scheduler.isQueued(worker.getTaskId()))
+                .map(BukkitWorker::getTaskId)
+                .collect(Collectors.toList());
+        } catch (UnsupportedOperationException e) {
+            return new ArrayList<>();
         }
     }
 

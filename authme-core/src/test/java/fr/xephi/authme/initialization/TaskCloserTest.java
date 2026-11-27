@@ -30,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -98,6 +99,16 @@ class TaskCloserTest {
         verify(dataSource).closeConnection();
     }
 
+
+    @Test
+    void shouldCloseDataSourceWhenTheSchedulerDoesNotSupportListingWorkers() {
+        // Folia replaces the Bukkit scheduler with one that rejects worker queries
+        given(bukkitScheduler.getActiveWorkers()).willThrow(new UnsupportedOperationException("folia"));
+
+        taskCloser.run();
+
+        verify(dataSource).closeConnection();
+    }
     @Test
     void shouldStopForInterruptedThread() throws InterruptedException, ExecutionException {
         // Note ljacqu 20160827: This test must be run in its own thread because we throw an InterruptedException.
@@ -132,15 +143,15 @@ class TaskCloserTest {
             mockBukkitWorker(otherOwner, 3, false),
             mockBukkitWorker(authMe, ACTIVE_WORKERS_ID[1], false),
             mockBukkitWorker(authMe, 7, true));
-        given(bukkitScheduler.getActiveWorkers()).willReturn(tasks);
+        lenient().when(bukkitScheduler.getActiveWorkers()).thenReturn(tasks);
     }
 
     private BukkitWorker mockBukkitWorker(Plugin owner, int taskId, boolean isQueued) {
         BukkitWorker worker = mock(BukkitWorker.class);
-        given(worker.getOwner()).willReturn(owner);
+        lenient().when(worker.getOwner()).thenReturn(owner);
         if (owner == authMe) {
-            given(worker.getTaskId()).willReturn(taskId);
-            given(bukkitScheduler.isQueued(taskId)).willReturn(isQueued);
+            lenient().when(worker.getTaskId()).thenReturn(taskId);
+            lenient().when(bukkitScheduler.isQueued(taskId)).thenReturn(isQueued);
         }
         return worker;
     }
