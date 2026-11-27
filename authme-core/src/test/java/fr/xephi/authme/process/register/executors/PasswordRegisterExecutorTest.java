@@ -23,6 +23,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static fr.xephi.authme.AuthMeMatchers.equalToHash;
+import static fr.xephi.authme.listener.TestPlayerUtils.mockPlayerWithName;
 import static fr.xephi.authme.AuthMeMatchers.hasAuthBasicData;
 import static fr.xephi.authme.service.BukkitServiceTestHelper.setBukkitServiceToScheduleSyncDelayedTaskWithEntityAndDelay;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -111,9 +112,4 @@ class PasswordRegisterExecutorTest {
         verify(syncProcessManager).processSyncPasswordRegister(player);
     }
 
-    private static Player mockPlayerWithName(String name) {
-        Player player = mock(Player.class);
-        given(player.getName()).willReturn(name);
-        return player;
-    }
 }

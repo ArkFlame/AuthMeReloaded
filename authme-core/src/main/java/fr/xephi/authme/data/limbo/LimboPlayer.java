@@ -101,10 +101,6 @@ public class LimboPlayer {
         this.messageTaskHandle = messageTaskHandle;
     }
 
-    public void setMessageTask(MessageTask messageTask) {
-        setMessageTask(messageTask, messageTask == null ? null : messageTask::cancel);
-    }
-
     /**
      * Clears all tasks associated to the player.
      */

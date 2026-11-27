@@ -251,7 +251,8 @@ class LimboPlayerTaskManagerTest {
         given(player.getName()).willReturn(name);
         LimboPlayer limboPlayer = new LimboPlayer(null, true, Collections.singletonList(new UserGroup("grp")), false, 0.1f, 0.0f);
         MessageTask existingMessageTask = mock(MessageTask.class);
-        limboPlayer.setMessageTask(existingMessageTask);
+        CancellableTask messageTaskHandle = mock(CancellableTask.class);
+        limboPlayer.setMessageTask(existingMessageTask, messageTaskHandle);
         stubRegistration(player, 8);
         given(messages.retrieveSingle(player, MessageKey.REGISTER_MESSAGE)).willReturn("Please register!");
 
@@ -263,7 +264,7 @@ class LimboPlayerTaskManagerTest {
         assertThat(limboPlayer.getMessageTask(), not(sameInstance(existingMessageTask)));
         verify(registrationCaptchaManager).isCaptchaRequired(name);
         verify(messages).retrieveSingle(player, MessageKey.REGISTER_MESSAGE);
-        verify(existingMessageTask).cancel();
+        verify(messageTaskHandle).cancel();
     }
 
     @Test

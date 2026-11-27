@@ -3,6 +3,7 @@ package fr.xephi.authme.bungee;
 import ch.jalu.configme.configurationdata.ConfigurationData;
 import ch.jalu.configme.migration.PlainMigrationService;
 import ch.jalu.configme.resource.PropertyReader;
+import fr.xephi.authme.proxy.ProxyMessageSecurity;
 import fr.xephi.authme.bungee.config.BungeeConfigProperties;
 
 class HmacSecretMigrationService extends PlainMigrationService {

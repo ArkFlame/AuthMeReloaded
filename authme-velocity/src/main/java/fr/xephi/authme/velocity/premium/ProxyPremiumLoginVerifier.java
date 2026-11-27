@@ -1,6 +1,6 @@
 package fr.xephi.authme.velocity.premium;
 
-import java.util.Locale;
+import fr.xephi.authme.velocity.VelocityAuthenticationStore;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
@@ -33,11 +33,11 @@ final class ProxyPremiumLoginVerifier {
         long now = clock.getAsLong();
         // A verified player who disconnects before perform.login is sent is never looked up again: sweep them here.
         verified.values().removeIf(session -> now - session.verifiedAt() > VERIFIED_TTL_MS);
-        verified.put(normalize(username), new VerifiedSession(mojangUuid, now));
+        verified.put(VelocityAuthenticationStore.normalizeName(username), new VerifiedSession(mojangUuid, now));
     }
 
     UUID getVerifiedUuid(String username) {
-        String normalizedName = normalize(username);
+        String normalizedName = VelocityAuthenticationStore.normalizeName(username);
         VerifiedSession verifiedSession = verified.get(normalizedName);
         if (verifiedSession == null) {
             return null;
@@ -52,16 +52,11 @@ final class ProxyPremiumLoginVerifier {
     }
 
     void clearVerified(String username) {
-        verified.remove(normalize(username));
+        verified.remove(VelocityAuthenticationStore.normalizeName(username));
     }
 
     void shutdown() {
         verified.clear();
-    }
-
-    /** Shared name normalizer for the Velocity premium package; keep it here so callers agree on casing. */
-    static String normalize(String username) {
-        return username.toLowerCase(Locale.ROOT);
     }
 
     private record VerifiedSession(UUID mojangUuid, long verifiedAt) { }

@@ -169,11 +169,12 @@ class SessionServiceTest {
         verifyNoInteractions(bukkitService);
     }
 
-    @Test
-    void shouldResumeSessionForPlayerWithoutDisabledSessionPermission() {
+    @ParameterizedTest(name = "recent session with timeout {0}")
+    @ValueSource(ints = {8, Integer.MAX_VALUE})
+    void shouldAcceptRecentSession(int sessionsTimeout) {
         // given
         Player player = givenSession(NAME, IP, playerAuth(NAME, System.currentTimeMillis() - 60 * 1000, IP));
-        given(commonService.getProperty(PluginSettings.SESSIONS_TIMEOUT)).willReturn(8);
+        given(commonService.getProperty(PluginSettings.SESSIONS_TIMEOUT)).willReturn(sessionsTimeout);
         given(bukkitService.createAndCallEvent(any(Function.class))).willReturn(new RestoreSessionEvent(player, false));
 
         // when
@@ -230,22 +231,6 @@ class SessionServiceTest {
         Player player = givenSession(NAME, IP, playerAuth(NAME, lastLogin, IP));
 
         assertSessionRefused(player, NAME);
-    }
-
-    @Test
-    void shouldAcceptRecentSessionWithMaximalTimeoutWithoutOverflow() {
-        // given
-        Player player = givenSession(NAME, IP,
-            playerAuth(NAME, System.currentTimeMillis() - 60 * 1000, IP));
-        given(commonService.getProperty(PluginSettings.SESSIONS_TIMEOUT)).willReturn(Integer.MAX_VALUE);
-        given(bukkitService.createAndCallEvent(any(Function.class)))
-            .willReturn(new RestoreSessionEvent(player, false));
-
-        // when
-        boolean result = sessionService.canResumeSession(player);
-
-        // then
-        assertThat(result, equalTo(true));
     }
 
     private void assertSessionRefused(Player player, String expectedName) {

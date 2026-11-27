@@ -1,6 +1,7 @@
 package fr.xephi.authme.bungee;
 
 import com.google.common.io.ByteStreams;
+import fr.xephi.authme.proxy.ProxyMessageSecurity;
 import fr.xephi.authme.bungee.events.AuthMeBungeeLoginEvent;
 import fr.xephi.authme.bungee.events.AuthMeBungeeLogoutEvent;
 import net.md_5.bungee.api.ProxyServer;

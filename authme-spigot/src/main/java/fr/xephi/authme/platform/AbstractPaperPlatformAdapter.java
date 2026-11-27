@@ -31,7 +31,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public abstract class AbstractPaperPlatformAdapter extends AbstractSpigotPlatformAdapter {
 
-    private static final boolean DIALOG_AVAILABLE = hasDialogApi();
+    private static final boolean DIALOG_AVAILABLE = DialogApiAvailability.isPresent(
+        "io.papermc.paper.dialog.Dialog", AbstractPaperPlatformAdapter.class.getClassLoader());
 
     /** Paper API classes every Paper-derived platform requires. */
     private static final String[] PAPER_API_CLASSES = {
@@ -172,15 +173,6 @@ public abstract class AbstractPaperPlatformAdapter extends AbstractSpigotPlatfor
     @Override
     public boolean isProxyForwardingEnabled() {
         return super.isProxyForwardingEnabled() || isPaperVelocityForwardingEnabled();
-    }
-
-    private static boolean hasDialogApi() {
-        try {
-            Class.forName("io.papermc.paper.dialog.Dialog", false, AbstractPaperPlatformAdapter.class.getClassLoader());
-            return true;
-        } catch (ClassNotFoundException ignored) {
-            return false;
-        }
     }
 
     private static boolean isPaperVelocityForwardingEnabled() {

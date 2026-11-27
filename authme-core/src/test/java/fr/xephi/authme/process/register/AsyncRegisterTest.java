@@ -26,6 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Collections;
 import java.util.function.Function;
 
+import static fr.xephi.authme.listener.TestPlayerUtils.mockPlayerWithName;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
@@ -167,12 +168,6 @@ class AsyncRegisterTest {
 
         verify(commonService).send(player, MessageKey.MAX_REGISTER_EXCEEDED, "1", "1", "other");
         verifyNoInteractions(registrationExecutorStore);
-    }
-
-    private static Player mockPlayerWithName(String name) {
-        Player player = mock(Player.class);
-        given(player.getName()).willReturn(name);
-        return player;
     }
 
     private Player createPlayerWithEnabledRegistration(String name) {

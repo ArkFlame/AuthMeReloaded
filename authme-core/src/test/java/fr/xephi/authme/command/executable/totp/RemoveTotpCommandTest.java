@@ -20,8 +20,8 @@ import org.mockito.Mock;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static fr.xephi.authme.listener.TestPlayerUtils.mockPlayerWithName;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.only;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -58,7 +58,7 @@ public class RemoveTotpCommandTest {
         String inputCode = "93847";
         given(totpAuthenticator.checkCode(auth, inputCode)).willReturn(true);
         given(dataSource.removeTotpKey(name)).willReturn(true);
-        Player player = mockPlayer(name);
+        Player player = mockPlayerWithName(name);
 
         // when
         command.runCommand(player, singletonList(inputCode));
@@ -78,7 +78,7 @@ public class RemoveTotpCommandTest {
         String inputCode = "93847";
         given(totpAuthenticator.checkCode(auth, inputCode)).willReturn(true);
         given(dataSource.removeTotpKey(name)).willReturn(false);
-        Player player = mockPlayer(name);
+        Player player = mockPlayerWithName(name);
 
         // when
         command.runCommand(player, singletonList(inputCode));
@@ -96,7 +96,7 @@ public class RemoveTotpCommandTest {
         PlayerAuth auth = mockAuth(name, "some-totp-key");
         String inputCode = "93847";
         given(totpAuthenticator.checkCode(auth, inputCode)).willReturn(false);
-        Player player = mockPlayer(name);
+        Player player = mockPlayerWithName(name);
 
         // when
         command.runCommand(player, singletonList(inputCode));
@@ -112,7 +112,7 @@ public class RemoveTotpCommandTest {
         // given
         String name = "cesar";
         PlayerAuth auth = mockAuth(name, null);
-        Player player = mockPlayer(name);
+        Player player = mockPlayerWithName(name);
 
         // when
         command.runCommand(player, singletonList("654684"));
@@ -128,7 +128,7 @@ public class RemoveTotpCommandTest {
         // given
         String name = "cesar";
         given(playerCache.getAuth(name)).willReturn(null);
-        Player player = mockPlayer(name);
+        Player player = mockPlayerWithName(name);
 
         // when
         command.runCommand(player, singletonList("654684"));
@@ -143,11 +143,5 @@ public class RemoveTotpCommandTest {
         PlayerAuth auth = PlayerAuth.builder().name(name).totpKey(totpKey).build();
         given(playerCache.getAuth(name)).willReturn(auth);
         return auth;
-    }
-
-    private static Player mockPlayer(String name) {
-        Player player = mock(Player.class);
-        given(player.getName()).willReturn(name);
-        return player;
     }
 }

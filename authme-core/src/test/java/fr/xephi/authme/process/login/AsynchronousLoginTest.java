@@ -47,6 +47,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static fr.xephi.authme.listener.TestPlayerUtils.mockPlayerWithName;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
@@ -108,7 +109,7 @@ class AsynchronousLoginTest {
     @Test
     void shouldNotForceLoginAlreadyLoggedInPlayer() {
         String name = "bobby";
-        Player player = mockPlayer(name);
+        Player player = mockPlayerWithName(name);
         given(playerCache.isAuthenticated(name)).willReturn(true);
 
         asynchronousLogin.forceLogin(player);
@@ -122,7 +123,7 @@ class AsynchronousLoginTest {
     @ValueSource(booleans = {false, true})
     void shouldNotForceLoginUnknownOrInactiveUser(boolean inactive) {
         String name = "oscar";
-        Player player = mockPlayer(name);
+        Player player = mockPlayerWithName(name);
         given(playerCache.isAuthenticated(name)).willReturn(false);
         if (inactive) {
             int groupId = 13;
@@ -207,7 +208,7 @@ class AsynchronousLoginTest {
     @Test
     void shouldNotResolveCallerIpAgainWhenCountingOnlinePlayers() {
         String ip = "1.1.1.245";
-        Player player = mockPlayer("albania");
+        Player player = mockPlayerWithName("albania");
         given(commonService.getProperty(RestrictionSettings.MAX_LOGIN_PER_IP)).willReturn(2);
         given(commonService.hasPermission(player, PlayerStatePermission.ALLOW_MULTIPLE_ACCOUNTS)).willReturn(false);
         given(bukkitService.getOnlinePlayers()).willReturn(List.of(player));
@@ -293,7 +294,7 @@ class AsynchronousLoginTest {
 
     @Test
     void shouldNotLogInPlayerAlreadyAuthenticatedByConcurrentAttempt() {
-        Player player = mockPlayer("bobby");
+        Player player = mockPlayerWithName("bobby");
         // Lenient: the guard returns before the online check, so this stub may go unused
         lenient().when(player.isOnline()).thenReturn(true);
         PlayerAuth auth = PlayerAuth.builder().name("bobby").build();
@@ -334,14 +335,8 @@ class AsynchronousLoginTest {
         given(passwordSecurity.comparePassword("hunter2", auth.getPassword(), "bobby")).willReturn(true);
     }
 
-    private static Player mockPlayer(String name) {
-        Player player = mock(Player.class);
-        given(player.getName()).willReturn(name);
-        return player;
-    }
-
     private static Player mockPlayer(String name, String ip) {
-        Player player = mockPlayer(name);
+        Player player = mockPlayerWithName(name);
         TestHelper.mockIpAddressToPlayer(player, ip);
         return player;
     }

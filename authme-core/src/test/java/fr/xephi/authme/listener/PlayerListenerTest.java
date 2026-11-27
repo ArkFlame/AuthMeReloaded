@@ -85,6 +85,7 @@ import static fr.xephi.authme.listener.EventCancelVerifier.withServiceMock;
 import static fr.xephi.authme.listener.TestPlayerUtils.createInetAddress;
 import static fr.xephi.authme.listener.TestPlayerUtils.mockPlayerWithName;
 import static fr.xephi.authme.service.BukkitServiceTestHelper.setBukkitServiceToScheduleSyncDelayedTaskWithEntityAndDelay;
+import static fr.xephi.authme.listener.TestPlayerUtils.inlineSpy;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
@@ -99,7 +100,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.withSettings;
 import static org.mockito.Mockito.never;
@@ -985,11 +985,5 @@ class PlayerListenerTest {
         verify(event, atLeast(0)).getName();
         verify(event, atLeast(0)).getUniqueId();
         verifyNoMoreInteractions(event);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> T inlineSpy(T instance) {
-        return mock((Class<T>) instance.getClass(), withSettings().spiedInstance(instance)
-            .defaultAnswer(CALLS_REAL_METHODS).mockMaker(MockMakers.INLINE));
     }
 }

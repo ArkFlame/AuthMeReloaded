@@ -3,6 +3,7 @@ package fr.xephi.authme.velocity.premium;
 import com.velocitypowered.api.event.connection.PreLoginEvent;
 import com.velocitypowered.api.event.player.GameProfileRequestEvent;
 import com.velocitypowered.api.util.UuidUtils;
+import fr.xephi.authme.velocity.VelocityAuthenticationStore;
 import org.slf4j.Logger;
 
 import java.util.Set;
@@ -51,7 +52,7 @@ public final class VelocityPremiumVerificationManager {
         if (!event.getResult().isAllowed()) {
             return;
         }
-        String normalizedName = ProxyPremiumLoginVerifier.normalize(event.getUsername());
+        String normalizedName = VelocityAuthenticationStore.normalizeName(event.getUsername());
         if (isPendingVerification.test(normalizedName) && !pendingVerificationAttempted.add(normalizedName)) {
             // Velocity fires no event when Mojang rejects a forced online-mode login, so a pending
             // player showing up again means the previous attempt failed: cancel the enrollment and
@@ -65,7 +66,7 @@ public final class VelocityPremiumVerificationManager {
     }
 
     public void onGameProfileRequest(GameProfileRequestEvent event) {
-        String normalizedName = ProxyPremiumLoginVerifier.normalize(event.getUsername());
+        String normalizedName = VelocityAuthenticationStore.normalizeName(event.getUsername());
         if (!requiresVerification.test(normalizedName) || !event.isOnlineMode()) {
             return;
         }

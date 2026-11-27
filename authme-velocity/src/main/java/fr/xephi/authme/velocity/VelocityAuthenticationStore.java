@@ -6,7 +6,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-final class VelocityAuthenticationStore {
+public final class VelocityAuthenticationStore {
 
     private final Set<String> authenticatedPlayers = ConcurrentHashMap.newKeySet();
 
@@ -26,7 +26,7 @@ final class VelocityAuthenticationStore {
         return authenticatedPlayers.contains(normalizeName(playerName));
     }
 
-    static String normalizeName(String playerName) {
+    public static String normalizeName(String playerName) {
         return playerName.toLowerCase(Locale.ROOT);
     }
 }

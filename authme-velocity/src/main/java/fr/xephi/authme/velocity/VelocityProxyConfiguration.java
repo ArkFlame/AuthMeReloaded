@@ -5,7 +5,6 @@ import com.velocitypowered.api.proxy.server.RegisteredServer;
 import fr.xephi.authme.velocity.config.VelocityConfigProperties;
 
 import java.util.Collection;
-import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Set;
 import java.util.function.Function;
@@ -124,12 +123,12 @@ final class VelocityProxyConfiguration {
         return commandWhitelist.contains(normalizeCommandAlias(command));
     }
 
-    /** Normalizes a collection of values, dropping empty results while preserving input order. */
+    /** Normalizes a collection of values, dropping empty results. */
     private static Set<String> normalizeAndCollect(Collection<String> values, Function<String, String> normalizer) {
-        return Set.copyOf(values.stream()
+        return values.stream()
             .map(normalizer)
             .filter(value -> !value.isEmpty())
-            .collect(Collectors.toCollection(LinkedHashSet::new)));
+            .collect(Collectors.toUnmodifiableSet());
     }
 
     private static String normalizeServerName(String serverName) {

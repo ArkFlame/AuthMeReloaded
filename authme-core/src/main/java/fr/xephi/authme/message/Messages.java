@@ -2,7 +2,6 @@ package fr.xephi.authme.message;
 
 import fr.xephi.authme.ConsoleLogger;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
-import fr.xephi.authme.mail.EmailService;
 import fr.xephi.authme.platform.BukkitCompatibilityAdapter;
 import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.settings.Settings;
@@ -28,7 +27,7 @@ public class Messages {
     private static final String USERNAME_TAG = "%username%";
     private static final String DISPLAYNAME_TAG = "%displayname%";
 
-    private final ConsoleLogger logger = ConsoleLoggerFactory.get(EmailService.class);
+    private final ConsoleLogger logger = ConsoleLoggerFactory.get(Messages.class);
 
     private final BukkitService bukkitService;
     private final MessagesFileHandler messagesFileHandler;

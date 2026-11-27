@@ -22,6 +22,7 @@ import com.velocitypowered.api.proxy.server.RegisteredServer;
 import fr.xephi.authme.velocity.events.AuthMeVelocityLoginEvent;
 import fr.xephi.authme.velocity.events.AuthMeVelocityLogoutEvent;
 import fr.xephi.authme.velocity.premium.VelocityPremiumVerificationManager;
+import fr.xephi.authme.proxy.ProxyMessageSecurity;
 import fr.xephi.authme.proxy.ProxyMessageType;
 import fr.xephi.authme.proxy.ProxyMessages;
 import net.kyori.adventure.text.Component;
@@ -195,24 +196,22 @@ final class VelocityProxyBridge {
 
     private void dispatchPluginMessage(ParsedMessage message, ServerConnection serverConnection) {
         String playerName = message.playerName();
-        String normalizedName = VelocityAuthenticationStore.normalizeName(playerName);
         String serverName = serverConnection.getServer().getServerInfo().getName();
 
         switch (message.type()) {
-            case LOGIN -> handleLoginMessage(playerName, normalizedName, serverName, serverConnection);
-            case LOGOUT -> handleLogoutMessage(playerName, normalizedName, serverName);
+            case LOGIN -> handleLoginMessage(playerName, serverName, serverConnection);
+            case LOGOUT -> handleLogoutMessage(playerName, serverName);
             case PERFORM_LOGIN_ACK -> handlePerformLoginAck(playerName, serverName);
             default -> handlePremiumMessage(message.type(), playerName);
         }
     }
 
-    private void handleLoginMessage(String playerName, String normalizedName, String serverName,
-                                    ServerConnection serverConnection) {
+    private void handleLoginMessage(String playerName, String serverName, ServerConnection serverConnection) {
         if (configuration.isAuthServer(serverConnection.getServer())) {
             logger.info("Player {} authenticated on auth server '{}'", playerName, serverName);
 
-            proxyServer.getPlayer(normalizedName).ifPresent(player -> proxyServer.getEventManager().fireAndForget(
-                new AuthMeVelocityLoginEvent(player, requiresPremiumVerification(normalizedName))));
+            proxyServer.getPlayer(playerName).ifPresent(player -> proxyServer.getEventManager().fireAndForget(
+                new AuthMeVelocityLoginEvent(player, requiresPremiumVerification(playerName))));
 
             authenticationStore.markAuthenticated(playerName);
             sendAutoLoginIfAlreadySwitched(playerName, serverConnection.getServer());
@@ -226,10 +225,10 @@ final class VelocityProxyBridge {
         }
     }
 
-    private void handleLogoutMessage(String playerName, String normalizedName, String serverName) {
+    private void handleLogoutMessage(String playerName, String serverName) {
         logger.info("Player {} logged out (notified by server '{}')", playerName, serverName);
         authenticationStore.markLoggedOut(playerName);
-        proxyServer.getPlayer(normalizedName).ifPresent(player ->
+        proxyServer.getPlayer(playerName).ifPresent(player ->
             proxyServer.getEventManager().fireAndForget(new AuthMeVelocityLogoutEvent(player)));
         if (configuration.sendOnLogoutEnabled()) {
             redirectPlayer(playerName, configuration.sendOnLogoutTarget(), "logout", true);

@@ -1,9 +1,9 @@
 package fr.xephi.authme.command.executable.authme;
 
-import fr.xephi.authme.TestHelper;
 import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.service.BukkitService;
+import fr.xephi.authme.service.TestPlayerFactory;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
@@ -53,7 +53,7 @@ class GetIpCommandTest {
         // given: online player with a resolvable address but no auth entry
         String playerName = "Test";
         String ip = "44.111.22.33";
-        Player player = mockPlayer(playerName, ip);
+        Player player = TestPlayerFactory.mockPlayerWithNameAndIp(playerName, ip);
         given(bukkitService.getPlayerExact(playerName)).willReturn(player);
         given(dataSource.getAuth(playerName)).willReturn(null);
 
@@ -70,7 +70,7 @@ class GetIpCommandTest {
         // given
         String playerName = "charlie";
         String ip = "123.34.56.88";
-        Player player = mockPlayer(playerName, ip);
+        Player player = TestPlayerFactory.mockPlayerWithNameAndIp(playerName, ip);
         given(bukkitService.getPlayerExact(playerName)).willReturn(player);
         PlayerAuth auth = PlayerAuth.builder().name("t").lastIp("44.33.22.11").registrationIp("77.11.44.88").build();
         given(dataSource.getAuth(playerName)).willReturn(auth);
@@ -106,12 +106,5 @@ class GetIpCommandTest {
         verify(bukkitService).getPlayerExact(playerName);
         verify(dataSource).getAuth(playerName);
         return sender;
-    }
-
-    private static Player mockPlayer(String name, String ip) {
-        Player player = mock(Player.class);
-        given(player.getName()).willReturn(name);
-        TestHelper.mockIpAddressToPlayer(player, ip);
-        return player;
     }
 }

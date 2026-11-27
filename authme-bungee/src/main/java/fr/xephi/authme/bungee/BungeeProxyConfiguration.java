@@ -5,7 +5,6 @@ import fr.xephi.authme.bungee.config.BungeeConfigProperties;
 import net.md_5.bungee.api.config.ServerInfo;
 
 import java.util.Collection;
-import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Set;
 import java.util.function.Function;
@@ -134,13 +133,12 @@ final class BungeeProxyConfiguration {
         return (commandAlias.startsWith("/") ? commandAlias : "/" + commandAlias).toLowerCase(Locale.ROOT);
     }
 
-    /** Normalizes a collection of values, dropping empty results while preserving input order. */
+    /** Normalizes a collection of values, dropping empty results. */
     private static Set<String> normalizeAndCollect(Collection<String> values, Function<String, String> normalizer) {
-        Set<String> normalizedValues = values.stream()
+        return values.stream()
             .map(normalizer)
             .filter(value -> !value.isEmpty())
-            .collect(Collectors.toCollection(LinkedHashSet::new));
-        return Set.copyOf(normalizedValues);
+            .collect(Collectors.toUnmodifiableSet());
     }
 
     private static String normalizeServerName(String serverName) {

@@ -7,7 +7,8 @@ import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.server.ServerInfo;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.Logger;
 
 import java.util.Optional;
@@ -22,43 +23,9 @@ import static org.mockito.Mockito.verify;
 
 class VelocityIssue3159Test {
 
-    @Test
-    void shouldMarkPlayerAuthenticatedOnAutoLoginAckAndStopBlockingChat() {
-        ProxyServer proxyServer = mock(ProxyServer.class);
-        Logger logger = mock(Logger.class);
-        PluginMessageEvent event = mock(PluginMessageEvent.class);
-        ServerConnection source = mock(ServerConnection.class);
-        RegisteredServer authServer = mock(RegisteredServer.class);
-        ServerInfo serverInfo = mock(ServerInfo.class);
-        Player player = mock(Player.class);
-        ServerConnection currentServer = mock(ServerConnection.class);
-        PlayerChatEvent chatEvent = mock(PlayerChatEvent.class);
-        VelocityAuthenticationStore store = new VelocityAuthenticationStore();
-
-        given(event.getResult()).willReturn(PluginMessageEvent.ForwardResult.forward());
-        given(event.getIdentifier()).willReturn(VelocityProxyBridge.AUTHME_CHANNEL);
-        given(event.getSource()).willReturn(source);
-        given(event.getData()).willReturn(ProxyTestFixtures.message("perform.login.ack", "Alice"));
-        given(source.getServer()).willReturn(authServer);
-        given(authServer.getServerInfo()).willReturn(serverInfo);
-        given(serverInfo.getName()).willReturn("lobby");
-        given(chatEvent.getPlayer()).willReturn(player);
-        given(player.getUsername()).willReturn("Alice");
-        given(player.getCurrentServer()).willReturn(Optional.of(currentServer));
-        given(currentServer.getServer()).willReturn(authServer);
-
-        VelocityProxyBridge bridge = new VelocityProxyBridge(
-            proxyServer, logger, ProxyTestFixtures.configuration(true, false), store, null);
-        bridge.onPluginMessage(event);
-
-        assertTrue(store.isAuthenticated("Alice"), "the ACK must mark the auto-logged-in player authenticated");
-
-        bridge.onPlayerChat(chatEvent);
-        verify(chatEvent, never()).setResult(any());
-    }
-
-    @Test
-    void shouldNotMarkPlayerAuthenticatedOnAckWhenAutoLoginIsDisabled() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldHandleAutoLoginAckAccordingToConfiguration(boolean autoLoginEnabled) {
         ProxyServer proxyServer = mock(ProxyServer.class);
         Logger logger = mock(Logger.class);
         PluginMessageEvent event = mock(PluginMessageEvent.class);
@@ -76,9 +43,24 @@ class VelocityIssue3159Test {
         given(serverInfo.getName()).willReturn("lobby");
 
         VelocityProxyBridge bridge = new VelocityProxyBridge(
-            proxyServer, logger, ProxyTestFixtures.configuration(false, false), store, null);
+            proxyServer, logger, ProxyTestFixtures.configuration(autoLoginEnabled, false), store, null);
         bridge.onPluginMessage(event);
 
-        assertFalse(store.isAuthenticated("Alice"));
+        if (autoLoginEnabled) {
+            assertTrue(store.isAuthenticated("Alice"), "the ACK must mark the auto-logged-in player authenticated");
+
+            Player player = mock(Player.class);
+            ServerConnection currentServer = mock(ServerConnection.class);
+            PlayerChatEvent chatEvent = mock(PlayerChatEvent.class);
+            given(chatEvent.getPlayer()).willReturn(player);
+            given(player.getUsername()).willReturn("Alice");
+            given(player.getCurrentServer()).willReturn(Optional.of(currentServer));
+            given(currentServer.getServer()).willReturn(authServer);
+
+            bridge.onPlayerChat(chatEvent);
+            verify(chatEvent, never()).setResult(any());
+        } else {
+            assertFalse(store.isAuthenticated("Alice"));
+        }
     }
 }

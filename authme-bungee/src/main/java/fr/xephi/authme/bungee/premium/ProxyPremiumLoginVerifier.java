@@ -73,13 +73,13 @@ final class ProxyPremiumLoginVerifier {
     }
 
     byte[] startVerification(String connectionKey, String username, UUID playerUuid, boolean pendingPremiumEnrollment) {
-        long now = System.currentTimeMillis();
+        long now = clock.getAsLong();
         pending.entrySet().removeIf(entry -> now - entry.getValue().startedAt() > PENDING_TTL_MS);
         verified.remove(normalize(username));
         byte[] verifyToken = new byte[4];
         secureRandom.nextBytes(verifyToken);
         pending.put(connectionKey,
-            new PendingVerification(username, playerUuid, verifyToken, System.currentTimeMillis(), pendingPremiumEnrollment));
+            new PendingVerification(username, playerUuid, verifyToken, now, pendingPremiumEnrollment));
         return verifyToken;
     }
 

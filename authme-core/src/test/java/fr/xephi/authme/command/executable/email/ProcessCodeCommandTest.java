@@ -16,8 +16,8 @@ import org.mockito.Mock;
 
 import java.util.Collections;
 
+import static fr.xephi.authme.listener.TestPlayerUtils.mockPlayerWithName;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
@@ -46,7 +46,7 @@ public class ProcessCodeCommandTest {
     @Test
     public void shouldSendErrorForInvalidRecoveryCode() {
         String name = "Vultur3";
-        Player sender = mockPlayer(name);
+        Player sender = mockPlayerWithName(name);
         given(codeService.hasTriesLeft(name)).willReturn(true);
         given(codeService.isCodeValid(name, "bogus")).willReturn(false);
         given(codeService.getTriesLeft(name)).willReturn(2);
@@ -60,7 +60,7 @@ public class ProcessCodeCommandTest {
     @Test
     public void shouldSendErrorForNoMoreTries() {
         String name = "BobbY";
-        Player sender = mockPlayer(name);
+        Player sender = mockPlayerWithName(name);
         given(codeService.hasTriesLeft(name)).willReturn(false);
 
         command.executeCommand(sender, Collections.singletonList("bogus"));
@@ -74,7 +74,7 @@ public class ProcessCodeCommandTest {
     public void shouldProcessCorrectCode() {
         String name = "Dwight";
         String code = "chickenDinner";
-        Player sender = mockPlayer(name);
+        Player sender = mockPlayerWithName(name);
         given(codeService.hasTriesLeft(name)).willReturn(true);
         given(codeService.isCodeValid(name, code)).willReturn(true);
 
@@ -83,11 +83,5 @@ public class ProcessCodeCommandTest {
         verify(commonService).send(sender, MessageKey.RECOVERY_CODE_CORRECT);
         verify(recoveryService).addSuccessfulRecovery(sender);
         verify(codeService).removeCode(name);
-    }
-
-    private static Player mockPlayer(String name) {
-        Player player = mock(Player.class);
-        given(player.getName()).willReturn(name);
-        return player;
     }
 }

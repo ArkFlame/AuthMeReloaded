@@ -34,14 +34,4 @@ public class MessageTask implements Runnable {
             player.sendMessage(message);
         }
     }
-
-    /**
-     * Cancels this message task. Kept for the legacy single-argument
-     * {@code LimboPlayer#setMessageTask(MessageTask)} path; tasks scheduled through
-     * {@link fr.xephi.authme.service.BukkitService} are cancelled by their
-     * {@link fr.xephi.authme.service.CancellableTask} handle instead.
-     */
-    public void cancel() {
-        // No scheduler state is held here; the scheduled task handle owns cancellation.
-    }
 }

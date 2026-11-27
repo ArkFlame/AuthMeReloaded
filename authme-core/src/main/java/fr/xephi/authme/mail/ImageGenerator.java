@@ -10,23 +10,13 @@ import java.awt.image.BufferedImage;
  */
 public class ImageGenerator {
 
-    private final String pass;
-
-    /**
-     * Constructor for ImageGenerator.
-     *
-     * @param pass String
-     */
-    public ImageGenerator(String pass) {
-        this.pass = pass;
-    }
-
     /**
      * Method generateImage.
      *
+     * @param pass the password to render
      * @return BufferedImage
      */
-    public BufferedImage generateImage() {
+    public static BufferedImage generateImage(String pass) {
         BufferedImage image = new BufferedImage(200, 60, BufferedImage.TYPE_BYTE_INDEXED);
         Graphics2D graphics = image.createGraphics();
         try {

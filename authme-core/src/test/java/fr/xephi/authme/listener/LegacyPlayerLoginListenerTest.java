@@ -11,15 +11,12 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockMakers;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.stream.Stream;
 
+import static fr.xephi.authme.listener.TestPlayerUtils.inlineSpy;
 import static fr.xephi.authme.listener.TestPlayerUtils.mockPlayerWithName;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.withSettings;
-import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doThrow;
@@ -94,11 +91,5 @@ class LegacyPlayerLoginListenerTest {
         verify(event, atLeast(0)).getResult();
         verify(event, atLeast(0)).getAddress();
         verifyNoMoreInteractions(event);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> T inlineSpy(T instance) {
-        return mock((Class<T>) instance.getClass(), withSettings().spiedInstance(instance)
-            .defaultAnswer(CALLS_REAL_METHODS).mockMaker(MockMakers.INLINE));
     }
 }

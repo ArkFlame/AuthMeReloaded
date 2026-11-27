@@ -9,12 +9,12 @@ import static org.mockito.Mockito.mock;
 /**
  * Shared fixtures for mocked players used by service tests.
  */
-final class TestPlayerFactory {
+public final class TestPlayerFactory {
 
     private TestPlayerFactory() {
     }
 
-    static Player mockPlayerWithNameAndIp(String name, String ip) {
+    public static Player mockPlayerWithNameAndIp(String name, String ip) {
         Player player = mock(Player.class);
         given(player.getName()).willReturn(name);
         TestHelper.mockIpAddressToPlayer(player, ip);
