@@ -30,7 +30,7 @@ public class ExpiringSet<E> extends AbstractExpiring<E, Long> {
     public boolean contains(E entry) {
         Long expiration = getEntries().get(entry);
         if (expiration != null && expiration <= System.currentTimeMillis()) {
-            getEntries().remove(entry);
+            getEntries().remove(entry, expiration);
             expiration = null;
         }
         return expiration != null;
@@ -66,7 +66,7 @@ public class ExpiringSet<E> extends AbstractExpiring<E, Long> {
             if (stillPresentMillis >= 0) {
                 return Duration.createWithSuitableUnit(stillPresentMillis, TimeUnit.MILLISECONDS);
             }
-            getEntries().remove(entry);
+            getEntries().remove(entry, expiration);
         }
         return new Duration(-1, TimeUnit.SECONDS);
     }

@@ -42,7 +42,7 @@ public class ExpiringMap<K, V> extends AbstractExpiring<K, ExpiringMap.ExpiringE
     public V get(K key) {
         ExpiringEntry<V> value = getEntries().get(key);
         if (value != null && isExpired(value.getExpiration(), System.currentTimeMillis())) {
-            getEntries().remove(key);
+            getEntries().remove(key, value);
             return null;
         }
         return value == null ? null : value.getValue();

@@ -92,21 +92,26 @@ public class SendMailSsl {
      * @return true upon success, false otherwise
      */
     public boolean sendEmail(String content, HtmlEmail email) {
-        Thread.currentThread().setContextClassLoader(SendMailSsl.class.getClassLoader());
-
+        Thread thread = Thread.currentThread();
+        ClassLoader previousLoader = thread.getContextClassLoader();
+        thread.setContextClassLoader(SendMailSsl.class.getClassLoader());
         try {
-            email.setHtmlMsg(content);
-            email.setTextMsg(content);
-        } catch (EmailException e) {
-            logger.logException("Your email.html config contains an error and cannot be sent:", e);
-            return false;
-        }
-        try {
-            email.send();
-            return true;
-        } catch (EmailException e) {
-            logger.logException("Failed to send a mail to " + email.getToAddresses() + ":", e);
-            return false;
+            try {
+                email.setHtmlMsg(content);
+                email.setTextMsg(content);
+            } catch (EmailException e) {
+                logger.logException("Your email.html config contains an error and cannot be sent:", e);
+                return false;
+            }
+            try {
+                email.send();
+                return true;
+            } catch (EmailException e) {
+                logger.logException("Failed to send a mail to " + email.getToAddresses() + ":", e);
+                return false;
+            }
+        } finally {
+            thread.setContextClassLoader(previousLoader);
         }
     }
 

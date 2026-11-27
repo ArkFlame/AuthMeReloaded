@@ -11,7 +11,7 @@ public class MessageTask implements Runnable {
 
     private final Player player;
     private final String[] message;
-    private boolean isMuted;
+    private volatile boolean isMuted;
 
     /**
      * Constructor.
