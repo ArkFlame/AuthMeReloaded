@@ -14,9 +14,7 @@ import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.PluginManager;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitScheduler;
-import org.bukkit.scheduler.BukkitTask;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -155,22 +153,6 @@ class BukkitServiceTest {
     }
 
     @Test
-    void shouldRunTask() {
-        // given
-        Runnable task = () -> {/* noop */};
-        BukkitTask bukkitTask = mock(BukkitTask.class);
-        given(scheduler.runTask(authMe, task)).willReturn(bukkitTask);
-        given(server.getScheduler()).willReturn(scheduler);
-
-        // when
-        BukkitTask resultingTask = bukkitService.runTask(task);
-
-        // then
-        assertThat(resultingTask, equalTo(bukkitTask));
-        verify(scheduler, only()).runTask(authMe, task);
-    }
-
-    @Test
     void shouldRunTaskInAsync() {
         // given
         Runnable task = mock(Runnable.class);
@@ -231,23 +213,6 @@ class BukkitServiceTest {
         // then
         assertThat(resultingTask, equalTo(cancellableTask));
         verify(schedulingAdapter, only()).runAsyncTaskTimer(authMe, task, delay, period);
-    }
-
-    @Test
-    void shouldRunTaskTimer() {
-        // given
-        BukkitRunnable bukkitRunnable = mock(BukkitRunnable.class);
-        long delay = 20;
-        long period = 80;
-        BukkitTask bukkitTask = mock(BukkitTask.class);
-        given(bukkitRunnable.runTaskTimer(authMe, delay, period)).willReturn(bukkitTask);
-
-        // when
-        BukkitTask result = bukkitService.runTaskTimer(bukkitRunnable, delay, period);
-
-        // then
-        assertThat(result, equalTo(bukkitTask));
-        verify(bukkitRunnable).runTaskTimer(authMe, delay, period);
     }
 
     @Test

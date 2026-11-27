@@ -9,6 +9,7 @@ import com.google.common.hash.Hashing;
 import com.maxmind.db.CHMCache;
 import com.maxmind.db.Reader.FileMode;
 import com.maxmind.geoip2.DatabaseReader;
+import com.maxmind.geoip2.exception.AddressNotFoundException;
 import com.maxmind.geoip2.exception.GeoIp2Exception;
 import com.maxmind.geoip2.model.AbstractCountryResponse;
 import com.maxmind.geoip2.record.Country;
@@ -374,6 +375,8 @@ public class GeoIpService {
                 return fallback;
             }
             return extractor.apply(country);
+        } catch (AddressNotFoundException notFound) {
+            unknownCountries.put(address, Boolean.TRUE);
         } catch (GeoIp2Exception | IOException ioEx) {
             logger.logException("Cannot lookup country for " + ip + " at GEO IP database", ioEx);
         }

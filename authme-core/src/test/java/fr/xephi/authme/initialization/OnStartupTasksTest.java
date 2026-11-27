@@ -18,7 +18,6 @@ import java.util.Collections;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 /**
@@ -54,6 +53,5 @@ class OnStartupTasksTest {
         taskCaptor.getValue().run();
 
         verify(bukkitService).runOnGlobalRegion(any(Runnable.class));
-        verify(bukkitService, never()).runTask(any(Runnable.class));
     }
 }

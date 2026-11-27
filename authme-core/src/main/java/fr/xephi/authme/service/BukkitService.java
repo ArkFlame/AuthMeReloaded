@@ -18,8 +18,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 
 import javax.inject.Inject;
 import java.util.Collection;
@@ -142,16 +140,6 @@ public class BukkitService implements SettingsDependent {
     }
 
     /**
-     * Returns a task that will run on the next server tick.
-     *
-     * @param task the task to be run
-     * @return a BukkitTask that contains the id number
-     */
-    public BukkitTask runTask(Runnable task) {
-        return Bukkit.getScheduler().runTask(authMe, task);
-    }
-
-    /**
      * Schedules a delayed task on the owning thread of the given entity.
      *
      * @param entity the entity whose scheduler should own the task
@@ -198,19 +186,6 @@ public class BukkitService implements SettingsDependent {
      */
     public CancellableTask runTaskTimerAsynchronously(Runnable task, long delay, long period) {
         return schedulingAdapter.runAsyncTaskTimer(authMe, task, delay, period);
-    }
-
-    /**
-     * Schedules the given task to repeatedly run until cancelled, starting after the specified
-     * number of server ticks.
-     *
-     * @param task the task to schedule
-     * @param delay the ticks to wait before running the task
-     * @param period the ticks to wait between runs
-     * @return a BukkitTask that contains the id number
-     */
-    public BukkitTask runTaskTimer(BukkitRunnable task, long delay, long period) {
-        return task.runTaskTimer(authMe, delay, period);
     }
 
     /**
