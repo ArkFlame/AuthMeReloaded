@@ -49,7 +49,7 @@ class DistributedFilesPersistenceHandler implements LimboPersistenceHandler {
     }
 
     @Override
-    public LimboPlayer getLimboPlayer(Player player) {
+    public synchronized LimboPlayer getLimboPlayer(Player player) {
         String uuid = player.getUniqueId().toString();
         File file = getPlayerSegmentFile(uuid);
         Map<String, LimboPlayer> entries = readLimboPlayers(file);
@@ -57,7 +57,7 @@ class DistributedFilesPersistenceHandler implements LimboPersistenceHandler {
     }
 
     @Override
-    public void saveLimboPlayer(Player player, LimboPlayer limbo) {
+    public synchronized void saveLimboPlayer(Player player, LimboPlayer limbo) {
         String uuid = player.getUniqueId().toString();
         File file = getPlayerSegmentFile(uuid);
 
@@ -77,7 +77,7 @@ class DistributedFilesPersistenceHandler implements LimboPersistenceHandler {
     }
 
     @Override
-    public void removeLimboPlayer(Player player) {
+    public synchronized void removeLimboPlayer(Player player) {
         String uuid = player.getUniqueId().toString();
         File file = getPlayerSegmentFile(uuid);
         if (file.exists()) {
