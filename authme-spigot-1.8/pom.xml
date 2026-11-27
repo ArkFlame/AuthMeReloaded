@@ -24,7 +24,7 @@
         <legacy.dependencies.mysql-connector-j.version>8.2.0</legacy.dependencies.mysql-connector-j.version>
         <legacy.dependencies.mariadb-java-client.version>3.3.0</legacy.dependencies.mariadb-java-client.version>
         <legacy.dependencies.postgresql.version>42.7.2</legacy.dependencies.postgresql.version>
-        <legacy.dependencies.configme.version>1.3.0</legacy.dependencies.configme.version>
+        <legacy.dependencies.configme.version>1.3.1</legacy.dependencies.configme.version>
         <legacy.dependencies.bstats.version>3.0.3</legacy.dependencies.bstats.version>
     </properties>
 

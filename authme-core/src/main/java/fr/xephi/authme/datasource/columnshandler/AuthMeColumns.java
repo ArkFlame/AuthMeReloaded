@@ -3,7 +3,7 @@ package fr.xephi.authme.datasource.columnshandler;
 import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.settings.properties.DatabaseSettings;
 
-import java.util.UUID;
+import java.util.Objects;
 
 import static fr.xephi.authme.datasource.columnshandler.AuthMeColumnsFactory.ColumnOptions.DEFAULT_FOR_NULL;
 import static fr.xephi.authme.datasource.columnshandler.AuthMeColumnsFactory.ColumnOptions.OPTIONAL;
@@ -36,9 +36,6 @@ public final class AuthMeColumns {
     public static final PlayerAuthColumn<String> LAST_IP = createString(
         DatabaseSettings.MYSQL_COL_LAST_IP, PlayerAuth::getLastIp);
 
-    public static final PlayerAuthColumn<Integer> GROUP_ID = createInteger(
-        DatabaseSettings.MYSQL_COL_GROUP, PlayerAuth::getGroupId, OPTIONAL);
-
     public static final PlayerAuthColumn<Long> LAST_LOGIN = createLong(
         DatabaseSettings.MYSQL_COL_LASTLOGIN, PlayerAuth::getLastLogin);
 
@@ -49,10 +46,10 @@ public final class AuthMeColumns {
         DatabaseSettings.MYSQL_COL_REGISTER_DATE, PlayerAuth::getRegistrationDate);
 
     public static final PlayerAuthColumn<String> UUID = createString(
-        DatabaseSettings.MYSQL_COL_PLAYER_UUID, auth -> uuidToString(auth.getUuid()), OPTIONAL);
+        DatabaseSettings.MYSQL_COL_PLAYER_UUID, auth -> Objects.toString(auth.getUuid(), null), OPTIONAL);
 
     public static final PlayerAuthColumn<String> PREMIUM_UUID = createString(
-        DatabaseSettings.MYSQL_COL_PREMIUM_UUID, auth -> uuidToString(auth.getPremiumUuid()), OPTIONAL);
+        DatabaseSettings.MYSQL_COL_PREMIUM_UUID, auth -> Objects.toString(auth.getPremiumUuid(), null), OPTIONAL);
 
     // --------
     // Location columns
@@ -83,10 +80,6 @@ public final class AuthMeColumns {
 
     public static final DataSourceColumn<Integer> HAS_SESSION = createInteger(
         DatabaseSettings.MYSQL_COL_HASSESSION);
-
-    private static String uuidToString(UUID uuid) {
-        return uuid == null ? null : uuid.toString();
-    }
 
     private AuthMeColumns() {
     }

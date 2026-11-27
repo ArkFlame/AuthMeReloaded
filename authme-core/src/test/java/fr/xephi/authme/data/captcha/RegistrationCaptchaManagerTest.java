@@ -20,16 +20,9 @@ class RegistrationCaptchaManagerTest {
 
     @Test
     void shouldBeDisabled() {
-        // given
-        Settings settings = mock(Settings.class);
-        // Return false first time, and true after that
-        given(settings.getProperty(SecuritySettings.ENABLE_CAPTCHA_FOR_REGISTRATION))
-            .willReturn(false).willReturn(true);
-        given(settings.getProperty(SecuritySettings.CAPTCHA_LENGTH)).willReturn(12);
-
         // when
-        RegistrationCaptchaManager captchaManager1 = new RegistrationCaptchaManager(settings);
-        RegistrationCaptchaManager captchaManager2 = new RegistrationCaptchaManager(settings);
+        RegistrationCaptchaManager captchaManager1 = new RegistrationCaptchaManager(mockSettings(false, 12));
+        RegistrationCaptchaManager captchaManager2 = new RegistrationCaptchaManager(mockSettings(true, 12));
 
         // then
         assertThat(captchaManager1.isCaptchaRequired("bob"), equalTo(false));
@@ -39,12 +32,8 @@ class RegistrationCaptchaManagerTest {
     @Test
     void shouldVerifyCodeSuccessfully() {
         // given
-        Settings settings = mock(Settings.class);
-        given(settings.getProperty(SecuritySettings.ENABLE_CAPTCHA_FOR_REGISTRATION)).willReturn(true);
-        given(settings.getProperty(SecuritySettings.CAPTCHA_LENGTH)).willReturn(12);
-
+        RegistrationCaptchaManager captchaManager = new RegistrationCaptchaManager(mockSettings(true, 12));
         String captcha = "abc3";
-        RegistrationCaptchaManager captchaManager = new RegistrationCaptchaManager(settings);
         getCodeMap(captchaManager).put("test", captcha);
 
         Player player = mock(Player.class);
@@ -62,11 +51,8 @@ class RegistrationCaptchaManagerTest {
     @Test
     void shouldGenerateAndRetrieveCode() {
         // given
-        Settings settings = mock(Settings.class);
-        given(settings.getProperty(SecuritySettings.ENABLE_CAPTCHA_FOR_REGISTRATION)).willReturn(true);
         int captchaLength = 9;
-        given(settings.getProperty(SecuritySettings.CAPTCHA_LENGTH)).willReturn(captchaLength);
-        RegistrationCaptchaManager captchaManager = new RegistrationCaptchaManager(settings);
+        RegistrationCaptchaManager captchaManager = new RegistrationCaptchaManager(mockSettings(true, captchaLength));
 
         // when
         String captcha1 = captchaManager.getCaptchaCodeOrGenerateNew("toast");
@@ -89,5 +75,12 @@ class RegistrationCaptchaManagerTest {
         CaptchaCodeStorage captchaStorage = ReflectionTestUtils.getFieldValue(
             RegistrationCaptchaManager.class, captchaManager, "captchaCodeStorage");
         return ReflectionTestUtils.getFieldValue(CaptchaCodeStorage.class, captchaStorage, "captchaCodes");
+    }
+
+    private static Settings mockSettings(boolean enabled, int captchaLength) {
+        Settings settings = mock(Settings.class);
+        given(settings.getProperty(SecuritySettings.ENABLE_CAPTCHA_FOR_REGISTRATION)).willReturn(enabled);
+        given(settings.getProperty(SecuritySettings.CAPTCHA_LENGTH)).willReturn(captchaLength);
+        return settings;
     }
 }

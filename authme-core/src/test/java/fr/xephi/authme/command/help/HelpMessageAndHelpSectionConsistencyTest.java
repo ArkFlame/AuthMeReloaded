@@ -17,22 +17,17 @@ class HelpMessageAndHelpSectionConsistencyTest {
 
     @Test
     void shouldHaveUniqueNonEmptyKeys() {
-        // given
         Set<String> keys = new HashSet<>();
+        assertKeys(keys, "message", HelpMessage.values());
+        assertKeys(keys, "section", HelpSection.values());
+    }
 
-        // when / then
-        for (HelpMessage message : HelpMessage.values()) {
-            assertThat("Key for message '" + message + "' is empty",
-                StringUtils.isBlank(message.getKey()), equalTo(false));
-            if (!keys.add(message.getKey())) {
-                fail("Key for message '" + message + "' is already used elsewhere");
-            }
-        }
-        for (HelpSection section : HelpSection.values()) {
-            assertThat("Key for section '" + section + "' is empty",
-                StringUtils.isBlank(section.getKey()), equalTo(false));
-            if (!keys.add(section.getKey())) {
-                fail("Key for section '" + section + "' is already used elsewhere");
+    private static void assertKeys(Set<String> keys, String type, HelpTextKey[] values) {
+        for (HelpTextKey key : values) {
+            assertThat("Key for " + type + " '" + key + "' is empty",
+                StringUtils.isBlank(key.getKey()), equalTo(false));
+            if (!keys.add(key.getKey())) {
+                fail("Key for " + type + " '" + key + "' is already used elsewhere");
             }
         }
     }

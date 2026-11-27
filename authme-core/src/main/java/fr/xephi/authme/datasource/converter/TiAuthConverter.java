@@ -16,7 +16,6 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import javax.inject.Inject;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Locale;
 
 /**
  * Converts data from tiAuth to AuthMe. Reads {@code plugins/tiAuth/config.yml}:
@@ -39,7 +38,7 @@ public class TiAuthConverter extends AbstractYamlPluginConverter {
 
     @Override
     protected Backend getBackend(YamlConfiguration config) {
-        switch (readDbType(config)) {
+        switch (readDbType(config, "database.type")) {
             case "SQLITE":
                 return Backend.SQLITE;
             case "MYSQL":
@@ -57,13 +56,9 @@ public class TiAuthConverter extends AbstractYamlPluginConverter {
 
     @Override
     protected String unsupportedMessage(YamlConfiguration config) {
-        return "tiAuth conversion: database type '" + readDbType(config) + "' is not supported. "
+        return "tiAuth conversion: database type '" + readDbType(config, "database.type") + "' is not supported. "
             + "Reconfigure tiAuth to use SQLite or MySQL/PostgreSQL, migrate the data, "
             + "then re-run the conversion.";
-    }
-
-    private static String readDbType(YamlConfiguration config) {
-        return config.getString("database.type", "H2").toUpperCase(Locale.ROOT);
     }
 
     @Override

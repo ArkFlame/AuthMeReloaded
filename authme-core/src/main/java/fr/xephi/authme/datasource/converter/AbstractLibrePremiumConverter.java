@@ -50,7 +50,8 @@ abstract class AbstractLibrePremiumConverter implements Converter {
             return;
         }
 
-        ResultSetImporter importer = rs -> importRows(rs, sender);
+        ResultSetImporter importer = rs -> ConverterUtils.importRows(rs, dataSource, sender, pluginName,
+            row -> ConverterUtils.toLowerCaseOrNull(row.getString("last_nickname")), this::buildAuth);
         String dbType = ConverterUtils.readHoconValue(configFile, "type", typePrefix + "sqlite");
         if ((typePrefix + "sqlite").equals(dbType)) {
             String sqliteFilename = ConverterUtils.readHoconValue(configFile, "path", DEFAULT_SQLITE_FILENAME);
@@ -62,11 +63,6 @@ abstract class AbstractLibrePremiumConverter implements Converter {
         } else {
             logAndSendMessage(sender, pluginName + " conversion: database type '" + dbType + "' is not supported.");
         }
-    }
-
-    private void importRows(ResultSet rs, CommandSender sender) throws SQLException {
-        ConverterUtils.importRows(rs, dataSource, sender, pluginName,
-            row -> ConverterUtils.toLowerCaseOrNull(row.getString("last_nickname")), this::buildAuth);
     }
 
     private PlayerAuth buildAuth(ResultSet rs, String name) throws SQLException {

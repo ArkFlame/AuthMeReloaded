@@ -686,8 +686,8 @@ public enum MessageKey {
     DAYS("time.days");
 
 
-    private String key;
-    private String[] tags;
+    private final String key;
+    private final String[] tags;
 
     MessageKey(String key, String... tags) {
         this.key = key;

@@ -17,8 +17,7 @@ public class ConsoleFilter implements Filter {
         }
         String message = record.getMessage();
         if (LogFilterHelper.isSensitiveAuthMeCommand(message)) {
-            String playerName = message.split(" ")[0];
-            record.setMessage(playerName + " issued an AuthMe command");
+            record.setMessage(message.substring(0, message.indexOf(' ')) + " issued an AuthMe command");
         }
         return true;
     }

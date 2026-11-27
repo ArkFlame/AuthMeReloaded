@@ -1,9 +1,6 @@
 package fr.xephi.authme.api.v3;
 
 import fr.xephi.authme.data.auth.PlayerAuth;
-import org.hamcrest.Description;
-import org.hamcrest.Matcher;
-import org.hamcrest.TypeSafeMatcher;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -21,7 +18,7 @@ class AuthMePlayerImplTest {
     @Test
     void shouldMapNullWithoutError() {
         // given / when / then
-        assertThat(AuthMePlayerImpl.fromPlayerAuth(null), emptyOptional());
+        assertThat(AuthMePlayerImpl.fromPlayerAuth(null).isPresent(), equalTo(false));
     }
 
     @Test
@@ -70,26 +67,11 @@ class AuthMePlayerImplTest {
         // then
         AuthMePlayer playerInfo = result.get();
         assertThat(playerInfo.getName(), equalTo("Victor"));
-        assertThat(playerInfo.getUuid(), emptyOptional());
-        assertThat(playerInfo.getEmail(), emptyOptional());
+        assertThat(playerInfo.getUuid().isPresent(), equalTo(false));
+        assertThat(playerInfo.getEmail().isPresent(), equalTo(false));
         assertThat(playerInfo.getRegistrationDate(), equalTo(Instant.ofEpochMilli(auth.getRegistrationDate())));
-        assertThat(playerInfo.getRegistrationIpAddress(), emptyOptional());
-        assertThat(playerInfo.getLastLoginDate(), emptyOptional());
-        assertThat(playerInfo.getLastLoginIpAddress(), emptyOptional());
-    }
-
-    private static <T> Matcher<Optional<T>> emptyOptional() {
-        return new TypeSafeMatcher<Optional<T>>() {
-
-            @Override
-            public void describeTo(Description description) {
-                description.appendText("an empty optional");
-            }
-
-            @Override
-            protected boolean matchesSafely(Optional<T> item) {
-                return !item.isPresent();
-            }
-        };
+        assertThat(playerInfo.getRegistrationIpAddress().isPresent(), equalTo(false));
+        assertThat(playerInfo.getLastLoginDate().isPresent(), equalTo(false));
+        assertThat(playerInfo.getLastLoginIpAddress().isPresent(), equalTo(false));
     }
 }

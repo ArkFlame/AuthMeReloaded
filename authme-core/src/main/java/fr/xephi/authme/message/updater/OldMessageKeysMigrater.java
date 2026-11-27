@@ -122,8 +122,6 @@ final class OldMessageKeysMigrater {
             .put(MessageKey.CAPTCHA_WRONG_ERROR, text -> text.replace("THE_CAPTCHA", "%captcha_code"))
             .build();
 
-    private static final UnaryOperator<String> IDENTITY = UnaryOperator.identity();
-
     private OldMessageKeysMigrater() {
     }
 
@@ -138,9 +136,10 @@ final class OldMessageKeysMigrater {
         boolean wasPropertyMoved = false;
         for (Map.Entry<MessageKey, String> migrationEntry : KEYS_TO_OLD_PATH.entrySet()) {
             MessageKey messageKey = migrationEntry.getKey();
-            UnaryOperator<String> transform = PLACEHOLDER_REPLACEMENTS.get(messageKey);
+            UnaryOperator<String> transform = PLACEHOLDER_REPLACEMENTS.getOrDefault(
+                messageKey, UnaryOperator.identity());
             wasPropertyMoved |= MessageUpdater.moveIfApplicable(reader, configurationData,
-                migrationEntry.getValue(), messageKey, transform != null ? transform : IDENTITY);
+                migrationEntry.getValue(), messageKey, transform);
         }
         return wasPropertyMoved;
     }

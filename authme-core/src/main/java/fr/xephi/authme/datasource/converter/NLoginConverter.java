@@ -28,6 +28,7 @@ public class NLoginConverter extends AbstractYamlPluginConverter {
     private static final String DEFAULT_TABLE = "nlogin";
     private static final String DEFAULT_DB_TYPE = "SQLite";
     private static final Pattern SAFE_TABLE_NAME = Pattern.compile("[A-Za-z_][A-Za-z0-9_]*");
+    private static final Pattern UUID_HEX = Pattern.compile("(.{8})(.{4})(.{4})(.{4})(.{12})");
 
     private static final ConsoleLogger logger = ConsoleLoggerFactory.get(NLoginConverter.class);
 
@@ -92,7 +93,7 @@ public class NLoginConverter extends AbstractYamlPluginConverter {
             return null;
         }
         if (value.length() == 32) {
-            value = value.replaceFirst("(.{8})(.{4})(.{4})(.{4})(.{12})", "$1-$2-$3-$4-$5");
+            value = UUID_HEX.matcher(value).replaceFirst("$1-$2-$3-$4-$5");
         }
         return UuidUtils.parseUuidSafely(value);
     }

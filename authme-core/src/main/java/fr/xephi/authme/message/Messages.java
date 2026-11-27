@@ -191,10 +191,7 @@ public class Messages {
         String[] tags = key.getTags();
         if (replacements.length == tags.length) {
             for (int i = 0; i < tags.length; ++i) {
-                // Avoid the no-op String.replace calls: they still allocate regex machinery.
-                if (message.contains(tags[i])) {
-                    message = message.replace(tags[i], replacements[i]);
-                }
+                message = replaceIfPresent(message, tags[i], replacements[i]);
             }
         } else {
             logger.warning("Invalid number of replacements for message key '" + key + "'");

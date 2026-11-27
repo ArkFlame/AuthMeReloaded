@@ -63,12 +63,6 @@ class PlayerLocaleResolverTest {
         return settings;
     }
 
-    private static BukkitCompatibilityAdapter adapterReturningLocale(Player player, String locale) {
-        BukkitCompatibilityAdapter adapter = mock(BukkitCompatibilityAdapter.class);
-        given(adapter.getPlayerLocale(player)).willReturn(Optional.of(locale));
-        return adapter;
-    }
-
     @ParameterizedTest
     @CsvSource({
         "fr_fr, fr, false",
@@ -97,12 +91,12 @@ class PlayerLocaleResolverTest {
         assertThat(PlayerLocaleResolver.resolveLanguage(settings, player, null), nullValue());
     }
 
-    @ParameterizedTest
-    @CsvSource({"true", "false"})
-    void shouldReturnNullForPlayerWithPerPlayerLocaleDisabled(boolean enabled) {
+    @Test
+    void shouldReturnNullForPlayerWithPerPlayerLocaleDisabled() {
         Player player = mock(Player.class);
         BukkitCompatibilityAdapter adapter = mock(BukkitCompatibilityAdapter.class);
-        Settings settings = settingsWithPerPlayerLocale(enabled);
+        given(adapter.getPlayerLocale(player)).willReturn(Optional.of("fr_fr"));
+        Settings settings = settingsWithPerPlayerLocale(false);
 
         assertThat(PlayerLocaleResolver.resolveLanguage(settings, player, adapter), nullValue());
     }

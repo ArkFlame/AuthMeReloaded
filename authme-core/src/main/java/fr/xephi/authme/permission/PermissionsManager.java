@@ -68,7 +68,7 @@ public class PermissionsManager implements Reloadable {
                         return;
                     }
                 } catch (Exception ex) {
-                    logger.logException("Error while hooking into " + type.getDisplayName(), ex);
+                    logger.logException("Error while hooking into " + type.getPluginName(), ex);
                 }
             }
         }
@@ -83,7 +83,7 @@ public class PermissionsManager implements Reloadable {
             return false;
         }
         if (!plugin.isEnabled()) {
-            logger.info("Not hooking into " + type.getDisplayName() + " because it's disabled!");
+            logger.info("Not hooking into " + type.getPluginName() + " because it's disabled!");
             return false;
         }
 
@@ -96,7 +96,7 @@ public class PermissionsManager implements Reloadable {
             throw new IllegalStateException("Unhandled permission type '" + type + "'");
         }
         this.handler = newHandler;
-        logger.info("Hooked into " + type.getDisplayName() + "!");
+        logger.info("Hooked into " + type.getPluginName() + "!");
         return true;
     }
 

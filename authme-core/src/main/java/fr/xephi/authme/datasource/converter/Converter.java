@@ -10,7 +10,8 @@ public interface Converter {
     /**
      * Execute the conversion.
      *
-     * @param sender the sender who initialized the conversion
+     * @param sender the sender who initialized the conversion, may be {@code null} for conversions
+     *               triggered internally rather than from a command
      */
     void execute(CommandSender sender);
 }

@@ -9,6 +9,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import java.io.File;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Locale;
 
 import static fr.xephi.authme.util.Utils.logAndSendMessage;
 
@@ -64,6 +65,11 @@ abstract class AbstractYamlPluginConverter implements Converter {
     protected abstract String getQuery(YamlConfiguration config);
 
     protected abstract String unsupportedMessage(YamlConfiguration config);
+
+    /** Reads an uppercased config value, defaulting to {@code H2} when the key is absent. */
+    protected static String readDbType(YamlConfiguration config, String key) {
+        return config.getString(key, "H2").toUpperCase(Locale.ROOT);
+    }
 
     /** @return the lowercase account name for this row, or {@code null}/empty to skip it */
     protected abstract String getName(ResultSet rs) throws SQLException;

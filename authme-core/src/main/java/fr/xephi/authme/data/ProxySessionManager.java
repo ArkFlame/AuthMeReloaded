@@ -87,28 +87,5 @@ public class ProxySessionManager implements HasCleanup {
 
         public String playerName() { return playerName; }
         public UUID verifiedPremiumUuid() { return verifiedPremiumUuid; }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            ProxyLoginRequest that = (ProxyLoginRequest) o;
-            return Objects.equals(playerName, that.playerName)
-                && Objects.equals(verifiedPremiumUuid, that.verifiedPremiumUuid);
-        }
-
-        @Override
-        public int hashCode() {
-            // Objects.hash would allocate a varargs array on every call.
-            int result = playerName.hashCode();
-            result = 31 * result + (verifiedPremiumUuid != null ? verifiedPremiumUuid.hashCode() : 0);
-            return result;
-        }
-
-        @Override
-        public String toString() {
-            return "ProxyLoginRequest[playerName=" + playerName
-                + ", verifiedPremiumUuid=" + verifiedPremiumUuid + "]";
-        }
     }
 }

@@ -30,15 +30,6 @@ public enum PermissionsSystemType {
     }
 
     /**
-     * Get the display name of the permissions system.
-     *
-     * @return Display name.
-     */
-    public String getDisplayName() {
-        return name;
-    }
-
-    /**
      * Return the plugin name.
      *
      * @return Plugin name.

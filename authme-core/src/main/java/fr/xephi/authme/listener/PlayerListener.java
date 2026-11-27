@@ -565,7 +565,12 @@ public class PlayerListener extends AbstractCancelListener implements Listener {
         if (settings.getProperty(RestrictionSettings.STRICT_UNRESTRICTED_INVENTORIES_CHECK)) {
             return whitelist.contains(invName);
         }
-        return whitelist.stream().anyMatch(invName::contains);
+        for (String entry : whitelist) {
+            if (invName.contains(entry)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // Shared by open/click/drag: the player is passed in so each event keeps using its own getter.

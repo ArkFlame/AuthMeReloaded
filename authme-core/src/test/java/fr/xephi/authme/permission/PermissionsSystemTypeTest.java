@@ -2,8 +2,8 @@ package fr.xephi.authme.permission;
 
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -18,20 +18,16 @@ class PermissionsSystemTypeTest {
 
     @Test
     void shouldHaveDefinedAndUniqueNames() {
-        List<String> names = new ArrayList<>(PermissionsSystemType.values().length);
-        List<String> pluginNames = new ArrayList<>(PermissionsSystemType.values().length);
+        Set<String> names = new HashSet<>();
 
         for (PermissionsSystemType system : PermissionsSystemType.values()) {
-            assertThat("Display name for enum entry '" + system + "' is not null",
-                system.getDisplayName(), not(nullValue()));
             assertThat("Plugin name for enum entry '" + system + "' is not null",
                 system.getPluginName(), not(nullValue()));
-            assertThat("Only one enum entry has display name '" + system.getDisplayName() + "'",
-                names, not(hasItem(system.getDisplayName())));
+            assertThat("Name for enum entry '" + system + "' is consistent",
+                system.toString(), equalTo(system.getPluginName()));
             assertThat("Only one enum entry has plugin name '" + system.getPluginName() + "'",
-                pluginNames, not(hasItem(system.getPluginName())));
-            names.add(system.getDisplayName());
-            pluginNames.add(system.getPluginName());
+                names, not(hasItem(system.getPluginName())));
+            names.add(system.getPluginName());
         }
     }
 

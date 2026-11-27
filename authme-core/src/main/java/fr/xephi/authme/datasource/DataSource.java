@@ -23,18 +23,16 @@ public interface DataSource extends Reloadable {
     boolean isAuthAvailable(String user);
 
     /**
-     * Return the hashed password of the player.
-     *
-     * @param user The user whose password should be retrieved
-     * @return The password hash of the player
+     * Returns the hashed password of the player.
+     * @param user the user whose password should be retrieved
+     * @return the password hash, or null if there is no record for the user
      */
     HashedPassword getPassword(String user);
 
     /**
-     * Retrieve the entire PlayerAuth object associated with the username.
-     *
-     * @param user The user to retrieve
-     * @return The PlayerAuth object for the given username
+     * Retrieves the PlayerAuth associated with the username.
+     * @param user the user to retrieve
+     * @return the PlayerAuth for the given username, or null if there is no record
      */
     PlayerAuth getAuth(String user);
 
@@ -235,10 +233,9 @@ public interface DataSource extends Reloadable {
 
     /**
      * Sets the given TOTP key to the player's account.
-     *
      * @param user the name of the player to modify
-     * @param totpKey the totp key to set
-     * @return True upon success, false upon failure
+     * @param totpKey the totp key to set, or null to remove the key
+     * @return true upon success, false upon failure
      */
     boolean setTotpKey(String user, String totpKey);
 

@@ -9,7 +9,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
@@ -21,8 +20,6 @@ import java.util.Set;
  * a specified charset.
  */
 final class MessageMigraterPropertyReader implements PropertyReader {
-
-    private static final Charset CHARSET = StandardCharsets.UTF_8;
 
     private final Map<String, Object> root;
 
@@ -45,7 +42,7 @@ final class MessageMigraterPropertyReader implements PropertyReader {
     }
 
     public static MessageMigraterPropertyReader loadFromStream(InputStream inputStream) {
-        try (InputStreamReader isr = new InputStreamReader(inputStream, CHARSET)) {
+        try (InputStreamReader isr = new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
             Object obj = new Yaml().load(isr);
             return new MessageMigraterPropertyReader(obj == null ? new HashMap<>() : (Map<String, Object>) obj);
         } catch (IOException e) {

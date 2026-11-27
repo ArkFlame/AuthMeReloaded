@@ -8,8 +8,8 @@ import fr.xephi.authme.message.HelpMessagesFileHandler;
 import fr.xephi.authme.permission.DefaultPermission;
 
 import javax.inject.Inject;
+import java.util.StringJoiner;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 /**
  * Manages translatable help messages.
@@ -126,9 +126,10 @@ public class HelpMessagesService {
      * @return the subpath for the command's texts
      */
     public static String getCommandSubPath(CommandDescription command) {
-        return CommandUtils.constructParentList(command)
-            .stream()
-            .map(cmd -> cmd.getLabels().get(0))
-            .collect(Collectors.joining("."));
+        StringJoiner path = new StringJoiner(".");
+        for (CommandDescription parent : CommandUtils.constructParentList(command)) {
+            path.add(parent.getLabels().get(0));
+        }
+        return path.toString();
     }
 }

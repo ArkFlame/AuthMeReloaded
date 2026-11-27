@@ -84,14 +84,15 @@ public class MessageUpdater {
      */
     static boolean moveIfApplicable(PropertyReader reader, MessageKeyConfigurationData configurationData,
                                     String oldPath, MessageKey messageKey, UnaryOperator<String> textTransform) {
-        if (configurationData.getMessage(messageKey) != null) {
+        MessageKeyProperty property = new MessageKeyProperty(messageKey);
+        if (configurationData.getValue(property) != null) {
             return false;
         }
         String oldValue = reader.getString(oldPath);
         if (oldValue == null) {
             return false;
         }
-        configurationData.setMessage(messageKey, textTransform.apply(oldValue));
+        configurationData.setValue(property, textTransform.apply(oldValue));
         return true;
     }
 

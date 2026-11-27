@@ -22,12 +22,6 @@ final class AuthMeColumnsFactory {
             hasOption(ColumnOptions.OPTIONAL, options), hasOption(ColumnOptions.DEFAULT_FOR_NULL, options));
     }
 
-    static PlayerAuthColumn<Integer> createInteger(Property<String> nameProperty,
-                                                   Function<PlayerAuth, Integer> playerAuthGetter,
-                                                   ColumnOptions... options) {
-        return createInternal(StandardTypes.INTEGER, nameProperty, playerAuthGetter, options);
-    }
-
     static PlayerAuthColumn<Long> createLong(Property<String> nameProperty,
                                              Function<PlayerAuth, Long> playerAuthGetter,
                                              ColumnOptions... options) {

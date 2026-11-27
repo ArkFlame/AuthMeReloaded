@@ -2,7 +2,6 @@ package fr.xephi.authme.permission;
 
 import org.junit.jupiter.api.Test;
 
-import java.util.Collection;
 import java.util.Set;
 
 import static com.google.common.collect.Sets.newHashSet;
@@ -18,8 +17,10 @@ class PlayerStatePermissionTest extends AbstractPermissionsEnumTest {
         Set<String> forbiddenPrefixes = newHashSet("authme.player", "authme.admin", "authme.debug");
 
         for (PlayerStatePermission permission : PlayerStatePermission.values()) {
-            if (startsWithAny(permission.getNode(), forbiddenPrefixes)) {
-                fail("The permission '" + permission + "' should not start with any of " + forbiddenPrefixes);
+            for (String prefix : forbiddenPrefixes) {
+                if (permission.getNode().startsWith(prefix)) {
+                    fail("The permission '" + permission + "' should not start with any of " + forbiddenPrefixes);
+                }
             }
         }
     }
@@ -32,14 +33,5 @@ class PlayerStatePermissionTest extends AbstractPermissionsEnumTest {
     @Override
     protected String getRequiredPrefix() {
         return "authme.";
-    }
-
-    private static boolean startsWithAny(String node, Collection<String> prefixes) {
-        for (String prefix : prefixes) {
-            if (node.startsWith(prefix)) {
-                return true;
-            }
-        }
-        return false;
     }
 }

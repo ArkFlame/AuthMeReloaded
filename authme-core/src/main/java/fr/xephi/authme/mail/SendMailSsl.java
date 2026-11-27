@@ -122,7 +122,19 @@ public class SendMailSsl {
             case 587:
                 String oAuth2Token = settings.getProperty(EmailSettings.OAUTH2_TOKEN);
                 if (!oAuth2Token.isEmpty()) {
-                    configureOAuth2(email, oAuth2Token);
+                    if (Security.getProvider("Google OAuth2 Provider") == null) {
+                        Security.addProvider(new OAuth2Provider());
+                    }
+                    Properties mailProperties = email.getMailSession().getProperties();
+                    mailProperties.setProperty("mail.smtp.starttls.enable", "true");
+                    mailProperties.setProperty("mail.smtp.starttls.required", "true");
+                    mailProperties.setProperty("mail.smtp.auth.mechanisms", "XOAUTH2");
+                    mailProperties.setProperty("mail.smtp.sasl.enable", "true");
+                    mailProperties.setProperty("mail.smtp.sasl.mechanisms", "XOAUTH2");
+                    mailProperties.setProperty("mail.smtp.auth.login.disable", "true");
+                    mailProperties.setProperty("mail.smtp.auth.plain.disable", "true");
+                    mailProperties.setProperty(OAuth2SaslClientFactory.OAUTH_TOKEN_PROP, oAuth2Token);
+                    email.setMailSession(Session.getInstance(mailProperties));
                 } else {
                     enableStartTls(email, checkServerIdentity);
                 }
@@ -140,22 +152,6 @@ public class SendMailSsl {
             default:
                 enableStartTls(email, checkServerIdentity);
         }
-    }
-
-    private static void configureOAuth2(HtmlEmail email, String oAuth2Token) throws EmailException {
-        if (Security.getProvider("Google OAuth2 Provider") == null) {
-            Security.addProvider(new OAuth2Provider());
-        }
-        Properties mailProperties = email.getMailSession().getProperties();
-        mailProperties.setProperty("mail.smtp.starttls.enable", "true");
-        mailProperties.setProperty("mail.smtp.starttls.required", "true");
-        mailProperties.setProperty("mail.smtp.auth.mechanisms", "XOAUTH2");
-        mailProperties.setProperty("mail.smtp.sasl.enable", "true");
-        mailProperties.setProperty("mail.smtp.sasl.mechanisms", "XOAUTH2");
-        mailProperties.setProperty("mail.smtp.auth.login.disable", "true");
-        mailProperties.setProperty("mail.smtp.auth.plain.disable", "true");
-        mailProperties.setProperty(OAuth2SaslClientFactory.OAUTH_TOKEN_PROP, oAuth2Token);
-        email.setMailSession(Session.getInstance(mailProperties));
     }
 
     private static void enableStartTls(HtmlEmail email, boolean checkServerIdentity) {

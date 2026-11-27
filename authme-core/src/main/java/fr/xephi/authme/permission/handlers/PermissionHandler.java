@@ -67,7 +67,6 @@ public interface PermissionHandler {
      * Get the primary group of a player, if available.
      *
      * @param player The player.
-     *
      * @return The name of the primary permission group. Or null.
      */
     default UserGroup getPrimaryGroup(OfflinePlayer player) {

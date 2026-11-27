@@ -36,7 +36,7 @@ public class LimboAuthConverter extends AbstractYamlPluginConverter {
 
     @Override
     protected Backend getBackend(YamlConfiguration config) {
-        switch (readStorageType(config)) {
+        switch (readDbType(config, "database.storage-type")) {
             case "SQLITE":
                 return Backend.SQLITE;
             case "MYSQL":
@@ -55,13 +55,10 @@ public class LimboAuthConverter extends AbstractYamlPluginConverter {
 
     @Override
     protected String unsupportedMessage(YamlConfiguration config) {
-        return "LimboAuth conversion: database type '" + readStorageType(config) + "' is not supported. "
+        return "LimboAuth conversion: database type '" + readDbType(config, "database.storage-type")
+            + "' is not supported. "
             + "Reconfigure LimboAuth to use SQLite or MySQL/MariaDB/PostgreSQL, migrate the data, "
             + "then re-run the conversion.";
-    }
-
-    private static String readStorageType(YamlConfiguration config) {
-        return config.getString("database.storage-type", "H2").toUpperCase(Locale.ROOT);
     }
 
     @Override

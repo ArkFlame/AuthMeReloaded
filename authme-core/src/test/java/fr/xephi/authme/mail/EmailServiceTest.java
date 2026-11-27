@@ -19,6 +19,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import javax.activation.DataSource;
+import javax.activation.FileDataSource;
 import java.io.File;
 import java.util.stream.Stream;
 
@@ -110,10 +112,9 @@ class EmailServiceTest {
 
         emailService.sendPasswordMail("../evil", "user@example.com", "new_password");
 
-        org.mockito.ArgumentCaptor<javax.activation.DataSource> source =
-            org.mockito.ArgumentCaptor.forClass(javax.activation.DataSource.class);
-        org.mockito.Mockito.verify(email).embed(source.capture(), anyString());
-        File image = ((javax.activation.FileDataSource) source.getValue()).getFile();
+        ArgumentCaptor<DataSource> source = ArgumentCaptor.forClass(DataSource.class);
+        verify(email).embed(source.capture(), anyString());
+        File image = ((FileDataSource) source.getValue()).getFile();
         assertThat(image.getParentFile(), equalTo(dataFolder));
     }
 

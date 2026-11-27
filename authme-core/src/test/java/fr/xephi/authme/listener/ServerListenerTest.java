@@ -97,43 +97,42 @@ class ServerListenerTest {
 
     @Test
     void shouldForwardPluginNameOnEnable() {
-        checkEnableHandling(ESSENTIALS,       () -> verify(pluginHookService).tryHookToEssentials());
-        checkEnableHandling(ESSENTIALS_SPAWN, () -> verify(spawnLoader).loadEssentialsSpawn());
-        checkEnableHandling(CMI,              () -> {
+        checkPluginHandling(ESSENTIALS, true,       () -> verify(pluginHookService).tryHookToEssentials());
+        checkPluginHandling(ESSENTIALS_SPAWN, true, () -> verify(spawnLoader).loadEssentialsSpawn());
+        checkPluginHandling(CMI, true,              () -> {
             verify(pluginHookService).tryHookToCmi();
             verify(spawnLoader).loadCmiSpawn();
         });
-        checkEnableHandling(MULTIVERSE,       () -> verify(pluginHookService).tryHookToMultiverse());
-        checkEnableHandling(PACKET_EVENTS,     () -> verify(packetEventsService).setup());
-        checkEnableHandling("UnknownPlugin",  () -> verifyNoInteractions(pluginHookService, spawnLoader));
+        checkPluginHandling(MULTIVERSE, true,       () -> verify(pluginHookService).tryHookToMultiverse());
+        checkPluginHandling(PACKET_EVENTS, true,    () -> verify(packetEventsService).setup());
+        checkPluginHandling("UnknownPlugin", true,  () -> verifyNoInteractions(pluginHookService, spawnLoader));
     }
 
     @Test
     void shouldForwardPluginNameOnDisable() {
-        checkDisableHandling(ESSENTIALS,       () -> verify(pluginHookService).unhookEssentials());
-        checkDisableHandling(ESSENTIALS_SPAWN, () -> verify(spawnLoader).unloadEssentialsSpawn());
-        checkDisableHandling(CMI,              () -> {
+        checkPluginHandling(ESSENTIALS, false,       () -> verify(pluginHookService).unhookEssentials());
+        checkPluginHandling(ESSENTIALS_SPAWN, false, () -> verify(spawnLoader).unloadEssentialsSpawn());
+        checkPluginHandling(CMI, false,              () -> {
             verify(pluginHookService).unhookCmi();
             verify(spawnLoader).unloadCmiSpawn();
         });
-        checkDisableHandling(MULTIVERSE,       () -> verify(pluginHookService).unhookMultiverse());
-        checkDisableHandling(PACKET_EVENTS,     () -> verify(packetEventsService).disable());
-        checkDisableHandling("UnknownPlugin",  () -> verifyNoInteractions(pluginHookService, spawnLoader));
+        checkPluginHandling(MULTIVERSE, false,       () -> verify(pluginHookService).unhookMultiverse());
+        checkPluginHandling(PACKET_EVENTS, false,    () -> verify(packetEventsService).disable());
+        checkPluginHandling("UnknownPlugin", false,  () -> verifyNoInteractions(pluginHookService, spawnLoader));
     }
 
-    private void checkEnableHandling(String pluginName, Runnable verifier) {
-        PluginEnableEvent event = mockEventWithPluginName(PluginEnableEvent.class, pluginName);
-        serverListener.onPluginEnable(event);
+    private void checkPluginHandling(String pluginName, boolean enable, Runnable verifier) {
+        if (enable) {
+            serverListener.onPluginEnable(mockEventWithPluginName(PluginEnableEvent.class, pluginName));
+        } else {
+            serverListener.onPluginDisable(mockEventWithPluginName(PluginDisableEvent.class, pluginName));
+        }
         verifier.run();
-        verify(permissionsManager).onPluginEnable(pluginName);
-        verifyNoMoreInteractionsAndReset();
-    }
-
-    private void checkDisableHandling(String pluginName, Runnable verifier) {
-        PluginDisableEvent event = mockEventWithPluginName(PluginDisableEvent.class, pluginName);
-        serverListener.onPluginDisable(event);
-        verifier.run();
-        verify(permissionsManager).onPluginDisable(pluginName);
+        if (enable) {
+            verify(permissionsManager).onPluginEnable(pluginName);
+        } else {
+            verify(permissionsManager).onPluginDisable(pluginName);
+        }
         verifyNoMoreInteractionsAndReset();
     }
 

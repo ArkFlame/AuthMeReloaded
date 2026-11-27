@@ -81,11 +81,11 @@ public class HelpCommandTest {
         verifyNoInteractions(helpProvider);
     }
 
-    @Test
-    public void shouldHandleWrongCommandWithSuggestion() {
-        // given
+    @ParameterizedTest
+    @MethodSource("unknownLabelCases")
+    public void shouldHandleWrongCommand(CommandDescription description, String expectedMessage,
+                                         boolean withSuggestion) {
         List<String> arguments = asList("authme", "ragister", "test");
-        CommandDescription description = newCommandDescription("authme", "register");
         FoundCommandResult foundCommandResult = new FoundCommandResult(description, asList("authme", "ragister"),
             singletonList("test"), 0.1, UNKNOWN_LABEL);
         given(commandMapper.mapPartsToCommand(sender, arguments)).willReturn(foundCommandResult);
@@ -95,24 +95,18 @@ public class HelpCommandTest {
 
         // then
         verify(sender).sendMessage(captor.capture());
-        assertThat(removeColors(captor.getValue()), containsString("Assuming /authme register"));
-        verify(helpProvider).outputHelp(sender, foundCommandResult, HelpProvider.ALL_OPTIONS);
+        assertThat(removeColors(captor.getValue()), containsString(expectedMessage));
+        if (withSuggestion) {
+            verify(helpProvider).outputHelp(sender, foundCommandResult, HelpProvider.ALL_OPTIONS);
+        } else {
+            verifyNoInteractions(helpProvider);
+        }
     }
 
-    @Test
-    public void shouldHandleWrongCommandWithoutSuggestion() {
-        List<String> arguments = asList("authme", "ragister", "test");
-        FoundCommandResult foundCommandResult = new FoundCommandResult(null, asList("authme", "ragister"),
-            singletonList("test"), 0.4, UNKNOWN_LABEL);
-        given(commandMapper.mapPartsToCommand(sender, arguments)).willReturn(foundCommandResult);
-
-        // when
-        command.executeCommand(sender, arguments);
-
-        // then
-        verify(sender).sendMessage(captor.capture());
-        assertThat(removeColors(captor.getValue()), containsString("Unknown command"));
-        verifyNoInteractions(helpProvider);
+    private static Stream<Arguments> unknownLabelCases() {
+        return Stream.of(
+            Arguments.of(newCommandDescription("authme", "register"), "Assuming /authme register", true),
+            Arguments.of(null, "Unknown command", false));
     }
 
     @ParameterizedTest

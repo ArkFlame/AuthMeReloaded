@@ -20,9 +20,7 @@ import org.mockito.MockMakers;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.CompletableFuture;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -99,7 +97,6 @@ class TaskCloserTest {
         verify(dataSource).closeConnection();
     }
 
-
     @Test
     void shouldCloseDataSourceWhenTheSchedulerDoesNotSupportListingWorkers() {
         // Folia replaces the Bukkit scheduler with one that rejects worker queries
@@ -109,18 +106,19 @@ class TaskCloserTest {
 
         verify(dataSource).closeConnection();
     }
+
     @Test
-    void shouldStopForInterruptedThread() throws InterruptedException, ExecutionException {
-        // Note ljacqu 20160827: This test must be run in its own thread because we throw an InterruptedException.
-        // Somehow the java.nio.Files API used in tests that are run subsequently don't like this and fail otherwise.
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        executor.submit(() -> {
+    void shouldStopForInterruptedThread() {
+        // Run in its own thread so the interrupt flag set by TaskCloser cannot leak into subsequent tests.
+        CompletableFuture.runAsync(() -> {
             try {
                 shouldStopForInterruptedThread0();
-            } catch (Exception e) {
+            } catch (InterruptedException e) {
                 throw new IllegalStateException(e);
+            } finally {
+                Thread.interrupted();
             }
-        }).get();
+        }).join();
     }
 
     /** Test implementation for {@link #shouldStopForInterruptedThread()}. */
@@ -156,5 +154,4 @@ class TaskCloserTest {
         return worker;
     }
 }
-
 

@@ -146,10 +146,10 @@ public abstract class MySqlExtension {
      */
     private void setColumns(String fullTableName, String qualifiedTableName, String[] columns,
                             ValueSetter valueSetter, String name, Connection con) throws SQLException {
+        String sqlPrefix = "UPDATE " + fullTableName + " SET " + qualifiedTableName + ".";
+        String sqlSuffix = "=? WHERE " + col.NAME + "=?;";
         for (String column : columns) {
-            String sql = "UPDATE " + fullTableName + " SET " + qualifiedTableName + "." + column
-                + "=? WHERE " + col.NAME + "=?;";
-            try (PreparedStatement pst = con.prepareStatement(sql)) {
+            try (PreparedStatement pst = con.prepareStatement(sqlPrefix + column + sqlSuffix)) {
                 valueSetter.set(pst);
                 pst.setString(2, name);
                 pst.executeUpdate();

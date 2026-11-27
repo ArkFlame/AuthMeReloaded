@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static fr.xephi.authme.util.Utils.isCollectionEmpty;
 
@@ -51,24 +52,13 @@ class LimboServiceHelper {
 
         // Joining group names is pure logging work: build the debug text lazily.
         logger.debug(() -> "Player `" + player.getName() + "` has groups `"
-            + joinGroupNames(playerGroups) + "`");
+            + String.join(", ", playerGroups.stream().map(UserGroup::getGroupName).collect(Collectors.toList()))
+            + "`");
         return new LimboPlayer(location, isOperator, playerGroups, flyEnabled, walkSpeed, flySpeed);
     }
 
     private static float speedOrDefault(float speed, float defaultValue) {
         return speed <= 0.01f ? defaultValue : speed;
-    }
-
-    /** Renders the group names exactly as {@code String.join(", ", names)} would. */
-    private static String joinGroupNames(Collection<UserGroup> groups) {
-        StringBuilder result = new StringBuilder();
-        for (UserGroup group : groups) {
-            if (result.length() > 0) {
-                result.append(", ");
-            }
-            result.append(group.getGroupName());
-        }
-        return result.toString();
     }
 
     /**

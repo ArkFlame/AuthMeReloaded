@@ -4,7 +4,6 @@ import fr.xephi.authme.task.MessageTask;
 import fr.xephi.authme.service.CancellableTask;
 import org.bukkit.Location;
 import org.bukkit.entity.EntityType;
-import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -85,10 +84,6 @@ public class LimboPlayer {
             this.timeoutTask.cancel();
         }
         this.timeoutTask = timeoutTask;
-    }
-
-    public void setTimeoutTask(BukkitTask timeoutTask) {
-        setTimeoutTask(timeoutTask == null ? null : timeoutTask::cancel);
     }
 
     public MessageTask getMessageTask() {

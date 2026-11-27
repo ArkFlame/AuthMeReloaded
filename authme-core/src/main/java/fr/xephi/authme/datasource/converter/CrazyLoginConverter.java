@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 /**
  * Converter for CrazyLogin to AuthMe. CrazyLogin stores passwords in plain text, so the
@@ -28,6 +29,8 @@ import java.util.Locale;
  * password after the conversion.
  */
 public class CrazyLoginConverter implements Converter {
+
+    private static final Pattern LINE_SEPARATOR = Pattern.compile("\\|");
 
     private final ConsoleLogger logger = ConsoleLoggerFactory.get(CrazyLoginConverter.class);
 
@@ -54,7 +57,7 @@ public class CrazyLoginConverter implements Converter {
         String line;
         try (BufferedReader users = new BufferedReader(new FileReader(source))) {
             while ((line = users.readLine()) != null) {
-                String[] args = line.split("\\|");
+                String[] args = LINE_SEPARATOR.split(line);
                 if (args.length < 2 || "name".equalsIgnoreCase(args[0])) {
                     continue;
                 }

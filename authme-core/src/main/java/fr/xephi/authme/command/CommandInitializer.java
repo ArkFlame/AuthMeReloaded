@@ -60,7 +60,6 @@ import fr.xephi.authme.permission.DebugSectionPermissions;
 import fr.xephi.authme.permission.PermissionNode;
 import fr.xephi.authme.permission.PlayerPermission;
 
-import java.util.Collection;
 import java.util.List;
 
 /**
@@ -82,7 +81,11 @@ public class CommandInitializer {
             .addAll(buildMiscBaseCommands())
             .build();
 
-        setHelpOnAllBases(commands);
+        for (CommandDescription base : commands) {
+            register(base, HelpCommand.class, labels("help", "hlp", "h", "sos", "?"), "View help",
+                "View detailed help for /" + base.getLabels().get(0) + " commands.", null,
+                arg("query", "The command or query to view help for.", OPTIONAL));
+        }
     }
 
     /**
@@ -368,19 +371,6 @@ public class CommandInitializer {
             arg("code", "Current 2FA code", MANDATORY));
 
         return totpBase;
-    }
-
-    /**
-     * Sets the help command on all base commands, e.g. to register /authme help or /register help.
-     *
-     * @param commands the list of base commands to register a help child command on
-     */
-    private void setHelpOnAllBases(Collection<CommandDescription> commands) {
-        for (CommandDescription base : commands) {
-            register(base, HelpCommand.class, labels("help", "hlp", "h", "sos", "?"), "View help",
-                "View detailed help for /" + base.getLabels().get(0) + " commands.", null,
-                arg("query", "The command or query to view help for.", OPTIONAL));
-        }
     }
 
     /**

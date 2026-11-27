@@ -37,7 +37,7 @@ class QuickCommandsProtectionManagerTest {
 
         String name = "TestName";
 
-        QuickCommandsProtectionManager qcpm = createQuickCommandsProtectioneManager();
+        QuickCommandsProtectionManager qcpm = new QuickCommandsProtectionManager(settings, permissionsManager);
         qcpm.processJoin(player);
 
         // when
@@ -56,7 +56,7 @@ class QuickCommandsProtectionManagerTest {
         Player player = mockPlayerWithName(name);
         given(settings.getProperty(ProtectionSettings.QUICK_COMMANDS_DENIED_BEFORE_MILLISECONDS)).willReturn(5000);
 
-        QuickCommandsProtectionManager qcpm = createQuickCommandsProtectioneManager();
+        QuickCommandsProtectionManager qcpm = new QuickCommandsProtectionManager(settings, permissionsManager);
         given(permissionsManager.hasPermission(player, PlayerPermission.QUICK_COMMANDS_PROTECTION)).willReturn(true);
         qcpm.processJoin(player);
 
@@ -65,9 +65,5 @@ class QuickCommandsProtectionManagerTest {
 
         // then
         assertThat(test, equalTo(false));
-    }
-
-    private QuickCommandsProtectionManager createQuickCommandsProtectioneManager() {
-        return new QuickCommandsProtectionManager(settings, permissionsManager);
     }
 }
