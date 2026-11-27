@@ -28,12 +28,12 @@ public class RecentPlayersCommand implements ExecutableCommand {
     @Override
     public void executeCommand(CommandSender sender, List<String> arguments) {
         List<PlayerAuth> recentPlayers = dataSource.getRecentlyLoggedInPlayers();
-
+        DateTimeFormatter formatter = DATE_FORMAT.withZone(getZoneId());
         sender.sendMessage(ChatColor.BLUE + "[AuthMe] Recently logged in players");
         for (PlayerAuth auth : recentPlayers) {
             Long lastLogin = auth.getLastLogin();
             sender.sendMessage("- " + auth.getRealName() + " (" + (lastLogin == null ? "never"
-                : DATE_FORMAT.withZone(getZoneId()).format(ofEpochMilli(lastLogin))) + " with IP "
+                : formatter.format(ofEpochMilli(lastLogin))) + " with IP "
                 + auth.getLastIp() + ")");
         }
     }

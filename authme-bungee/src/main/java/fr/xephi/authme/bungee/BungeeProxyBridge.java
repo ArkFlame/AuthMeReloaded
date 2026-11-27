@@ -136,6 +136,15 @@ public final class BungeeProxyBridge implements Listener {
         }
     }
 
+    private UUID consumeVerifiedPremium(String normalizedName) {
+        UUID verifiedPremiumUuid = premiumVerificationManager.getVerifiedPremiumUuid(normalizedName);
+        if (verifiedPremiumUuid != null) {
+            // A stored UUID means verification succeeded; the pending entry has served its purpose.
+            pendingPremiumUsernames.remove(normalizedName);
+        }
+        return verifiedPremiumUuid;
+    }
+
     void broadcastProxyStartedHandshake() {
         byte[] payload = ProxyMessages.proxyStarted(PROXY_IDENTITY);
         int notified = 0;
@@ -271,12 +280,13 @@ public final class BungeeProxyBridge implements Listener {
         }
 
         String normalizedName = BungeeAuthenticationStore.normalizeName(player.getName());
-        UUID verifiedPremiumUuid = premiumVerificationManager.getVerifiedPremiumUuid(normalizedName);
+        UUID verifiedPremiumUuid = consumeVerifiedPremium(normalizedName);
         boolean isPremiumJoin = connectingToAuthServer && verifiedPremiumUuid != null;
         if (!authenticationStore.isAuthenticated(player) && !isPremiumJoin) {
             return;
         }
         if (isPremiumJoin) {
+            pendingPremiumUsernames.remove(normalizedName);
             logger.fine("PacketEvents-verified premium player " + normalizedName
                 + " joining auth server — sending perform.login immediately");
         }
@@ -349,8 +359,10 @@ public final class BungeeProxyBridge implements Listener {
             logger.fine("Cancelling pending auto-login for " + normalizedName + " (player disconnected)");
         }
         pendingAutoLogins.remove(normalizedName);
+        pendingPremiumUsernames.remove(normalizedName);
         authenticationStore.markLoggedOut(event.getPlayer().getName());
         premiumVerificationManager.clearVerifiedPremium(normalizedName);
+        pendingPremiumUsernames.remove(normalizedName);
     }
 
     void shutdown() {
@@ -379,7 +391,7 @@ public final class BungeeProxyBridge implements Listener {
         String currentServerName = currentConn.getInfo().getName();
         logger.info("Player " + normalizedName + " already on server '" + currentServerName
             + "' when login message arrived — sending auto-login immediately");
-        UUID verifiedPremiumUuid = premiumVerificationManager.getVerifiedPremiumUuid(normalizedName);
+        UUID verifiedPremiumUuid = consumeVerifiedPremium(normalizedName);
         sendPerformLogin(normalizedName, currentConn.getInfo(), verifiedPremiumUuid);
         initiatePendingLogin(normalizedName);
     }
@@ -449,7 +461,7 @@ public final class BungeeProxyBridge implements Listener {
             String serverName = server.getInfo().getName();
             logger.fine("Retrying auto-login for " + normalizedName + " on server '" + serverName
                 + "' (attempt " + (current + 1) + "/" + MAX_RETRIES + ")");
-            UUID verifiedPremiumUuid = premiumVerificationManager.getVerifiedPremiumUuid(normalizedName);
+            UUID verifiedPremiumUuid = consumeVerifiedPremium(normalizedName);
             sendPerformLogin(normalizedName, server.getInfo(), verifiedPremiumUuid);
             scheduleRetry(normalizedName, attempts);
         }, 1, TimeUnit.SECONDS);

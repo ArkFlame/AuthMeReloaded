@@ -19,6 +19,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import static fr.xephi.authme.command.executable.authme.debug.DebugSectionUtils.applyToLimboPlayersMap;
+import static fr.xephi.authme.command.executable.authme.debug.DebugSectionUtils.castToTypeOrNull;
 
 /**
  * Fetches various statistics, particularly regarding in-memory data that is stored.
@@ -53,8 +54,8 @@ class DataStatistics implements DebugSection {
         sender.sendMessage("LimboPlayers in memory: " + applyToLimboPlayersMap(limboService, Map::size));
         sender.sendMessage("PlayerCache size: " + playerCache.getLogged() + " (= logged in players)");
         sender.sendMessage("Total players in DB: " + dataSource.getAccountsRegistered());
-        if (dataSource instanceof CacheDataSource) {
-            CacheDataSource cacheDataSource = (CacheDataSource) this.dataSource;
+        CacheDataSource cacheDataSource = castToTypeOrNull(dataSource, CacheDataSource.class);
+        if (cacheDataSource != null) {
             sender.sendMessage("Cached PlayerAuth objects: " + cacheDataSource.getCachedAuths().size());
         }
         sender.sendMessage("Singleton Java classes: " + singletonStore.retrieveAllOfType().size());

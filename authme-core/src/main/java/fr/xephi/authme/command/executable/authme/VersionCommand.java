@@ -8,9 +8,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import javax.inject.Inject;
-import java.text.SimpleDateFormat;
+import java.time.Year;
 import java.util.Collection;
-import java.util.Date;
 import java.util.List;
 
 public class VersionCommand implements ExecutableCommand {
@@ -40,7 +39,7 @@ public class VersionCommand implements ExecutableCommand {
         sender.sendMessage(ChatColor.GOLD + "License: " + ChatColor.WHITE + "GNU GPL v3.0"
             + ChatColor.GRAY + ChatColor.ITALIC + " (See LICENSE file)");
         sender.sendMessage(ChatColor.GOLD + "Copyright: " + ChatColor.WHITE + "Copyright (c) AuthMe-Team "
-            + new SimpleDateFormat("yyyy").format(new Date()) + ". Released under GPL v3 License.");
+            + Year.now().getValue() + ". Released under GPL v3 License.");
     }
 
     private static void printDeveloper(CommandSender sender, String name, String minecraftName, String function,

@@ -454,11 +454,13 @@ final class VelocityProxyBridge {
         if (pendingAutoLogins.remove(normalizedName) != null) {
             logger.debug("Cancelling pending auto-login for {} (player disconnected)", normalizedName);
         }
+        pendingPremiumUsernames.remove(normalizedName);
         if (authenticationStore.isAuthenticated(normalizedName)) {
             logger.debug("Clearing auth state for {} (player disconnected)", normalizedName);
         }
         authenticationStore.markLoggedOut(event.getPlayer().getUsername());
         premiumVerificationManager.clearVerifiedPremium(normalizedName);
+        pendingPremiumUsernames.remove(normalizedName);
     }
 
     void shutdown() {

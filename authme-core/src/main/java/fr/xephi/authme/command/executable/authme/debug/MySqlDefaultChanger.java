@@ -103,26 +103,29 @@ class MySqlDefaultChanger implements DebugSection {
         }
     }
 
+    private String[] getTableAndColumnNames(Columns column) {
+        return new String[]{settings.getProperty(DatabaseSettings.MYSQL_TABLE),
+            settings.getProperty(column.getColumnNameProperty())};
+    }
+
     /**
      * Adds a default value to the column definition and adds a {@code NOT NULL} constraint for
      * the specified column.
      */
     private void changeColumnToNotNullWithDefault(CommandSender sender, Columns column,
                                                   Connection con) throws SQLException {
-        final String tableName = settings.getProperty(DatabaseSettings.MYSQL_TABLE);
-        final String columnName = settings.getProperty(column.getColumnNameProperty());
-
+        String[] names = getTableAndColumnNames(column);
         // Replace NULLs with future default value
-        String sql = format("UPDATE %s SET %s = ? WHERE %s IS NULL;", tableName, columnName, columnName);
+        String sql = format("UPDATE %s SET %s = ? WHERE %s IS NULL;", names[0], names[1], names[1]);
         int updatedRows = executeUpdateWithDefault(con, sql, column.getDefaultValue());
         sender.sendMessage("Replaced NULLs with default value ('" + column.getDefaultValue()
             + "'), modifying " + updatedRows + " entries");
 
         // Change column definition to NOT NULL version
-        alterColumn(con, tableName, columnName, column.getNotNullDefinition());
-        sender.sendMessage("Changed column '" + columnName + "' to have NOT NULL constraint");
+        alterColumn(con, names[0], names[1], column.getNotNullDefinition());
+        sender.sendMessage("Changed column '" + names[1] + "' to have NOT NULL constraint");
 
-        logger.info("Changed MySQL column '" + columnName + "' to be NOT NULL"
+        logger.info("Changed MySQL column '" + names[1] + "' to be NOT NULL"
             + ", as initiated by '" + sender.getName() + "'");
     }
 
@@ -131,20 +134,18 @@ class MySqlDefaultChanger implements DebugSection {
      * default value to {@code NULL}.
      */
     private void removeNotNullAndDefault(CommandSender sender, Columns column, Connection con) throws SQLException {
-        final String tableName = settings.getProperty(DatabaseSettings.MYSQL_TABLE);
-        final String columnName = settings.getProperty(column.getColumnNameProperty());
-
+        String[] names = getTableAndColumnNames(column);
         // Change column definition to nullable version
-        alterColumn(con, tableName, columnName, column.getNullableDefinition());
-        sender.sendMessage("Changed column '" + columnName + "' to allow nulls");
+        alterColumn(con, names[0], names[1], column.getNullableDefinition());
+        sender.sendMessage("Changed column '" + names[1] + "' to allow nulls");
 
         // Replace old default value with NULL
-        String sql = format("UPDATE %s SET %s = NULL WHERE %s = ?;", tableName, columnName, columnName);
+        String sql = format("UPDATE %s SET %s = NULL WHERE %s = ?;", names[0], names[1], names[1]);
         int updatedRows = executeUpdateWithDefault(con, sql, column.getDefaultValue());
         sender.sendMessage("Replaced default value ('" + column.getDefaultValue()
             + "') to be NULL, modifying " + updatedRows + " entries");
 
-        logger.info("Changed MySQL column '" + columnName + "' to allow NULL"
+        logger.info("Changed MySQL column '" + names[1] + "' to allow NULL"
             + ", as initiated by '" + sender.getName() + "'");
     }
 
@@ -178,15 +179,14 @@ class MySqlDefaultChanger implements DebugSection {
      */
     private void showColumnDetails(CommandSender sender) {
         sender.sendMessage(ChatColor.BLUE + "MySQL column details");
-        final String tableName = settings.getProperty(DatabaseSettings.MYSQL_TABLE);
         try (Connection con = getConnection(mySql)) {
             final DatabaseMetaData metaData = con.getMetaData();
             for (Columns col : Columns.values()) {
-                String columnName = settings.getProperty(col.getColumnNameProperty());
-                boolean isNotNull = isNotNullColumn(metaData, tableName, columnName);
-                Object defaultValue = getColumnDefaultValue(metaData, tableName, columnName);
+                String[] names = getTableAndColumnNames(col);
+                boolean isNotNull = isNotNullColumn(metaData, names[0], names[1]);
+                Object defaultValue = getColumnDefaultValue(metaData, names[0], names[1]);
                 sender.sendMessage(formatColumn(col, isNotNull, defaultValue != null)
-                    + " (" + columnName + "): " + (isNotNull ? "NOT NULL" : "nullable")
+                    + " (" + names[1] + "): " + (isNotNull ? "NOT NULL" : "nullable")
                     + ", " + (defaultValue == null ? "no default" : "default: '" + defaultValue + "'"));
             }
         } catch (SQLException e) {
@@ -218,14 +218,12 @@ class MySqlDefaultChanger implements DebugSection {
     private String constructColumnListWithMetadata() {
         try (Connection con = getConnection(mySql)) {
             final DatabaseMetaData metaData = con.getMetaData();
-            final String tableName = settings.getProperty(DatabaseSettings.MYSQL_TABLE);
-
             List<String> formattedColumns = new ArrayList<>(Columns.values().length);
             for (Columns col : Columns.values()) {
-                String columnName = settings.getProperty(col.getColumnNameProperty());
+                String[] names = getTableAndColumnNames(col);
                 formattedColumns.add(formatColumn(col,
-                    isNotNullColumn(metaData, tableName, columnName),
-                    getColumnDefaultValue(metaData, tableName, columnName) != null));
+                    isNotNullColumn(metaData, names[0], names[1]),
+                    getColumnDefaultValue(metaData, names[0], names[1]) != null));
             }
             return String.join(ChatColor.RESET + ", ", formattedColumns);
         } catch (SQLException e) {

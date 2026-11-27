@@ -5,6 +5,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -120,6 +121,6 @@ public final class CommandUtils {
         if (trimmed.startsWith("/")) {
             trimmed = trimmed.substring(1).trim();
         }
-        return trimmed.isEmpty() ? new ArrayList<>() : Lists.newArrayList(trimmed.split("\\s+"));
+        return trimmed.isEmpty() ? Collections.emptyList() : Lists.newArrayList(trimmed.split("\\s+"));
     }
 }

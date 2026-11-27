@@ -130,7 +130,8 @@ public class PermissionsManager implements Reloadable {
 
     /** @return the permissions system that is hooked into, or null. */
     public PermissionsSystemType getPermissionSystem() {
-        return isEnabled() ? handler.getPermissionSystem() : null;
+        PermissionHandler currentHandler = handler;
+        return currentHandler != null ? currentHandler.getPermissionSystem() : null;
     }
 
     /**
@@ -175,17 +176,20 @@ public class PermissionsManager implements Reloadable {
 
     /** @return true if the current permissions system supports groups. */
     public boolean hasGroupSupport() {
-        return isEnabled() && handler.hasGroupSupport();
+        PermissionHandler currentHandler = handler;
+        return currentHandler != null && currentHandler.hasGroupSupport();
     }
 
     /** @return the player's permission groups, or an empty collection if this feature is not supported. */
     public Collection<UserGroup> getGroups(OfflinePlayer player) {
-        return isEnabled() ? handler.getGroups(player) : Collections.emptyList();
+        PermissionHandler currentHandler = handler;
+        return currentHandler != null ? currentHandler.getGroups(player) : Collections.emptyList();
     }
 
     /** @return the name of the player's primary permission group, or null. */
     public UserGroup getPrimaryGroup(OfflinePlayer player) {
-        return isEnabled() ? handler.getPrimaryGroup(player) : null;
+        PermissionHandler currentHandler = handler;
+        return currentHandler != null ? currentHandler.getPrimaryGroup(player) : null;
     }
 
     /** Add the permission group of a player, if supported. */
@@ -228,7 +232,8 @@ public class PermissionsManager implements Reloadable {
 
     /** Set the permission group of a player, clearing its current groups, if supported. */
     public boolean setGroup(OfflinePlayer player, UserGroup group) {
-        return isEnabled() && handler.setGroup(player, group);
+        PermissionHandler currentHandler = handler;
+        return currentHandler != null && currentHandler.setGroup(player, group);
     }
 
     /**

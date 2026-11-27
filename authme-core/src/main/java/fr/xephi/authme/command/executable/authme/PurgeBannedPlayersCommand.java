@@ -35,6 +35,6 @@ public class PurgeBannedPlayersCommand implements ExecutableCommand {
             }
         }
 
-        purgeService.purgePlayers(sender, namedBanned, bannedPlayers.toArray(new OfflinePlayer[0]));
+        purgeService.purgePlayers(sender, namedBanned, bannedPlayers.toArray(new OfflinePlayer[bannedPlayers.size()]));
     }
 }
