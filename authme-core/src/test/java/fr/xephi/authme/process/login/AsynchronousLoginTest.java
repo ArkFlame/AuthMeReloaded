@@ -146,7 +146,10 @@ class AsynchronousLoginTest {
     void shouldNotForceLoginWhenIpLimitReachedOrEventCanceled(boolean canceledEvent) {
         String name = "oscar";
         String ip = "1.1.1.245";
-        Player player = prepareForceLoginPlayer(name, ip);
+        Player player = mockPlayer(name, ip);
+        given(playerCache.isAuthenticated(name)).willReturn(false);
+        given(dataSource.getAuth(name)).willReturn(PlayerAuth.builder().name(name).build());
+        given(commonService.getProperty(DatabaseSettings.MYSQL_COL_GROUP)).willReturn("");
         if (canceledEvent) {
             given(commonService.getProperty(PluginSettings.USE_ASYNC_TASKS)).willReturn(true);
         }
@@ -340,15 +343,6 @@ class AsynchronousLoginTest {
     private static Player mockPlayer(String name, String ip) {
         Player player = mockPlayer(name);
         TestHelper.mockIpAddressToPlayer(player, ip);
-        return player;
-    }
-
-    private Player prepareForceLoginPlayer(String name, String ip) {
-        Player player = mockPlayer(name, ip);
-        given(playerCache.isAuthenticated(name)).willReturn(false);
-        PlayerAuth auth = PlayerAuth.builder().name(name).build();
-        given(dataSource.getAuth(name)).willReturn(auth);
-        given(commonService.getProperty(DatabaseSettings.MYSQL_COL_GROUP)).willReturn("");
         return player;
     }
 

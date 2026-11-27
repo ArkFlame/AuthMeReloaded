@@ -26,10 +26,6 @@ final class VelocityAuthenticationStore {
         return authenticatedPlayers.contains(normalizeName(playerName));
     }
 
-    void clear(Player player) {
-        markLoggedOut(player.getUsername());
-    }
-
     static String normalizeName(String playerName) {
         return playerName.toLowerCase(Locale.ROOT);
     }

@@ -479,17 +479,13 @@ public class PlayerListener extends AbstractCancelListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onPlayerTeleport(PlayerTeleportEvent event) {
-        if (isBlockedTeleportCause(event.getCause())) {
+        if (BLOCKED_TELEPORT_CAUSES.contains(event.getCause().name())) {
             cancelIfUnauthorized(event);
         }
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onPlayerPortal(PlayerPortalEvent event) { cancelIfUnauthorized(event); }
-
-    private static boolean isBlockedTeleportCause(PlayerTeleportEvent.TeleportCause cause) {
-        return BLOCKED_TELEPORT_CAUSES.contains(cause.name());
-    }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onPlayerRespawn(PlayerRespawnEvent event) {

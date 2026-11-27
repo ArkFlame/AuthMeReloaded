@@ -4,7 +4,6 @@ import fr.xephi.authme.process.register.RegisterSecondaryArgument;
 import fr.xephi.authme.process.register.RegistrationType;
 import net.md_5.bungee.api.dialog.MultiActionDialog;
 import net.md_5.bungee.api.dialog.action.RunCommandAction;
-import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;

@@ -25,17 +25,11 @@ public abstract class AbstractCancellableEvent extends CustomEvent implements Ca
         super(isAsync);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public boolean isCancelled() {
         return cancelled;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void setCancelled(boolean cancelled) {
         this.cancelled = cancelled;

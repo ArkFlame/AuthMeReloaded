@@ -20,11 +20,7 @@ import javax.inject.Inject;
 public abstract class AbstractPaperAsyncPlayerSpawnLocationListener implements Listener {
 
     @Inject
-    private TeleportationService teleportationService;
-
-    protected final TeleportationService getTeleportationService() {
-        return teleportationService;
-    }
+    protected TeleportationService teleportationService;
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onPlayerSpawn(AsyncPlayerSpawnLocationEvent event) {

@@ -4,6 +4,7 @@ import com.github.retrooper.packetevents.event.PacketListenerAbstract;
 import com.github.retrooper.packetevents.event.PacketReceiveEvent;
 import com.github.retrooper.packetevents.netty.channel.ChannelHelper;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
+import com.github.retrooper.packetevents.protocol.packettype.PacketTypeCommon;
 import com.github.retrooper.packetevents.protocol.player.ClientVersion;
 import com.github.retrooper.packetevents.protocol.player.User;
 import com.github.retrooper.packetevents.wrapper.login.client.WrapperLoginClientEncryptionResponse;
@@ -57,9 +58,10 @@ public class PremiumVerificationPacketListener extends PacketListenerAbstract {
 
     @Override
     public void onPacketReceive(PacketReceiveEvent event) {
-        if (event.getPacketType() == PacketType.Login.Client.LOGIN_START) {
+        PacketTypeCommon packetType = event.getPacketType();
+        if (packetType == PacketType.Login.Client.LOGIN_START) {
             handleLoginStart(event);
-        } else if (event.getPacketType() == PacketType.Login.Client.ENCRYPTION_RESPONSE) {
+        } else if (packetType == PacketType.Login.Client.ENCRYPTION_RESPONSE) {
             handleEncryptionResponse(event);
         }
     }

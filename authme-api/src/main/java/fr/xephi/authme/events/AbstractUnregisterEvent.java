@@ -23,7 +23,7 @@ public abstract class AbstractUnregisterEvent extends CustomEvent {
      * <p>
      * This may be {@code null}! Please refer to the implementations of this class for details.
      *
-     * @return the unregistered player, or null
+     * @return the unregistered player, or {@code null}
      */
     public Player getPlayer() {
         return player;

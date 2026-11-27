@@ -1,8 +1,5 @@
 package fr.xephi.authme.data.limbo.persistence;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * Creates segment names for {@link DistributedFilesPersistenceHandler}.
  */
@@ -11,7 +8,7 @@ class SegmentNameBuilder {
     private final int length;
     private final int distribution;
     private final String prefix;
-    private final Map<Character, Character> charToSegmentChar;
+    private final char[] segmentChars;
 
     /**
      * Constructor.
@@ -22,7 +19,7 @@ class SegmentNameBuilder {
         this.length = partition.getLength();
         this.distribution = partition.getDistribution();
         this.prefix = "seg" + partition.getTotalSegments() + "-";
-        this.charToSegmentChar = buildCharMap(distribution);
+        this.segmentChars = distribution == 16 ? null : buildCharMap(distribution);
     }
 
     /**
@@ -46,21 +43,18 @@ class SegmentNameBuilder {
     private String buildSegmentName(String uuidPrefix) {
         StringBuilder sb = new StringBuilder(uuidPrefix.length());
         for (int i = 0; i < uuidPrefix.length(); ++i) {
-            sb.append(charToSegmentChar.get(uuidPrefix.charAt(i)));
+            sb.append(segmentChars[uuidPrefix.charAt(i)]);
         }
         return sb.toString();
     }
 
-    private static Map<Character, Character> buildCharMap(int distribution) {
+    private static char[] buildCharMap(int distribution) {
         final char[] hexChars = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
         final int divisor = 16 / distribution;
-
-        Map<Character, Character> charToSegmentChar = new HashMap<>();
+        char[] charToSegmentChar = new char['f' + 1];
         for (int i = 0; i < hexChars.length; ++i) {
-            int mappedChar = i / divisor;
-            charToSegmentChar.put(hexChars[i], hexChars[mappedChar]);
+            charToSegmentChar[hexChars[i]] = hexChars[i / divisor];
         }
         return charToSegmentChar;
     }
-
 }

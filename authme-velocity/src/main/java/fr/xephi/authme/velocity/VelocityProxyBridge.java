@@ -216,7 +216,7 @@ final class VelocityProxyBridge {
 
             authenticationStore.markAuthenticated(playerName);
             sendAutoLoginIfAlreadySwitched(playerName, serverConnection.getServer());
-            redirectToLoginServer(playerName);
+            redirectPlayer(playerName, configuration.loginServer(), "authentication", false);
         } else if (pendingAutoLogins.remove(playerName) != null) {
             // Implicit ACK: login from non-auth server confirms perform.login was processed
             logger.info("Auto-login confirmed for {} via login from server '{}'", playerName, serverName);
@@ -231,7 +231,9 @@ final class VelocityProxyBridge {
         authenticationStore.markLoggedOut(playerName);
         proxyServer.getPlayer(normalizedName).ifPresent(player ->
             proxyServer.getEventManager().fireAndForget(new AuthMeVelocityLogoutEvent(player)));
-        redirectLoggedOutPlayer(playerName);
+        if (configuration.sendOnLogoutEnabled()) {
+            redirectPlayer(playerName, configuration.sendOnLogoutTarget(), "logout", true);
+        }
     }
 
     private void handlePerformLoginAck(String playerName, String serverName) {
@@ -456,7 +458,7 @@ final class VelocityProxyBridge {
         if (authenticationStore.isAuthenticated(normalizedName)) {
             logger.debug("Clearing auth state for {} (player disconnected)", normalizedName);
         }
-        authenticationStore.clear(event.getPlayer());
+        authenticationStore.markLoggedOut(event.getPlayer().getUsername());
         premiumVerificationManager.clearVerifiedPremium(normalizedName);
     }
 
@@ -600,52 +602,27 @@ final class VelocityProxyBridge {
         return server.sendPluginMessage(AUTHME_CHANNEL, payload);
     }
 
-    private void redirectToLoginServer(String normalizedPlayerName) {
-        String loginServer = configuration.loginServer();
-        if (loginServer.isEmpty()) {
+    /** Shared redirect path for the post-login and post-logout server transfers. */
+    private void redirectPlayer(String normalizedPlayerName, String target, String reason, boolean warnIfNoTarget) {
+        if (target.isEmpty()) {
+            if (warnIfNoTarget) {
+                logger.warn("Received {} for {} but no target server is configured", reason, normalizedPlayerName);
+            }
             return;
         }
         Optional<Player> playerOpt = proxyServer.getPlayer(normalizedPlayerName);
         if (playerOpt.isEmpty()) {
-            logger.debug("Cannot redirect {} to loginServer: player no longer on proxy", normalizedPlayerName);
+            logger.debug("Cannot redirect {} to '{}': player no longer on proxy", normalizedPlayerName, target);
             return;
         }
-        Optional<RegisteredServer> targetServer = proxyServer.getServer(loginServer);
-        if (targetServer.isEmpty()) {
-            logger.warn("loginServer '{}' is not registered on the proxy; cannot redirect {}",
-                loginServer, normalizedPlayerName);
-            return;
-        }
-        logger.info("Redirecting {} to login server '{}' after authentication",
-            normalizedPlayerName, loginServer);
-        playerOpt.get().createConnectionRequest(targetServer.get()).fireAndForget();
-    }
-
-    private void redirectLoggedOutPlayer(String normalizedPlayerName) {
-        if (!configuration.sendOnLogoutEnabled()) {
-            return;
-        }
-        String target = configuration.sendOnLogoutTarget();
-        if (target.isEmpty()) {
-            logger.warn("Received logout for {} but sendOnLogout has no configured target server", normalizedPlayerName);
-            return;
-        }
-
-        Optional<Player> player = proxyServer.getPlayer(normalizedPlayerName);
-        if (player.isEmpty()) {
-            logger.debug("Received logout for {} but they are no longer on the proxy", normalizedPlayerName);
-            return;
-        }
-
         Optional<RegisteredServer> targetServer = proxyServer.getServer(target);
         if (targetServer.isEmpty()) {
-            logger.warn("Received logout for {} but target server '{}' is not registered on the proxy",
-                normalizedPlayerName, target);
+            logger.warn("Target server '{}' is not registered on the proxy; cannot redirect {} after {}",
+                target, normalizedPlayerName, reason);
             return;
         }
-
-        logger.info("Redirecting {} to server '{}' after logout", normalizedPlayerName, target);
-        player.get().createConnectionRequest(targetServer.get()).fireAndForget();
+        logger.info("Redirecting {} to server '{}' after {}", normalizedPlayerName, target, reason);
+        playerOpt.get().createConnectionRequest(targetServer.get()).fireAndForget();
     }
 
     private record ParsedMessage(ProxyMessageType type, String playerName) {

@@ -32,7 +32,7 @@ import java.nio.file.Path;
 public final class AuthMeVelocityPlugin extends AbstractAuthMeVelocityPlugin {
 
     private final ProxyServer server;
-    private VelocityConfigManager configManager;
+    private final VelocityConfigManager configManager;
     private final VelocityProxyBridge proxyBridge;
 
     @Inject

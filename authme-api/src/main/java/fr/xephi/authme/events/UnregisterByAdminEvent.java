@@ -7,8 +7,8 @@ import org.bukkit.event.HandlerList;
 /**
  * Event fired after a player name has been unregistered by an admin or via the API.
  * <p>
- * Only {@code playerName} is guaranteed to be non-null. The {@code player} may be null for a name the
- * server has never seen online, and the {@code initiator} is null when the unregister came from the API
+ * Only {@code playerName} is guaranteed to be non-null. The {@code player} may be {@code null} for a name the
+ * server has never seen online, and the {@code initiator} is {@code null} when the unregister came from the API
  * instead of a command.
  */
 public class UnregisterByAdminEvent extends AbstractUnregisterEvent {
@@ -18,10 +18,10 @@ public class UnregisterByAdminEvent extends AbstractUnregisterEvent {
     private final CommandSender initiator;
 
     /**
-     * @param player the player, may be null (see class JavaDoc)
-     * @param playerName the unregistered name
+     * @param player the player, may be {@code null} (see class JavaDoc)
+     * @param playerName the unregistered name, never {@code null}
      * @param isAsync whether the event is async
-     * @param initiator the initiator, may be null (see class JavaDoc)
+     * @param initiator the initiator, may be {@code null} (see class JavaDoc)
      */
     public UnregisterByAdminEvent(Player player, String playerName, boolean isAsync, CommandSender initiator) {
         super(player, isAsync);

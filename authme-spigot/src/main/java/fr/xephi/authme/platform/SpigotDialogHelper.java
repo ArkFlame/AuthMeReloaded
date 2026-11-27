@@ -95,7 +95,7 @@ final class SpigotDialogHelper {
 
     static void showRegisterDialog(Player player, RegistrationType type, RegisterSecondaryArgument secondArg,
                                    DialogWindowSpec dialog) {
-        show(player, newSingleActionDialog(dialog, createRegisterTemplate(type, secondArg)));
+        show(player, newSingleActionDialog(dialog, DialogCommandTemplates.registerTemplate(type, secondArg)));
     }
 
     /** Builds the common single-button dialog used by every dialog except the multi-button login dialog. */
@@ -128,18 +128,6 @@ final class SpigotDialogHelper {
         return dialog.body() == null
             ? List.of()
             : List.<DialogBody>of(new PlainMessageBody(toTextComponent(dialog.body())));
-    }
-
-    private static String createRegisterTemplate(RegistrationType type, RegisterSecondaryArgument secondArg) {
-        String field = type == RegistrationType.EMAIL ? "$(email)" : "$(password)";
-        if (secondArg == RegisterSecondaryArgument.CONFIRMATION) {
-            return "register " + field + " $(confirm)";
-        }
-        if (type != RegistrationType.EMAIL && (secondArg == RegisterSecondaryArgument.EMAIL_MANDATORY
-            || secondArg == RegisterSecondaryArgument.EMAIL_OPTIONAL)) {
-            return "register " + field + " $(email)";
-        }
-        return "register " + field;
     }
 
     private static TextComponent toTextComponent(String text) {

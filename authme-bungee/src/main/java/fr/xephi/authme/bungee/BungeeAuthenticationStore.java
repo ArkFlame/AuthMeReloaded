@@ -26,10 +26,6 @@ final class BungeeAuthenticationStore {
         return authenticatedPlayers.contains(normalizeName(playerName));
     }
 
-    void clear(ProxiedPlayer player) {
-        markLoggedOut(player.getName());
-    }
-
     static String normalizeName(String playerName) {
         return playerName.toLowerCase(Locale.ROOT);
     }

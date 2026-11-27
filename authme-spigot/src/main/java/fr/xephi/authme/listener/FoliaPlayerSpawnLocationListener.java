@@ -11,6 +11,6 @@ public class FoliaPlayerSpawnLocationListener extends AbstractPaperAsyncPlayerSp
 
     @Override
     protected Location determineCustomSpawnLocation(String playerName, Location originalSpawnLocation) {
-        return getTeleportationService().prepareOnJoinSpawnLocation(playerName, originalSpawnLocation);
+        return teleportationService.prepareOnJoinSpawnLocation(playerName, originalSpawnLocation);
     }
 }

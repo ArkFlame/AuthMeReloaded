@@ -7,6 +7,7 @@ import fr.xephi.authme.bungee.events.AuthMeBungeeLogoutEvent;
 import fr.xephi.authme.bungee.premium.BungeePremiumOnlineModeHandler;
 import fr.xephi.authme.bungee.premium.PremiumVerificationManager;
 import fr.xephi.authme.bungee.premium.PremiumVerificationManagers;
+import fr.xephi.authme.proxy.ProxyMessageSecurity;
 import fr.xephi.authme.proxy.ProxyMessageType;
 import fr.xephi.authme.proxy.ProxyMessages;
 import net.md_5.bungee.api.ChatColor;
@@ -46,6 +47,7 @@ public final class BungeeProxyBridge implements Listener {
     private static final int MAX_RETRIES = 3;
     // Avoid cloning the values() array on every incoming plugin message (ProxyMessageType.fromId does).
     private static final Map<String, ProxyMessageType> MESSAGE_TYPES_BY_ID = createMessageTypeMap();
+    private static final ParsedPluginMessage INVALID_MESSAGE = new ParsedPluginMessage(null, null);
 
     private static Map<String, ProxyMessageType> createMessageTypeMap() {
         Map<String, ProxyMessageType> map = new HashMap<>();
@@ -357,7 +359,7 @@ public final class BungeeProxyBridge implements Listener {
             logger.fine("Cancelling pending auto-login for " + normalizedName + " (player disconnected)");
         }
         pendingAutoLogins.remove(normalizedName);
-        authenticationStore.clear(event.getPlayer());
+        authenticationStore.markLoggedOut(event.getPlayer().getName());
         premiumVerificationManager.clearVerifiedPremium(normalizedName);
     }
 
@@ -477,14 +479,14 @@ public final class BungeeProxyBridge implements Listener {
     private ParsedPluginMessage parsePluginMessage(byte[] data) {
         if (data == null) {
             logger.warning("Received AuthMe plugin message without a payload on the authme:main channel");
-            return new ParsedPluginMessage(null, null);
+            return INVALID_MESSAGE;
         }
         ByteArrayDataInput input = ByteStreams.newDataInput(data);
 
         try {
             ProxyMessageType type = MESSAGE_TYPES_BY_ID.get(input.readUTF());
             if (type == null || type == ProxyMessageType.PERFORM_LOGIN || type == ProxyMessageType.PROXY_STARTED) {
-                return new ParsedPluginMessage(null, null);
+                return INVALID_MESSAGE;
             }
             String argument = input.readUTF();
             boolean rawArgument = type == ProxyMessageType.PREMIUM_LIST || type == ProxyMessageType.PREMIUM_LIST_CHUNK;
@@ -495,12 +497,12 @@ public final class BungeeProxyBridge implements Listener {
             String normalizedName = BungeeAuthenticationStore.normalizeName(argument);
             if (normalizedName.isEmpty()) {
                 logger.warning("Ignoring AuthMe plugin message '" + type.id() + "' without a player name");
-                return new ParsedPluginMessage(null, null);
+                return INVALID_MESSAGE;
             }
             return new ParsedPluginMessage(type, normalizedName);
         } catch (IllegalStateException e) {
             logger.warning("Received malformed AuthMe plugin message on the authme:main channel");
-            return new ParsedPluginMessage(null, null);
+            return INVALID_MESSAGE;
         }
     }
 

@@ -42,7 +42,7 @@ public final class PaperDialogHelper {
 
     static void showRegisterDialog(Player player, RegistrationType type, RegisterSecondaryArgument secondArg,
                                    DialogWindowSpec dialog) {
-        showCommandDialog(player, dialog, createRegisterTemplate(type, secondArg));
+        showCommandDialog(player, dialog, DialogCommandTemplates.registerTemplate(type, secondArg));
     }
 
     static void showRecoveryCodeDialog(Player player, DialogWindowSpec dialog) {
@@ -146,18 +146,6 @@ public final class PaperDialogHelper {
         return dialog.body() == null
             ? List.of()
             : List.of(DialogBody.plainMessage(legacyComponent(dialog.body())));
-    }
-
-    private static String createRegisterTemplate(RegistrationType type, RegisterSecondaryArgument secondArg) {
-        boolean email = type == RegistrationType.EMAIL;
-        String template = "register " + (email ? "$(email)" : "$(password)");
-        if (secondArg == RegisterSecondaryArgument.CONFIRMATION) {
-            return template + " $(confirm)";
-        }
-        return !email && (secondArg == RegisterSecondaryArgument.EMAIL_MANDATORY
-            || secondArg == RegisterSecondaryArgument.EMAIL_OPTIONAL)
-            ? template + " $(email)"
-            : template;
     }
 
     private static Component legacyComponent(String text) {

@@ -17,6 +17,6 @@ public class PaperPlayerSpawnLocationListener extends AbstractPaperAsyncPlayerSp
     @Override
     protected Location determineCustomSpawnLocation(String playerName, Location originalSpawnLocation) {
         return bukkitService.callSyncMethodFromOptionallyAsyncTask(
-            () -> getTeleportationService().prepareOnJoinSpawnLocation(playerName, originalSpawnLocation));
+            () -> teleportationService.prepareOnJoinSpawnLocation(playerName, originalSpawnLocation));
     }
 }

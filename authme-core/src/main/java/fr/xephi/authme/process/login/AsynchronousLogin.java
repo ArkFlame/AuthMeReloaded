@@ -50,7 +50,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /** Asynchronous task for a player login. */
 public class AsynchronousLogin implements AsynchronousProcess {
 
-    private final ConsoleLogger logger = ConsoleLoggerFactory.get(AsynchronousLogin.class);
+    private final ConsoleLogger logger;
 
     /** Lowercase names of players whose login is currently being processed, to ignore duplicate requests. */
     private final Set<String> loginsInProgress = Collections.newSetFromMap(new ConcurrentHashMap<>());
@@ -101,6 +101,7 @@ public class AsynchronousLogin implements AsynchronousProcess {
     private DialogStateService dialogStateService;
 
     AsynchronousLogin() {
+        logger = ConsoleLoggerFactory.get(AsynchronousLogin.class);
     }
 
     /** Processes a player's login request. */

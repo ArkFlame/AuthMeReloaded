@@ -227,7 +227,13 @@ public class OnJoinVerifier implements Reloadable {
             if (onlinePlayers.size() < server.getMaxPlayers()) {
                 return null;
             }
-            Player nonVipPlayer = generateKickPlayer(onlinePlayers);
+            Player nonVipPlayer = null;
+            for (Player player : onlinePlayers) {
+                if (!permissionsManager.hasPermission(player, PlayerStatePermission.IS_VIP)) {
+                    nonVipPlayer = player;
+                    break;
+                }
+            }
             if (nonVipPlayer != null) {
                 nonVipPlayer.kickPlayer(messages.retrieveSingle(playerName, MessageKey.KICK_FOR_VIP));
                 return null;
@@ -291,21 +297,5 @@ public class OnJoinVerifier implements Reloadable {
                 throw new FailedVerificationException(MessageKey.USERNAME_ALREADY_ONLINE_ERROR);
             }
         }
-    }
-
-    /**
-     * Selects a non-VIP player to kick when a VIP player joins the server when full.
-     *
-     * @param onlinePlayers list of online players
-     *
-     * @return the player to kick, or null if none applicable
-     */
-    private Player generateKickPlayer(Collection<Player> onlinePlayers) {
-        for (Player player : onlinePlayers) {
-            if (!permissionsManager.hasPermission(player, PlayerStatePermission.IS_VIP)) {
-                return player;
-            }
-        }
-        return null;
     }
 }
