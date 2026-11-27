@@ -14,8 +14,8 @@ Players who are not logged in cannot move, place or break blocks, run commands, 
 
 ## Highlights
 
-- **One jar for Spigot, Paper and Folia** (1.16 – 1.21.x). The right platform adapter is chosen automatically at startup, so there is no separate Paper or Folia build.
-- **Separate jar for legacy servers**: Spigot 1.8.8 – 1.15.2 (Java 8).
+- **One jar for Spigot, Paper and Folia** (1.17 – 1.21.x, Java 17+; 1.16.5 runs on Java 8–16 only, so use the legacy jar there). The right platform adapter is chosen automatically at startup, so there is no separate Paper or Folia build.
+- **Separate jar for legacy servers**: Spigot 1.8.8 – 1.16.5 (Java 8).
 - **Native proxy plugins** for **BungeeCord / Waterfall** and **Velocity**.
 - **Login and register dialogs** on supported versions (Paper 1.21.11+, Spigot 1.21.6+).
 - **Per-player language.** Messages follow the client language the player has selected, with the server's configured language as the fallback. Many translations are bundled, and you can add your own.
@@ -32,8 +32,8 @@ Players who are not logged in cannot move, place or break blocks, run commands, 
 
 | File | For |
 |------|-----|
-| `AuthMeRemastered-<version>-<sha>-Spigot.jar` | Spigot 1.16 – 1.21.x, Paper and Folia (Java 17+; Java 21 for Paper and dialogs) |
-| `AuthMeRemastered-<version>-<sha>-Spigot-1.8.jar` | Spigot 1.8.8 – 1.15.2 (Java 8) |
+| `AuthMeRemastered-<version>-<sha>-Spigot.jar` | Spigot 1.17 – 1.21.x, Paper and Folia (Java 17+; Java 21 for Paper and dialogs) |
+| `AuthMeRemastered-<version>-<sha>-Spigot-1.8.jar` | Spigot 1.8.8 – 1.16.5 (Java 8) |
 | `AuthMeRemastered-<version>-<sha>-Bungee.jar` | BungeeCord / Waterfall |
 | `AuthMeRemastered-<version>-<sha>-Velocity.jar` | Velocity |
 | `AuthMeRemastered-API-<version>-<sha>.jar` | Developer API (events only) |
