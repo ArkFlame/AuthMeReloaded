@@ -186,8 +186,11 @@ final class ConverterUtils {
             if (auth == null) {
                 continue;
             }
-            dataSource.saveAuth(auth);
-            ++imported;
+            if (dataSource.saveAuth(auth)) {
+                ++imported;
+            } else {
+                logAndSendMessage(sender, pluginName + " conversion: could not save account '" + name + "'");
+            }
         }
         logImportResult(sender, pluginName, imported, skipped);
     }
