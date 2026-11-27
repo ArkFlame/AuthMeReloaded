@@ -344,7 +344,8 @@ public class AuthMeApi {
      *
      * @param ip textual IP address to lookup.
      *
-     * @return two-character ISO 3166-1 alpha code for the country.
+     * @return two-character ISO 3166-1 alpha code for the country; never null: "LOCALHOST" for local addresses
+     *         and "--" if the country is unknown.
      */
     public String getCountryCode(String ip) {
         return geoIpService.getCountryCode(ip);
@@ -355,7 +356,7 @@ public class AuthMeApi {
      *
      * @param ip textual IP address to lookup.
      *
-     * @return The name of the country.
+     * @return the name of the country; never null: "LocalHost" for local addresses and "N/A" if unknown.
      */
     public String getCountryName(String ip) {
         return geoIpService.getCountryName(ip);

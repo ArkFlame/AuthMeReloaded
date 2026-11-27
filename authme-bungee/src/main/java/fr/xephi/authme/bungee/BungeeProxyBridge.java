@@ -286,7 +286,6 @@ public final class BungeeProxyBridge implements Listener {
             return;
         }
         if (isPremiumJoin) {
-            pendingPremiumUsernames.remove(normalizedName);
             logger.fine("PacketEvents-verified premium player " + normalizedName
                 + " joining auth server — sending perform.login immediately");
         }
@@ -359,7 +358,6 @@ public final class BungeeProxyBridge implements Listener {
             logger.fine("Cancelling pending auto-login for " + normalizedName + " (player disconnected)");
         }
         pendingAutoLogins.remove(normalizedName);
-        pendingPremiumUsernames.remove(normalizedName);
         authenticationStore.markLoggedOut(event.getPlayer().getName());
         premiumVerificationManager.clearVerifiedPremium(normalizedName);
         pendingPremiumUsernames.remove(normalizedName);

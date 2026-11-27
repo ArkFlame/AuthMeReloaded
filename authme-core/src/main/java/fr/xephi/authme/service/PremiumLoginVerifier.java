@@ -166,6 +166,8 @@ public class PremiumLoginVerifier {
      * Retrieved later by {@link #getVerifiedUuid} during the join flow.
      */
     public void storeVerified(String username, UUID mojangUuid) {
+        // Entries of players who never rejoin would otherwise stay forever; the cache only holds ~60 s of joins.
+        verified.evictExpired();
         verified.put(username, mojangUuid);
     }
 
