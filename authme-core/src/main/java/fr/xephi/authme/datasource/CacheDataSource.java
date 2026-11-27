@@ -149,17 +149,17 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public boolean saveAuth(PlayerAuth auth) {
-        return updateCacheOnSuccess(source.saveAuth(auth), auth.getNickname(), cachedAuths::refresh);
+        return updateCacheOnSuccess(source.saveAuth(auth), auth.getNickname(), cachedAuths::invalidate);
     }
 
     @Override
     public boolean updatePassword(PlayerAuth auth) {
-        return updateCacheOnSuccess(source.updatePassword(auth), auth.getNickname(), cachedAuths::refresh);
+        return updateCacheOnSuccess(source.updatePassword(auth), auth.getNickname(), cachedAuths::invalidate);
     }
 
     @Override
     public boolean updatePassword(String user, HashedPassword password) {
-        return updateCacheOnSuccess(source.updatePassword(normalize(user), password), user, cachedAuths::refresh);
+        return updateCacheOnSuccess(source.updatePassword(normalize(user), password), user, cachedAuths::invalidate);
     }
 
     @Override
@@ -319,7 +319,7 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public boolean setTotpKey(String user, String totpKey) {
-        return updateCacheOnSuccess(source.setTotpKey(user, totpKey), user, cachedAuths::refresh);
+        return updateCacheOnSuccess(source.setTotpKey(user, totpKey), user, cachedAuths::invalidate);
     }
 
     @Override

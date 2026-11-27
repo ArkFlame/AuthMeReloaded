@@ -105,6 +105,33 @@ class CacheDataSourceConsistencyTest {
         assertCacheInvalidated();
     }
 
+    @Test
+    void shouldServeTheNewRecordImmediatelyAfterASuccessfulPasswordChange() {
+        PlayerAuth stored = auth("playerone");
+        PlayerAuth changed = auth("playerone");
+        Thread caller = Thread.currentThread();
+        when(source.getAuth("playerone")).thenAnswer(invocation -> {
+            if (Thread.currentThread() == caller
+                && !firstLookupDone[0]) {
+                firstLookupDone[0] = true;
+                return stored;
+            }
+            if (Thread.currentThread() != caller) {
+                Thread.sleep(500); // an asynchronous reload that has not finished yet
+            }
+            return changed;
+        });
+        assertThat(dataSource.getAuth("PlayerOne"), sameInstance(stored));
+        when(source.updatePassword(eq("playerone"), any(HashedPassword.class))).thenReturn(true);
+
+        dataSource.updatePassword("PlayerOne", new HashedPassword("newhash", "salt"));
+
+        // a pending background reload must not keep serving the previous password hash
+        assertThat(dataSource.getAuth("PlayerOne"), sameInstance(changed));
+    }
+
+    private final boolean[] firstLookupDone = new boolean[1];
+
     /**
      * Seeds the cache with a stored auth for "playerone" fetched via "PlayerOne" and asserts it was cached.
      * Extra arguments are returned by subsequent lookups of the same key.
