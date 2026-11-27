@@ -13,7 +13,6 @@ class MiniMessageConverterTest {
 
     @Test
     void convertsMiniMessageTagsToLegacyColors() {
-        assertTrue(MiniMessageConverter.isAvailable(), "Adventure should be on the test classpath");
 
         String result = MiniMessageConverter.convert("<red>Hello</red>", true);
 

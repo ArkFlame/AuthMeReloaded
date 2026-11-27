@@ -35,15 +35,6 @@ public final class MiniMessageConverter {
     }
 
     /**
-     * Returns whether the optional Adventure library is available on the classpath.
-     *
-     * @return true if MiniMessage can be used
-     */
-    public static boolean isAvailable() {
-        return ADVENTURE_AVAILABLE;
-    }
-
-    /**
      * Checks whether the given text contains a MiniMessage tag.
      *
      * @param message the text to inspect (may be null)
