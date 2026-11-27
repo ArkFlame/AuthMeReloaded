@@ -574,7 +574,7 @@ public class AsynchronousJoin implements AsynchronousProcess {
         if (maxPerIp > 0 && !ProcessSharedActions.isExemptFromIpLimit(service, player, ip)) {
             int count = 0;
             for (Player online : bukkitService.getOnlinePlayers()) {
-                if (ip.equalsIgnoreCase(PlayerUtils.getPlayerIp(online)) && ++count > maxPerIp) {
+                if (PlayerUtils.hasIp(online, ip) && ++count > maxPerIp) {
                     bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player,
                         () -> player.kickPlayer(service.retrieveSingleMessage(player, MessageKey.SAME_IP_ONLINE)));
                     return false;
