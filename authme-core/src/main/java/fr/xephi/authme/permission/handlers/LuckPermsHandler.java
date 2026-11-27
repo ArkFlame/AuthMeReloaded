@@ -188,8 +188,9 @@ public class LuckPermsHandler implements PermissionHandler {
         Group group1 = o1.getGroup();
         Group group2 = o2.getGroup();
         String primaryGroup = user.getPrimaryGroup();
-        if (group1.getName().equals(primaryGroup) || group2.getName().equals(primaryGroup)) {
-            return group1.getName().equals(primaryGroup) ? 1 : -1;
+        boolean isPrimary1 = group1.getName().equals(primaryGroup);
+        if (isPrimary1 != group2.getName().equals(primaryGroup)) {
+            return isPrimary1 ? -1 : 1;
         }
 
         int i = Integer.compare(group2.getWeight().orElse(0), group1.getWeight().orElse(0));
