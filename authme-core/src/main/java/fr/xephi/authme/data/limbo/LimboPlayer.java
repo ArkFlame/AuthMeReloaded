@@ -31,7 +31,7 @@ public class LimboPlayer {
     private CancellableTask timeoutTask;
     private MessageTask messageTask;
     private CancellableTask messageTaskHandle;
-    private LimboPlayerState state = LimboPlayerState.PASSWORD_REQUIRED;
+    private volatile LimboPlayerState state = LimboPlayerState.PASSWORD_REQUIRED;
     private int failedTotpAttempts;
     // The pearl UUIDs are the keys of this map; a separate set would duplicate the same state.
     private Map<UUID, EnderPearlRestoreData> enderPearls = Collections.emptyMap();
