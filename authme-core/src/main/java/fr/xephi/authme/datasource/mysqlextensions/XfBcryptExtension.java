@@ -7,6 +7,7 @@ import fr.xephi.authme.security.crypts.XfBCrypt;
 import fr.xephi.authme.settings.Settings;
 import fr.xephi.authme.settings.properties.HooksSettings;
 
+import java.nio.charset.StandardCharsets;
 import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -127,7 +128,7 @@ class XfBcryptExtension extends MySqlExtension {
     }
 
     private Blob createHashBlob(String hash, Connection con) throws SQLException {
-        byte[] bytes = XfBCrypt.serializeHash(hash).getBytes();
+        byte[] bytes = XfBCrypt.serializeHash(hash).getBytes(StandardCharsets.UTF_8);
         Blob blob = con.createBlob();
         blob.setBytes(1, bytes);
         return blob;
