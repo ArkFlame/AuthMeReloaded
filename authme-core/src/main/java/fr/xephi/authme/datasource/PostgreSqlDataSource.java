@@ -137,12 +137,7 @@ public class PostgreSqlDataSource extends AbstractHikariSqlDataSource {
 
             addUuidColumnsIfAbsent(md, st);
 
-            try {
-                indexColumnIfAbsent(md, st, null, col.LAST_IP.toLowerCase(Locale.ROOT));
-            } catch (SQLException e) {
-                logger.warning("Could not index the last IP column, per-login IP lookups will scan the table: "
-                    + e.getMessage());
-            }
+            indexLastIpIfAbsent(md, st, null, col.LAST_IP.toLowerCase(Locale.ROOT), logger);
         }
         logger.info("PostgreSQL setup finished");
     }

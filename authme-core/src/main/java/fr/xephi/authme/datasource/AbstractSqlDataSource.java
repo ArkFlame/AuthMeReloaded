@@ -6,6 +6,7 @@ import ch.jalu.datasourcecolumns.data.DataSourceValueImpl;
 import ch.jalu.datasourcecolumns.data.DataSourceValues;
 import ch.jalu.datasourcecolumns.predicate.AlwaysTruePredicate;
 import ch.jalu.datasourcecolumns.predicate.Predicate;
+import fr.xephi.authme.ConsoleLogger;
 import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.datasource.columnshandler.AuthMeColumns;
 import fr.xephi.authme.datasource.columnshandler.ColumnContext;
@@ -276,13 +277,18 @@ public abstract class AbstractSqlDataSource implements DataSource {
     }
 
     /**
-     * Creates an index on the column unless an index already covers it. Lookups by this column run on
-     * the login path, and without an index each of them scans the whole table.
+     * Indexes the last IP column unless an index already covers it. Lookups by this column run on the login
+     * path, and without an index each of them scans the whole table. A failure only produces a warning.
      */
-    protected void indexColumnIfAbsent(DatabaseMetaData md, Statement st, String catalog, String column)
-        throws SQLException {
-        if (!SqlDataSourceUtils.isColumnIndexed(md, catalog, tableName, column)) {
-            st.executeUpdate("CREATE INDEX idx_" + tableName + "_" + column + " ON " + tableName + " (" + column + ")");
+    protected void indexLastIpIfAbsent(DatabaseMetaData md, Statement st, String catalog, String column,
+            ConsoleLogger logger) {
+        try {
+            if (!SqlDataSourceUtils.isColumnIndexed(md, catalog, tableName, column)) {
+                st.executeUpdate("CREATE INDEX idx_" + tableName + "_" + column + " ON " + tableName + " (" + column + ")");
+            }
+        } catch (SQLException e) {
+            logger.warning("Could not index the last IP column, per-login IP lookups will scan the table: "
+                + e.getMessage());
         }
     }
 
