@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 abstract class AbstractExpiring<E, V> {
 
     private final Map<E, V> entries = new ConcurrentHashMap<>();
-    private long expirationMillis;
+    private volatile long expirationMillis;
 
     AbstractExpiring(long duration, TimeUnit unit) {
         this.expirationMillis = unit.toMillis(duration);
