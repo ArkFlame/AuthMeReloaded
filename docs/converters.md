@@ -196,6 +196,8 @@ Migrates accounts from the **tiAuth** plugin.
 
 Migrates accounts from the **CrazyLogin** plugin.
 
+- Players already present in AuthMe's database are skipped automatically.
+
 **Source file:** `plugins/AuthMe/accounts.db` by default; change the file name with the `Converter.CrazyLogin.fileName` setting if CrazyLogin wrote it elsewhere. Each line must be pipe-separated (`name|password|...`); lines without a separator and the `name|...` header are skipped.
 
 **Warning:** CrazyLogin stores passwords in **plain text**. The converter imports that value verbatim as the stored hash, so it does not become secure by being imported. After running it, require every imported player to change their password immediately (for example by clearing the imported accounts and letting players re-register).
