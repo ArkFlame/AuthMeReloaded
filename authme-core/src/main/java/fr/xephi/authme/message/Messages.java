@@ -1,6 +1,5 @@
 package fr.xephi.authme.message;
 
-import com.google.common.collect.ImmutableMap;
 import fr.xephi.authme.ConsoleLogger;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.mail.EmailService;
@@ -15,7 +14,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import javax.inject.Inject;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -29,20 +27,6 @@ public class Messages {
     // Global tag replacements
     private static final String USERNAME_TAG = "%username%";
     private static final String DISPLAYNAME_TAG = "%displayname%";
-
-    /** Contains the keys of the singular messages for time units. */
-    private static final Map<TimeUnit, MessageKey> TIME_UNIT_SINGULARS = ImmutableMap.<TimeUnit, MessageKey>builder()
-        .put(TimeUnit.SECONDS, MessageKey.SECOND)
-        .put(TimeUnit.MINUTES, MessageKey.MINUTE)
-        .put(TimeUnit.HOURS, MessageKey.HOUR)
-        .put(TimeUnit.DAYS, MessageKey.DAY).build();
-
-    /** Contains the keys of the plural messages for time units. */
-    private static final Map<TimeUnit, MessageKey> TIME_UNIT_PLURALS = ImmutableMap.<TimeUnit, MessageKey>builder()
-        .put(TimeUnit.SECONDS, MessageKey.SECONDS)
-        .put(TimeUnit.MINUTES, MessageKey.MINUTES)
-        .put(TimeUnit.HOURS, MessageKey.HOURS)
-        .put(TimeUnit.DAYS, MessageKey.DAYS).build();
 
     private final ConsoleLogger logger = ConsoleLoggerFactory.get(EmailService.class);
 
@@ -115,11 +99,18 @@ public class Messages {
      */
     public String formatDuration(Duration duration) {
         long value = duration.getDuration();
-        MessageKey timeUnitKey = value == 1
-            ? TIME_UNIT_SINGULARS.get(duration.getTimeUnit())
-            : TIME_UNIT_PLURALS.get(duration.getTimeUnit());
-
+        MessageKey timeUnitKey = getTimeUnitKey(duration.getTimeUnit(), value == 1);
         return value + " " + retrieveMessage(timeUnitKey, "");
+    }
+
+    private static MessageKey getTimeUnitKey(TimeUnit unit, boolean singular) {
+        switch (unit) {
+            case SECONDS: return singular ? MessageKey.SECOND : MessageKey.SECONDS;
+            case MINUTES: return singular ? MessageKey.MINUTE : MessageKey.MINUTES;
+            case HOURS: return singular ? MessageKey.HOUR : MessageKey.HOURS;
+            case DAYS: return singular ? MessageKey.DAY : MessageKey.DAYS;
+            default: return null;
+        }
     }
 
     /**

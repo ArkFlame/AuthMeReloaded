@@ -37,6 +37,13 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
     private static final Method PLAYER_SPIGOT_METHOD;
     private static final Method SPIGOT_GET_LOCALE_METHOD;
     private static final Method BLOCK_IS_PASSABLE_METHOD;
+    private static final String[][] OPTIONAL_LISTENERS = {
+        {"org.spigotmc.event.player.PlayerSpawnLocationEvent", "fr.xephi.authme.listener.LegacyPlayerSpawnLocationListener"},
+        {"org.bukkit.event.player.PlayerSwapHandItemsEvent", "fr.xephi.authme.listener.PlayerSwapHandItemsListener"},
+        {"org.bukkit.event.entity.EntityAirChangeEvent", "fr.xephi.authme.listener.EntityAirChangeListener"},
+        {"org.bukkit.event.entity.EntityPickupItemEvent", "fr.xephi.authme.listener.EntityPickupItemListener"},
+        {"org.bukkit.event.player.PlayerPickupArrowEvent", "fr.xephi.authme.listener.PlayerPickupArrowListener"}
+    };
 
     static {
         PLAYER_GET_LOCALE_METHOD = findMethod(Player.class, "getLocale");
@@ -61,7 +68,7 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
     public Optional<String> getPlayerLocale(Player player) {
         try {
             Object result = PLAYER_GET_LOCALE_METHOD == null ? null : PLAYER_GET_LOCALE_METHOD.invoke(player);
-            if (result == null && PLAYER_SPIGOT_METHOD != null && SPIGOT_GET_LOCALE_METHOD != null) {
+            if (result == null && SPIGOT_GET_LOCALE_METHOD != null) {
                 Object spigot = PLAYER_SPIGOT_METHOD.invoke(player);
                 result = spigot == null ? null : SPIGOT_GET_LOCALE_METHOD.invoke(spigot);
             }
@@ -88,7 +95,6 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
             try {
                 return (Boolean) BLOCK_IS_PASSABLE_METHOD.invoke(block);
             } catch (Exception ignored) {
-                // fallback to material solidity check
             }
         }
         return !block.getType().isSolid();
@@ -107,14 +113,7 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
             listeners.add(LegacyPlayerPickupItemListener.class);
         }
 
-        String[][] optionalListeners = {
-            {"org.spigotmc.event.player.PlayerSpawnLocationEvent", "fr.xephi.authme.listener.LegacyPlayerSpawnLocationListener"},
-            {"org.bukkit.event.player.PlayerSwapHandItemsEvent", "fr.xephi.authme.listener.PlayerSwapHandItemsListener"},
-            {"org.bukkit.event.entity.EntityAirChangeEvent", "fr.xephi.authme.listener.EntityAirChangeListener"},
-            {"org.bukkit.event.entity.EntityPickupItemEvent", "fr.xephi.authme.listener.EntityPickupItemListener"},
-            {"org.bukkit.event.player.PlayerPickupArrowEvent", "fr.xephi.authme.listener.PlayerPickupArrowListener"}
-        };
-        for (String[] entry : optionalListeners) {
+        for (String[] entry : OPTIONAL_LISTENERS) {
             if (isClassAvailable(entry[0])) {
                 try {
                     Class<? extends Listener> clazz = Class.forName(entry[1], false, getClass().getClassLoader())

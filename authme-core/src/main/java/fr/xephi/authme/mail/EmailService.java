@@ -11,7 +11,6 @@ import fr.xephi.authme.util.FileUtils;
 import org.apache.commons.mail.EmailException;
 import org.apache.commons.mail.HtmlEmail;
 
-import javax.activation.DataSource;
 import javax.activation.FileDataSource;
 import javax.imageio.ImageIO;
 import javax.inject.Inject;
@@ -65,7 +64,8 @@ public class EmailService {
                 File generated = new File(dataFolder, name.replaceAll("[^A-Za-z0-9_]", "_") + "_new_pass.jpg");
                 ImageIO.write(new ImageGenerator(newPass).generateImage(), "jpg", generated);
                 file = generated;
-                mailText = embedImageIntoEmailContent(file, email, mailText);
+                String tag = email.embed(new FileDataSource(file), file.getName());
+                mailText = mailText.replace("<image />", "<img src=\"cid:" + tag + "\">");
             } catch (IOException | EmailException e) {
                 logger.logException(
                     "Unable to send new password as image for email " + mailAddress + ":", e);
@@ -154,13 +154,6 @@ public class EmailService {
             logger.logException(errorMessage, e);
             return null;
         }
-    }
-
-    private static String embedImageIntoEmailContent(File image, HtmlEmail email, String content)
-        throws EmailException {
-        DataSource source = new FileDataSource(image);
-        String tag = email.embed(source, image.getName());
-        return content.replace("<image />", "<img src=\"cid:" + tag + "\">");
     }
 
     /**

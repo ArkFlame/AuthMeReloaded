@@ -6,8 +6,7 @@ import com.google.common.collect.ImmutableMap;
 import fr.xephi.authme.message.MessageKey;
 
 import java.util.Map;
-
-import static com.google.common.collect.ImmutableMap.of;
+import java.util.function.UnaryOperator;
 
 /**
  * Migrates message files from the old keys (before 5.5) to the new ones.
@@ -114,14 +113,16 @@ final class OldMessageKeysMigrater {
         .put(MessageKey.DAYS, "days")
         .build();
 
-    private static final Map<MessageKey, Map<String, String>> PLACEHOLDER_REPLACEMENTS =
-        ImmutableMap.<MessageKey, Map<String, String>>builder()
-            .put(MessageKey.PASSWORD_CHARACTERS_ERROR, of("REG_EX", "%valid_chars"))
-            .put(MessageKey.INVALID_NAME_CHARACTERS, of("REG_EX", "%valid_chars"))
-            .put(MessageKey.USAGE_CAPTCHA, of("<theCaptcha>", "%captcha_code"))
-            .put(MessageKey.CAPTCHA_FOR_REGISTRATION_REQUIRED, of("<theCaptcha>", "%captcha_code"))
-            .put(MessageKey.CAPTCHA_WRONG_ERROR, of("THE_CAPTCHA", "%captcha_code"))
+    private static final Map<MessageKey, UnaryOperator<String>> PLACEHOLDER_REPLACEMENTS =
+        ImmutableMap.<MessageKey, UnaryOperator<String>>builder()
+            .put(MessageKey.PASSWORD_CHARACTERS_ERROR, text -> text.replace("REG_EX", "%valid_chars"))
+            .put(MessageKey.INVALID_NAME_CHARACTERS, text -> text.replace("REG_EX", "%valid_chars"))
+            .put(MessageKey.USAGE_CAPTCHA, text -> text.replace("<theCaptcha>", "%captcha_code"))
+            .put(MessageKey.CAPTCHA_FOR_REGISTRATION_REQUIRED, text -> text.replace("<theCaptcha>", "%captcha_code"))
+            .put(MessageKey.CAPTCHA_WRONG_ERROR, text -> text.replace("THE_CAPTCHA", "%captcha_code"))
             .build();
+
+    private static final UnaryOperator<String> IDENTITY = UnaryOperator.identity();
 
     private OldMessageKeysMigrater() {
     }
@@ -137,22 +138,10 @@ final class OldMessageKeysMigrater {
         boolean wasPropertyMoved = false;
         for (Map.Entry<MessageKey, String> migrationEntry : KEYS_TO_OLD_PATH.entrySet()) {
             MessageKey messageKey = migrationEntry.getKey();
+            UnaryOperator<String> transform = PLACEHOLDER_REPLACEMENTS.get(messageKey);
             wasPropertyMoved |= MessageUpdater.moveIfApplicable(reader, configurationData,
-                migrationEntry.getValue(), messageKey, text -> replaceOldPlaceholders(messageKey, text));
+                migrationEntry.getValue(), messageKey, transform != null ? transform : IDENTITY);
         }
         return wasPropertyMoved;
-    }
-
-    private static String replaceOldPlaceholders(MessageKey key, String text) {
-        Map<String, String> replacements = PLACEHOLDER_REPLACEMENTS.get(key);
-        if (replacements == null) {
-            return text;
-        }
-
-        String newText = text;
-        for (Map.Entry<String, String> replacement : replacements.entrySet()) {
-            newText = newText.replace(replacement.getKey(), replacement.getValue());
-        }
-        return newText;
     }
 }

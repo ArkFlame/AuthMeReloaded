@@ -148,7 +148,8 @@ public class AuthMeApi {
      * @return The last ip address of the player, or null if the player is unknown
      */
     public String getLastIp(String playerName) {
-        return Optional.ofNullable(getAuth(playerName)).map(PlayerAuth::getLastIp).orElse(null);
+        PlayerAuth auth = getAuth(playerName);
+        return auth == null ? null : auth.getLastIp();
     }
 
     /**
@@ -170,20 +171,19 @@ public class AuthMeApi {
      */
     @Deprecated
     public Date getLastLogin(String playerName) {
-        return Optional.ofNullable(getLastLoginTime(playerName)).map(Date::from).orElse(null);
+        Instant instant = getLastLoginTime(playerName);
+        return instant == null ? null : Date.from(instant);
     }
 
     /**
      * Get the last (AuthMe) login timestamp of a player.
      *
      * @param playerName The name of the player to process
-     *
      * @return The timestamp of the last login, or null if the player doesn't exist or has never logged in
      */
     public Instant getLastLoginTime(String playerName) {
         PlayerAuth auth = getAuth(playerName);
-        Long lastLogin = auth == null ? null : auth.getLastLogin();
-        return lastLogin == null ? null : Instant.ofEpochMilli(lastLogin);
+        return auth == null || auth.getLastLogin() == null ? null : Instant.ofEpochMilli(auth.getLastLogin());
     }
 
     /** Looks up a player in the cache first, falling back to the data source. */
@@ -219,7 +219,6 @@ public class AuthMeApi {
      *
      * @param playerName The player to register
      * @param password   The password to register the player with
-     *
      * @return true if the player was registered successfully
      * @throws NullPointerException if {@code playerName} is null
      */

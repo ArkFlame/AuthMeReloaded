@@ -12,7 +12,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 
 import static fr.xephi.authme.command.FoundResultStatus.INCORRECT_ARGUMENTS;
@@ -132,9 +131,8 @@ public class CommandMapper {
     }
 
     private CommandDescription getBaseCommand(String label) {
-        String lowerLabel = label.toLowerCase(Locale.ROOT);
-        String baseLabel = lowerLabel.startsWith(AUTHME_PREFIX)
-            ? lowerLabel.substring(AUTHME_PREFIX.length()) : lowerLabel;
+        String baseLabel = label.regionMatches(true, 0, AUTHME_PREFIX, 0, AUTHME_PREFIX.length())
+            ? label.substring(AUTHME_PREFIX.length()) : label;
         for (CommandDescription command : baseCommands) {
             if (command.hasLabel(baseLabel)) {
                 return command;
@@ -158,7 +156,7 @@ public class CommandMapper {
             return null;
         }
 
-        final String label = parts.get(0).toLowerCase(Locale.ROOT);
+        final String label = parts.get(0);
         final int argumentCount = parts.size() - 1;
         for (CommandDescription child : baseCommand.getChildren()) {
             if (child.hasLabel(label) && hasSuitableArgumentCount(child, argumentCount)) {

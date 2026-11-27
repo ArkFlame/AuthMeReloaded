@@ -43,19 +43,8 @@ public class MessageUpdater {
      * @return true if the file has been migrated and saved, false if it is up-to-date
      */
     public boolean migrateAndSave(File userFile, String localJarPath, String defaultJarPath) {
-        JarMessageSource jarMessageSource = new JarMessageSource(localJarPath, defaultJarPath);
-        return migrateAndSave(userFile, jarMessageSource);
-    }
-
-    /**
-     * Performs the migration.
-     *
-     * @param userFile the file to verify and migrate
-     * @param jarMessageSource jar message source to get texts from if missing
-     * @return true if the file has been migrated and saved, false if it is up-to-date
-     */
-    private boolean migrateAndSave(File userFile, JarMessageSource jarMessageSource) {
         // YamlConfiguration escapes all special characters when saving, making the file hard to use, so use ConfigMe
+        JarMessageSource jarMessageSource = new JarMessageSource(localJarPath, defaultJarPath);
         MessageKeyConfigurationData configurationData = createConfigurationData();
         PropertyResource userResource = new MigraterYamlFileResource(userFile);
 

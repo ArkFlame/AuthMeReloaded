@@ -200,7 +200,14 @@ public class AsynchronousJoin implements AsynchronousProcess {
             return;
         }
 
-        applyJoinSettings(player);
+        if (service.getProperty(RestrictionSettings.FORCE_SURVIVAL_MODE)
+            && player.getGameMode() != GameMode.SURVIVAL
+            && !service.hasPermission(player, PlayerStatePermission.BYPASS_FORCE_SURVIVAL)) {
+            bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, () -> player.setGameMode(GameMode.SURVIVAL));
+        }
+        if (service.getProperty(HooksSettings.DISABLE_SOCIAL_SPY)) {
+            pluginHookService.setEssentialsSocialSpyStatus(player, false);
+        }
 
         if (!validatePlayerCountForIp(player, ip)) {
             return;
@@ -230,19 +237,6 @@ public class AsynchronousJoin implements AsynchronousProcess {
         }
 
         processJoinSync(player, name, auth != null, dialogState);
-    }
-
-    /** Applies the per-join game mode and social spy settings required before any other work. */
-    private void applyJoinSettings(Player player) {
-        if (service.getProperty(RestrictionSettings.FORCE_SURVIVAL_MODE)
-            && player.getGameMode() != GameMode.SURVIVAL
-            && !service.hasPermission(player, PlayerStatePermission.BYPASS_FORCE_SURVIVAL)) {
-            bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, () -> player.setGameMode(GameMode.SURVIVAL));
-        }
-
-        if (service.getProperty(HooksSettings.DISABLE_SOCIAL_SPY)) {
-            pluginHookService.setEssentialsSocialSpyStatus(player, false);
-        }
     }
 
     /**
@@ -358,7 +352,18 @@ public class AsynchronousJoin implements AsynchronousProcess {
             }
         });
 
-        PlayerPreAuthEvent event = awaitPreAuthResult(result, player);
+        PlayerPreAuthEvent event = null;
+        try {
+            // Safety net: fall back to the regular join if the scheduler drops the task instead of blocking.
+            event = result.get(preAuthEventTimeoutMillis, TimeUnit.MILLISECONDS);
+        } catch (TimeoutException e) {
+            fine(() -> "Timed out waiting for PlayerPreAuthEvent for " + player.getName());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            fine(() -> "Interrupted while waiting for PlayerPreAuthEvent for " + player.getName());
+        } catch (ExecutionException e) {
+            fine(() -> "Failed to dispatch PlayerPreAuthEvent for " + player.getName() + ": " + e.getCause());
+        }
         if (event == null) {
             fine(() -> "PlayerPreAuthEvent could not be dispatched for " + player.getName()
                 + "; continuing with the regular join");
@@ -374,21 +379,6 @@ public class AsynchronousJoin implements AsynchronousProcess {
             return true;
         }
         return false;
-    }
-
-    private PlayerPreAuthEvent awaitPreAuthResult(CompletableFuture<PlayerPreAuthEvent> result, Player player) {
-        try {
-            // Safety net: fall back to the regular join if the scheduler drops the task instead of blocking.
-            return result.get(preAuthEventTimeoutMillis, TimeUnit.MILLISECONDS);
-        } catch (TimeoutException e) {
-            fine(() -> "Timed out waiting for PlayerPreAuthEvent for " + player.getName());
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            fine(() -> "Interrupted while waiting for PlayerPreAuthEvent for " + player.getName());
-        } catch (ExecutionException e) {
-            fine(() -> "Failed to dispatch PlayerPreAuthEvent for " + player.getName() + ": " + e.getCause());
-        }
-        return null;
     }
 
     /**

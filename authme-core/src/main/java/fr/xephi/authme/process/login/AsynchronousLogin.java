@@ -344,10 +344,6 @@ public class AsynchronousLogin implements AsynchronousProcess {
 
         logger.fine("The user " + playerName + " has " + accountCount + " accounts:");
         logger.fine(message);
-        notifyOnlinePlayersAboutAccounts(playerName, accountCount, message);
-    }
-
-    private void notifyOnlinePlayersAboutAccounts(String playerName, int accountCount, String message) {
         String countArg = Integer.toString(accountCount);
         for (Player onlinePlayer : bukkitService.getOnlinePlayers()) {
             String header;

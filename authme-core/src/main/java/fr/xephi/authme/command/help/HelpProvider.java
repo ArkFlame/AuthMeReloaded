@@ -239,8 +239,8 @@ public class HelpProvider implements Reloadable {
         boolean hasPermission = permissionsManager.hasPermission(sender, permission);
         String permissionText = helpMessagesService.getMessage(
             hasPermission ? HelpMessage.HAS_PERMISSION : HelpMessage.NO_PERMISSION, language);
-        lines.add(String.format(" " + ChatColor.YELLOW + ChatColor.ITALIC + "%s" + ChatColor.GRAY + " (%s)",
-            permission.getNode(), permissionText));
+        lines.add(" " + ChatColor.YELLOW + ChatColor.ITALIC + permission.getNode() + ChatColor.GRAY
+            + " (" + permissionText + ")");
 
         // Addendum to the line to specify whether the sender has permission or not when default is OP_ONLY
         final DefaultPermission defaultPermission = permission.getDefaultPermission();
@@ -253,9 +253,8 @@ public class HelpProvider implements Reloadable {
             + addendum);
 
         // Evaluate if the sender has permission to the command
-        lines.add(String.format(ChatColor.GOLD + " %s: %s" + ChatColor.ITALIC + "%s",
-            helpMessagesService.getMessage(HelpMessage.RESULT, language),
-            hasPermission ? ChatColor.GREEN : ChatColor.DARK_RED, permissionText));
+        lines.add(ChatColor.GOLD + " " + helpMessagesService.getMessage(HelpMessage.RESULT, language)
+            + ": " + (hasPermission ? ChatColor.GREEN : ChatColor.DARK_RED) + ChatColor.ITALIC + permissionText);
     }
 
     /**

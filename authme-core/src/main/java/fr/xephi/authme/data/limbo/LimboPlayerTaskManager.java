@@ -27,6 +27,7 @@ class LimboPlayerTaskManager {
 
     private static final MessageResult LOGIN_MESSAGE = new MessageResult(MessageKey.LOGIN_MESSAGE);
     private static final MessageResult TOTP_MESSAGE = new MessageResult(MessageKey.TWO_FACTOR_CODE_REQUIRED);
+    private static final MessageResult REGISTER_MESSAGE = new MessageResult(MessageKey.REGISTER_MESSAGE);
 
     @Inject
     private Messages messages;
@@ -126,7 +127,7 @@ class LimboPlayerTaskManager {
             String captchaCode = registrationCaptchaManager.getCaptchaCodeOrGenerateNew(name);
             return new MessageResult(MessageKey.CAPTCHA_FOR_REGISTRATION_REQUIRED, captchaCode);
         }
-        return new MessageResult(MessageKey.REGISTER_MESSAGE);
+        return REGISTER_MESSAGE;
     }
 
     private final class RegistrationMessageTaskHandle implements CancellableTask {
@@ -134,9 +135,7 @@ class LimboPlayerTaskManager {
         private final MessageTask messageTask;
         private final long intervalTicks;
         private final AtomicBoolean cancelled = new AtomicBoolean();
-        private final AtomicReference<CancellableTask> delayedTask = new AtomicReference<>();
-        private final AtomicReference<CancellableTask> lookupTask = new AtomicReference<>();
-        private final AtomicReference<CancellableTask> repeatingTask = new AtomicReference<>();
+        private final AtomicReference<CancellableTask> currentTask = new AtomicReference<>();
 
         private RegistrationMessageTaskHandle(Player player, MessageTask messageTask, long intervalTicks) {
             this.player = player;
@@ -145,8 +144,7 @@ class LimboPlayerTaskManager {
         }
 
         private void scheduleInitialCheck(long delayTicks) {
-            CancellableTask task = bukkitService.runTaskLater(player, this::checkRegistrationAsync, delayTicks);
-            setTask(delayedTask, task);
+            setTask(bukkitService.runTaskLater(player, this::checkRegistrationAsync, delayTicks));
         }
 
         private void checkRegistrationAsync() {
@@ -158,7 +156,7 @@ class LimboPlayerTaskManager {
                 return;
             }
 
-            CancellableTask task = bukkitService.runTaskAsynchronously(() -> {
+            setTask(bukkitService.runTaskAsynchronously(() -> {
                 boolean isRegistered = dataSource.isAuthAvailable(name);
                 if (cancelled.get() || isRegistered || playerCache.isAuthenticated(name)) {
                     return;
@@ -170,17 +168,14 @@ class LimboPlayerTaskManager {
                     }
 
                     messageTask.run();
-                    CancellableTask repeating = bukkitService.runTaskTimer(
-                        player, messageTask, intervalTicks, intervalTicks);
-                    setTask(repeatingTask, repeating);
+                    setTask(bukkitService.runTaskTimer(player, messageTask, intervalTicks, intervalTicks));
                 });
-            });
-            setTask(lookupTask, task);
+            }));
         }
 
-        private void setTask(AtomicReference<CancellableTask> taskReference, CancellableTask task) {
-            taskReference.set(task);
-            if (cancelled.get() && taskReference.compareAndSet(task, null)) {
+        private void setTask(CancellableTask task) {
+            currentTask.set(task);
+            if (cancelled.get() && currentTask.compareAndSet(task, null)) {
                 task.cancel();
             }
         }
@@ -188,16 +183,10 @@ class LimboPlayerTaskManager {
         @Override
         public void cancel() {
             if (cancelled.compareAndSet(false, true)) {
-                cancelTask(delayedTask);
-                cancelTask(lookupTask);
-                cancelTask(repeatingTask);
-            }
-        }
-
-        private void cancelTask(AtomicReference<CancellableTask> taskReference) {
-            CancellableTask task = taskReference.getAndSet(null);
-            if (task != null) {
-                task.cancel();
+                CancellableTask task = currentTask.getAndSet(null);
+                if (task != null) {
+                    task.cancel();
+                }
             }
         }
     }

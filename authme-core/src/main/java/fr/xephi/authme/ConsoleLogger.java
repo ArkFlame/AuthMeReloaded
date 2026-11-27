@@ -7,7 +7,6 @@ import fr.xephi.authme.settings.properties.PluginSettings;
 import fr.xephi.authme.settings.properties.SecuritySettings;
 import fr.xephi.authme.util.ExceptionUtils;
 
-import java.io.Closeable;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -220,7 +219,11 @@ public final class ConsoleLogger {
                 fileWriter.flush();
             } catch (IOException ignored) {
             }
-            closeSafely(fileWriter);
+            try {
+                fileWriter.close();
+            } catch (IOException e) {
+                logger.log(Level.SEVERE, "Failed to close resource", e);
+            }
             fileWriter = null;
         }
     }
@@ -241,28 +244,15 @@ public final class ConsoleLogger {
         }
     }
 
-    private static void closeSafely(Closeable closeable) {
-        if (closeable != null) {
-            try {
-                closeable.close();
-            } catch (IOException e) {
-                logger.log(Level.SEVERE, "Failed to close resource", e);
-            }
-        }
-    }
-
     /**
      * Populates the {@link #fileWriter} field if it is null, handling any exceptions that might
      * arise during its creation.
      */
     private static synchronized void initializeFileWriter() {
         if (fileWriter == null) {
-            FileOutputStream fos = null;
             try {
-                fos = new FileOutputStream(logFile, true);
-                fileWriter = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
+                fileWriter = new OutputStreamWriter(new FileOutputStream(logFile, true), StandardCharsets.UTF_8);
             } catch (Exception e) {
-                closeSafely(fos);
                 logger.log(Level.SEVERE, "Failed to create writer to AuthMe log file", e);
             }
         }
