@@ -8,7 +8,7 @@ import org.bukkit.entity.Player;
 public class TwoFactorRegisterParams extends AbstractPasswordRegisterParams {
 
     protected TwoFactorRegisterParams(Player player) {
-        super(player);
+        super(player, null);
     }
 
     /**

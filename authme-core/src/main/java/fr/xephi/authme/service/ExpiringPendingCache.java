@@ -76,11 +76,6 @@ final class ExpiringPendingCache<V> {
         return evicted;
     }
 
-    /** Removes all expired entries, discarding the names of the ones that were evicted. */
-    void purgeExpired() {
-        evictExpired();
-    }
-
     private static String key(String name) {
         return name.toLowerCase(Locale.ROOT);
     }

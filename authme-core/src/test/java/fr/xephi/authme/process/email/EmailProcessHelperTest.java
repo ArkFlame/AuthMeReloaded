@@ -6,8 +6,9 @@ import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.service.CommonService;
 import org.bukkit.entity.Player;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -32,32 +33,22 @@ class EmailProcessHelperTest {
     @Mock
     private Player player;
 
-    @Test
-    void shouldKeepNewEmailAndRefreshCacheWhenSaved() {
+    @ParameterizedTest(name = "save successful={0}")
+    @CsvSource({"true, new@example.org, EMAIL_CHANGED_SUCCESS", "false, old@example.org, ERROR"})
+    void shouldPersistEmail(boolean saveSuccessful, String expectedEmail, MessageKey expectedMessage) {
         PlayerAuth auth = PlayerAuth.builder().name("bobby").email("old@example.org").build();
-        given(dataSource.updateEmail(auth)).willReturn(true);
+        given(dataSource.updateEmail(auth)).willReturn(saveSuccessful);
 
         boolean result = EmailProcessHelper.persistEmail(service, dataSource, playerCache, auth, player,
             "new@example.org", MessageKey.EMAIL_CHANGED_SUCCESS);
 
-        assertThat(result, equalTo(true));
-        assertThat(auth.getEmail(), equalTo("new@example.org"));
-        verify(playerCache).updatePlayerIfPresent(auth);
-        verify(service).send(player, MessageKey.EMAIL_CHANGED_SUCCESS);
-    }
-
-    @Test
-    void shouldRestorePreviousEmailWhenTheSaveFails() {
-        // The auth object is normally the very instance held by the player cache
-        PlayerAuth auth = PlayerAuth.builder().name("bobby").email("old@example.org").build();
-        given(dataSource.updateEmail(auth)).willReturn(false);
-
-        boolean result = EmailProcessHelper.persistEmail(service, dataSource, playerCache, auth, player,
-            "new@example.org", MessageKey.EMAIL_CHANGED_SUCCESS);
-
-        assertThat(result, equalTo(false));
-        assertThat(auth.getEmail(), equalTo("old@example.org"));
-        verify(service).send(player, MessageKey.ERROR);
-        verifyNoInteractions(playerCache);
+        assertThat(result, equalTo(saveSuccessful));
+        assertThat(auth.getEmail(), equalTo(expectedEmail));
+        if (saveSuccessful) {
+            verify(playerCache).updatePlayerIfPresent(auth);
+        } else {
+            verifyNoInteractions(playerCache);
+        }
+        verify(service).send(player, expectedMessage);
     }
 }

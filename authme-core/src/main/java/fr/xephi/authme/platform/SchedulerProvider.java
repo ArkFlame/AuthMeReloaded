@@ -10,9 +10,6 @@ import org.bukkit.plugin.Plugin;
  */
 public interface SchedulerProvider {
 
-    /** @return true if this provider targets a Folia (region-threaded) server */
-    boolean isFolia();
-
     /** @return true if the current thread may perform global server work */
     boolean isGlobalThread();
 

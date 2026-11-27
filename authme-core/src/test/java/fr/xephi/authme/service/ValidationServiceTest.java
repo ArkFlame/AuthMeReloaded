@@ -91,29 +91,23 @@ class ValidationServiceTest {
         assertErrorEquals(error, MessageKey.PASSWORD_CHARACTERS_ERROR, "[a-zA-Z]+");
     }
 
-    @Test
-    void shouldRejectTooShortPassword() {
-        // given
+    @ParameterizedTest(name = "invalid password length: {0}")
+    @MethodSource("invalidLengthPasswords")
+    void shouldRejectInvalidPasswordLength(String password, boolean tooLong) {
         given(settings.getProperty(SecuritySettings.MIN_PASSWORD_LENGTH)).willReturn(3);
+        if (tooLong) {
+            given(settings.getProperty(SecuritySettings.MAX_PASSWORD_LENGTH)).willReturn(20);
+        }
 
-        // when
-        ValidationResult error = validationService.validatePassword("ab", "tester");
+        ValidationResult error = validationService.validatePassword(password, "player");
 
-        // then
         assertErrorEquals(error, MessageKey.INVALID_PASSWORD_LENGTH);
     }
 
-    @Test
-    void shouldRejectTooLongPassword() {
-        // given
-        given(settings.getProperty(SecuritySettings.MIN_PASSWORD_LENGTH)).willReturn(3);
-        given(settings.getProperty(SecuritySettings.MAX_PASSWORD_LENGTH)).willReturn(20);
-
-        // when
-        ValidationResult error = validationService.validatePassword(Strings.repeat("a", 30), "player");
-
-        // then
-        assertErrorEquals(error, MessageKey.INVALID_PASSWORD_LENGTH);
+    private static Stream<Arguments> invalidLengthPasswords() {
+        return Stream.of(
+            Arguments.of("ab", false),
+            Arguments.of(Strings.repeat("a", 30), true));
     }
 
     @ParameterizedTest(name = "{0} / {1}: {2}")

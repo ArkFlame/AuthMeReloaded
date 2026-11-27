@@ -18,11 +18,6 @@ public abstract class AbstractPasswordRegisterParams extends RegistrationParamet
         this.password = password;
     }
 
-    /** Constructor without an implicit password, e.g. for two factor authentication. */
-    public AbstractPasswordRegisterParams(Player player) {
-        this(player, null);
-    }
-
     public String getPassword() {
         return password;
     }

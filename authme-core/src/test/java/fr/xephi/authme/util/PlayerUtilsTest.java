@@ -4,6 +4,8 @@ import fr.xephi.authme.TestHelper;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -31,17 +33,12 @@ class PlayerUtilsTest {
         assertThat(result, equalTo(ip));
     }
 
-    @Test
-    void shouldCheckIfIsNpc() {
-        Player player1 = mock(Player.class);
-        given(player1.hasMetadata("NPC")).willReturn(false);
-        Player player2 = mock(Player.class);
-        given(player2.hasMetadata("NPC")).willReturn(true);
+    @ParameterizedTest
+    @CsvSource({"false", "true"})
+    void shouldCheckIfIsNpc(boolean isNpc) {
+        Player player = mock(Player.class);
+        given(player.hasMetadata("NPC")).willReturn(isNpc);
 
-        boolean result1 = PlayerUtils.isNpc(player1);
-        boolean result2 = PlayerUtils.isNpc(player2);
-
-        assertThat(result1, equalTo(false));
-        assertThat(result2, equalTo(true));
+        assertThat(PlayerUtils.isNpc(player), equalTo(isNpc));
     }
 }

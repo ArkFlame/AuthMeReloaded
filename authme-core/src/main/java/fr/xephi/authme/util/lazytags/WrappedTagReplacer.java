@@ -49,7 +49,7 @@ public class WrappedTagReplacer<T, A> {
      */
     public List<T> getAdaptedItems(A argument) {
         List<String> adaptedStrings = tagReplacer.getAdaptedMessages(argument);
-        List<T> adaptedItems = new ArrayList<>();
+        List<T> adaptedItems = new ArrayList<>(items.size());
 
         Iterator<T> originalItemsIter = items.iterator();
         Iterator<String> newStringsIter = adaptedStrings.iterator();

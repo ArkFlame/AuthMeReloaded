@@ -107,62 +107,38 @@ class BukkitServiceTest {
         verify(server, never()).dispatchCommand(any(), any());
     }
 
-    @Test
-    void shouldScheduleSyncTask() {
-        // given
+    @ParameterizedTest(name = "global thread: {0}")
+    @ValueSource(booleans = {true, false})
+    void shouldScheduleSyncTask(boolean isGlobalThread) {
         Runnable task = mock(Runnable.class);
-        given(schedulingAdapter.isGlobalThread()).willReturn(false);
+        given(schedulingAdapter.isGlobalThread()).willReturn(isGlobalThread);
 
-        // when
         bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(task);
 
-        // then
-        verify(schedulingAdapter).runOnGlobalThread(authMe, task);
-        verifyNoInteractions(task);
+        if (isGlobalThread) {
+            verify(task).run();
+            verify(schedulingAdapter).isGlobalThread();
+        } else {
+            verify(schedulingAdapter).runOnGlobalThread(authMe, task);
+            verifyNoInteractions(task);
+        }
     }
 
-    @Test
-    void shouldRunTaskDirectly() {
-        // given
-        given(schedulingAdapter.isGlobalThread()).willReturn(true);
-        bukkitService.reload(settings);
-        Runnable task = mock(Runnable.class);
-
-        // when
-        bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(task);
-
-        // then
-        verify(task).run();
-        verify(schedulingAdapter).isGlobalThread();
-    }
-
-    @Test
-    void shouldScheduleEntityTask() {
-        // given
+    @ParameterizedTest(name = "entity owned by current thread: {0}")
+    @ValueSource(booleans = {true, false})
+    void shouldScheduleEntityTask(boolean isOwnedByCurrentThread) {
         Entity entity = mock(Player.class);
         Runnable task = mock(Runnable.class);
-        given(schedulingAdapter.isOwnedByCurrentThread(entity)).willReturn(false);
+        given(schedulingAdapter.isOwnedByCurrentThread(entity)).willReturn(isOwnedByCurrentThread);
 
-        // when
         bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(entity, task);
 
-        // then
-        verify(schedulingAdapter).runOnEntityThread(authMe, entity, task);
-        verifyNoInteractions(task);
-    }
-
-    @Test
-    void shouldRunEntityTaskDirectly() {
-        // given
-        Entity entity = mock(Player.class);
-        Runnable task = mock(Runnable.class);
-        given(schedulingAdapter.isOwnedByCurrentThread(entity)).willReturn(true);
-
-        // when
-        bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(entity, task);
-
-        // then
-        verify(task).run();
+        if (isOwnedByCurrentThread) {
+            verify(task).run();
+        } else {
+            verify(schedulingAdapter).runOnEntityThread(authMe, entity, task);
+            verifyNoInteractions(task);
+        }
     }
 
     @Test
@@ -192,23 +168,6 @@ class BukkitServiceTest {
         // then
         assertThat(resultingTask, equalTo(bukkitTask));
         verify(scheduler, only()).runTask(authMe, task);
-    }
-
-    @Test
-    void shouldRunTaskLater() {
-        // given
-        Runnable task = () -> {/* noop */};
-        BukkitTask bukkitTask = mock(BukkitTask.class);
-        long delay = 400;
-        given(scheduler.runTaskLater(authMe, task, delay)).willReturn(bukkitTask);
-        given(server.getScheduler()).willReturn(scheduler);
-
-        // when
-        BukkitTask resultingTask = bukkitService.runTaskLater(task, delay);
-
-        // then
-        assertThat(resultingTask, equalTo(bukkitTask));
-        verify(scheduler, only()).runTaskLater(authMe, task, delay);
     }
 
     @Test

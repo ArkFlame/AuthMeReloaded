@@ -1,6 +1,7 @@
 package fr.xephi.authme.util.expiring;
 
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import java.util.concurrent.TimeUnit;
 
@@ -12,28 +13,19 @@ import static org.hamcrest.Matchers.equalTo;
  */
 class DurationTest {
 
-    @Test
-    void shouldConvertToAppropriateTimeUnit() {
-        check(Duration.createWithSuitableUnit(0, TimeUnit.HOURS),
-            0, TimeUnit.SECONDS);
-
-        check(Duration.createWithSuitableUnit(124, TimeUnit.MINUTES),
-            2, TimeUnit.HOURS);
-
-        check(Duration.createWithSuitableUnit(300, TimeUnit.HOURS),
-            12, TimeUnit.DAYS);
-
-        check(Duration.createWithSuitableUnit(60 * 24 * 50 + 8, TimeUnit.MINUTES),
-            50, TimeUnit.DAYS);
-
-        check(Duration.createWithSuitableUnit(1000L * 60 * 60 * 24 * 7 + 3000, TimeUnit.MILLISECONDS),
-            7, TimeUnit.DAYS);
-
-        check(Duration.createWithSuitableUnit(1000L * 60 * 60 * 3 + 1400, TimeUnit.MILLISECONDS),
-            3, TimeUnit.HOURS);
-
-        check(Duration.createWithSuitableUnit(248, TimeUnit.SECONDS),
-            4, TimeUnit.MINUTES);
+    @ParameterizedTest
+    @CsvSource({
+        "0, HOURS, 0, SECONDS",
+        "124, MINUTES, 2, HOURS",
+        "300, HOURS, 12, DAYS",
+        "72008, MINUTES, 50, DAYS",
+        "604803000, MILLISECONDS, 7, DAYS",
+        "10801400, MILLISECONDS, 3, HOURS",
+        "248, SECONDS, 4, MINUTES"
+    })
+    void shouldConvertToAppropriateTimeUnit(long sourceDuration, TimeUnit sourceUnit,
+                                            long expectedDuration, TimeUnit expectedUnit) {
+        check(Duration.createWithSuitableUnit(sourceDuration, sourceUnit), expectedDuration, expectedUnit);
     }
 
     private static void check(Duration duration, long expectedDuration, TimeUnit expectedUnit) {

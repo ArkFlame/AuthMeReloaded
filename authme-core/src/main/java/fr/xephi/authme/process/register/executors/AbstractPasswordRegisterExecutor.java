@@ -86,16 +86,15 @@ abstract class AbstractPasswordRegisterExecutor<P extends AbstractPasswordRegist
     public void executePostPersistAction(P params) {
         Player player = params.getPlayer();
         boolean loginAfterRegister = performLoginAfterRegister(params);
-        if (loginAfterRegister && commonService.getProperty(PluginSettings.USE_ASYNC_TASKS)) {
-            // Already on a worker thread: log in directly, after the sync continuation to preserve order.
-            syncProcessManager.processSyncPasswordRegister(player);
-            asynchronousLogin.forceLogin(player);
-            return;
-        }
-        if (loginAfterRegister) {
+        boolean forceLoginDirectly = loginAfterRegister && commonService.getProperty(PluginSettings.USE_ASYNC_TASKS);
+        if (loginAfterRegister && !forceLoginDirectly) {
             // The sync path needs a short delay so the saved account is visible to the login lookup.
             bukkitService.scheduleSyncDelayedTask(player, () -> asynchronousLogin.forceLogin(player), SYNC_LOGIN_DELAY);
         }
         syncProcessManager.processSyncPasswordRegister(player);
+        if (forceLoginDirectly) {
+            // Already on a worker thread: log in directly, after the sync continuation to preserve order.
+            asynchronousLogin.forceLogin(player);
+        }
     }
 }

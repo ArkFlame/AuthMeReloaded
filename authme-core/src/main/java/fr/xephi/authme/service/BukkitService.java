@@ -152,17 +152,6 @@ public class BukkitService implements SettingsDependent {
     }
 
     /**
-     * Returns a task that will run after the specified number of server ticks.
-     *
-     * @param task the task to be run
-     * @param delay the ticks to wait before running the task
-     * @return a BukkitTask that contains the id number
-     */
-    public BukkitTask runTaskLater(Runnable task, long delay) {
-        return Bukkit.getScheduler().runTaskLater(authMe, task, delay);
-    }
-
-    /**
      * Schedules a delayed task on the owning thread of the given entity.
      *
      * @param entity the entity whose scheduler should own the task

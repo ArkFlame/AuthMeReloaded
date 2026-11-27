@@ -16,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -182,60 +183,45 @@ class SessionServiceTest {
         assertThat(result, equalTo(true));
     }
 
-    @Test
-    void shouldNotReportValidSessionForPlayerWithDisabledSessionPermission() {
-        // given
-        given(dataSource.hasSession("Bobby")).willReturn(true);
-        given(permissionsManager.hasPermissionOffline("Bobby", PlayerStatePermission.DISABLE_SESSION))
-            .willReturn(true);
-
-        // when
-        boolean result = sessionService.hasValidSession("Bobby", "127.3.12.15");
-
-        // then
-        assertThat(result, equalTo(false));
-        verify(dataSource, only()).hasSession("Bobby");
-    }
-
-    @Test
-    void shouldReportValidSessionForPlayerWithoutDisabledSessionPermission() {
-        // given
+    @ParameterizedTest(name = "hasValidSession with disabled-session permission: {0}")
+    @ValueSource(booleans = {true, false})
+    void shouldReportValidSessionDependingOnPermission(boolean hasDisabledSessionPermission) {
         given(dataSource.hasSession(NAME)).willReturn(true);
-        given(commonService.getProperty(PluginSettings.SESSIONS_TIMEOUT)).willReturn(8);
-        given(dataSource.getAuth(NAME)).willReturn(playerAuth(NAME, System.currentTimeMillis() - 60 * 1000, IP));
+        if (hasDisabledSessionPermission) {
+            given(permissionsManager.hasPermissionOffline(NAME, PlayerStatePermission.DISABLE_SESSION))
+                .willReturn(true);
+        } else {
+            given(commonService.getProperty(PluginSettings.SESSIONS_TIMEOUT)).willReturn(8);
+            given(dataSource.getAuth(NAME)).willReturn(playerAuth(NAME, System.currentTimeMillis() - 60 * 1000, IP));
+        }
 
-        // when
         boolean result = sessionService.hasValidSession(NAME, IP);
 
-        // then
-        assertThat(result, equalTo(true));
-        verify(permissionsManager).hasPermissionOffline(NAME, PlayerStatePermission.DISABLE_SESSION);
+        assertThat(result, equalTo(!hasDisabledSessionPermission));
+        if (hasDisabledSessionPermission) {
+            verify(dataSource, only()).hasSession(NAME);
+        } else {
+            verify(permissionsManager).hasPermissionOffline(NAME, PlayerStatePermission.DISABLE_SESSION);
+        }
     }
 
-    @Test
-    void shouldNotGrantSessionToPlayerWithDisabledSessionPermission() {
-        // given
+    @ParameterizedTest(name = "disabled-session permission: {0}")
+    @ValueSource(booleans = {true, false})
+    void shouldGrantSessionDependingOnPermission(boolean hasDisabledSessionPermission) {
         Player player = mock(Player.class);
-        given(permissionsManager.hasPermission(player, PlayerStatePermission.DISABLE_SESSION)).willReturn(true);
+        if (hasDisabledSessionPermission) {
+            given(permissionsManager.hasPermission(player, PlayerStatePermission.DISABLE_SESSION)).willReturn(true);
+        } else {
+            given(player.getName()).willReturn("bobby");
+        }
 
-        // when
         sessionService.grantSession(player);
 
-        // then
-        verifyNoInteractions(dataSource);
-    }
-
-    @Test
-    void shouldGrantSessionToPlayerWithoutDisabledSessionPermission() {
-        // given
-        Player player = mock(Player.class);
-        given(player.getName()).willReturn("bobby");
-
-        // when
-        sessionService.grantSession(player);
-
-        // then
-        verify(dataSource, only()).grantSession("bobby");
+        if (hasDisabledSessionPermission) {
+            verifyNoInteractions(dataSource);
+        } else {
+            verify(dataSource, only()).grantSession("bobby");
+        }
     }
 
     @ParameterizedTest

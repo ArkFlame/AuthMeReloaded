@@ -118,70 +118,54 @@ class AsynchronousLoginTest {
         verifyNoInteractions(dataSource);
     }
 
-    @Test
-    void shouldNotForceLoginNonExistentUser() {
+    @ParameterizedTest(name = "inactive user={0}")
+    @ValueSource(booleans = {false, true})
+    void shouldNotForceLoginUnknownOrInactiveUser(boolean inactive) {
         String name = "oscar";
         Player player = mockPlayer(name);
         given(playerCache.isAuthenticated(name)).willReturn(false);
-        given(dataSource.getAuth(name)).willReturn(null);
+        if (inactive) {
+            int groupId = 13;
+            PlayerAuth auth = PlayerAuth.builder().name(name).groupId(groupId).build();
+            given(dataSource.getAuth(name)).willReturn(auth);
+            given(commonService.getProperty(DatabaseSettings.MYSQL_COL_GROUP)).willReturn("group");
+            given(commonService.getProperty(HooksSettings.NON_ACTIVATED_USERS_GROUP)).willReturn(groupId);
+        } else {
+            given(dataSource.getAuth(name)).willReturn(null);
+        }
 
         asynchronousLogin.forceLogin(player);
 
         verify(playerCache, only()).isAuthenticated(name);
-        verify(commonService).send(player, MessageKey.UNKNOWN_USER);
+        verify(commonService).send(player, inactive ? MessageKey.ACCOUNT_NOT_ACTIVATED : MessageKey.UNKNOWN_USER);
         verify(dataSource, only()).getAuth(name);
     }
 
-    @Test
-    void shouldNotForceLoginInactiveUser() {
-        String name = "oscar";
-        Player player = mockPlayer(name);
-        given(playerCache.isAuthenticated(name)).willReturn(false);
-        int groupId = 13;
-        PlayerAuth auth = PlayerAuth.builder().name(name).groupId(groupId).build();
-        given(dataSource.getAuth(name)).willReturn(auth);
-        given(commonService.getProperty(DatabaseSettings.MYSQL_COL_GROUP)).willReturn("group");
-        given(commonService.getProperty(HooksSettings.NON_ACTIVATED_USERS_GROUP)).willReturn(groupId);
-
-        asynchronousLogin.forceLogin(player);
-
-        verify(playerCache, only()).isAuthenticated(name);
-        verify(commonService).send(player, MessageKey.ACCOUNT_NOT_ACTIVATED);
-        verify(dataSource, only()).getAuth(name);
-    }
-
-    @Test
-    void shouldNotForceLoginUserWithAlreadyOnlineIp() {
+    @ParameterizedTest(name = "canceled event={0}")
+    @ValueSource(booleans = {false, true})
+    void shouldNotForceLoginWhenIpLimitReachedOrEventCanceled(boolean canceledEvent) {
         String name = "oscar";
         String ip = "1.1.1.245";
         Player player = prepareForceLoginPlayer(name, ip);
-        doReturn(true).when(asynchronousLogin).hasReachedMaxLoggedInPlayersForIp(any(Player.class), anyString());
-
-        asynchronousLogin.forceLogin(player);
-
-        verify(playerCache, only()).isAuthenticated(name);
-        verify(commonService).send(player, MessageKey.ALREADY_LOGGED_IN_ERROR);
-        verify(dataSource, only()).getAuth(name);
-        verify(asynchronousLogin).hasReachedMaxLoggedInPlayersForIp(player, ip);
-    }
-
-    @Test
-    void shouldNotForceLoginForCanceledEvent() {
-        String name = "oscar";
-        String ip = "1.1.1.245";
-        Player player = prepareForceLoginPlayer(name, ip);
-        given(commonService.getProperty(PluginSettings.USE_ASYNC_TASKS)).willReturn(true);
-        doReturn(false).when(asynchronousLogin).hasReachedMaxLoggedInPlayersForIp(any(Player.class), anyString());
-        doAnswer((Answer<Void>) invocation -> {
-            ((AuthMeAsyncPreLoginEvent) invocation.getArgument(0)).setCanLogin(false);
-            return null;
-        }).when(bukkitService).callEvent(any(AuthMeAsyncPreLoginEvent.class));
+        if (canceledEvent) {
+            given(commonService.getProperty(PluginSettings.USE_ASYNC_TASKS)).willReturn(true);
+        }
+        doReturn(!canceledEvent).when(asynchronousLogin).hasReachedMaxLoggedInPlayersForIp(any(Player.class), anyString());
+        if (canceledEvent) {
+            doAnswer((Answer<Void>) invocation -> {
+                ((AuthMeAsyncPreLoginEvent) invocation.getArgument(0)).setCanLogin(false);
+                return null;
+            }).when(bukkitService).callEvent(any(AuthMeAsyncPreLoginEvent.class));
+        }
 
         asynchronousLogin.forceLogin(player);
 
         verify(playerCache, only()).isAuthenticated(name);
         verify(dataSource, only()).getAuth(name);
         verify(asynchronousLogin).hasReachedMaxLoggedInPlayersForIp(player, ip);
+        if (!canceledEvent) {
+            verify(commonService).send(player, MessageKey.ALREADY_LOGGED_IN_ERROR);
+        }
     }
 
     @ParameterizedTest(name = "checked IP {0}")

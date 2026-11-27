@@ -30,11 +30,6 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
     private final LazyScheduler asyncScheduler = new LazyScheduler("getAsyncScheduler");
 
     @Override
-    public boolean isFolia() {
-        return true;
-    }
-
-    @Override
     public boolean isGlobalThread() {
         // Bukkit#isPrimaryThread throws on Folia, so never use it as a fallback here.
         return IS_GLOBAL_TICK_THREAD != null && Boolean.TRUE.equals(invoke(IS_GLOBAL_TICK_THREAD, null));

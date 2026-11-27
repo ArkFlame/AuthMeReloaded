@@ -387,7 +387,6 @@ public class AsynchronousJoinTest {
     @Test
     public void shouldForceLoginWithoutPromptWhenListenerRequestsIt() {
         Player player = givenRegisteredPlayer();
-        given(auth.getTotpKey()).willReturn("TOTPSECRET");
         AtomicReference<PlayerPreAuthEvent> seen = new AtomicReference<>();
         listenToPreAuth(event -> {
             seen.set(event);
@@ -608,7 +607,6 @@ public class AsynchronousJoinTest {
         given(database.getAuth(normalizedName)).willReturn(auth);
         given(service.getProperty(RestrictionSettings.PROTECT_INVENTORY_BEFORE_LOGIN)).willReturn(false);
         given(sessionService.canResumeSession(player)).willReturn(false);
-        given(proxySessionManager.shouldResumeSession(normalizedName)).willReturn(false);
         given(service.getProperty(RestrictionSettings.LOGIN_TIMEOUT)).willReturn(30);
         given(service.getProperty(RegistrationSettings.USE_DIALOG_UI)).willReturn(false);
         given(pluginHookService.isEssentialsAvailable()).willReturn(false);

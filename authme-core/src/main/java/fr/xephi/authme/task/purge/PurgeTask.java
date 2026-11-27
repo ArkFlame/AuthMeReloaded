@@ -30,6 +30,8 @@ class PurgeTask implements Runnable {
     private final OfflinePlayer[] offlinePlayers;
     private final int totalPurgeCount;
 
+    private final Set<OfflinePlayer> playerPortion = new HashSet<>(INTERVAL_CHECK);
+    private final Set<String> namePortion = new HashSet<>(INTERVAL_CHECK);
     private int nextPlayerIndex;
     private CancellableTask taskHandle;
     private boolean cancellationRequested;
@@ -63,8 +65,8 @@ class PurgeTask implements Runnable {
                 return;
             }
 
-            Set<OfflinePlayer> playerPortion = new HashSet<>(INTERVAL_CHECK);
-            Set<String> namePortion = new HashSet<>(INTERVAL_CHECK);
+            playerPortion.clear();
+            namePortion.clear();
             for (int i = 0; i < INTERVAL_CHECK && nextPlayerIndex + i < offlinePlayers.length; i++) {
                 OfflinePlayer offlinePlayer = offlinePlayers[nextPlayerIndex + i];
                 String name = offlinePlayer.getName();

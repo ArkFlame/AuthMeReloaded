@@ -76,8 +76,8 @@ public class ExpiringMap<K, V> extends AbstractExpiring<K, ExpiringMap.ExpiringE
      * Removes all entries which have expired from the internal structure.
      */
     public void removeExpiredEntries() {
-        getEntries().entrySet().removeIf(
-            entry -> isExpired(entry.getValue().getExpiration(), System.currentTimeMillis()));
+        long now = System.currentTimeMillis();
+        getEntries().entrySet().removeIf(entry -> isExpired(entry.getValue().getExpiration(), now));
     }
 
     /**

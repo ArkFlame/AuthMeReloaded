@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -112,48 +113,35 @@ class DialogWindowServiceTest {
         assertThat(dialog.inputs().stream().map(input -> input.id()).toList(), contains(firstInput, secondInput));
     }
 
-    @Test
-    void shouldBuildPreJoinLoginDialogWithCancelButtonWhenEmailServiceNotConfigured() {
-        // given
+    @ParameterizedTest(name = "pre-join login dialog with email configured: {0}")
+    @ValueSource(booleans = {true, false})
+    void shouldBuildPreJoinLoginDialog(boolean emailConfigured) {
         givenPreJoinMessages();
         given(commonService.getProperty(RegistrationSettings.DIALOG_SHOW_FORGOT_PASSWORD_BUTTON)).willReturn(true);
-        given(commonService.getProperty(RegistrationSettings.PRE_JOIN_DIALOG_SHOW_CANCEL_BUTTON)).willReturn(true);
-        given(commonService.getProperty(RegistrationSettings.PRE_JOIN_DIALOG_ALLOW_CLOSE_WITH_ESCAPE)).willReturn(true);
-        givenDialogStyle(true, false);
-        given(emailService.hasAllInformation()).willReturn(false);
+        givenDialogStyle(!emailConfigured, false);
+        given(emailService.hasAllInformation()).willReturn(emailConfigured);
+        if (!emailConfigured) {
+            given(commonService.getProperty(RegistrationSettings.PRE_JOIN_DIALOG_SHOW_CANCEL_BUTTON)).willReturn(true);
+            given(commonService.getProperty(RegistrationSettings.PRE_JOIN_DIALOG_ALLOW_CLOSE_WITH_ESCAPE)).willReturn(true);
+        }
 
-        // when — email not configured: no recovery, cancel button shown instead
         DialogWindowSpec dialog = dialogWindowService.createPreJoinLoginDialog("Bobby");
 
-        // then
         assertThat(dialog.title(), is("dialog.login.title"));
         assertThat(dialog.primaryButtonLabel(), is("dialog.login.button"));
-        assertThat(dialog.secondaryButtonLabel(), is("dialog.button.cancel"));
+        assertThat(dialog.secondaryButtonLabel(), is(emailConfigured
+            ? "dialog.login.recovery_button" : "dialog.button.cancel"));
         assertThat(dialog.showSecondaryButton(), is(true));
-        assertThat(dialog.canCloseWithEscape(), is(true));
-        assertThat(dialog.body(), is("dialog.login.body"));
+        assertThat(dialog.canCloseWithEscape(), is(!emailConfigured));
         assertThat(dialog.buttonColumns(), is(2));
         assertThat(dialog.inputs().stream().map(input -> input.id()).toList(), contains("password"));
-        assertThat(dialog.secondaryButtonCommand(), is(nullValue()));
-    }
-
-    @Test
-    void shouldBuildPreJoinLoginDialogWithRecoveryButtonWhenEmailServiceConfigured() {
-        // given
-        givenPreJoinMessages();
-        given(commonService.getProperty(RegistrationSettings.DIALOG_SHOW_FORGOT_PASSWORD_BUTTON)).willReturn(true);
-        givenDialogStyle(false, false);
-        given(emailService.hasAllInformation()).willReturn(true);
-
-        // when — email configured: recovery button shown, cancel suppressed, email field present
-        DialogWindowSpec dialog = dialogWindowService.createPreJoinLoginDialog("Bobby");
-
-        // then — email field is on a separate recovery dialog now; only password on login dialog
-        assertThat(dialog.secondaryButtonLabel(), is("dialog.login.recovery_button"));
-        assertThat(dialog.showSecondaryButton(), is(true));
-        assertThat(dialog.canCloseWithEscape(), is(false));
-        assertThat(dialog.secondaryButtonCommand(), is(notNullValue()));
-        assertThat(dialog.inputs().stream().map(input -> input.id()).toList(), contains("password"));
+        if (emailConfigured) {
+            assertThat(dialog.secondaryButtonCommand(), is(notNullValue()));
+            assertThat(dialog.body(), is(nullValue()));
+        } else {
+            assertThat(dialog.secondaryButtonCommand(), is(nullValue()));
+            assertThat(dialog.body(), is("dialog.login.body"));
+        }
     }
 
     @Test

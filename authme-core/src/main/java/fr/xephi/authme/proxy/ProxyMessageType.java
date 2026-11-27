@@ -17,6 +17,8 @@ public enum ProxyMessageType {
     PREMIUM_LIST_CHUNK("premium.list.chunk"),
     PREMIUM_PENDING_SET("premium.pending.set");
 
+    private static final ProxyMessageType[] VALUES = values();
+
     private final String id;
 
     ProxyMessageType(String id) {
@@ -28,7 +30,7 @@ public enum ProxyMessageType {
     }
 
     public static ProxyMessageType fromId(String id) {
-        for (ProxyMessageType type : values()) {
+        for (ProxyMessageType type : VALUES) {
             if (type.id.equals(id)) {
                 return type;
             }

@@ -8,7 +8,6 @@ import fr.xephi.authme.service.CancellableTask;
 import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.settings.Settings;
 import fr.xephi.authme.settings.properties.PurgeSettings;
-import fr.xephi.authme.util.Utils;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 
@@ -80,7 +79,7 @@ public class PurgeService {
         }
         bukkitService.runTaskAsynchronously(() -> {
             Set<String> toPurge = dataSource.getRecordsToPurge(until);
-            if (Utils.isCollectionEmpty(toPurge)) {
+            if (toPurge.isEmpty()) {
                 logAndSendMessage(sender, "No players to purge");
                 return;
             }

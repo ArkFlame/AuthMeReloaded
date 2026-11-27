@@ -6,8 +6,9 @@ import fr.xephi.authme.settings.properties.RegistrationSettings;
 import fr.xephi.authme.settings.properties.RestrictionSettings;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -29,24 +30,21 @@ class LogoutActionsTest {
     @Mock
     private BukkitService bukkitService;
 
-    @Test
-    void shouldApplyBlindnessForTheConfiguredTimeoutInTicks() {
-        given(service.getProperty(RegistrationSettings.APPLY_BLIND_EFFECT)).willReturn(true);
-        given(service.getProperty(RestrictionSettings.LOGIN_TIMEOUT)).willReturn(30);
-        PotionEffect effect = mock(PotionEffect.class);
-        given(bukkitService.createBlindnessEffect(30 * BukkitService.TICKS_PER_SECOND)).willReturn(effect);
-
+    @ParameterizedTest(name = "blind effect={0}")
+    @ValueSource(booleans = {true, false})
+    void shouldApplyBlindnessOnlyWhenEnabled(boolean applyBlindEffect) {
+        given(service.getProperty(RegistrationSettings.APPLY_BLIND_EFFECT)).willReturn(applyBlindEffect);
+        PotionEffect effect = null;
+        if (applyBlindEffect) {
+            given(service.getProperty(RestrictionSettings.LOGIN_TIMEOUT)).willReturn(30);
+            effect = mock(PotionEffect.class);
+            given(bukkitService.createBlindnessEffect(30 * BukkitService.TICKS_PER_SECOND)).willReturn(effect);
+        }
         LogoutActions.applyBlindEffect(player, service, bukkitService, RestrictionSettings.LOGIN_TIMEOUT);
-
-        verify(player).addPotionEffect(effect);
-    }
-
-    @Test
-    void shouldDoNothingWhenBlindnessIsDisabled() {
-        given(service.getProperty(RegistrationSettings.APPLY_BLIND_EFFECT)).willReturn(false);
-
-        LogoutActions.applyBlindEffect(player, service, bukkitService, RestrictionSettings.LOGIN_TIMEOUT);
-
-        verifyNoInteractions(player, bukkitService);
+        if (applyBlindEffect) {
+            verify(player).addPotionEffect(effect);
+        } else {
+            verifyNoInteractions(player, bukkitService);
+        }
     }
 }

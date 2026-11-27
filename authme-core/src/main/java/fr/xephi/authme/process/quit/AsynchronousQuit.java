@@ -20,7 +20,6 @@ import fr.xephi.authme.settings.SpawnLoader;
 import fr.xephi.authme.settings.properties.PluginSettings;
 import fr.xephi.authme.settings.properties.RestrictionSettings;
 import fr.xephi.authme.util.PlayerUtils;
-import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
 import javax.inject.Inject;
@@ -97,22 +96,18 @@ public class AsynchronousQuit implements AsynchronousProcess {
 
         try {
             if (wasLoggedIn) {
+                // One auth for both updates: neither datasource method reads the other's columns.
+                PlayerAuth auth = PlayerAuth.builder().name(name).realName(realName)
+                    .lastIp(PlayerUtils.getPlayerIp(player)).lastLogin(System.currentTimeMillis()).build();
                 if (service.getProperty(RestrictionSettings.SAVE_QUIT_LOCATION)) {
                     try {
-                        Location loc = spawnLoader.getPlayerLocationOrSpawn(player);
-                        database.updateQuitLoc(PlayerAuth.builder().name(name).realName(realName)
-                            .location(loc).build());
+                        auth.setQuitLocation(spawnLoader.getPlayerLocationOrSpawn(player));
+                        database.updateQuitLoc(auth);
                     } catch (RuntimeException e) {
                         logger.warning("Could not save the quit location of '" + name + "': " + e.getMessage());
                     }
                 }
-
-                database.updateSession(PlayerAuth.builder()
-                    .name(name)
-                    .realName(realName)
-                    .lastIp(PlayerUtils.getPlayerIp(player))
-                    .lastLogin(System.currentTimeMillis())
-                    .build());
+                database.updateSession(auth);
             }
         } finally {
             //always unauthenticate the player - use session only for auto logins on the same ip

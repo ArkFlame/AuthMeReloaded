@@ -31,18 +31,8 @@ public class PendingEmailVerificationCache {
      * @param code  the verification code sent to that address
      */
     public void addPending(String name, String email, String code) {
-        pending.purgeExpired();
+        pending.evictExpired();
         pending.put(name, new PendingEntry(email, code));
-    }
-
-    /**
-     * Returns whether a non-expired pending entry exists for the given player name.
-     *
-     * @param name the player name (case-insensitive)
-     * @return true if a pending entry exists and has not yet expired
-     */
-    public boolean isPending(String name) {
-        return getEntry(name) != null;
     }
 
     /**

@@ -1,7 +1,5 @@
 package fr.xephi.authme.service.bungeecord;
 
-import java.util.Optional;
-
 public enum MessageType {
     LOGIN("login"),
     LOGOUT("logout"),
@@ -32,22 +30,6 @@ public enum MessageType {
 
     public String getId() {
         return id;
-    }
-
-    /**
-     * Returns the MessageType with the given ID.
-     *
-     * @param id the message type id.
-     *
-     * @return the MessageType with the given id, empty if invalid.
-     */
-    public static Optional<MessageType> fromId(String id) {
-        for (MessageType current : values()) {
-            if (current.getId().equals(id)) {
-                return Optional.of(current);
-            }
-        }
-        return Optional.empty();
     }
 
 }

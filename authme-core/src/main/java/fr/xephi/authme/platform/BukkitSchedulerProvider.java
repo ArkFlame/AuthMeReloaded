@@ -13,11 +13,6 @@ import org.bukkit.scheduler.BukkitTask;
 final class BukkitSchedulerProvider implements SchedulerProvider {
 
     @Override
-    public boolean isFolia() {
-        return false;
-    }
-
-    @Override
     public boolean isGlobalThread() {
         return Bukkit.isPrimaryThread();
     }

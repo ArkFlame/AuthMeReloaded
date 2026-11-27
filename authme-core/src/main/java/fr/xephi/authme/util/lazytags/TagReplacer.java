@@ -15,6 +15,7 @@ public final class TagReplacer<A> {
 
     private final List<Tag<A>> tags;
     private final Collection<String> messages;
+    private final List<String> tagNames;
 
     /**
      * Private constructor. Use {@link #newReplacer(Collection, Collection)}.
@@ -25,6 +26,7 @@ public final class TagReplacer<A> {
     private TagReplacer(List<Tag<A>> tags, Collection<String> messages) {
         this.tags = tags;
         this.messages = messages;
+        this.tagNames = tags.stream().map(Tag::getName).collect(Collectors.toList());
     }
 
     /**
@@ -48,13 +50,10 @@ public final class TagReplacer<A> {
      * @return the adapted messages
      */
     public List<String> getAdaptedMessages(A argument) {
-        List<String> tagNames = new ArrayList<>(tags.size());
         List<String> tagValues = new ArrayList<>(tags.size());
         for (Tag<A> tag : tags) {
-            tagNames.add(tag.getName());
             tagValues.add(tag.getValue(argument));
         }
-
         List<String> adaptedMessages = new ArrayList<>(messages.size());
         for (String line : messages) {
             String adaptedLine = line;

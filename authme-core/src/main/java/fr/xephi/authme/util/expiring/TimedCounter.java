@@ -65,7 +65,7 @@ public class TimedCounter<K> extends ExpiringMap<K, Integer> {
         long currentTime = System.currentTimeMillis();
         return getEntries().values().stream()
             .filter(entry -> !isExpired(entry.getExpiration(), currentTime))
-            .map(ExpiringEntry::getValue)
-            .reduce(0, Integer::sum);
+            .mapToInt(ExpiringEntry::getValue)
+            .sum();
     }
 }

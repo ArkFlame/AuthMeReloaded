@@ -95,7 +95,6 @@ class BungeeReceiverTest {
     @Test
     void shouldRegisterIncomingChannelWhenEnabled() {
         given(settings.getProperty(HooksSettings.BUNGEECORD)).willReturn(true);
-        given(messenger.isIncomingChannelRegistered(plugin, "authme:main")).willReturn(false);
 
         newReceiver();
 
@@ -105,7 +104,6 @@ class BungeeReceiverTest {
     @Test
     void shouldUnregisterIncomingChannelWhenDisabledOnReload() {
         given(settings.getProperty(HooksSettings.BUNGEECORD)).willReturn(true, false);
-        given(messenger.isIncomingChannelRegistered(plugin, "authme:main")).willReturn(false, true);
 
         BungeeReceiver bungeeReceiver = newReceiver();
         bungeeReceiver.reload(settings);
@@ -318,11 +316,10 @@ class BungeeReceiverTest {
         verify(bungeeSender).sendPremiumList(triggeringPlayer, List.of("Alice"));
     }
 
-    /** Stubs the channel and shared-secret state used by perform.login messages. */
+    /** Stubs the enabled and shared-secret state used by perform.login messages. */
     private void givenBungeeReceiverReady() {
         given(settings.getProperty(HooksSettings.BUNGEECORD)).willReturn(true);
         given(settings.getProperty(HooksSettings.PROXY_SHARED_SECRET)).willReturn(SHARED_SECRET);
-        given(messenger.isIncomingChannelRegistered(plugin, "authme:main")).willReturn(false);
     }
 
     private BungeeReceiver newReceiver() {

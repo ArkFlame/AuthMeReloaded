@@ -9,8 +9,9 @@ import fr.xephi.authme.service.CommonService;
 import fr.xephi.authme.service.PendingEmailVerificationCache;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -53,33 +54,24 @@ class AsyncConfirmEmailTest {
         given(pendingEmailVerificationCache.getEntry("TestEr")).willReturn(entry);
     }
 
-    @Test
-    void shouldKeepPendingEntryWhenSaveFails() {
+    @ParameterizedTest(name = "save successful={0}")
+    @CsvSource({"true, EMAIL_CONFIRM_SUCCESS", "false, ERROR"})
+    void shouldPersistConfirmedEmail(boolean saveSuccessful, MessageKey expectedMessage) {
         givenMatchingPendingEntry("123456");
         PlayerAuth auth = mock(PlayerAuth.class);
         given(playerCache.getAuth("tester")).willReturn(auth);
-        given(dataSource.updateEmail(auth)).willReturn(false);
+        given(dataSource.updateEmail(auth)).willReturn(saveSuccessful);
 
         asyncConfirmEmail.confirmEmail(player, "123456");
 
         verify(dataSource).updateEmail(auth);
-        verify(service).send(player, MessageKey.ERROR);
-        verify(pendingEmailVerificationCache, never()).removePending("TestEr");
-    }
-
-    @Test
-    void shouldConsumePendingEntryWhenSaveSucceeds() {
-        givenMatchingPendingEntry("123456");
-        PlayerAuth auth = mock(PlayerAuth.class);
-        given(playerCache.getAuth("tester")).willReturn(auth);
-        given(dataSource.updateEmail(auth)).willReturn(true);
-
-        asyncConfirmEmail.confirmEmail(player, "123456");
-
-        verify(dataSource).updateEmail(auth);
-        verify(auth).setEmail("new@mail.example");
-        verify(playerCache).updatePlayerIfPresent(auth);
-        verify(service).send(player, MessageKey.EMAIL_CONFIRM_SUCCESS);
-        verify(pendingEmailVerificationCache).removePending("TestEr");
+        verify(service).send(player, expectedMessage);
+        if (saveSuccessful) {
+            verify(auth).setEmail("new@mail.example");
+            verify(playerCache).updatePlayerIfPresent(auth);
+            verify(pendingEmailVerificationCache).removePending("TestEr");
+        } else {
+            verify(pendingEmailVerificationCache, never()).removePending("TestEr");
+        }
     }
 }

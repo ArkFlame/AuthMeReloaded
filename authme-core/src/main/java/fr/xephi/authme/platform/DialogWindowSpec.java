@@ -55,8 +55,6 @@ public final class DialogWindowSpec {
     public boolean canCloseWithEscape() { return canCloseWithEscape; }
     public String secondaryButtonCommand() { return secondaryButtonCommand; }
     public String body() { return body; }
-    public boolean stackButtonsVertically() { return stackButtonsVertically; }
-
     /** Returns a copy of this spec with the given body text (may be null). */
     public DialogWindowSpec withBody(String newBody) {
         return new DialogWindowSpec(title, inputs, primaryButtonLabel, secondaryButtonLabel,

@@ -11,6 +11,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -67,18 +69,28 @@ class PurgeExecutorTest {
         return file;
     }
 
-    @Test
-    void shouldDeleteOnlyTheDatFilesOfPurgedPlayers() throws IOException {
+    @ParameterizedTest
+    @CsvSource({"false, world/players/, .dat", "true, userdata/, .yml"})
+    void shouldDeleteOnlyFilesOfPurgedPlayers(boolean essentials, String folder, String extension)
+            throws IOException {
         UUID purged = UUID.randomUUID();
         UUID kept = UUID.randomUUID();
-        given(settings.getProperty(PurgeSettings.REMOVE_PLAYER_DAT)).willReturn(true);
-        given(settings.getProperty(PurgeSettings.DEFAULT_WORLD)).willReturn("world");
-        given(server.getWorldContainer()).willReturn(tempDir);
-        File purgedFile = touch(tempDir, "world/players/" + purged + ".dat");
-        File keptFile = touch(tempDir, "world/players/" + kept + ".dat");
-
-        executor.purgeDat(Collections.singletonList(playerWithId(purged)));
-
+        if (essentials) {
+            given(settings.getProperty(PurgeSettings.REMOVE_ESSENTIALS_FILES)).willReturn(true);
+            given(pluginHookService.getEssentialsDataFolder()).willReturn(tempDir);
+        } else {
+            given(settings.getProperty(PurgeSettings.REMOVE_PLAYER_DAT)).willReturn(true);
+            given(settings.getProperty(PurgeSettings.DEFAULT_WORLD)).willReturn("world");
+            given(server.getWorldContainer()).willReturn(tempDir);
+        }
+        File purgedFile = touch(tempDir, folder + purged + extension);
+        File keptFile = touch(tempDir, folder + kept + extension);
+        OfflinePlayer player = playerWithId(purged);
+        if (essentials) {
+            executor.purgeEssentials(Collections.singletonList(player));
+        } else {
+            executor.purgeDat(Collections.singletonList(player));
+        }
         assertThat(purgedFile.exists(), equalTo(false));
         assertThat(keptFile.exists(), equalTo(true));
     }
@@ -92,21 +104,6 @@ class PurgeExecutorTest {
         executor.purgeDat(Collections.singletonList(mock(OfflinePlayer.class)));
 
         assertThat(file.exists(), equalTo(true));
-    }
-
-    @Test
-    void shouldDeleteOnlyTheEssentialsFilesOfPurgedPlayers() throws IOException {
-        UUID purged = UUID.randomUUID();
-        UUID kept = UUID.randomUUID();
-        given(settings.getProperty(PurgeSettings.REMOVE_ESSENTIALS_FILES)).willReturn(true);
-        given(pluginHookService.getEssentialsDataFolder()).willReturn(tempDir);
-        File purgedFile = touch(tempDir, "userdata/" + purged + ".yml");
-        File keptFile = touch(tempDir, "userdata/" + kept + ".yml");
-
-        executor.purgeEssentials(Collections.singletonList(playerWithId(purged)));
-
-        assertThat(purgedFile.exists(), equalTo(false));
-        assertThat(keptFile.exists(), equalTo(true));
     }
 
     @Test
