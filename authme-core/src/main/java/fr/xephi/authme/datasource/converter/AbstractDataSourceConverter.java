@@ -19,7 +19,7 @@ import static fr.xephi.authme.util.Utils.logAndSendMessage;
  */
 public abstract class AbstractDataSourceConverter<S extends DataSource> implements Converter {
 
-    private final ConsoleLogger logger = ConsoleLoggerFactory.get(MySqlToSqlite.class);
+    private final ConsoleLogger logger = ConsoleLoggerFactory.get(getClass());
 
     private final DataSource destination;
     private final DataSourceType destinationType;
