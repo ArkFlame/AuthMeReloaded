@@ -169,8 +169,9 @@ public class PermissionsManager implements Reloadable {
             return true;
         }
         // Resolve the name only after the handler is known to be available.
-        return isEnabled()
-            ? handler.hasPermissionOffline(player != null ? player.getName() : name, permissionNode)
+        PermissionHandler currentHandler = handler;
+        return currentHandler != null
+            ? currentHandler.hasPermissionOffline(player != null ? player.getName() : name, permissionNode)
             : permissionNode.getDefaultPermission().evaluate(player);
     }
 
@@ -194,8 +195,9 @@ public class PermissionsManager implements Reloadable {
 
     /** Add the permission group of a player, if supported. */
     public boolean addGroup(OfflinePlayer player, UserGroup groupName) {
-        return isEnabled() && groupName != null && !StringUtils.isBlank(groupName.getGroupName())
-            && handler.addToGroup(player, groupName);
+        PermissionHandler currentHandler = handler;
+        return currentHandler != null && groupName != null && !StringUtils.isBlank(groupName.getGroupName())
+            && currentHandler.addToGroup(player, groupName);
     }
 
     /** Add the permission groups of a player, if supported. */
@@ -205,7 +207,8 @@ public class PermissionsManager implements Reloadable {
 
     /** Remove the permission group of a player, if supported. */
     public boolean removeGroup(OfflinePlayer player, UserGroup group) {
-        return isEnabled() && handler.removeFromGroup(player, group);
+        PermissionHandler currentHandler = handler;
+        return currentHandler != null && currentHandler.removeFromGroup(player, group);
     }
 
     /** Remove the permission groups of a player, if supported. */
@@ -266,8 +269,9 @@ public class PermissionsManager implements Reloadable {
      * @throws PermissionLoadUserException if the action failed.
      */
     public void loadUserData(UUID uuid) throws PermissionLoadUserException {
-        if (isEnabled()) {
-            handler.loadUserData(uuid);
+        PermissionHandler currentHandler = handler;
+        if (currentHandler != null) {
+            currentHandler.loadUserData(uuid);
         }
     }
 

@@ -156,6 +156,9 @@ public class LuckPermsHandler implements PermissionHandler {
         try {
             luckPerms.getUserManager().loadUser(uuid).get(5, TimeUnit.SECONDS);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
             throw new PermissionLoadUserException("Unable to load the permission data of the user " + uuid, e);
         }
     }
