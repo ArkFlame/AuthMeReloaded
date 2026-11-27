@@ -81,7 +81,7 @@ class XfBcryptExtension extends MySqlExtension {
     @Override
     public void extendAuth(PlayerAuth auth, int id, Connection con) throws SQLException {
         try (PreparedStatement pst = con.prepareStatement(
-            "SELECT data FROM " + xfPrefix + "user_authenticate WHERE " + col.ID + "=?;")) {
+            "SELECT data FROM " + xfPrefix + "user_authenticate WHERE user_id=?;")) {
             pst.setInt(1, id);
             try (ResultSet rs = pst.executeQuery()) {
                 if (rs.next()) {
@@ -99,14 +99,14 @@ class XfBcryptExtension extends MySqlExtension {
         if (authId.isPresent()) {
             final int id = authId.getAsInt();
             // Insert password in the correct table
-            String sql = "UPDATE " + xfPrefix + "user_authenticate SET data=? WHERE " + col.ID + "=?;";
+            String sql = "UPDATE " + xfPrefix + "user_authenticate SET data=? WHERE user_id=?;";
             try (PreparedStatement pst = con.prepareStatement(sql)) {
                 pst.setBlob(1, createHashBlob(password.getHash(), con));
                 pst.setInt(2, id);
                 pst.executeUpdate();
             }
 
-            sql = "UPDATE " + xfPrefix + "user_authenticate SET scheme_class=? WHERE " + col.ID + "=?;";
+            sql = "UPDATE " + xfPrefix + "user_authenticate SET scheme_class=? WHERE user_id=?;";
             try (PreparedStatement pst = con.prepareStatement(sql)) {
                 pst.setString(1, XfBCrypt.SCHEME_CLASS);
                 pst.setInt(2, id);
@@ -119,7 +119,7 @@ class XfBcryptExtension extends MySqlExtension {
     public void removeAuth(String user, Connection con) throws SQLException {
         OptionalInt authId = retrieveIdFromTable(user, con);
         if (authId.isPresent()) {
-            String sql = "DELETE FROM " + xfPrefix + "user_authenticate WHERE " + col.ID + "=?;";
+            String sql = "DELETE FROM " + xfPrefix + "user_authenticate WHERE user_id=?;";
             try (PreparedStatement xfDelete = con.prepareStatement(sql)) {
                 xfDelete.setInt(1, authId.getAsInt());
                 xfDelete.executeUpdate();
