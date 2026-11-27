@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 
 import static fr.xephi.authme.message.MessagePathHelper.DEFAULT_LANGUAGE;
 
@@ -52,7 +53,7 @@ public class HelpMessagesFileHandler extends AbstractMessageFileHandler {
             logger.warning("Could not load default help messages file '" + defaultPath + "' from JAR");
             return new YamlConfiguration();
         }
-        try (InputStreamReader reader = new InputStreamReader(stream)) {
+        try (InputStreamReader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
             return YamlConfiguration.loadConfiguration(reader);
         } catch (IOException e) {
             logger.logException("Could not read default help messages file '" + defaultPath + "'", e);
