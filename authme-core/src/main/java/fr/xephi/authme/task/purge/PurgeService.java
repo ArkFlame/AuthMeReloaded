@@ -95,12 +95,13 @@ public class PurgeService {
      * @param players Collection of OfflinePlayers (including those with the given names)
      */
     public void purgePlayers(CommandSender sender, Set<String> names, OfflinePlayer[] players) {
-        if (isPurging) {
-            logAndSendMessage(sender, "Purge is already in progress! Aborting purge request");
-            return;
+        synchronized (this) {
+            if (isPurging) {
+                logAndSendMessage(sender, "Purge is already in progress! Aborting purge request");
+                return;
+            }
+            isPurging = true;
         }
-
-        isPurging = true;
         PurgeTask purgeTask = new PurgeTask(this, permissionsManager, sender, names, players);
         CancellableTask taskHandle = bukkitService.runTaskTimerAsynchronously(purgeTask, 0, 1);
         purgeTask.setTaskHandle(taskHandle);
