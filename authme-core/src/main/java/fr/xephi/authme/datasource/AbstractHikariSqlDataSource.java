@@ -5,6 +5,7 @@ import fr.xephi.authme.ConsoleLogger;
 import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.datasource.columnshandler.AuthMeColumnsHandler;
 import fr.xephi.authme.datasource.mysqlextensions.MySqlExtensionsFactory;
+import fr.xephi.authme.security.crypts.HashedPassword;
 import fr.xephi.authme.settings.Settings;
 import fr.xephi.authme.settings.properties.DatabaseSettings;
 import fr.xephi.authme.settings.properties.HooksSettings;
@@ -184,6 +185,20 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
             logSqlException(ex);
         }
         return new HashSet<>();
+    }
+
+    @Override
+    public boolean updatePassword(String user, HashedPassword password) {
+        if (!super.updatePassword(user, password)) {
+            return false;
+        }
+        // The AuthMe row is already updated; an integration table failure must not hide that from the cache
+        try (Connection con = getConnection()) {
+            sqlExtension.changePassword(user.toLowerCase(Locale.ROOT), password, con);
+        } catch (SQLException ex) {
+            logSqlException(ex);
+        }
+        return true;
     }
 
     @Override
