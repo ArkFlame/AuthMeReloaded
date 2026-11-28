@@ -7,6 +7,7 @@ import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.service.CommonService;
 import fr.xephi.authme.service.bungeecord.BungeeSender;
 import org.bukkit.command.CommandSender;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -48,6 +49,11 @@ class PurgeLastPositionCommandTest {
 
     @Mock
     private BukkitService bukkitService;
+
+    @BeforeEach
+    void runTasksImmediately() {
+        setBukkitServiceToRunTaskOptionallyAsync(bukkitService);
+    }
 
     @ParameterizedTest
     @CsvSource({
@@ -94,7 +100,6 @@ class PurgeLastPositionCommandTest {
         PlayerAuth auth2 = mock(PlayerAuth.class);
         PlayerAuth auth3 = mock(PlayerAuth.class);
         given(dataSource.getAllAuths()).willReturn(Arrays.asList(auth1, auth2, auth3));
-        setBukkitServiceToRunTaskOptionallyAsync(bukkitService);
 
         // when
         command.executeCommand(sender, Collections.singletonList("*"));

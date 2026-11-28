@@ -29,13 +29,15 @@ public class PurgeLastPositionCommand extends AbstractPlayerAuthCommand {
                 sender.sendMessage("All players last position locations are now reset");
             });
         } else {
-            PlayerAuth auth = getAuthOrReportUnknown(sender, playerName);
-            if (auth == null) {
-                return;
-            }
+            bukkitService.runTaskOptionallyAsync(() -> {
+                PlayerAuth auth = getAuthOrReportUnknown(sender, playerName);
+                if (auth == null) {
+                    return;
+                }
 
-            resetAndSaveLastPosition(auth);
-            sender.sendMessage(playerName + "'s last position location is now reset");
+                resetAndSaveLastPosition(auth);
+                sender.sendMessage(playerName + "'s last position location is now reset");
+            });
         }
     }
 
