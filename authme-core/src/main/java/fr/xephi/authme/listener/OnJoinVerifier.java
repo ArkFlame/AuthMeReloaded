@@ -144,8 +144,9 @@ public class OnJoinVerifier implements Reloadable {
             || length < settings.getProperty(RestrictionSettings.MIN_NICKNAME_LENGTH)) {
             throw new FailedVerificationException(MessageKey.INVALID_NAME_LENGTH);
         }
-        if (!shouldSkipNicknameCharacterCheck(playerId) && !isValidName(name)) {
-            throw new FailedVerificationException(MessageKey.INVALID_NAME_CHARACTERS, nicknamePattern.pattern());
+        Pattern pattern = nicknamePattern;
+        if (!shouldSkipNicknameCharacterCheck(playerId) && !isValidName(name, pattern)) {
+            throw new FailedVerificationException(MessageKey.INVALID_NAME_CHARACTERS, pattern.pattern());
         }
     }
 
@@ -164,11 +165,12 @@ public class OnJoinVerifier implements Reloadable {
      * names, so when the whole name doesn't match, each individual character is checked instead.
      *
      * @param name the name to check
+     * @param pattern the nickname pattern to apply
      *
      * @return true if the name satisfies the configured pattern
      */
-    private boolean isValidName(String name) {
-        Matcher matcher = nicknamePattern.matcher(name);
+    private boolean isValidName(String name, Pattern pattern) {
+        Matcher matcher = pattern.matcher(name);
         if (matcher.matches()) {
             return true;
         }

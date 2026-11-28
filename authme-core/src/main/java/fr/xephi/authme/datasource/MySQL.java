@@ -22,13 +22,13 @@ import java.util.Locale;
 public class MySQL extends AbstractHikariSqlDataSource {
     private final ConsoleLogger logger = ConsoleLoggerFactory.get(MySQL.class);
 
-    private boolean useSsl;
-    private boolean serverCertificateVerification;
-    private boolean allowPublicKeyRetrieval;
-    private String mariaDbSslMode;
+    private final boolean useSsl;
+    private final boolean serverCertificateVerification;
+    private final boolean allowPublicKeyRetrieval;
+    private final String mariaDbSslMode;
 
     public MySQL(Settings settings, MySqlExtensionsFactory extensionsFactory) throws SQLException {
-        setParameters(settings, extensionsFactory);
+        this(settings, null, extensionsFactory);
 
         // Set the connection arguments (and check if connection is ok)
         setupPool(this::setConnectionArguments, logger);
@@ -47,21 +47,16 @@ public class MySQL extends AbstractHikariSqlDataSource {
     @VisibleForTesting
     MySQL(Settings settings, HikariDataSource hikariDataSource, MySqlExtensionsFactory extensionsFactory) {
         ds = hikariDataSource;
-        setParameters(settings, extensionsFactory);
-    }
-
-    /** Returns the dotted path of the JDBC driver class to use. */
-    protected String getDriverClassName() {
-        return "com.mysql.cj.jdbc.Driver";
-    }
-
-    /** Reads the common and MySQL-specific settings. */
-    private void setParameters(Settings settings, MySqlExtensionsFactory extensionsFactory) {
         setCommonParameters(settings, extensionsFactory);
         useSsl = settings.getProperty(DatabaseSettings.MYSQL_USE_SSL);
         serverCertificateVerification = settings.getProperty(DatabaseSettings.MYSQL_CHECK_SERVER_CERTIFICATE);
         allowPublicKeyRetrieval = settings.getProperty(DatabaseSettings.MYSQL_ALLOW_PUBLIC_KEY_RETRIEVAL);
         mariaDbSslMode = settings.getProperty(DatabaseSettings.MARIADB_SSL_MODE);
+    }
+
+    /** Returns the dotted path of the JDBC driver class to use. */
+    protected String getDriverClassName() {
+        return "com.mysql.cj.jdbc.Driver";
     }
 
     /**
@@ -82,14 +77,15 @@ public class MySQL extends AbstractHikariSqlDataSource {
         ds.setUsername(getUsername());
         ds.setPassword(getPassword());
         // Driver
-        ds.setDriverClassName(getDriverClassName());
+        String driverClassName = getDriverClassName();
+        ds.setDriverClassName(driverClassName);
 
         // SSL mode: DISABLED / PREFERRED (SSL but no cert check) / VERIFY_CA
         // Migrated from deprecated useSSL + verifyServerCertificate (removed in Connector/J 9.x)
         String sslMode = !useSsl ? "DISABLED" : (!serverCertificateVerification ? "PREFERRED" : "VERIFY_CA");
         ds.addDataSourceProperty("sslMode", sslMode);
         // Ported from HaHaWTH/AuthMeReReloaded
-        applyMariaDbSslMode(ds, getDriverClassName(), mariaDbSslMode);
+        applyMariaDbSslMode(ds, driverClassName, mariaDbSslMode);
 
         if (allowPublicKeyRetrieval) {
             ds.addDataSourceProperty("allowPublicKeyRetrieval", "true");
