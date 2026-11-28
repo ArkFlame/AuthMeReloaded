@@ -287,6 +287,32 @@ class BungeeReceiverTest {
         verify(bungeeSender).sendPremiumList(carrier, List.of());
     }
 
+    @Test
+    void shouldRunOnlyOnePremiumListQueryWhileAnotherProxyStartedIsInFlight() {
+        // given
+        Player carrier = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));
+        BungeeReceiver receiver = receiverForProxyStartedNotification(carrier);
+        java.util.concurrent.atomic.AtomicBoolean reentered = new java.util.concurrent.atomic.AtomicBoolean();
+        given(dataSource.getPremiumUsernames()).willAnswer(invocation -> {
+            if (reentered.compareAndSet(false, true)) {
+                // a second proxy.started arrives while the first query is still running
+                receiver.onPluginMessageReceived("authme:main", carrier, buildProxyStartedPayload("other"));
+            }
+            return List.of("Alice");
+        });
+
+        // when
+        receiver.onPluginMessageReceived("authme:main", carrier, buildProxyStartedPayload("velocity"));
+
+        // then
+        verify(dataSource, org.mockito.Mockito.times(1)).getPremiumUsernames();
+        verify(bungeeSender).sendPremiumList(carrier, List.of("Alice"));
+
+        // and a later notification runs a fresh query
+        receiver.onPluginMessageReceived("authme:main", carrier, buildProxyStartedPayload("velocity"));
+        verify(dataSource, org.mockito.Mockito.times(2)).getPremiumUsernames();
+    }
+
     /** Sets up the common stub state for a proxy-started notification with one online player. */
     private BungeeReceiver receiverForProxyStartedNotification(Player carrier) {
         given(settings.getProperty(HooksSettings.BUNGEECORD)).willReturn(true);

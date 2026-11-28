@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class BungeeReceiver implements PluginMessageListener, SettingsDependent {
 
@@ -57,6 +58,8 @@ public class BungeeReceiver implements PluginMessageListener, SettingsDependent 
     private volatile boolean premiumEnabled;
     private volatile String proxySharedSecret;
     private boolean channelRegistered;
+    // Clients can send on this channel too: at most one premium-list query runs at a time
+    private final AtomicBoolean premiumListInFlight = new AtomicBoolean();
 
     @Inject
     BungeeReceiver(AuthMe plugin, BukkitService bukkitService, ProxySessionManager proxySessionManager,
@@ -119,11 +122,19 @@ public class BungeeReceiver implements PluginMessageListener, SettingsDependent 
 
         if (messageType == MessageType.PROXY_STARTED) {
             logger.info("Proxy plugin '" + argument + "' has started and registered the authme:main channel");
+            if (!premiumListInFlight.compareAndSet(false, true)) {
+                return;
+            }
             bukkitService.runTaskAsynchronously(() -> {
                 // Always send the list, even when it is empty: an empty list is authoritative and
                 // lets the proxy replace a stale premium cache. With premium disabled, stored
                 // premium names must not reach the proxy, or it keeps verifying those players.
-                List<String> premiumNames = premiumEnabled ? dataSource.getPremiumUsernames() : Collections.<String>emptyList();
+                List<String> premiumNames;
+                try {
+                    premiumNames = premiumEnabled ? dataSource.getPremiumUsernames() : Collections.<String>emptyList();
+                } finally {
+                    premiumListInFlight.set(false);
+                }
                 bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(
                     () -> sendPremiumList(player, argument, premiumNames));
             });
