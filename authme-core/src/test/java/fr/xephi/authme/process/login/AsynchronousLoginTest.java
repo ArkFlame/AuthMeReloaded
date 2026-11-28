@@ -37,6 +37,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -57,6 +58,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -151,10 +153,10 @@ class AsynchronousLoginTest {
         given(playerCache.isAuthenticated(name)).willReturn(false);
         given(dataSource.getAuth(name)).willReturn(PlayerAuth.builder().name(name).build());
         given(commonService.getProperty(DatabaseSettings.MYSQL_COL_GROUP)).willReturn("");
-        if (canceledEvent) {
-            given(commonService.getProperty(PluginSettings.USE_ASYNC_TASKS)).willReturn(true);
+        given(commonService.getProperty(PluginSettings.USE_ASYNC_TASKS)).willReturn(true);
+        if (!canceledEvent) {
+            doReturn(true).when(asynchronousLogin).hasReachedMaxLoggedInPlayersForIp(any(Player.class), anyString());
         }
-        doReturn(!canceledEvent).when(asynchronousLogin).hasReachedMaxLoggedInPlayersForIp(any(Player.class), anyString());
         if (canceledEvent) {
             doAnswer((Answer<Void>) invocation -> {
                 ((AuthMeAsyncPreLoginEvent) invocation.getArgument(0)).setCanLogin(false);
@@ -166,8 +168,11 @@ class AsynchronousLoginTest {
 
         verify(playerCache, only()).isAuthenticated(name);
         verify(dataSource, only()).getAuth(name);
-        verify(asynchronousLogin).hasReachedMaxLoggedInPlayersForIp(player, ip);
-        if (!canceledEvent) {
+        if (canceledEvent) {
+            // A cancelled pre-login event short-circuits before the per-IP limit is evaluated
+            verify(asynchronousLogin, never()).hasReachedMaxLoggedInPlayersForIp(any(Player.class), anyString());
+        } else {
+            verify(asynchronousLogin).hasReachedMaxLoggedInPlayersForIp(player, ip);
             verify(commonService).send(player, MessageKey.ALREADY_LOGGED_IN_ERROR);
         }
     }
@@ -265,6 +270,27 @@ class AsynchronousLoginTest {
         asynchronousLogin.login(player, "hunter2");
 
         verify(commonService).send(player, MessageKey.LOGIN_MESSAGE);
+        verify(asynchronousLogin, never()).performLogin(player, auth);
+    }
+
+    @Test
+    void shouldCheckPasswordBeforeEnforcingIpLimit() {
+        Player player = mockPlayer("bobby", "203.0.113.5");
+        PlayerAuth auth = PlayerAuth.builder().name("bobby").build();
+        given(playerCache.isAuthenticated("bobby")).willReturn(false);
+        given(dataSource.getAuth("bobby")).willReturn(auth);
+        given(commonService.getProperty(DatabaseSettings.MYSQL_COL_GROUP)).willReturn("");
+        given(commonService.getProperty(PluginSettings.USE_ASYNC_TASKS)).willReturn(false);
+        given(loginCaptchaManager.isCaptchaRequired("bobby")).willReturn(false);
+        given(passwordSecurity.comparePassword("hunter2", auth.getPassword(), "bobby")).willReturn(true);
+        doReturn(true).when(asynchronousLogin).hasReachedMaxLoggedInPlayersForIp(player, "203.0.113.5");
+
+        asynchronousLogin.login(player, "hunter2");
+
+        InOrder inOrder = inOrder(passwordSecurity, asynchronousLogin);
+        inOrder.verify(passwordSecurity).comparePassword("hunter2", auth.getPassword(), "bobby");
+        inOrder.verify(asynchronousLogin).hasReachedMaxLoggedInPlayersForIp(player, "203.0.113.5");
+        verify(commonService).send(player, MessageKey.ALREADY_LOGGED_IN_ERROR);
         verify(asynchronousLogin, never()).performLogin(player, auth);
     }
 

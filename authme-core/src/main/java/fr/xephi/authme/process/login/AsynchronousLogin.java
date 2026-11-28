@@ -134,8 +134,10 @@ public class AsynchronousLogin implements AsynchronousProcess {
             }
             // Resolve the IP once for the whole login call and pass it to every check that needs it
             String ip = PlayerUtils.getPlayerIp(player);
-            if (!canLogin(player, ip, quiet)
-                || (password != null && !checkPlayerInfo(player, name, lowerCaseName, ip, auth, password))) {
+            // The per-IP limit is checked last so it cannot be probed without knowing the password
+            if (!firePreLoginEvent(player)
+                || (password != null && !checkPlayerInfo(player, name, lowerCaseName, ip, auth, password))
+                || isOverIpLimit(player, ip, quiet)) {
                 return;
             }
             if (password != null && auth.getTotpKey() != null) {
@@ -185,12 +187,17 @@ public class AsynchronousLogin implements AsynchronousProcess {
         }
     }
 
-    /** Checks the per-IP limit and fires the pre-login event; true if the player may log in. */
-    private boolean canLogin(Player player, String ip, boolean quiet) {
+    /** Sends the already-logged-in message and returns true if the per-IP login limit is reached. */
+    private boolean isOverIpLimit(Player player, String ip, boolean quiet) {
         if (hasReachedMaxLoggedInPlayersForIp(player, ip)) {
             sendUnlessQuiet(player, MessageKey.ALREADY_LOGGED_IN_ERROR, quiet);
-            return false;
+            return true;
         }
+        return false;
+    }
+
+    /** Fires the pre-login event; true if no listener cancelled the login. */
+    private boolean firePreLoginEvent(Player player) {
         AuthMeAsyncPreLoginEvent event = new AuthMeAsyncPreLoginEvent(player,
             service.getProperty(PluginSettings.USE_ASYNC_TASKS));
         bukkitService.callEvent(event);
