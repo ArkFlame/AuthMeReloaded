@@ -26,6 +26,20 @@ public final class PlayerLocaleResolver {
     private PlayerLocaleResolver() {
     }
 
+    private static boolean isPlainCode(String code) {
+        int length = code.length();
+        if (length < 2 || length > 8) {
+            return false;
+        }
+        for (int i = 0; i < length; i++) {
+            char c = code.charAt(i);
+            if ((c < 'a' || c > 'z') && (c < '0' || c > '9')) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /**
      * Returns the AuthMe language code to use for the given sender, or {@code null} to use the server default.
      * <p>
@@ -65,6 +79,8 @@ public final class PlayerLocaleResolver {
             return override;
         }
         int underscore = locale.indexOf('_');
-        return underscore > 0 ? locale.substring(0, underscore) : locale;
+        String code = underscore > 0 ? locale.substring(0, underscore) : locale;
+        // The locale is client-controlled and ends up in a file path and a cache key: accept plain codes only
+        return isPlainCode(code) ? code : null;
     }
 }

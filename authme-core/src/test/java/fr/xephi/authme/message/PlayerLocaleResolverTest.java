@@ -57,6 +57,12 @@ class PlayerLocaleResolverTest {
         assertThat(PlayerLocaleResolver.toLanguageCode(locale), nullValue());
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"../../x", "a/b", "x", "toolonglang_xx", "fr.yml", "f r", "\u00e9\u00e9_fr"})
+    void shouldRejectLocalesThatAreNotPlainLanguageCodes(String locale) {
+        assertThat(PlayerLocaleResolver.toLanguageCode(locale), nullValue());
+    }
+
     private static Settings settingsWithPerPlayerLocale(boolean enabled) {
         Settings settings = mock(Settings.class);
         given(settings.getProperty(PluginSettings.PER_PLAYER_LOCALE)).willReturn(enabled);

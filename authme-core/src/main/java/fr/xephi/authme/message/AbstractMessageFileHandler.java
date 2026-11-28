@@ -24,6 +24,8 @@ import static fr.xephi.authme.message.MessagePathHelper.DEFAULT_LANGUAGE;
 public abstract class AbstractMessageFileHandler implements Reloadable {
 
     private static final FileConfiguration UNAVAILABLE = new YamlConfiguration();
+    /** Cap for cached "no such language" results, so client-supplied junk locales cannot grow the cache. */
+    private static final int MAX_CACHED_UNAVAILABLE = 64;
 
     private final ConsoleLogger logger = ConsoleLoggerFactory.get(AbstractMessageFileHandler.class);
 
@@ -138,7 +140,13 @@ public abstract class AbstractMessageFileHandler implements Reloadable {
         if (language == null || language.equals(getLanguage())) {
             return null;
         }
-        FileConfiguration config = languageCache.computeIfAbsent(language, languageLoader);
+        FileConfiguration config = languageCache.get(language);
+        if (config == null) {
+            config = languageLoader.apply(language);
+            if (config != UNAVAILABLE || languageCache.size() < MAX_CACHED_UNAVAILABLE) {
+                languageCache.putIfAbsent(language, config);
+            }
+        }
         return config == UNAVAILABLE ? null : config.getString(key);
     }
 
