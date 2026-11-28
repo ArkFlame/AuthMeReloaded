@@ -227,6 +227,8 @@ final class VelocityProxyBridge {
 
     private void handleLogoutMessage(String playerName, String serverName) {
         logger.info("Player {} logged out (notified by server '{}')", playerName, serverName);
+        // A retry still in flight must not log the player back in after the logout
+        pendingAutoLogins.remove(VelocityAuthenticationStore.normalizeName(playerName));
         authenticationStore.markLoggedOut(playerName);
         proxyServer.getPlayer(playerName).ifPresent(player ->
             proxyServer.getEventManager().fireAndForget(new AuthMeVelocityLogoutEvent(player)));

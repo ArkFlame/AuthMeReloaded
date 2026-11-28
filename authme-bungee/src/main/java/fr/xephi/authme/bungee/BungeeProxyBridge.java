@@ -251,6 +251,8 @@ public final class BungeeProxyBridge implements Listener {
     }
 
     private void handleLogoutMessage(String playerName) {
+        // A retry still in flight must not log the player back in after the logout
+        pendingAutoLogins.remove(BungeeAuthenticationStore.normalizeName(playerName));
         authenticationStore.markLoggedOut(playerName);
         ProxiedPlayer player = proxyServer.getPlayer(playerName);
         if (player != null) {
