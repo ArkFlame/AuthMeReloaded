@@ -294,10 +294,10 @@ public class BungeeReceiver implements PluginMessageListener, SettingsDependent 
         // proxy, so processJoin may run before perform.login arrives at this backend).
         proxySessionManager.processProxySessionMessage(name, verifiedPremiumUuid);
         Player player = bukkitService.getPlayerExact(name);
-        logger.info("performLogin: " + name + " verifiedPremiumUuid=" + verifiedPremiumUuid
-            + " playerOnline=" + (player != null && player.isOnline()));
+        logger.debug("performLogin: {0} verifiedPremiumUuid={1} playerOnline={2}", name, verifiedPremiumUuid,
+            player != null && player.isOnline());
         if (player == null || !player.isOnline()) {
-            logger.info(name + " is not yet online; queued for auto-login when they connect.");
+            logger.debug("{0} is not yet online; queued for auto-login when they connect.", name);
             return;
         }
         if (verifiedPremiumUuid == null) {
@@ -310,7 +310,7 @@ public class BungeeReceiver implements PluginMessageListener, SettingsDependent 
                 proxySessionManager.removeLoginRequest(name);
                 return;
             }
-            logger.info(name + " premium login accepted by validate(); completing proxy login");
+            logger.debug("{0} premium login accepted by validate(); completing proxy login", name);
             bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(player, () -> {
                 if (player.isOnline()) {
                     completeProxyLogin(player);
