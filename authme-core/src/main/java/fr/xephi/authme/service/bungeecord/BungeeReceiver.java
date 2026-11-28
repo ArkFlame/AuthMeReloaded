@@ -117,7 +117,7 @@ public class BungeeReceiver implements PluginMessageListener, SettingsDependent 
 
         String argument = readField(in, null);
         if (argument == null) {
-            logger.warning("Received invalid AuthMe plugin message of type " + messageType.name()
+            warnThrottled("Received invalid AuthMe plugin message of type " + messageType.name()
                 + ": argument is missing!");
             return;
         }
@@ -175,7 +175,7 @@ public class BungeeReceiver implements PluginMessageListener, SettingsDependent 
             return in.readUTF();
         } catch (IllegalStateException e) {
             if (missingFieldWarning != null) {
-                logger.warning(missingFieldWarning);
+                warnThrottled(missingFieldWarning);
             }
             return null;
         }
@@ -198,7 +198,7 @@ public class BungeeReceiver implements PluginMessageListener, SettingsDependent 
             uuidOrHmac = in.readUTF();
             premiumUuid = UuidUtils.parseUuidSafely(uuidOrHmac);
         } catch (IllegalStateException e) {
-            logger.warning("Received perform.login without HMAC — update your proxy plugin");
+            warnThrottled("Received perform.login without HMAC — update your proxy plugin");
             return null;
         }
         String hmac = uuidOrHmac;
@@ -261,16 +261,19 @@ public class BungeeReceiver implements PluginMessageListener, SettingsDependent 
             }
             rejectionReason = "invalid HMAC";
         }
-        // Any client can send this message: log at most one rejection per interval, with a sanitized name
+        warnThrottled("Rejected perform.login for " + sanitizeForLog(playerName) + ": " + rejectionReason);
+        return false;
+    }
+
+    /** Any client can send these messages: warn at most once per interval and keep the rest at debug level. */
+    private void warnThrottled(String message) {
         long now = System.currentTimeMillis();
-        String message = "Rejected perform.login for " + sanitizeForLog(playerName) + ": " + rejectionReason;
         if (now - lastRejectionLogMillis >= REJECTION_LOG_INTERVAL_MILLIS) {
             lastRejectionLogMillis = now;
             logger.warning(message);
         } else {
             logger.debug(message);
         }
-        return false;
     }
 
     /** Replaces control characters and caps the length of client-supplied text before it is logged. */
