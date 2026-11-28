@@ -229,8 +229,10 @@ public class PremiumService implements HasCleanup {
             return;
         }
 
+        UUID previousUuid = auth.getPremiumUuid();
         auth.setPremiumUuid(null);
         if (!dataSource.updatePremiumUuid(auth)) {
+            auth.setPremiumUuid(previousUuid);
             logger.warning("Failed to clear premium UUID for player " + playerName);
             messages.send(sender, MessageKey.PREMIUM_ERROR);
             return;
