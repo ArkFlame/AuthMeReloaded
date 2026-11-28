@@ -20,7 +20,6 @@ import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
 import java.util.List;
 
 import static fr.xephi.authme.command.executable.authme.debug.DebugSectionUtils.castToTypeOrNull;
@@ -50,7 +49,7 @@ class MySqlDefaultChanger implements DebugSection {
     @Inject
     private DataSource dataSource;
 
-    private MySQL mySql;
+    private volatile MySQL mySql;
 
     @PostConstruct
     void setMySqlField() {
@@ -79,7 +78,7 @@ class MySqlDefaultChanger implements DebugSection {
             return;
         }
 
-        Operation operation = arguments.size() > 0 ? matchEnumByName(Operation.class, arguments.get(0)) : null;
+        Operation operation = arguments.isEmpty() ? null : matchEnumByName(Operation.class, arguments.get(0));
         if (operation == Operation.DETAILS) {
             showColumnDetails(sender);
             return;
@@ -218,14 +217,16 @@ class MySqlDefaultChanger implements DebugSection {
     private String constructColumnListWithMetadata() {
         try (Connection con = getConnection(mySql)) {
             final DatabaseMetaData metaData = con.getMetaData();
-            List<String> formattedColumns = new ArrayList<>(Columns.values().length);
+            StringBuilder result = new StringBuilder();
             for (Columns col : Columns.values()) {
                 String[] names = getTableAndColumnNames(col);
-                formattedColumns.add(formatColumn(col,
-                    isNotNullColumn(metaData, names[0], names[1]),
+                if (result.length() > 0) {
+                    result.append(ChatColor.RESET).append(", ");
+                }
+                result.append(formatColumn(col, isNotNullColumn(metaData, names[0], names[1]),
                     getColumnDefaultValue(metaData, names[0], names[1]) != null));
             }
-            return String.join(ChatColor.RESET + ", ", formattedColumns);
+            return result.toString();
         } catch (SQLException e) {
             logger.logException("Failed to construct column list:", e);
             return ChatColor.RED + "An error occurred! Please see the console for details.";

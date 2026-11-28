@@ -15,6 +15,8 @@ import org.bukkit.entity.Player;
 
 import javax.inject.Inject;
 import java.io.File;
+import java.io.Reader;
+import java.io.Writer;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -39,11 +41,8 @@ class DistributedFilesPersistenceHandler implements LimboPersistenceHandler {
     DistributedFilesPersistenceHandler(@DataFolder File dataFolder, BukkitService bukkitService, Settings settings) {
         cacheFolder = new File(dataFolder, "playerdata");
         FileUtils.createDirectory(cacheFolder);
-
         gson = LimboPersistenceHandler.createGson(bukkitService);
-
         segmentNameBuilder = new SegmentNameBuilder(settings.getProperty(LimboSettings.DISTRIBUTION_SIZE));
-
         convertOldDataToCurrentSegmentScheme();
         deleteEmptyFiles();
     }
@@ -51,8 +50,7 @@ class DistributedFilesPersistenceHandler implements LimboPersistenceHandler {
     @Override
     public synchronized LimboPlayer getLimboPlayer(Player player) {
         String uuid = player.getUniqueId().toString();
-        File file = getPlayerSegmentFile(uuid);
-        Map<String, LimboPlayer> entries = readLimboPlayers(file);
+        Map<String, LimboPlayer> entries = readLimboPlayers(getPlayerSegmentFile(uuid));
         return entries == null ? null : entries.get(uuid);
     }
 
@@ -60,18 +58,14 @@ class DistributedFilesPersistenceHandler implements LimboPersistenceHandler {
     public synchronized void saveLimboPlayer(Player player, LimboPlayer limbo) {
         String uuid = player.getUniqueId().toString();
         File file = getPlayerSegmentFile(uuid);
-
-        Map<String, LimboPlayer> entries = null;
-        if (file.exists()) {
-            entries = readLimboPlayers(file);
-        } else {
+        boolean exists = file.exists();
+        Map<String, LimboPlayer> entries = exists ? readLimboPlayers(file) : null;
+        if (!exists) {
             FileUtils.create(file);
         }
-        /* intentionally separate if */
         if (entries == null) {
             entries = new HashMap<>();
         }
-
         entries.put(uuid, limbo);
         saveEntries(entries, file);
     }
@@ -80,11 +74,9 @@ class DistributedFilesPersistenceHandler implements LimboPersistenceHandler {
     public synchronized void removeLimboPlayer(Player player) {
         String uuid = player.getUniqueId().toString();
         File file = getPlayerSegmentFile(uuid);
-        if (file.exists()) {
-            Map<String, LimboPlayer> entries = readLimboPlayers(file);
-            if (entries != null && entries.remove(uuid) != null) {
-                saveEntries(entries, file);
-            }
+        Map<String, LimboPlayer> entries = readLimboPlayers(file);
+        if (entries != null && entries.remove(uuid) != null) {
+            saveEntries(entries, file);
         }
     }
 
@@ -94,12 +86,14 @@ class DistributedFilesPersistenceHandler implements LimboPersistenceHandler {
     }
 
     private boolean saveEntries(Map<String, LimboPlayer> entries, File file) {
-        // Write with the same charset that readLimboPlayers uses; FileWriter would silently use the
-        // platform default and corrupt non-ASCII group names on systems where that is not UTF-8.
-        // Write a temporary file and move it into place: a crash mid-write must not truncate the segment
+        // Write with the charset readLimboPlayers uses; FileWriter would silently use the platform
+        // default and corrupt non-ASCII group names. Move a temp file into place so a crash cannot
+        // truncate the segment.
         File temp = new File(file.getPath() + ".tmp");
         try {
-            Files.asCharSink(temp, StandardCharsets.UTF_8).write(gson.toJson(entries));
+            try (Writer writer = Files.asCharSink(temp, StandardCharsets.UTF_8).openBufferedStream()) {
+                gson.toJson(entries, writer);
+            }
             java.nio.file.Files.move(temp.toPath(), file.toPath(),
                 java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             return true;
@@ -114,9 +108,8 @@ class DistributedFilesPersistenceHandler implements LimboPersistenceHandler {
         if (!file.exists()) {
             return null;
         }
-
-        try {
-            return gson.fromJson(Files.asCharSource(file, StandardCharsets.UTF_8).read(), LIMBO_MAP_TYPE);
+        try (Reader reader = Files.asCharSource(file, StandardCharsets.UTF_8).openBufferedStream()) {
+            return gson.fromJson(reader, LIMBO_MAP_TYPE);
         } catch (Exception e) {
             logger.logException("Failed reading '" + file + "':", e);
         }
@@ -124,7 +117,11 @@ class DistributedFilesPersistenceHandler implements LimboPersistenceHandler {
     }
 
     private File getPlayerSegmentFile(String uuid) {
-        return new File(cacheFolder, segmentNameBuilder.createSegmentName(uuid) + "-limbo.json");
+        return segmentFile(segmentNameBuilder.createSegmentName(uuid));
+    }
+
+    private File segmentFile(String segmentName) {
+        return new File(cacheFolder, segmentName + "-limbo.json");
     }
 
     /**
@@ -134,11 +131,10 @@ class DistributedFilesPersistenceHandler implements LimboPersistenceHandler {
      */
     private void convertOldDataToCurrentSegmentScheme() {
         String currentPrefix = segmentNameBuilder.getPrefix();
-        File[] files = listFiles(cacheFolder);
         Map<String, LimboPlayer> allLimboPlayers = new HashMap<>();
         List<File> migratedFiles = new ArrayList<>();
 
-        for (File file : files) {
+        for (File file : listFiles(cacheFolder)) {
             if (isLimboJsonFile(file) && !file.getName().startsWith(currentPrefix)) {
                 Map<String, LimboPlayer> data = readLimboPlayers(file);
                 if (data != null) {
@@ -148,10 +144,9 @@ class DistributedFilesPersistenceHandler implements LimboPersistenceHandler {
             }
         }
 
-        if (!allLimboPlayers.isEmpty()) {
-            // Keep the old files when any new segment could not be written: they hold the only copy
-            if (saveToNewSegments(allLimboPlayers)) {
-                migratedFiles.forEach(FileUtils::delete);
+        if (!allLimboPlayers.isEmpty() && saveToNewSegments(allLimboPlayers)) {
+            for (File file : migratedFiles) {
+                FileUtils.delete(file);
             }
         }
     }
@@ -173,7 +168,7 @@ class DistributedFilesPersistenceHandler implements LimboPersistenceHandler {
         logger.info("Saving " + limbosFromOldSegments.size() + " LimboPlayers from old segments into "
             + limboBySegment.size() + " current segments");
         for (Map.Entry<String, Map<String, LimboPlayer>> entry : limboBySegment.entrySet()) {
-            File file = new File(cacheFolder, entry.getKey() + "-limbo.json");
+            File file = segmentFile(entry.getKey());
             Map<String, LimboPlayer> limbosToSave = readLimboPlayers(file);
             if (limbosToSave == null) {
                 limbosToSave = new HashMap<>();
@@ -188,10 +183,8 @@ class DistributedFilesPersistenceHandler implements LimboPersistenceHandler {
      * Deletes segment files that are empty.
      */
     private void deleteEmptyFiles() {
-        File[] files = listFiles(cacheFolder);
-
         int deletedFiles = 0;
-        for (File file : files) {
+        for (File file : listFiles(cacheFolder)) {
             // typically the size is 2 because there's an empty JSON map: {}
             if (isLimboJsonFile(file) && file.length() < 3) {
                 FileUtils.delete(file);

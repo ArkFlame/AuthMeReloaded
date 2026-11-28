@@ -5,6 +5,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
+import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
 import com.maxmind.db.CHMCache;
 import com.maxmind.db.Reader.FileMode;
@@ -24,6 +25,7 @@ import javax.inject.Inject;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -48,25 +50,18 @@ import java.util.zip.GZIPInputStream;
 public class GeoIpService {
 
     private static final String LICENSE =
-            "[LICENSE] This product includes GeoLite2 data created by MaxMind, available at https://www.maxmind.com";
-
+        "[LICENSE] This product includes GeoLite2 data created by MaxMind, available at https://www.maxmind.com";
     private static final String DATABASE_NAME = "GeoLite2-Country";
     private static final String DATABASE_FILE = DATABASE_NAME + ".mmdb";
     private static final String DATABASE_TMP_FILE = DATABASE_FILE + ".tmp";
-
     private static final String ARCHIVE_FILE = DATABASE_FILE + ".gz";
-
     private static final String ARCHIVE_URL =
         "https://updates.maxmind.com/geoip/databases/" + DATABASE_NAME + "/update";
-
     private static final int UPDATE_INTERVAL_DAYS = 30;
-
     // Bound the MaxMind download so a stalled connection cannot wedge the async update task
     private static final int CONNECTION_TIMEOUT_MS = 5000;
-
     // MD5 is 128 bits, i.e. 32 hexadecimal characters
     private static final Pattern CHECKSUM_PATTERN = Pattern.compile("[0-9a-fA-F]{32}");
-
     // Upper bound for the addresses remembered as having no known country
     private static final int MAX_NEGATIVE_CACHE_SIZE = 256;
 
@@ -86,7 +81,6 @@ public class GeoIpService {
     @Inject
     public GeoIpService(@DataFolder File dataFolder, BukkitService bukkitService, Settings settings) {
         this(dataFolder, bukkitService, settings, null);
-
         // Fires download of recent data or the initialization of the look-up service
         isDataAvailable();
     }
@@ -99,22 +93,24 @@ public class GeoIpService {
         this.databaseReader = reader;
     }
 
-    /**
-     * Download (if absent or old) the GeoIpLite data file and then try to load it.
-     *
-     * @return True if the data is available, false otherwise.
-     */
-    private synchronized boolean isDataAvailable() {
+    /** Checks whether the local database is usable, scheduling a download when absent or old. */
+    private boolean isDataAvailable() {
         // If this feature is disabled or an update download is in progress, stop
         if (!settings.getProperty(ProtectionSettings.ENABLE_GEOIP) || downloading) {
             return false;
         }
+        // The reader is volatile and never reset to null: skip the lock once it is available
+        return databaseReader != null || initializeDatabase();
+    }
 
+    /** Serializes one-time initialization so concurrent lookups cannot build two readers. */
+    private synchronized boolean initializeDatabase() {
         if (databaseReader != null) {
-            // everything is initialized
             return true;
         }
-
+        if (downloading) {
+            return false;
+        }
         if (Files.exists(dataFile)) {
             try {
                 FileTime lastModifiedTime = Files.getLastModifiedTime(dataFile);
@@ -129,21 +125,17 @@ public class GeoIpService {
                 return false;
             }
         }
-
         // set the downloading flag in order to fix race conditions outside
         downloading = true;
-
         // File is outdated or doesn't exist - download it on a cached Bukkit thread
         bukkitService.runTaskAsynchronously(this::updateDatabase);
         return false;
     }
 
-    /**
-     * Tries to update the database by downloading a new version from the website.
-     */
+    /** Tries to update the database by downloading a new version from the website. */
     private void updateDatabase() {
         logger.info("Downloading GEO IP database, because the old database is older than "
-                + UPDATE_INTERVAL_DAYS + " days or doesn't exist");
+            + UPDATE_INTERVAL_DAYS + " days or doesn't exist");
 
         Path downloadFile = null, tempFile = null;
         try {
@@ -201,12 +193,9 @@ public class GeoIpService {
     }
 
     /**
-     * Downloads the archive to the destination file if it's newer than the local version.
+     * Downloads the archive to the destination if newer than the local version, returning its MD5.
      *
-     * @param lastModified modification timestamp of the already present file
-     * @param destination save file
-     * @return null if no updates were found, the MD5 hash of the downloaded archive if successful
-     * @throws IOException if failed during downloading and writing to destination file
+     * @return null if there is no update, otherwise the MD5 hash of the downloaded archive
      */
     private String downloadDatabaseArchive(Instant lastModified, Path destination) throws IOException {
         HttpURLConnection connection = openConnection(lastModified);
@@ -226,19 +215,18 @@ public class GeoIpService {
             }
 
             Instant modifiedDate = parseModifiedDate(connection.getHeaderField("Last-Modified"));
-            Files.copy(connection.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
+            try (InputStream in = connection.getInputStream()) {
+                Files.copy(in, destination, StandardCopyOption.REPLACE_EXISTING);
+            }
             Files.setLastModifiedTime(destination, FileTime.from(modifiedDate));
             return connection.getHeaderField("X-Database-MD5");
         } finally {
-            // Files.copy does not close the source stream, so release the socket on every path
+            // Release the connection socket on every path
             connection.disconnect();
         }
     }
 
-    /**
-     * Parses the {@code Last-Modified} header, turning missing or malformed values into a checked
-     * failure so the async update task logs it instead of aborting with an unchecked exception.
-     */
+    /** Parses the Last-Modified header into a checked failure instead of an unchecked date exception. */
     private static Instant parseModifiedDate(String rawModifiedDate) throws IOException {
         if (rawModifiedDate == null) {
             throw new IOException("Missing Last-Modified header in MaxMind response");
@@ -250,13 +238,11 @@ public class GeoIpService {
         }
     }
 
-    /**
-     * Opens the download connection with authentication and, when known, the last modification date.
-     */
+    /** Opens the authenticated download connection with the last modification date, when known. */
     private HttpURLConnection openConnection(Instant lastModified) throws IOException {
         String clientId = settings.getProperty(ProtectionSettings.MAXMIND_API_CLIENT_ID);
         String licenseKey = settings.getProperty(ProtectionSettings.MAXMIND_API_LICENSE_KEY);
-        if (clientId.isEmpty() || licenseKey.isEmpty()) {
+        if (clientId == null || clientId.isEmpty() || licenseKey == null || licenseKey.isEmpty()) {
             logger.warning("No MaxMind credentials found in the configuration file!"
                 + " GeoIp protections will be disabled.");
             return null;
@@ -281,32 +267,27 @@ public class GeoIpService {
         connection.setReadTimeout(CONNECTION_TIMEOUT_MS);
     }
 
-    /**
-     * Verify if the expected checksum is equal to the checksum of the given file.
-     *
-     * @param function the checksum function like MD5, SHA256 used to generate the checksum from the file
-     * @param file the file we want to calculate the checksum from
-     * @param expectedChecksum the expected checksum
-     * @throws IOException on I/O error reading the file or the checksum verification failed
-     */
+    /** Hashes the file in chunks and compares it with the validated header value. */
     private void verifyChecksum(HashFunction function, Path file, String expectedChecksum) throws IOException {
         if (expectedChecksum == null || !CHECKSUM_PATTERN.matcher(expectedChecksum).matches()) {
             throw new IOException("Invalid or missing MaxMind checksum header");
         }
-        HashCode actualHash = function.hashBytes(Files.readAllBytes(file));
+        Hasher hasher = function.newHasher();
+        byte[] buffer = new byte[8192];
+        try (InputStream in = Files.newInputStream(file)) {
+            int read;
+            while ((read = in.read(buffer)) != -1) {
+                hasher.putBytes(buffer, 0, read);
+            }
+        }
+        HashCode actualHash = hasher.hash();
         if (!actualHash.equals(HashCode.fromString(expectedChecksum))) {
             throw new IOException("GEO IP Checksum verification failed. "
                 + "Expected: " + expectedChecksum + "Actual:" + actualHash);
         }
     }
 
-    /**
-     * Extract the database from gzipped data, replacing {@code outputFile} if it exists.
-     *
-     * @param inputFile gzipped database input file
-     * @param outputFile destination file for the database
-     * @throws IOException on I/O error reading the archive, or writing the output
-     */
+    /** Extracts the gzipped database into outputFile, preserving the archive timestamp. */
     private void extractDatabase(Path inputFile, Path outputFile) throws IOException {
         // .gz -> gzipped file
         try (GZIPInputStream gzipIn = new GZIPInputStream(
@@ -320,23 +301,12 @@ public class GeoIpService {
         }
     }
 
-    /**
-     * Get the country code of the given IP address.
-     *
-     * @param ip textual IP address to lookup.
-     * @return two-character ISO 3166-1 alpha code for the country, "LOCALHOST" for local addresses
-     *         or "--" if it cannot be fetched.
-     */
+    /** Gets the ISO country code, "LOCALHOST" for local addresses or "--" when unavailable. */
     public String getCountryCode(String ip) {
         return getCountryValue(ip, Country::getIsoCode, "--", "LOCALHOST");
     }
 
-    /**
-     * Get the country name of the given IP address.
-     *
-     * @param ip textual IP address to lookup.
-     * @return The name of the country, "LocalHost" for local addresses, or "N/A" if it cannot be fetched.
-     */
+    /** Gets the country name, "LocalHost" for local addresses or "N/A" when unavailable. */
     public String getCountryName(String ip) {
         return getCountryValue(ip, Country::getName, "N/A", "LocalHost");
     }
@@ -349,8 +319,7 @@ public class GeoIpService {
         try {
             address = InetAddress.getByName(ip);
         } catch (UnknownHostException e) {
-            // Ignore invalid ip addresses
-            // Legacy GEO IP Database returned an unknown country object with Country-Code: '--' and Country-Name: 'N/A'
+            // Ignore invalid ip addresses; the legacy database reported '--' / 'N/A' for these
             return fallback;
         }
 
