@@ -140,7 +140,13 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
             plugin.getLogger().warning("Folia " + schedulerName + " is unavailable; skipping scheduled task");
             return NO_OP_TASK;
         }
-        Object scheduledTask = invoke(method, scheduler, arguments);
+        Object scheduledTask;
+        try {
+            scheduledTask = method.invoke(scheduler, arguments);
+        } catch (Exception e) {
+            plugin.getLogger().warning("Folia " + schedulerName + " rejected a task: " + e);
+            return NO_OP_TASK;
+        }
         Method cancel = findMethod(scheduledTask, "cancel");
         return cancel == null ? NO_OP_TASK : () -> invoke(cancel, scheduledTask);
     }
