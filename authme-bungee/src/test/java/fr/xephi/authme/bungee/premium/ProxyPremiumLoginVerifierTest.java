@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class ProxyPremiumLoginVerifierTest {
 
@@ -49,5 +50,25 @@ class ProxyPremiumLoginVerifierTest {
         now.addAndGet(-(TTL_MS + 1)); // rewind: a surviving entry would now look fresh and be returned
 
         assertNull(verifier.getVerifiedUuid("abandoned"));
+    }
+
+    @Test
+    void shouldRejectCompletionOfHandshakeOlderThanPendingTtl() throws Exception {
+        java.util.List<String> warnings = new java.util.concurrent.CopyOnWriteArrayList<>();
+        ProxyPremiumLoginVerifier logging = new ProxyPremiumLoginVerifier("test-ttl", warnings::add, now::get);
+        try {
+            // Control: a fresh handshake reaches the verification step, which fails on the garbage token and warns.
+            logging.startVerification("fresh", "alice", UUID.randomUUID(), false);
+            assertFalse(logging.completeVerification("fresh", new byte[16], new byte[16]).get().isPresent());
+            assertEquals(1, warnings.size());
+
+            // An expired handshake is rejected before any decryption or lookup, so nothing is logged.
+            logging.startVerification("stale", "bob", UUID.randomUUID(), false);
+            now.addAndGet(30_001L);
+            assertFalse(logging.completeVerification("stale", new byte[16], new byte[16]).get().isPresent());
+            assertEquals(1, warnings.size());
+        } finally {
+            logging.shutdown();
+        }
     }
 }
