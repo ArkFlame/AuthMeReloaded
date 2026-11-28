@@ -30,16 +30,16 @@ public class JoinMessageService {
         joinMessages.put(playerName, string);
     }
 
-    /**
-     * Broadcast the join message of the specified player.
-     *
-     * @param playerName the player name
-     */
     /** Drops a stored join message of a player who left without logging in. */
     public void removeMessage(String playerName) {
         joinMessages.remove(playerName);
     }
 
+    /**
+     * Broadcast the join message of the specified player.
+     *
+     * @param playerName the player name
+     */
     public void sendMessage(String playerName) {
         String joinMessage = joinMessages.remove(playerName);
         if (!StringUtils.isBlank(joinMessage)) {
