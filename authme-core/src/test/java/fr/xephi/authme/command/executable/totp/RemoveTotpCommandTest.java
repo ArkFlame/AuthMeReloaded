@@ -44,6 +44,13 @@ public class RemoveTotpCommandTest {
     private TotpAuthenticator totpAuthenticator;
     @Mock
     private Messages messages;
+    @Mock
+    private fr.xephi.authme.service.BukkitService bukkitService;
+
+    @org.junit.jupiter.api.BeforeEach
+    public void runTasksImmediately() {
+        fr.xephi.authme.service.BukkitServiceTestHelper.setBukkitServiceToRunTaskOptionallyAsync(bukkitService);
+    }
 
     @BeforeAll
     public static void setUpLogger() {

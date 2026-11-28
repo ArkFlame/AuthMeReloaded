@@ -5,6 +5,7 @@ import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
+import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.security.totp.TotpAuthenticator;
 import org.bukkit.entity.Player;
 
@@ -22,17 +23,22 @@ public class RemoveTotpCommand extends AbstractTotpPlayerCommand {
     private DataSource dataSource;
     @Inject
     private TotpAuthenticator totpAuthenticator;
+    @Inject
+    private BukkitService bukkitService;
 
     @Override
     protected void handlePlayer(Player player, PlayerAuth auth, List<String> arguments) {
         if (auth.getTotpKey() == null) {
             messages.send(player, MessageKey.TWO_FACTOR_NOT_ENABLED_ERROR);
         } else if (totpAuthenticator.checkCode(auth, arguments.get(0))) {
-            boolean removed = dataSource.removeTotpKey(auth.getNickname());
-            applyTotpKeyUpdate(player, auth, removed, null, MessageKey.TWO_FACTOR_REMOVED_SUCCESS);
-            if (removed) {
-                logger.info("Player '" + player.getName() + "' removed their TOTP key");
-            }
+            // The key removal hits the database: keep it off the server thread
+            bukkitService.runTaskOptionallyAsync(() -> {
+                boolean removed = dataSource.removeTotpKey(auth.getNickname());
+                applyTotpKeyUpdate(player, auth, removed, null, MessageKey.TWO_FACTOR_REMOVED_SUCCESS);
+                if (removed) {
+                    logger.info("Player '" + player.getName() + "' removed their TOTP key");
+                }
+            });
         } else {
             messages.send(player, MessageKey.TWO_FACTOR_INVALID_CODE);
         }

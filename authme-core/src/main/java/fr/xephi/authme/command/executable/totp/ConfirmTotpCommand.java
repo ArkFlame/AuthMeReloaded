@@ -5,6 +5,7 @@ import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
+import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.security.totp.GenerateTotpService;
 import fr.xephi.authme.security.totp.TotpAuthenticator.TotpGenerationResult;
 import org.bukkit.entity.Player;
@@ -25,6 +26,9 @@ public class ConfirmTotpCommand extends AbstractTotpPlayerCommand {
     @Inject
     private DataSource dataSource;
 
+    @Inject
+    private BukkitService bukkitService;
+
     @Override
     protected void handlePlayer(Player player, PlayerAuth auth, List<String> arguments) {
         if (auth.getTotpKey() != null) {
@@ -40,7 +44,8 @@ public class ConfirmTotpCommand extends AbstractTotpPlayerCommand {
             messages.send(player, MessageKey.TWO_FACTOR_ENABLE_ERROR_NO_CODE);
         } else {
             if (generateTotpService.isTotpCodeCorrectForGeneratedTotpKey(player, inputTotpCode)) {
-                insertTotpKeyIntoDatabase(player, auth, totpDetails);
+                // The key insert hits the database: keep it off the server thread
+                bukkitService.runTaskOptionallyAsync(() -> insertTotpKeyIntoDatabase(player, auth, totpDetails));
             } else {
                 messages.send(player, MessageKey.TWO_FACTOR_ENABLE_ERROR_WRONG_CODE);
             }
