@@ -4,9 +4,11 @@ import javax.crypto.Cipher;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
@@ -214,7 +216,7 @@ final class ProxyPremiumLoginVerifier {
 
     private Optional<UUID> hasJoined(String username, String serverHash) {
         try {
-            HttpURLConnection connection = openGet(HAS_JOINED_URL + "?username=" + username + "&serverId=" + serverHash);
+            HttpURLConnection connection = openGet(HAS_JOINED_URL + "?username=" + urlEncode(username) + "&serverId=" + serverHash);
             try {
                 int code = connection.getResponseCode();
                 if (code == HttpURLConnection.HTTP_NO_CONTENT || code == HttpURLConnection.HTTP_NOT_FOUND) {
@@ -231,6 +233,15 @@ final class ProxyPremiumLoginVerifier {
         } catch (IOException e) {
             warningLogger.accept("Failed to contact Mojang session server for '" + username + "': " + e.getMessage());
             return Optional.empty();
+        }
+    }
+
+    /** The name comes from a client packet: encode it so it cannot add query parameters. */
+    private static String urlEncode(String value) {
+        try {
+            return URLEncoder.encode(value, StandardCharsets.UTF_8.name());
+        } catch (UnsupportedEncodingException e) {
+            throw new IllegalStateException(e);
         }
     }
 

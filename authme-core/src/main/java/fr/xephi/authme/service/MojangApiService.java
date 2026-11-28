@@ -8,8 +8,10 @@ import javax.inject.Inject;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.UUID;
@@ -40,7 +42,7 @@ public class MojangApiService {
      * @return the Mojang online UUID, or empty if the account does not exist or an error occurred
      */
     public Optional<UUID> fetchUuidByName(String username) {
-        return fetchUuid(PROFILE_URL + username, username, "Mojang profile API", "Mojang profile API", true);
+        return fetchUuid(PROFILE_URL + urlEncode(username), username, "Mojang profile API", "Mojang profile API", true);
     }
 
     /**
@@ -51,7 +53,7 @@ public class MojangApiService {
      * @return the Mojang online UUID on a valid session, or empty on any failure
      */
     public Optional<UUID> hasJoined(String username, String serverHash) {
-        return fetchUuid(HAS_JOINED_URL + "?username=" + username + "&serverId=" + serverHash,
+        return fetchUuid(HAS_JOINED_URL + "?username=" + urlEncode(username) + "&serverId=" + serverHash,
             username, "Mojang hasJoined", "Mojang session server", false);
     }
 
@@ -81,6 +83,15 @@ public class MojangApiService {
             if (conn != null) {
                 conn.disconnect();
             }
+        }
+    }
+
+    /** The name comes from a client packet: encode it so it cannot add query parameters or path segments. */
+    private static String urlEncode(String value) {
+        try {
+            return URLEncoder.encode(value, StandardCharsets.UTF_8.name());
+        } catch (UnsupportedEncodingException e) {
+            throw new IllegalStateException(e);
         }
     }
 
