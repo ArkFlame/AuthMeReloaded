@@ -182,7 +182,10 @@ public class BackupService {
      * @return the mysqldump command
      */
     private List<String> buildMysqlDumpCommand(String executable, File sqlBackupFile) {
+        // Dump the server AuthMe is configured to use, not whatever mysqldump defaults to (local socket).
         return Arrays.asList(executable,
+            "--host=" + settings.getProperty(DatabaseSettings.MYSQL_HOST),
+            "--port=" + settings.getProperty(DatabaseSettings.MYSQL_PORT),
             "-u", settings.getProperty(DatabaseSettings.MYSQL_USERNAME),
             settings.getProperty(DatabaseSettings.MYSQL_DATABASE),
             "--tables", settings.getProperty(DatabaseSettings.MYSQL_TABLE),
