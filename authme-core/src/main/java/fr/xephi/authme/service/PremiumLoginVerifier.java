@@ -35,6 +35,7 @@ public class PremiumLoginVerifier {
 
     private static final long VERIFIED_TTL_MS = 60_000L;
     private static final long PENDING_TTL_MS = 30_000L;
+    private static final long SWEEP_INTERVAL_MS = 1_000L;
 
     private final ConsoleLogger logger = ConsoleLoggerFactory.get(PremiumLoginVerifier.class);
 
@@ -45,6 +46,7 @@ public class PremiumLoginVerifier {
 
     /** Keyed by connection address (ip:port). */
     private final ConcurrentHashMap<String, PendingVerification> pending = new ConcurrentHashMap<>();
+    private volatile long lastSweepMillis;
     /** Keyed by lowercase username; entries expire after {@link #VERIFIED_TTL_MS}. */
     private final ExpiringPendingCache<UUID> verified = new ExpiringPendingCache<>(VERIFIED_TTL_MS);
 
@@ -84,6 +86,11 @@ public class PremiumLoginVerifier {
 
     private void evictStalePendingEntries() {
         long now = System.currentTimeMillis();
+        // At most one full scan per interval: a handshake flood must not cost O(n) per connection.
+        if (now - lastSweepMillis < SWEEP_INTERVAL_MS) {
+            return;
+        }
+        lastSweepMillis = now;
         pending.entrySet().removeIf(e -> now - e.getValue().startedAt() > PENDING_TTL_MS);
     }
 
@@ -136,7 +143,7 @@ public class PremiumLoginVerifier {
     public CompletableFuture<Optional<UUID>> completeVerification(
             String connectionKey, byte[] sharedSecret, byte[] encVerifyToken) {
         PendingVerification pend = pending.remove(connectionKey);
-        if (pend == null) {
+        if (pend == null || System.currentTimeMillis() - pend.startedAt() > PENDING_TTL_MS) {
             return CompletableFuture.completedFuture(Optional.empty());
         }
         CompletableFuture<Optional<UUID>> future = new CompletableFuture<>();
