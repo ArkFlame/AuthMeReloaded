@@ -64,6 +64,9 @@ public class GeoIpService {
     private static final Pattern CHECKSUM_PATTERN = Pattern.compile("[0-9a-fA-F]{32}");
     // Upper bound for the addresses remembered as having no known country
     private static final int MAX_NEGATIVE_CACHE_SIZE = 256;
+    // Pause after a failed download so a transient outage heals without a restart, but lookups never
+    // trigger a download on every login
+    private static final long RETRY_COOLDOWN_MS = 10 * 60 * 1000L;
 
     private final ConsoleLogger logger = ConsoleLoggerFactory.get(GeoIpService.class);
     private final Path dataFile;
@@ -77,6 +80,7 @@ public class GeoIpService {
 
     private volatile DatabaseReader databaseReader;
     private volatile boolean downloading;
+    private volatile long retryNotBefore;
 
     @Inject
     public GeoIpService(@DataFolder File dataFolder, BukkitService bukkitService, Settings settings) {
@@ -125,6 +129,9 @@ public class GeoIpService {
                 return false;
             }
         }
+        if (System.currentTimeMillis() < retryNotBefore) {
+            return false;
+        }
         // set the downloading flag in order to fix race conditions outside
         downloading = true;
         // File is outdated or doesn't exist - download it on a cached Bukkit thread
@@ -161,11 +168,13 @@ public class GeoIpService {
 
             Files.copy(tempFile, dataFile, StandardCopyOption.REPLACE_EXISTING);
 
-            //only set this value to false on success otherwise errors could lead to endless download triggers
             logger.info("Successfully downloaded new GEO IP database to " + dataFile);
             startReading();
         } catch (IOException ioEx) {
             logger.logException("Could not download GeoLiteAPI database", ioEx);
+            // Retry after the cooldown instead of staying disabled until the next restart
+            retryNotBefore = System.currentTimeMillis() + RETRY_COOLDOWN_MS;
+            downloading = false;
         } finally {
             // clean up
             deleteIfPresent(downloadFile);

@@ -16,11 +16,13 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
@@ -41,6 +43,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -155,6 +158,31 @@ class GeoIpServiceTest {
         // then
         assertThat(result.getCause(), instanceOf(IOException.class));
         assertThat(result.getCause().getMessage(), containsString("checksum"));
+    }
+
+    @Test
+    void shouldRetryFailedDownloadOnlyAfterCooldown() throws Exception {
+        // given
+        BukkitService bukkitService = mock(BukkitService.class);
+        given(settings.getProperty(ProtectionSettings.ENABLE_GEOIP)).willReturn(true);
+        GeoIpService service = new GeoIpService(dataFolder, bukkitService, settings, null);
+        ArgumentCaptor<Runnable> downloadTask = ArgumentCaptor.forClass(Runnable.class);
+
+        // when: the first lookup schedules a download, which fails (no credentials and no database file)
+        assertThat(service.getCountryCode("24.45.167.89"), equalTo("--"));
+        verify(bukkitService).runTaskAsynchronously(downloadTask.capture());
+        downloadTask.getValue().run();
+
+        // then: lookups within the cooldown do not schedule another download
+        assertThat(service.getCountryCode("24.45.167.89"), equalTo("--"));
+        verify(bukkitService, times(1)).runTaskAsynchronously(any());
+
+        // and once the cooldown has passed, the download is attempted again instead of staying disabled
+        Field retryNotBefore = GeoIpService.class.getDeclaredField("retryNotBefore");
+        retryNotBefore.setAccessible(true);
+        retryNotBefore.setLong(service, 0L);
+        service.getCountryCode("24.45.167.89");
+        verify(bukkitService, times(2)).runTaskAsynchronously(any());
     }
 
     @Test
