@@ -66,11 +66,13 @@ public class CrazyLoginConverter implements Converter {
                 if (database.isAuthAvailable(lowerCaseName)) {
                     continue;
                 }
-                database.saveAuth(PlayerAuth.builder()
+                if (!database.saveAuth(PlayerAuth.builder()
                     .name(lowerCaseName)
                     .realName(playerName)
                     .password(args[1], null)
-                    .build());
+                    .build())) {
+                    logger.warning("Could not save CrazyLogin account '" + playerName + "', skipping");
+                }
             }
             logger.info("CrazyLogin database has been imported correctly");
         } catch (IOException ex) {
