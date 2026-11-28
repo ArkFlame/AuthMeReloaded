@@ -16,6 +16,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.only;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -68,6 +69,7 @@ class AbstractDataSourceConverterTest extends AbstractConverterTest {
             Arrays.asList(mockAuthWithName("Steven"), mockAuthWithName("bobby"), mockAuthWithName("Jack"));
         given(source.getAllAuths()).willReturn(auths);
         given(destination.isAuthAvailable(auths.get(0).getNickname())).willReturn(true);
+        given(destination.saveAuth(any(PlayerAuth.class))).willReturn(true);
 
         Converter converter = new DataSourceConverterTestImpl<>(source, destination, destinationType);
         CommandSender sender = mock(CommandSender.class);
@@ -82,6 +84,23 @@ class AbstractDataSourceConverterTest extends AbstractConverterTest {
         verifyNoMoreInteractions(destination);
         verify(sender).sendMessage(argThat(containsString(auths.get(0).getNickname())));
         verify(sender).sendMessage(argThat(containsString("successfully converted")));
+    }
+
+    @Test
+    void shouldReportPlayersThatCouldNotBeSaved() {
+        DataSource source = mock(DataSource.class);
+        DataSourceType destinationType = DataSourceType.MYSQL;
+        DataSource destination = mockDestination(destinationType);
+        List<PlayerAuth> auths = Arrays.asList(mockAuthWithName("Steven"));
+        given(source.getAllAuths()).willReturn(auths);
+        given(destination.saveAuth(any(PlayerAuth.class))).willReturn(false);
+        CommandSender sender = mock(CommandSender.class);
+
+        new DataSourceConverterTestImpl<>(source, destination, destinationType).execute(sender);
+
+        verify(destination, never()).updateSession(any(PlayerAuth.class));
+        verify(destination, never()).updateQuitLoc(any(PlayerAuth.class));
+        verify(sender).sendMessage(argThat(containsString("Could not save these players")));
     }
 
     private static DataSource mockDestination(DataSourceType returnedType) {

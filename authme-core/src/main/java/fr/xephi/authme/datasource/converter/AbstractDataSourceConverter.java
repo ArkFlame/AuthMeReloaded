@@ -70,11 +70,13 @@ public abstract class AbstractDataSourceConverter<S extends DataSource> implemen
         // the conversion is done, including when a database error aborts the loop.
         try {
             List<String> skippedPlayers = new ArrayList<>();
+            List<String> failedPlayers = new ArrayList<>();
             for (PlayerAuth auth : source.getAllAuths()) {
                 if (destination.isAuthAvailable(auth.getNickname())) {
                     skippedPlayers.add(auth.getNickname());
+                } else if (!destination.saveAuth(auth)) {
+                    failedPlayers.add(auth.getNickname());
                 } else {
-                    destination.saveAuth(auth);
                     destination.updateSession(auth);
                     destination.updateQuitLoc(auth);
                     if (auth.getPremiumUuid() != null) {
@@ -86,6 +88,10 @@ public abstract class AbstractDataSourceConverter<S extends DataSource> implemen
             if (!skippedPlayers.isEmpty()) {
                 logAndSendMessage(sender, "Skipped conversion for players which were already in "
                     + destinationType + ": " + String.join(", ", skippedPlayers));
+            }
+            if (!failedPlayers.isEmpty()) {
+                logAndSendMessage(sender, "Could not save these players to " + destinationType + ": "
+                    + String.join(", ", failedPlayers));
             }
             logAndSendMessage(sender, "Database successfully converted from " + source.getType()
                 + " to " + destinationType);
