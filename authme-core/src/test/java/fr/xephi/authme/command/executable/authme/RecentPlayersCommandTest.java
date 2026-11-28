@@ -2,6 +2,7 @@ package fr.xephi.authme.command.executable.authme;
 
 import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.datasource.DataSource;
+import fr.xephi.authme.service.BukkitService;
 import org.bukkit.command.CommandSender;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,6 +17,7 @@ import java.util.Collections;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalToIgnoringCase;
+import static fr.xephi.authme.service.BukkitServiceTestHelper.setBukkitServiceToRunTaskOptionallyAsync;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -35,6 +37,9 @@ class RecentPlayersCommandTest {
     @Mock
     private DataSource dataSource;
 
+    @Mock
+    private BukkitService bukkitService;
+
     @Test
     void shouldShowRecentPlayers() {
         // given
@@ -50,6 +55,7 @@ class RecentPlayersCommandTest {
         given(dataSource.getRecentlyLoggedInPlayers()).willReturn(Arrays.asList(auth1, auth2));
 
         CommandSender sender = mock(CommandSender.class);
+        setBukkitServiceToRunTaskOptionallyAsync(bukkitService);
 
         // when
         command.executeCommand(sender, Collections.emptyList());
@@ -75,6 +81,7 @@ class RecentPlayersCommandTest {
         given(dataSource.getRecentlyLoggedInPlayers()).willReturn(Arrays.asList(auth1, auth2));
 
         CommandSender sender = mock(CommandSender.class);
+        setBukkitServiceToRunTaskOptionallyAsync(bukkitService);
 
         // when
         command.executeCommand(sender, Collections.emptyList());
