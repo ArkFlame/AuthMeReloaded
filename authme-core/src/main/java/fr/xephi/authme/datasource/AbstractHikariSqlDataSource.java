@@ -173,6 +173,8 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
             return true;
         } catch (SQLException ex) {
             logSqlException(ex);
+            // Do not keep the half-created account that this call reports as failed
+            removeAuth(auth.getNickname());
         }
         return false;
     }
