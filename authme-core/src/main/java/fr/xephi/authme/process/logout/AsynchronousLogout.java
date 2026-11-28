@@ -64,7 +64,7 @@ public class AsynchronousLogout implements AsynchronousProcess {
 
         try {
             database.updateSession(auth);
-            if (service.getProperty(RestrictionSettings.SAVE_QUIT_LOCATION)) {
+            if (quitLocation != null && service.getProperty(RestrictionSettings.SAVE_QUIT_LOCATION)) {
                 auth.setQuitLocation(quitLocation);
                 database.updateQuitLoc(auth);
             }

@@ -58,8 +58,9 @@ public class MojangApiService {
     /** Shared GET/response handling for both Mojang endpoints; log names keep each endpoint's wording. */
     private Optional<UUID> fetchUuid(String url, String username, String statusLogName, String failureLogName,
                                      boolean checkRateLimit) {
+        HttpURLConnection conn = null;
         try {
-            HttpURLConnection conn = openGet(url);
+            conn = openGet(url);
             int code = conn.getResponseCode();
             if (code == HttpURLConnection.HTTP_NO_CONTENT || code == HttpURLConnection.HTTP_NOT_FOUND) {
                 return Optional.empty();
@@ -76,6 +77,10 @@ public class MojangApiService {
         } catch (IOException e) {
             logger.warning("Failed to contact " + failureLogName + " for '" + username + "': " + e.getMessage());
             return Optional.empty();
+        } finally {
+            if (conn != null) {
+                conn.disconnect();
+            }
         }
     }
 
