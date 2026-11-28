@@ -35,6 +35,11 @@ public class JoinMessageService {
      *
      * @param playerName the player name
      */
+    /** Drops a stored join message of a player who left without logging in. */
+    public void removeMessage(String playerName) {
+        joinMessages.remove(playerName);
+    }
+
     public void sendMessage(String playerName) {
         String joinMessage = joinMessages.remove(playerName);
         if (!StringUtils.isBlank(joinMessage)) {

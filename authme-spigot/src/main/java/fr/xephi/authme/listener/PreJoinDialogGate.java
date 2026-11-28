@@ -36,7 +36,8 @@ final class PreJoinDialogGate {
         }
 
         InetSocketAddress clientAddress = connection.getClientAddress();
-        String ipAddress = clientAddress == null ? null : clientAddress.getAddress().getHostAddress();
+        String ipAddress = clientAddress == null || clientAddress.getAddress() == null
+            ? null : clientAddress.getAddress().getHostAddress();
         if (sessionService.hasValidSession(normalizedName, ipAddress)) {
             return true;
         }

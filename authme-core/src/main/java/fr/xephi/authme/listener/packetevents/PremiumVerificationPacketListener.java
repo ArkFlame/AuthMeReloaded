@@ -84,7 +84,14 @@ public class PremiumVerificationPacketListener extends PacketListenerAbstract {
         // DB lookup must happen off the Netty event loop to avoid blocking
         bukkitService.runTaskAsynchronously(() -> {
             String lowerName = username.toLowerCase(Locale.ROOT);
-            PlayerAuth auth = dataSource.getAuth(lowerName);
+            PlayerAuth auth;
+            try {
+                auth = dataSource.getAuth(lowerName);
+            } catch (RuntimeException e) {
+                // The login start was cancelled above: never leave the client hanging
+                user.closeConnection();
+                throw e;
+            }
 
             if ((auth != null && auth.isPremium()) || pendingPremiumCache.isPending(lowerName)) {
                 byte[] verifyToken = loginVerifier.startVerification(connectionKey, username, playerUUID);
