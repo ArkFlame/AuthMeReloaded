@@ -7,6 +7,7 @@ import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.security.PasswordSecurity;
+import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.service.CommonService;
 import fr.xephi.authme.service.PasswordRecoveryService;
 import fr.xephi.authme.service.ValidationService;
@@ -37,6 +38,9 @@ public class EmailSetPasswordCommand extends PlayerCommand {
     @Inject
     private ValidationService validationService;
 
+    @Inject
+    private BukkitService bukkitService;
+
     @Override
     protected void runCommand(Player player, List<String> arguments) {
         if (!recoveryService.canChangePassword(player)) {
@@ -51,12 +55,15 @@ public class EmailSetPasswordCommand extends PlayerCommand {
             return;
         }
 
-        if (!dataSource.updatePassword(name, passwordSecurity.computeHash(password, name))) {
-            commonService.send(player, MessageKey.ERROR);
-            return;
-        }
-        recoveryService.removeFromSuccessfulRecovery(player);
-        logger.info("Player '" + name + "' has changed their password from recovery");
-        commonService.send(player, MessageKey.PASSWORD_CHANGED_SUCCESS);
+        // The password hash is deliberately slow: keep it and the database write off the server thread
+        bukkitService.runTaskOptionallyAsync(() -> {
+            if (!dataSource.updatePassword(name, passwordSecurity.computeHash(password, name))) {
+                commonService.send(player, MessageKey.ERROR);
+                return;
+            }
+            recoveryService.removeFromSuccessfulRecovery(player);
+            logger.info("Player '" + name + "' has changed their password from recovery");
+            commonService.send(player, MessageKey.PASSWORD_CHANGED_SUCCESS);
+        });
     }
 }

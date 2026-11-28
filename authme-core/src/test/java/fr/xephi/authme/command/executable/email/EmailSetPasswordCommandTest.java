@@ -9,6 +9,7 @@ import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.security.PasswordSecurity;
 import fr.xephi.authme.security.crypts.HashedPassword;
+import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.service.CommonService;
 import fr.xephi.authme.service.PasswordRecoveryService;
 import fr.xephi.authme.service.ValidationService;
@@ -20,6 +21,7 @@ import org.mockito.Mock;
 
 import java.util.Collections;
 
+import static fr.xephi.authme.service.BukkitServiceTestHelper.setBukkitServiceToRunTaskOptionallyAsync;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -51,6 +53,9 @@ public class EmailSetPasswordCommandTest {
     private ValidationService validationService;
 
     @Mock
+    private BukkitService bukkitService;
+
+    @Mock
     private Player player;
 
     @BeforeAll
@@ -60,6 +65,7 @@ public class EmailSetPasswordCommandTest {
 
     @Test
     public void shouldChangePassword() {
+        setBukkitServiceToRunTaskOptionallyAsync(bukkitService);
         // given
         HashedPassword hashedPassword = givenPasswordChangeSetup("Jerry", "abc123", true);
 
@@ -75,6 +81,7 @@ public class EmailSetPasswordCommandTest {
 
     @Test
     public void shouldReportErrorWhenDatabaseUpdateFails() {
+        setBukkitServiceToRunTaskOptionallyAsync(bukkitService);
         // given
         HashedPassword hashedPassword = givenPasswordChangeSetup("Jerry", "abc123", false);
 
