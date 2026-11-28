@@ -92,8 +92,12 @@ public class LuckPermsHandler implements PermissionHandler {
             return false;
         }
 
-        boolean result = user.data().remove(InheritanceNode.builder(group.getGroupName()).build())
-            != DataMutateResult.FAIL;
+        // Remove the membership in every context: getGroups() reports context-scoped groups too
+        String groupName = group.getGroupName();
+        java.util.function.Predicate<net.luckperms.api.node.Node> isGroupNode = node -> node instanceof InheritanceNode
+            && ((InheritanceNode) node).getGroupName().equals(groupName);
+        boolean result = user.data().toCollection().stream().anyMatch(isGroupNode);
+        user.data().clear(isGroupNode);
 
         luckPerms.getUserManager().saveUser(user);
         return result;
