@@ -28,9 +28,9 @@ public class LimboPlayer {
     private final Location loc;
     private final float walkSpeed;
     private final float flySpeed;
-    private CancellableTask timeoutTask;
-    private MessageTask messageTask;
-    private CancellableTask messageTaskHandle;
+    private volatile CancellableTask timeoutTask;
+    private volatile MessageTask messageTask;
+    private volatile CancellableTask messageTaskHandle;
     private volatile LimboPlayerState state = LimboPlayerState.PASSWORD_REQUIRED;
     private int failedTotpAttempts;
     // The pearl UUIDs are the keys of this map; a separate set would duplicate the same state.
@@ -79,7 +79,7 @@ public class LimboPlayer {
     /**
      * Sets the task kicking the player if he doesn't log in or register in time, cancelling any previous one.
      */
-    public void setTimeoutTask(CancellableTask timeoutTask) {
+    public synchronized void setTimeoutTask(CancellableTask timeoutTask) {
         if (this.timeoutTask != null) {
             this.timeoutTask.cancel();
         }
@@ -93,7 +93,7 @@ public class LimboPlayer {
     /**
      * Sets the task reminding the player to log in or register, cancelling any previous one.
      */
-    public void setMessageTask(MessageTask messageTask, CancellableTask messageTaskHandle) {
+    public synchronized void setMessageTask(MessageTask messageTask, CancellableTask messageTaskHandle) {
         if (this.messageTaskHandle != null) {
             this.messageTaskHandle.cancel();
         }
@@ -104,7 +104,7 @@ public class LimboPlayer {
     /**
      * Clears all tasks associated to the player.
      */
-    public void clearTasks() {
+    public synchronized void clearTasks() {
         setMessageTask(null, null);
         setTimeoutTask((CancellableTask) null);
     }
