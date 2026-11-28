@@ -15,6 +15,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import javax.inject.Inject;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -129,17 +130,25 @@ public class PremiumService implements HasCleanup {
     }
 
     private void disablePremiumAsync(PlayerAuth auth, Player player, String playerName) {
-        UUID previousUuid = auth.getPremiumUuid();
-        auth.setPremiumUuid(null);
-        if (dataSource.updatePremiumUuid(auth)) {
+        if (clearPremiumUuid(auth, playerName)) {
             playerCache.updatePlayerIfPresent(auth);
             bungeeSender.sendPremiumUnset(playerName);
             messages.send(player, MessageKey.PREMIUM_DISABLE_SUCCESS);
         } else {
-            auth.setPremiumUuid(previousUuid);
-            logger.warning("Failed to clear premium UUID for player " + playerName);
             messages.send(player, MessageKey.PREMIUM_ERROR);
         }
+    }
+
+    /** Clears the stored premium UUID; restores the previous value in memory and returns false if the write fails. */
+    private boolean clearPremiumUuid(PlayerAuth auth, String playerName) {
+        UUID previousUuid = auth.getPremiumUuid();
+        auth.setPremiumUuid(null);
+        if (dataSource.updatePremiumUuid(auth)) {
+            return true;
+        }
+        auth.setPremiumUuid(previousUuid);
+        logger.warning("Failed to clear premium UUID for player " + playerName);
+        return false;
     }
 
     /**
@@ -229,11 +238,7 @@ public class PremiumService implements HasCleanup {
             return;
         }
 
-        UUID previousUuid = auth.getPremiumUuid();
-        auth.setPremiumUuid(null);
-        if (!dataSource.updatePremiumUuid(auth)) {
-            auth.setPremiumUuid(previousUuid);
-            logger.warning("Failed to clear premium UUID for player " + playerName);
+        if (!clearPremiumUuid(auth, playerName)) {
             messages.send(sender, MessageKey.PREMIUM_ERROR);
             return;
         }
@@ -265,7 +270,7 @@ public class PremiumService implements HasCleanup {
     public void finalizePendingPremium(Player player, UUID confirmedUuid) {
         String playerName = player.getName();
         PlayerAuth auth = playerCache.getAuth(playerName);
-        if (auth == null) auth = dataSource.getAuth(playerName.toLowerCase(java.util.Locale.ROOT));
+        if (auth == null) auth = dataSource.getAuth(playerName.toLowerCase(Locale.ROOT));
         if (auth == null) {
             logger.warning("Could not finalize pending premium for " + playerName + ": no auth record found");
             return;
