@@ -166,6 +166,32 @@ class VerificationCodeManagerTest {
         assertThat(codeManager.checkCode(PLAYER, "193458"), equalTo(false));
     }
 
+    @Test
+    void shouldDiscardCodeAfterTooManyWrongAttempts() {
+        // given
+        given(emailService.hasAllInformation()).willReturn(true);
+        given(dataSource.getEmail(PLAYER)).willReturn(DataSourceValueImpl.of(EMAIL));
+        given(emailService.sendVerificationMail(eq(PLAYER), eq(EMAIL), anyString())).willReturn(true);
+        setBukkitServiceToRunTaskAsynchronously(bukkitService);
+        VerificationCodeManager codeManager = createCodeManager();
+        codeManager.codeExistOrGenerateNew(PLAYER);
+        ArgumentCaptor<String> codeCaptor = ArgumentCaptor.forClass(String.class);
+        verify(emailService).sendVerificationMail(eq(PLAYER), eq(EMAIL), codeCaptor.capture());
+        String realCode = codeCaptor.getValue();
+        String wrongCode = "1".equals(realCode.substring(0, 1)) ? "000000" : "111111";
+
+        // when
+        for (int i = 0; i < 4; i++) {
+            assertThat(codeManager.checkCode(PLAYER, wrongCode), equalTo(false));
+        }
+        assertThat(codeManager.hasCode(PLAYER), equalTo(true));
+        assertThat(codeManager.checkCode(PLAYER, wrongCode), equalTo(false));
+
+        // then: even the real code no longer works
+        assertThat(codeManager.hasCode(PLAYER), equalTo(false));
+        assertThat(codeManager.checkCode(PLAYER, realCode), equalTo(false));
+    }
+
     private VerificationCodeManager createCodeManager() {
         return new VerificationCodeManager(settings, dataSource, emailService, permissionsManager, bukkitService);
     }

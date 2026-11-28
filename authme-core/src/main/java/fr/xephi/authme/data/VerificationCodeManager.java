@@ -13,6 +13,7 @@ import fr.xephi.authme.settings.properties.SecuritySettings;
 import fr.xephi.authme.util.RandomStringUtils;
 import fr.xephi.authme.util.Utils;
 import fr.xephi.authme.util.expiring.ExpiringMap;
+import fr.xephi.authme.util.expiring.TimedCounter;
 import org.bukkit.entity.Player;
 
 import javax.inject.Inject;
@@ -28,7 +29,10 @@ public class VerificationCodeManager implements SettingsDependent, HasCleanup {
     private final PermissionsManager permissionsManager;
     private final BukkitService bukkitService;
 
+    private static final int MAX_WRONG_ATTEMPTS = 5;
+
     private final ExpiringMap<String, String> verificationCodes;
+    private final TimedCounter<String> failedAttempts;
     private final Set<String> pendingCodeGenerations;
     private final Set<String> verifiedPlayers;
     private volatile boolean canSendMail;
@@ -43,6 +47,8 @@ public class VerificationCodeManager implements SettingsDependent, HasCleanup {
         pendingCodeGenerations = ConcurrentHashMap.newKeySet();
         verifiedPlayers = ConcurrentHashMap.newKeySet();
         verificationCodes = new ExpiringMap<>(
+            settings.getProperty(SecuritySettings.VERIFICATION_CODE_EXPIRATION_MINUTES), TimeUnit.MINUTES);
+        failedAttempts = new TimedCounter<>(
             settings.getProperty(SecuritySettings.VERIFICATION_CODE_EXPIRATION_MINUTES), TimeUnit.MINUTES);
         reload(settings);
     }
@@ -148,9 +154,17 @@ public class VerificationCodeManager implements SettingsDependent, HasCleanup {
      * @return true if the code matches, false otherwise
      */
     public boolean checkCode(String name, String code) {
-        if (!code.equals(verificationCodes.get(normalize(name)))) {
+        String key = normalize(name);
+        if (!code.equals(verificationCodes.get(key))) {
+            // A 6-digit code must not be brute-forced within its lifetime: discard it after too many misses.
+            failedAttempts.increment(key);
+            if (failedAttempts.get(key) >= MAX_WRONG_ATTEMPTS) {
+                verificationCodes.remove(key);
+                failedAttempts.remove(key);
+            }
             return false;
         }
+        failedAttempts.remove(key);
         verify(name);
         return true;
     }
@@ -168,10 +182,13 @@ public class VerificationCodeManager implements SettingsDependent, HasCleanup {
         canSendMail = emailService.hasAllInformation();
         verificationCodes.setExpiration(
             settings.getProperty(SecuritySettings.VERIFICATION_CODE_EXPIRATION_MINUTES), TimeUnit.MINUTES);
+        failedAttempts.setExpiration(
+            settings.getProperty(SecuritySettings.VERIFICATION_CODE_EXPIRATION_MINUTES), TimeUnit.MINUTES);
     }
 
     @Override
     public void performCleanup() {
         verificationCodes.removeExpiredEntries();
+        failedAttempts.removeExpiredEntries();
     }
 }
