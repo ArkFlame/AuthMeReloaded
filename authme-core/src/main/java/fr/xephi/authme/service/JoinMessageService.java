@@ -3,6 +3,7 @@ package fr.xephi.authme.service;
 import fr.xephi.authme.util.StringUtils;
 
 import javax.inject.Inject;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -27,12 +28,12 @@ public class JoinMessageService {
      * @param string     the join message
      */
     public void putMessage(String playerName, String string) {
-        joinMessages.put(playerName, string);
+        joinMessages.put(key(playerName), string);
     }
 
     /** Drops a stored join message of a player who left without logging in. */
     public void removeMessage(String playerName) {
-        joinMessages.remove(playerName);
+        joinMessages.remove(key(playerName));
     }
 
     /**
@@ -41,9 +42,14 @@ public class JoinMessageService {
      * @param playerName the player name
      */
     public void sendMessage(String playerName) {
-        String joinMessage = joinMessages.remove(playerName);
+        String joinMessage = joinMessages.remove(key(playerName));
         if (!StringUtils.isBlank(joinMessage)) {
             bukkitService.broadcastMessage(joinMessage);
         }
+    }
+
+    /** Join messages are stored lowercase, but callers pass either the real or the lowercase name. */
+    private static String key(String playerName) {
+        return playerName.toLowerCase(Locale.ROOT);
     }
 }
