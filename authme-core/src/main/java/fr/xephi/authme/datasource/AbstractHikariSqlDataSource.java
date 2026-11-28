@@ -204,11 +204,19 @@ public abstract class AbstractHikariSqlDataSource extends AbstractSqlDataSource 
     @Override
     public boolean removeAuth(String user) {
         String name = user.toLowerCase(Locale.ROOT);
-        try (Connection con = getConnection(); PreparedStatement pst = con.prepareStatement(deleteByNameSql)) {
-            sqlExtension.removeAuth(name, con);
-            pst.setString(1, name);
-            pst.executeUpdate();
-            return true;
+        try (Connection con = getConnection()) {
+            // One transaction so a failure cannot leave extension rows deleted but the account in place
+            con.setAutoCommit(false);
+            try (PreparedStatement pst = con.prepareStatement(deleteByNameSql)) {
+                sqlExtension.removeAuth(name, con);
+                pst.setString(1, name);
+                pst.executeUpdate();
+                con.commit();
+                return true;
+            } catch (SQLException ex) {
+                con.rollback();
+                throw ex;
+            }
         } catch (SQLException ex) {
             logSqlException(ex);
         }
