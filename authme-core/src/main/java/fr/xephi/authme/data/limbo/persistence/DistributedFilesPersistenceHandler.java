@@ -93,13 +93,20 @@ class DistributedFilesPersistenceHandler implements LimboPersistenceHandler {
         return LimboPersistenceType.DISTRIBUTED_FILES;
     }
 
-    private void saveEntries(Map<String, LimboPlayer> entries, File file) {
+    private boolean saveEntries(Map<String, LimboPlayer> entries, File file) {
         // Write with the same charset that readLimboPlayers uses; FileWriter would silently use the
         // platform default and corrupt non-ASCII group names on systems where that is not UTF-8.
+        // Write a temporary file and move it into place: a crash mid-write must not truncate the segment
+        File temp = new File(file.getPath() + ".tmp");
         try {
-            Files.asCharSink(file, StandardCharsets.UTF_8).write(gson.toJson(entries));
+            Files.asCharSink(temp, StandardCharsets.UTF_8).write(gson.toJson(entries));
+            java.nio.file.Files.move(temp.toPath(), file.toPath(),
+                java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            return true;
         } catch (Exception e) {
             logger.logException("Could not write to '" + file + "':", e);
+            FileUtils.delete(temp);
+            return false;
         }
     }
 
@@ -142,8 +149,10 @@ class DistributedFilesPersistenceHandler implements LimboPersistenceHandler {
         }
 
         if (!allLimboPlayers.isEmpty()) {
-            saveToNewSegments(allLimboPlayers);
-            migratedFiles.forEach(FileUtils::delete);
+            // Keep the old files when any new segment could not be written: they hold the only copy
+            if (saveToNewSegments(allLimboPlayers)) {
+                migratedFiles.forEach(FileUtils::delete);
+            }
         }
     }
 
@@ -152,7 +161,7 @@ class DistributedFilesPersistenceHandler implements LimboPersistenceHandler {
      *
      * @param limbosFromOldSegments the limbo players to store into the current segment files
      */
-    private void saveToNewSegments(Map<String, LimboPlayer> limbosFromOldSegments) {
+    private boolean saveToNewSegments(Map<String, LimboPlayer> limbosFromOldSegments) {
         Map<String, Map<String, LimboPlayer>> limboBySegment = new HashMap<>();
         for (Map.Entry<String, LimboPlayer> entry : limbosFromOldSegments.entrySet()) {
             String segmentId = segmentNameBuilder.createSegmentName(entry.getKey());
@@ -160,6 +169,7 @@ class DistributedFilesPersistenceHandler implements LimboPersistenceHandler {
                 .put(entry.getKey(), entry.getValue());
         }
 
+        boolean allSaved = true;
         logger.info("Saving " + limbosFromOldSegments.size() + " LimboPlayers from old segments into "
             + limboBySegment.size() + " current segments");
         for (Map.Entry<String, Map<String, LimboPlayer>> entry : limboBySegment.entrySet()) {
@@ -169,8 +179,9 @@ class DistributedFilesPersistenceHandler implements LimboPersistenceHandler {
                 limbosToSave = new HashMap<>();
             }
             limbosToSave.putAll(entry.getValue());
-            saveEntries(limbosToSave, file);
+            allSaved &= saveEntries(limbosToSave, file);
         }
+        return allSaved;
     }
 
     /**
