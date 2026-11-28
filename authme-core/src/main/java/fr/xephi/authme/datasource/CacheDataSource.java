@@ -164,19 +164,27 @@ public class CacheDataSource implements DataSource, SqlConnectionSource {
 
     @Override
     public boolean updateSession(PlayerAuth auth) {
-        return updateCacheOnSuccess(source.updateSession(auth), auth.getNickname(), key -> {
-            // The login flow mutates the cached instance itself before persisting it: the cache already
-            // holds exactly what was written, so reloading it would only cost an extra SELECT per login.
-            Optional<PlayerAuth> cached = cachedAuths.getIfPresent(key);
-            if (cached == null || !cached.isPresent() || cached.get() != auth) {
-                cachedAuths.refresh(key);
-            }
-        });
+        return updateCacheOnSuccess(source.updateSession(auth), auth.getNickname(),
+            key -> dropCachedEntryUnlessSameInstance(key, auth));
     }
 
     @Override
     public boolean updateQuitLoc(final PlayerAuth auth) {
-        return updateCacheOnSuccess(source.updateQuitLoc(auth), auth.getNickname(), cachedAuths::refresh);
+        return updateCacheOnSuccess(source.updateQuitLoc(auth), auth.getNickname(),
+            key -> dropCachedEntryUnlessSameInstance(key, auth));
+    }
+
+    /**
+     * The login and logout flows mutate the cached instance itself before persisting it: the cache then
+     * already holds exactly what was written. For any other instance the entry is dropped and loaded
+     * lazily on the next read; an eager refresh would cost a SELECT per call even when the player is
+     * leaving and the entry is invalidated right afterwards, and would keep serving the old value meanwhile.
+     */
+    private void dropCachedEntryUnlessSameInstance(String key, PlayerAuth written) {
+        Optional<PlayerAuth> cached = cachedAuths.getIfPresent(key);
+        if (cached == null || !cached.isPresent() || cached.get() != written) {
+            cachedAuths.invalidate(key);
+        }
     }
 
     @Override

@@ -67,7 +67,25 @@ class CacheDataSourceConsistencyTest {
         when(source.updateSession(written)).thenReturn(true);
 
         assertThat(dataSource.updateSession(written), is(true));
-        dataSource.closeConnection(); // waits for any asynchronous reload
+        // The entry is dropped (not eagerly refreshed): nothing is loaded until the next read
+        verify(source, times(1)).getAuth("playerone");
+        assertThat(dataSource.getAuth("PlayerOne"), sameInstance(stored));
+
+        verify(source, times(sameInstance ? 1 : 2)).getAuth("playerone");
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldReloadAfterUpdateQuitLocOnlyForForeignInstance(boolean sameInstance) {
+        PlayerAuth stored = auth("playerone");
+        when(source.getAuth("playerone")).thenReturn(stored);
+        assertThat(dataSource.getAuth("PlayerOne"), sameInstance(stored));
+        PlayerAuth written = sameInstance ? stored : auth("playerone");
+        when(source.updateQuitLoc(written)).thenReturn(true);
+
+        assertThat(dataSource.updateQuitLoc(written), is(true));
+        verify(source, times(1)).getAuth("playerone");
+        assertThat(dataSource.getAuth("PlayerOne"), sameInstance(stored));
 
         verify(source, times(sameInstance ? 1 : 2)).getAuth("playerone");
     }
