@@ -53,7 +53,7 @@ public class HelpProvider implements Reloadable {
     private final Settings settings;
     private final BukkitCompatibilityAdapter compatibilityAdapter;
     /** int with bit flags set corresponding to the above constants for enabled sections; -1 if not yet computed. */
-    private int enabledSections = -1;
+    private volatile int enabledSections = -1;
 
     @Inject
     HelpProvider(PermissionsManager permissionsManager, HelpMessagesService helpMessagesService, Settings settings,
@@ -145,16 +145,18 @@ public class HelpProvider implements Reloadable {
      */
     @SuppressWarnings("checkstyle:BooleanExpressionComplexity")
     private int filterDisabledSections(int options) {
-        if (enabledSections == -1) {
-            enabledSections = flagFor(HelpSection.COMMAND, SHOW_COMMAND)
+        int sections = enabledSections;
+        if (sections == -1) {
+            sections = flagFor(HelpSection.COMMAND, SHOW_COMMAND)
                 | flagFor(HelpSection.SHORT_DESCRIPTION, SHOW_DESCRIPTION)
                 | flagFor(HelpSection.DETAILED_DESCRIPTION, SHOW_LONG_DESCRIPTION)
                 | flagFor(HelpSection.ARGUMENTS, SHOW_ARGUMENTS)
                 | flagFor(HelpSection.PERMISSIONS, SHOW_PERMISSIONS)
                 | flagFor(HelpSection.ALTERNATIVES, SHOW_ALTERNATIVES)
                 | flagFor(HelpSection.CHILDREN, SHOW_CHILDREN);
+            enabledSections = sections;
         }
-        return options & enabledSections;
+        return options & sections;
     }
 
     private int flagFor(HelpSection section, int flag) {
@@ -303,7 +305,7 @@ public class HelpProvider implements Reloadable {
     @VisibleForTesting
     static List<String> filterCorrectLabels(CommandDescription command, List<String> labels) {
         List<CommandDescription> commands = CommandUtils.constructParentList(command);
-        List<String> correctLabels = new ArrayList<>();
+        List<String> correctLabels = new ArrayList<>(commands.size());
         boolean foundIncorrectLabel = false;
         for (int i = 0; i < commands.size(); ++i) {
             if (!foundIncorrectLabel && i < labels.size() && commands.get(i).hasLabel(labels.get(i))) {

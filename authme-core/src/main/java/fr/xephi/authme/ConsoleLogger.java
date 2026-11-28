@@ -30,15 +30,15 @@ public final class ConsoleLogger {
         DateTimeFormatter.ofPattern("'['MM-dd HH:mm:ss']'");
 
     // Outside references
-    private static File logFile;
-    private static Logger logger;
+    private static volatile File logFile;
+    private static volatile Logger logger;
 
     // Shared state
-    private static OutputStreamWriter fileWriter;
+    private static volatile OutputStreamWriter fileWriter;
 
     // Individual state
     private final String name;
-    private LogLevel logLevel = LogLevel.INFO;
+    private volatile LogLevel logLevel = LogLevel.INFO;
 
     /**
      * Constructor.
@@ -86,22 +86,16 @@ public final class ConsoleLogger {
         return name;
     }
 
-
     // Logging methods
 
-    /**
-     * Log a WARN message.
-     *
-     * @param message The message to log
-     */
+    /** Log a WARN message. */
     public void warning(String message) {
         logger.warning(message);
         writeLog("[WARN] " + message);
     }
 
     /**
-     * Log a Throwable with the provided message on WARNING level
-     * and save the stack trace to the log file.
+     * Log a Throwable with the provided message on WARNING level and save the stack trace to the log file.
      *
      * @param message The message to accompany the exception
      * @param th      The Throwable to log
@@ -111,21 +105,14 @@ public final class ConsoleLogger {
         writeLog(Throwables.getStackTraceAsString(th));
     }
 
-    /**
-     * Log an INFO message.
-     *
-     * @param message The message to log
-     */
+    /** Log an INFO message. */
     public void info(String message) {
         logger.info(message);
         writeLog("[INFO] " + message);
     }
 
     /**
-     * Log a FINE message if enabled.
-     * <p>
-     * Implementation note: this logs a message on INFO level because
-     * levels below INFO are disabled by Bukkit/Spigot.
+     * Log a FINE message if enabled. Logs on INFO level because levels below INFO are disabled by Bukkit/Spigot.
      *
      * @param message The message to log
      */
@@ -139,10 +126,7 @@ public final class ConsoleLogger {
     // Debug log methods
 
     /**
-     * Log a DEBUG message if enabled.
-     * <p>
-     * Implementation note: this logs a message on INFO level and prefixes it with "DEBUG" because
-     * levels below INFO are disabled by Bukkit/Spigot.
+     * Log a DEBUG message if enabled. Logs on INFO level with a "DEBUG" prefix because lower levels are disabled.
      *
      * @param message The message to log
      */
@@ -158,7 +142,6 @@ public final class ConsoleLogger {
      * @param message the message
      * @param param1 parameter to replace in the message
      */
-    // Avoids array creation if DEBUG level is disabled
     public void debug(String message, Object param1) {
         if (logLevel.includes(LogLevel.DEBUG)) {
             logAndWriteWithDebugPrefix(MessageFormat.format(message, param1));
@@ -172,7 +155,6 @@ public final class ConsoleLogger {
      * @param param1 first param to replace in message
      * @param param2 second param to replace in message
      */
-    // Avoids array creation if DEBUG level is disabled
     public void debug(String message, Object param1, Object param2) {
         if (logLevel.includes(LogLevel.DEBUG)) {
             logAndWriteWithDebugPrefix(MessageFormat.format(message, param1, param2));
@@ -210,43 +192,50 @@ public final class ConsoleLogger {
 
     // Helpers
 
-    /**
-     * Closes the file writer.
-     */
+    /** Closes the file writer. */
     public static synchronized void closeFileWriter() {
-        if (fileWriter != null) {
+        OutputStreamWriter writer = fileWriter;
+        if (writer == null) {
+            return;
+        }
+        fileWriter = null;
+        try {
+            writer.flush();
+        } catch (IOException ignored) {
+            // Closing below is still the best effort we can make
+        } finally {
             try {
-                fileWriter.flush();
-            } catch (IOException ignored) {
-            }
-            try {
-                fileWriter.close();
+                writer.close();
             } catch (IOException e) {
                 logger.log(Level.SEVERE, "Failed to close resource", e);
             }
-            fileWriter = null;
         }
     }
 
     /**
-     * Write a message into the log file with a TimeStamp if enabled.
+     * Write a message into the log file with a timestamp when file logging is enabled.
      *
      * @param message The message to write to the log
      */
-    private static synchronized void writeLog(String message) {
-        if (fileWriter != null) {
-            String dateTime = DATE_FORMAT.format(LocalDateTime.now());
-            try {
-                fileWriter.write(dateTime + ": " + message + NEW_LINE);
-                fileWriter.flush();
-            } catch (IOException ignored) {
+    private static void writeLog(String message) {
+        if (fileWriter == null) {
+            return;
+        }
+        String line = DATE_FORMAT.format(LocalDateTime.now()) + ": " + message + NEW_LINE;
+        synchronized (ConsoleLogger.class) {
+            if (fileWriter != null) {
+                try {
+                    fileWriter.write(line);
+                    fileWriter.flush();
+                } catch (IOException ignored) {
+                    // Nothing we can do if writing to the log file fails
+                }
             }
         }
     }
 
     /**
-     * Populates the {@link #fileWriter} field if it is null, handling any exceptions that might
-     * arise during its creation.
+     * Populates the {@link #fileWriter} field if it is null, handling any exceptions that might arise.
      */
     private static synchronized void initializeFileWriter() {
         if (fileWriter == null) {
