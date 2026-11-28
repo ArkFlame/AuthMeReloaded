@@ -2,6 +2,7 @@ package fr.xephi.authme.service;
 
 import javax.inject.Inject;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Holds in-memory email confirmation requests that have not yet been verified by a code sent
@@ -15,6 +16,7 @@ import java.util.Objects;
 public class PendingEmailVerificationCache {
 
     static final long TTL_MS = 10 * 60 * 1000L;
+    static final int MAX_WRONG_ATTEMPTS = 5;
 
     private final ExpiringPendingCache<PendingEntry> pending = new ExpiringPendingCache<>(TTL_MS);
 
@@ -63,10 +65,20 @@ public class PendingEmailVerificationCache {
     public static final class PendingEntry {
         private final String email;
         private final String code;
+        private final AtomicInteger wrongAttempts = new AtomicInteger();
 
         public PendingEntry(String email, String code) {
             this.email = Objects.requireNonNull(email, "email");
             this.code = Objects.requireNonNull(code, "code");
+        }
+
+        /**
+         * Records a wrong code, so a 6-digit code cannot be brute-forced within its lifetime.
+         *
+         * @return true while further attempts are allowed, false once the entry should be discarded
+         */
+        public boolean recordWrongAttempt() {
+            return wrongAttempts.incrementAndGet() < MAX_WRONG_ATTEMPTS;
         }
 
         public String email() {

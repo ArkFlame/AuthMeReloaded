@@ -78,6 +78,24 @@ class AsyncConfirmEmailTest {
     }
 
     @Test
+    void shouldDiscardPendingEmailAfterTooManyWrongCodes() {
+        givenMatchingPendingEntry("123456");
+        given(playerCache.getAuth("tester")).willReturn(mock(PlayerAuth.class));
+
+        for (int i = 0; i < 4; i++) {
+            asyncConfirmEmail.confirmEmail(player, "000000");
+        }
+        verify(pendingEmailVerificationCache, never()).removePending("TestEr");
+
+        asyncConfirmEmail.confirmEmail(player, "000000");
+
+        verify(pendingEmailVerificationCache).removePending("TestEr");
+        verify(service, org.mockito.Mockito.times(4)).send(player, MessageKey.EMAIL_CONFIRM_WRONG_CODE);
+        verify(service).send(player, MessageKey.EMAIL_CONFIRM_CODE_EXPIRED);
+        verify(dataSource, never()).updateEmail(any(PlayerAuth.class));
+    }
+
+    @Test
     void shouldNotFailWhenCachedAuthIsGoneAfterAuthenticationCheck() {
         given(player.getName()).willReturn("TestEr");
         given(playerCache.isAuthenticated("tester")).willReturn(true);

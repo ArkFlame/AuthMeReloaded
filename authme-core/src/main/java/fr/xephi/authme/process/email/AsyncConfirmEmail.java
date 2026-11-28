@@ -49,8 +49,15 @@ public class AsyncConfirmEmail implements AsynchronousProcess {
 
         PendingEmailVerificationCache.PendingEntry entry = pendingEmailVerificationCache.getEntry(playerName);
         if (entry == null || !entry.code().equals(code)) {
-            service.send(player, entry == null ? MessageKey.EMAIL_CONFIRM_CODE_EXPIRED
-                                               : MessageKey.EMAIL_CONFIRM_WRONG_CODE);
+            if (entry == null) {
+                service.send(player, MessageKey.EMAIL_CONFIRM_CODE_EXPIRED);
+            } else if (entry.recordWrongAttempt()) {
+                service.send(player, MessageKey.EMAIL_CONFIRM_WRONG_CODE);
+            } else {
+                // Too many wrong codes: discard the request so the code cannot be brute-forced.
+                pendingEmailVerificationCache.removePending(playerName);
+                service.send(player, MessageKey.EMAIL_CONFIRM_CODE_EXPIRED);
+            }
             return;
         }
 
