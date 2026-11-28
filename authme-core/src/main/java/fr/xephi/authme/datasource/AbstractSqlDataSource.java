@@ -260,8 +260,7 @@ public abstract class AbstractSqlDataSource implements DataSource {
         try (PreparedStatement pst = con.prepareStatement(sql)) {
             pst.setString(1, totpKey);
             pst.setString(2, user.toLowerCase(Locale.ROOT));
-            pst.executeUpdate();
-            return true;
+            return pst.executeUpdate() > 0;
         }
     }
 
