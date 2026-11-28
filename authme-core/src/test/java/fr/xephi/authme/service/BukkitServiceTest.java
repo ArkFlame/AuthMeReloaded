@@ -24,7 +24,10 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.concurrent.CompletableFuture;
+
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -245,5 +248,21 @@ class BukkitServiceTest {
         verify(pluginManager).callEvent(event);
         assertThat(event.isAsynchronous(), equalTo(async));
         assertThat(event.getPlayer(), equalTo(player));
+    }
+
+    @Test
+    void shouldGiveUpWaitingForMainThreadAfterTimeout() {
+        // given a task the main thread never completes
+        CompletableFuture<String> neverCompleted = new CompletableFuture<>();
+
+        // when / then
+        IllegalStateException exception = assertThrows(IllegalStateException.class,
+            () -> BukkitService.awaitFuture(neverCompleted, 20L));
+        assertThat(exception.getMessage().contains("Timed out"), equalTo(true));
+    }
+
+    @Test
+    void shouldReturnResultOfCompletedFuture() {
+        assertThat(BukkitService.awaitFuture(CompletableFuture.completedFuture("done"), 20L), equalTo("done"));
     }
 }

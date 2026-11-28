@@ -23,6 +23,8 @@ import javax.inject.Inject;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.Date;
 import java.util.Set;
 import java.util.function.Function;
@@ -35,6 +37,8 @@ public class BukkitService implements SettingsDependent {
 
     /** Number of ticks per second in the Bukkit main thread. */
     public static final int TICKS_PER_SECOND = 20;
+    /** Longest an async thread waits for a task it handed to the main thread before giving up. */
+    private static final long SYNC_CALL_TIMEOUT_MILLIS = 10_000L;
     /** Number of ticks per minute. */
     public static final int TICKS_PER_MINUTE = 60 * TICKS_PER_SECOND;
 
@@ -118,12 +122,14 @@ public class BukkitService implements SettingsDependent {
                 future.completeExceptionally(e);
             }
         });
-        return awaitFuture(future);
+        return awaitFuture(future, SYNC_CALL_TIMEOUT_MILLIS);
     }
 
-    private static <T> T awaitFuture(CompletableFuture<T> future) {
+    static <T> T awaitFuture(CompletableFuture<T> future, long timeoutMillis) {
         try {
-            return future.get();
+            return future.get(timeoutMillis, TimeUnit.MILLISECONDS);
+        } catch (TimeoutException e) {
+            throw new IllegalStateException("Timed out waiting for the main thread to run a sync task", e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Interrupted while waiting for sync task", e);
