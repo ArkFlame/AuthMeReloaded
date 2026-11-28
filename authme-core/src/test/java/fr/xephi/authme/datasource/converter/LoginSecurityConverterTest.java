@@ -27,8 +27,10 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -71,6 +73,7 @@ class LoginSecurityConverterTest extends AbstractConverterTest {
         convertWith(() -> {
             given(dataSource.isAuthAvailable("TestPlayer")).willReturn(false);
             given(dataSource.isAuthAvailable("ExistingPlayer")).willReturn(true);
+            given(dataSource.saveAuth(any(PlayerAuth.class))).willReturn(true);
         },
             "INSERT INTO ls_players VALUES (1, 'TestPlayer', 'bcrypt-hash', "
                 + "'2020-01-02 03:04:05.000', '2019-01-02 00:00:00.000', '" + PLAYER_UUID
@@ -98,7 +101,20 @@ class LoginSecurityConverterTest extends AbstractConverterTest {
     }
 
     @Test
-    void shouldSkipRowsWithNullOrEmptyName() throws SQLException, ClassNotFoundException {
+    void shouldNotUpdateSessionIfAccountCouldNotBeSaved() throws SQLException, ClassNotFoundException {
+        convertWith(() -> {
+            given(dataSource.isAuthAvailable("TestPlayer")).willReturn(false);
+            given(dataSource.saveAuth(any(PlayerAuth.class))).willReturn(false);
+        },
+            "INSERT INTO ls_players VALUES (1, 'TestPlayer', 'bcrypt-hash', NULL, NULL, NULL, '127.0.0.1')",
+            "INSERT INTO ls_locations VALUES (1, 0, 0, 0, 'world', 0, 0)");
+
+        verify(dataSource).saveAuth(any(PlayerAuth.class));
+        verify(dataSource, never()).updateSession(any(PlayerAuth.class));
+    }
+
+    @Test
+    void shouldSkipRowsWithNullOrEmptyName()throws SQLException, ClassNotFoundException {
         convertWith(() -> given(dataSource.isAuthAvailable("ValidPlayer")).willReturn(false),
             "INSERT INTO ls_players VALUES (1, NULL, 'hash', NULL, NULL, NULL, NULL)",
             "INSERT INTO ls_players VALUES (2, '', 'hash', NULL, NULL, NULL, NULL)",

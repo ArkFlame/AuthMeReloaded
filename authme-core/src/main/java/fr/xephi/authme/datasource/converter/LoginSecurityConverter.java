@@ -107,9 +107,12 @@ public class LoginSecurityConverter implements Converter {
                 skippedPlayers.add(name);
             } else {
                 PlayerAuth auth = buildAuthFromLoginSecurity(name, resultSet);
-                dataSource.saveAuth(auth);
-                dataSource.updateSession(auth);
-                ++successfulSaves;
+                if (dataSource.saveAuth(auth)) {
+                    dataSource.updateSession(auth);
+                    ++successfulSaves;
+                } else {
+                    logAndSendMessage(sender, "LoginSecurity conversion: could not save account '" + name + "'");
+                }
             }
         }
 
