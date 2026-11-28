@@ -22,7 +22,10 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 import java.util.regex.Matcher;
@@ -40,6 +43,9 @@ final class ProxyPremiumLoginVerifier {
     private final KeyPair rsaKeyPair;
     private final SecureRandom secureRandom;
     private final Consumer<String> warningLogger;
+    private static final int VERIFICATION_THREADS = 4;
+    private static final int VERIFICATION_QUEUE_CAPACITY = 64;
+
     private final ExecutorService verificationExecutor;
     private final ConcurrentHashMap<String, PendingVerification> pending = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, VerifiedSession> verified = new ConcurrentHashMap<>();
@@ -54,11 +60,14 @@ final class ProxyPremiumLoginVerifier {
         this.clock = clock;
         this.warningLogger = warningLogger;
         this.secureRandom = new SecureRandom();
-        this.verificationExecutor = Executors.newSingleThreadExecutor(r -> {
-            Thread thread = new Thread(r, threadName);
-            thread.setDaemon(true);
-            return thread;
-        });
+        // Bounded: each task blocks on a Mojang HTTP call, so an unbounded queue lets a handshake flood starve
+        // real logins. A full queue rejects the verification (see completeVerification).
+        this.verificationExecutor = new ThreadPoolExecutor(VERIFICATION_THREADS, VERIFICATION_THREADS, 0L,
+            TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(VERIFICATION_QUEUE_CAPACITY), r -> {
+                Thread thread = new Thread(r, threadName);
+                thread.setDaemon(true);
+                return thread;
+            });
         try {
             KeyPairGenerator gen = KeyPairGenerator.getInstance("RSA");
             gen.initialize(1024, secureRandom);
@@ -118,6 +127,17 @@ final class ProxyPremiumLoginVerifier {
         if (pendingVerification == null) {
             return CompletableFuture.completedFuture(Optional.empty());
         }
+        try {
+            return supplyVerification(pendingVerification, sharedSecret, encryptedVerifyToken);
+        } catch (RejectedExecutionException e) {
+            warningLogger.accept("Proxy premium verification rejected for '" + pendingVerification.username()
+                + "': too many pending verifications");
+            return CompletableFuture.completedFuture(Optional.empty());
+        }
+    }
+
+    private CompletableFuture<Optional<UUID>> supplyVerification(
+        PendingVerification pendingVerification, byte[] sharedSecret, byte[] encryptedVerifyToken) {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 byte[] decryptedToken = decryptData(encryptedVerifyToken);
