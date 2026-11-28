@@ -39,6 +39,11 @@ import fr.xephi.authme.settings.properties.RestrictionSettings;
 import fr.xephi.authme.settings.properties.SecuritySettings;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.RegisteredListener;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -119,8 +124,13 @@ public class AsynchronousJoinTest {
         TestHelper.setupLogger();
     }
 
+    /** A registered listener makes the join dispatch PlayerPreAuthEvent; the event itself is mocked below. */
+    private final RegisteredListener preAuthListener = new RegisteredListener(
+        new Listener() { }, (listener, event) -> { }, EventPriority.NORMAL, mock(Plugin.class), false);
+
     @BeforeEach
     public void setUp() {
+        PlayerPreAuthEvent.getHandlerList().register(preAuthListener);
         setBukkitServiceToScheduleSyncEntityTaskFromOptionallyAsyncTask(bukkitService);
         setBukkitServiceToRunTaskOptionallyAsync(bukkitService);
         setBukkitServiceToRunTaskLater(bukkitService);
@@ -128,6 +138,24 @@ public class AsynchronousJoinTest {
         givenEventsAreCalledWithoutListeners();
         given(preJoinDialogService.consumeSession(anyString()))
             .willReturn(PreJoinDialogService.PendingDialogState.NONE);
+    }
+
+    @AfterEach
+    public void unregisterPreAuthListener() {
+        PlayerPreAuthEvent.getHandlerList().unregister(preAuthListener);
+    }
+
+    @Test
+    public void shouldNotDispatchPreAuthEventWhenNothingListensToIt() {
+        PlayerPreAuthEvent.getHandlerList().unregister(preAuthListener);
+        Player player = givenRegisteredPlayer();
+
+        asynchronousJoin.processJoin(player);
+
+        verify(bukkitService, never()).callEvent(any(PlayerPreAuthEvent.class));
+        // Only the limbo creation is scheduled; the join does not wait for a pre-auth hop.
+        verify(bukkitService, times(1)).scheduleSyncTaskFromOptionallyAsyncTask(eq(player), any(Runnable.class));
+        verify(limboService).createLimboPlayer(player, true);
     }
 
     @ParameterizedTest(name = "authenticated={0}")

@@ -332,6 +332,11 @@ public class AsynchronousJoin implements AsynchronousProcess {
      * @return true if a listener fully handled the join (forced login or skipped authentication)
      */
     private boolean handlePreAuthEvent(Player player, PlayerAuth auth, String name) {
+        // Without a listener the event can neither force a login nor cancel the join, so skip the
+        // main-thread hop (up to a tick of latency on every join) and the wait for it.
+        if (PlayerPreAuthEvent.getHandlerList().getRegisteredListeners().length == 0) {
+            return false;
+        }
         final boolean registered = auth != null;
         final PlayerPreAuthEvent.Source source = bungeeSender.isEnabled()
             ? PlayerPreAuthEvent.Source.PROXY : PlayerPreAuthEvent.Source.JOIN;
