@@ -39,6 +39,7 @@ final class ProxyPremiumLoginVerifier {
         Pattern.compile("\"id\"\\s*:\\s*\"([0-9a-fA-F]{32})\"");
     private static final long VERIFIED_TTL_MS = 60_000L;
     private static final long PENDING_TTL_MS = 30_000L;
+    private static final long SWEEP_INTERVAL_MS = 1_000L;
 
     private final KeyPair rsaKeyPair;
     private final SecureRandom secureRandom;
@@ -51,6 +52,8 @@ final class ProxyPremiumLoginVerifier {
     private final ConcurrentHashMap<String, VerifiedSession> verified = new ConcurrentHashMap<>();
 
     private final LongSupplier clock;
+    private long lastSweepAt;
+    private boolean swept;
 
     ProxyPremiumLoginVerifier(String threadName, Consumer<String> warningLogger) {
         this(threadName, warningLogger, System::currentTimeMillis);
@@ -81,9 +84,20 @@ final class ProxyPremiumLoginVerifier {
         return rsaKeyPair.getPublic();
     }
 
+    /** Drops expired entries, at most once per interval: a handshake flood must not cost O(n) per connection. */
+    private synchronized void sweepIfDue(long now) {
+        if (swept && now - lastSweepAt < SWEEP_INTERVAL_MS) {
+            return;
+        }
+        swept = true;
+        lastSweepAt = now;
+        pending.entrySet().removeIf(entry -> now - entry.getValue().startedAt() > PENDING_TTL_MS);
+        verified.values().removeIf(session -> now - session.verifiedAt() > VERIFIED_TTL_MS);
+    }
+
     byte[] startVerification(String connectionKey, String username, UUID playerUuid, boolean pendingPremiumEnrollment) {
         long now = clock.getAsLong();
-        pending.entrySet().removeIf(entry -> now - entry.getValue().startedAt() > PENDING_TTL_MS);
+        sweepIfDue(now);
         verified.remove(normalize(username));
         byte[] verifyToken = new byte[4];
         secureRandom.nextBytes(verifyToken);
@@ -124,7 +138,7 @@ final class ProxyPremiumLoginVerifier {
     CompletableFuture<Optional<UUID>> completeVerification(
         String connectionKey, byte[] sharedSecret, byte[] encryptedVerifyToken) {
         PendingVerification pendingVerification = pending.remove(connectionKey);
-        if (pendingVerification == null) {
+        if (pendingVerification == null || clock.getAsLong() - pendingVerification.startedAt() > PENDING_TTL_MS) {
             return CompletableFuture.completedFuture(Optional.empty());
         }
         try {
@@ -159,7 +173,7 @@ final class ProxyPremiumLoginVerifier {
     void storeVerified(String username, UUID mojangUuid) {
         long now = clock.getAsLong();
         // A verified player who disconnects before perform.login is sent is never looked up again: sweep them here.
-        verified.values().removeIf(session -> now - session.verifiedAt() > VERIFIED_TTL_MS);
+        sweepIfDue(now);
         verified.put(normalize(username), new VerifiedSession(mojangUuid, now));
     }
 
