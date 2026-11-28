@@ -60,15 +60,24 @@ public abstract class AbstractPaperPlatformAdapter extends AbstractSpigotPlatfor
 
     private void runChainedTeleport(Player player, Location location, CompletableFuture<Boolean> result) {
         if (player.getScheduler().run(JavaPlugin.getPlugin(AuthMe.class),
-            ignored -> player.teleportAsync(location).whenComplete((teleportResult, error) -> {
+            ignored -> startChainedTeleport(player, location, result),
+            () -> result.complete(false)) == null) {
+            result.complete(false);
+        }
+    }
+
+    /** Never leaves the result incomplete, or every later teleport of this player would wait on it forever. */
+    private static void startChainedTeleport(Player player, Location location, CompletableFuture<Boolean> result) {
+        try {
+            player.teleportAsync(location).whenComplete((teleportResult, error) -> {
                 if (error == null) {
                     result.complete(teleportResult);
                 } else {
                     result.completeExceptionally(error);
                 }
-            }),
-            () -> result.complete(false)) == null) {
-            result.complete(false);
+            });
+        } catch (RuntimeException e) {
+            result.completeExceptionally(e);
         }
     }
 
