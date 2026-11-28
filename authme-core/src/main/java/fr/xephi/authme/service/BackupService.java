@@ -4,7 +4,6 @@ import fr.xephi.authme.ConsoleLogger;
 import fr.xephi.authme.datasource.DataSourceType;
 import fr.xephi.authme.initialization.DataFolder;
 import fr.xephi.authme.output.ConsoleLoggerFactory;
-import fr.xephi.authme.mail.EmailService;
 import fr.xephi.authme.settings.Settings;
 import fr.xephi.authme.settings.properties.BackupSettings;
 import fr.xephi.authme.settings.properties.DatabaseSettings;
@@ -16,7 +15,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 
 import static fr.xephi.authme.util.Utils.logAndSendMessage;
 import static fr.xephi.authme.util.Utils.logAndSendWarning;
@@ -26,7 +28,9 @@ import static fr.xephi.authme.util.Utils.logAndSendWarning;
  */
 public class BackupService {
 
-    private final ConsoleLogger logger = ConsoleLoggerFactory.get(EmailService.class);
+    private final ConsoleLogger logger = ConsoleLoggerFactory.get(BackupService.class);
+
+    private static final long BACKUP_TIMEOUT_MINUTES = 5;
 
     private final File dataFolder;
     private final File backupFolder;
@@ -107,13 +111,26 @@ public class BackupService {
 
         String backupWindowsPath = settings.getProperty(BackupSettings.MYSQL_WINDOWS_PATH);
         boolean isUsingWindows = useWindowsCommand(backupWindowsPath);
-        String backupCommand = isUsingWindows
-            ? backupWindowsPath + "\\bin\\mysqldump.exe" + buildMysqlDumpArguments(sqlBackupFile)
-            : "mysqldump" + buildMysqlDumpArguments(sqlBackupFile);
+        List<String> backupCommand = buildMysqlDumpCommand(
+            isUsingWindows ? backupWindowsPath + "\\bin\\mysqldump.exe" : "mysqldump", sqlBackupFile);
 
         try {
-            Process runtimeProcess = Runtime.getRuntime().exec(backupCommand);
-            if (runtimeProcess.waitFor() == 0) {
+            ProcessBuilder processBuilder = new ProcessBuilder(backupCommand).redirectErrorStream(true)
+                .redirectOutput(ProcessBuilder.Redirect.INHERIT);
+            // The password goes through the environment: it stays out of the process list, and an empty
+            // password cannot turn "-p" into an interactive prompt that would hang the backup.
+            String password = settings.getProperty(DatabaseSettings.MYSQL_PASSWORD);
+            if (!password.isEmpty()) {
+                processBuilder.environment().put("MYSQL_PWD", password);
+            }
+            Process runtimeProcess = processBuilder.start();
+            runtimeProcess.getOutputStream().close();
+            if (!runtimeProcess.waitFor(BACKUP_TIMEOUT_MINUTES, TimeUnit.MINUTES)) {
+                runtimeProcess.destroyForcibly();
+                logger.warning("The backup timed out after " + BACKUP_TIMEOUT_MINUTES + " minutes");
+                return false;
+            }
+            if (runtimeProcess.exitValue() == 0) {
                 logger.info("Backup created successfully. (Using Windows = " + isUsingWindows + ")");
                 return true;
             }
@@ -157,17 +174,19 @@ public class BackupService {
     }
 
     /**
-     * Builds the command line arguments to pass along when running the {@code mysqldump} command.
+     * Builds the {@code mysqldump} command as separate arguments, so paths containing spaces stay intact.
+     * The password is not part of the arguments; see {@link #performMySqlBackup()}.
      *
+     * @param executable the mysqldump executable
      * @param sqlBackupFile the file to back up to
-     * @return the mysqldump command line arguments
+     * @return the mysqldump command
      */
-    private String buildMysqlDumpArguments(File sqlBackupFile) {
-        return " -u " + settings.getProperty(DatabaseSettings.MYSQL_USERNAME)
-            + " -p" + settings.getProperty(DatabaseSettings.MYSQL_PASSWORD)
-            + " " + settings.getProperty(DatabaseSettings.MYSQL_DATABASE)
-            + " --tables " + settings.getProperty(DatabaseSettings.MYSQL_TABLE)
-            + " -r " + sqlBackupFile.getPath() + ".sql";
+    private List<String> buildMysqlDumpCommand(String executable, File sqlBackupFile) {
+        return Arrays.asList(executable,
+            "-u", settings.getProperty(DatabaseSettings.MYSQL_USERNAME),
+            settings.getProperty(DatabaseSettings.MYSQL_DATABASE),
+            "--tables", settings.getProperty(DatabaseSettings.MYSQL_TABLE),
+            "-r", sqlBackupFile.getPath() + ".sql");
     }
 
     /**
