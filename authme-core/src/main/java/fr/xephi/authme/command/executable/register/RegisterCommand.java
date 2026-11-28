@@ -168,13 +168,14 @@ public class RegisterCommand extends PlayerCommand {
                 long unregisterAfterMinutes =
                     commonService.getProperty(RegistrationSettings.UNREGISTER_AFTER_MINUTES);
                 if (unregisterAfterMinutes > 0) {
-                    bukkitService.runTaskLater(player, () -> {
+                    // The delayed task fires on the entity/main thread: do the account lookup off it.
+                    bukkitService.runTaskLater(player, () -> bukkitService.runTaskOptionallyAsync(() -> {
                         String playerName = player.getName();
                         PlayerAuth auth = dataSource.getAuth(playerName);
                         if (auth != null && auth.getLastLogin() == null) {
                             management.performUnregisterByAdmin(null, playerName, player);
                         }
-                    }, 60L * 20L * unregisterAfterMinutes);
+                    }), 60L * 20L * unregisterAfterMinutes);
                 }
             }
         }

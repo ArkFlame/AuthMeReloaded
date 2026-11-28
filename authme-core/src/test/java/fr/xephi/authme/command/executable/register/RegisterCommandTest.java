@@ -230,6 +230,11 @@ public class RegisterCommandTest {
         ArgumentCaptor<Runnable> task = ArgumentCaptor.forClass(Runnable.class);
         verify(bukkitService).runTaskLater(eq(player), task.capture(), eq(delay));
         task.getValue().run();
+        // The account lookup must not run on the entity thread that fires the delayed task
+        ArgumentCaptor<Runnable> lookup = ArgumentCaptor.forClass(Runnable.class);
+        verify(bukkitService).runTaskOptionallyAsync(lookup.capture());
+        verifyNoInteractions(dataSource);
+        lookup.getValue().run();
         verify(management, times(invocations)).performUnregisterByAdmin(null, name, player);
     }
 
