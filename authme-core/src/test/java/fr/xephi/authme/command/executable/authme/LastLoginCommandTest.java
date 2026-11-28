@@ -3,8 +3,11 @@ package fr.xephi.authme.command.executable.authme;
 import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.message.MessageKey;
+import fr.xephi.authme.service.BukkitService;
+import fr.xephi.authme.service.BukkitServiceTestHelper;
 import fr.xephi.authme.service.CommonService;
 import org.bukkit.command.CommandSender;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -41,6 +44,14 @@ class LastLoginCommandTest {
 
     @Mock
     private CommonService service;
+
+    @Mock
+    private BukkitService bukkitService;
+
+    @BeforeEach
+    void runTasksImmediately() {
+        BukkitServiceTestHelper.setBukkitServiceToRunTaskOptionallyAsync(bukkitService);
+    }
 
     @Test
     void shouldRejectNonExistentUser() {

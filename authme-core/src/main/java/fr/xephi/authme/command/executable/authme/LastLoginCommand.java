@@ -2,20 +2,31 @@ package fr.xephi.authme.command.executable.authme;
 
 import fr.xephi.authme.command.CommandUtils;
 import fr.xephi.authme.data.auth.PlayerAuth;
+import fr.xephi.authme.service.BukkitService;
 import org.bukkit.command.CommandSender;
 
 import java.util.Date;
 import java.util.List;
+
+import javax.inject.Inject;
 
 /**
  * Returns the last login date of the given user.
  */
 public class LastLoginCommand extends AbstractPlayerAuthCommand {
 
+    @Inject
+    private BukkitService bukkitService;
+
     @Override
     public void executeCommand(CommandSender sender, List<String> arguments) {
         String playerName = CommandUtils.getTargetPlayerName(sender, arguments);
 
+        // Database access: keep it off the server thread
+        bukkitService.runTaskOptionallyAsync(() -> report(sender, playerName));
+    }
+
+    private void report(CommandSender sender, String playerName) {
         PlayerAuth auth = getAuthOrReportUnknown(sender, playerName);
         if (auth == null) {
             return;
