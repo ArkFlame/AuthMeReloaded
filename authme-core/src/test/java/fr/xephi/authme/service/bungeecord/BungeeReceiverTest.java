@@ -288,6 +288,13 @@ class BungeeReceiverTest {
     }
 
     @Test
+    void shouldStripControlCharactersAndCapLengthOfLoggedClientText() {
+        assertThat(BungeeReceiver.sanitizeForLog("Bob\nWARN fake\r\u007f"), equalTo("Bob?WARN fake??"));
+        assertThat(BungeeReceiver.sanitizeForLog("a".repeat(100)).length(), equalTo(32));
+        assertThat(BungeeReceiver.sanitizeForLog("Alice_1"), equalTo("Alice_1"));
+    }
+
+    @Test
     void shouldRunOnlyOnePremiumListQueryWhileAnotherProxyStartedIsInFlight() {
         // given
         Player carrier = mock(Player.class, withSettings().mockMaker(MockMakers.INLINE));

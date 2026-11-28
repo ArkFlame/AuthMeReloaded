@@ -42,6 +42,7 @@ public class BungeeReceiver implements PluginMessageListener, SettingsDependent 
     private final ProxyLoginRequestValidator proxyLoginRequestValidator;
 
     private static final long MAX_AGE_MILLIS = 30_000L;
+    private static final long REJECTION_LOG_INTERVAL_MILLIS = 1_000L;
 
     // Avoid cloning values() and wrapping an Optional on every incoming plugin message.
     private static final Map<String, MessageType> MESSAGE_TYPES_BY_ID = createMessageTypeMap();
@@ -60,6 +61,7 @@ public class BungeeReceiver implements PluginMessageListener, SettingsDependent 
     private boolean channelRegistered;
     // Clients can send on this channel too: at most one premium-list query runs at a time
     private final AtomicBoolean premiumListInFlight = new AtomicBoolean();
+    private volatile long lastRejectionLogMillis;
 
     @Inject
     BungeeReceiver(AuthMe plugin, BukkitService bukkitService, ProxySessionManager proxySessionManager,
@@ -259,8 +261,27 @@ public class BungeeReceiver implements PluginMessageListener, SettingsDependent 
             }
             rejectionReason = "invalid HMAC";
         }
-        logger.warning("Rejected perform.login for " + playerName + ": " + rejectionReason);
+        // Any client can send this message: log at most one rejection per interval, with a sanitized name
+        long now = System.currentTimeMillis();
+        String message = "Rejected perform.login for " + sanitizeForLog(playerName) + ": " + rejectionReason;
+        if (now - lastRejectionLogMillis >= REJECTION_LOG_INTERVAL_MILLIS) {
+            lastRejectionLogMillis = now;
+            logger.warning(message);
+        } else {
+            logger.debug(message);
+        }
         return false;
+    }
+
+    /** Replaces control characters and caps the length of client-supplied text before it is logged. */
+    static String sanitizeForLog(String text) {
+        int length = Math.min(text.length(), 32);
+        StringBuilder sb = new StringBuilder(length);
+        for (int i = 0; i < length; i++) {
+            char c = text.charAt(i);
+            sb.append(c < 0x20 || c == 0x7f ? '?' : c);
+        }
+        return sb.toString();
     }
 
     private void performLogin(String name, UUID verifiedPremiumUuid) {
