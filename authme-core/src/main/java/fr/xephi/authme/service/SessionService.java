@@ -30,7 +30,7 @@ public class SessionService implements Reloadable {
 
     private final PendingPremiumCache pendingPremiumCache;
 
-    private boolean isEnabled;
+    private volatile boolean isEnabled;
 
     @Inject
     SessionService(CommonService service, BukkitService bukkitService, DataSource database,

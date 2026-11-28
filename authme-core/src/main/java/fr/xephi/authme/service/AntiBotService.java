@@ -55,7 +55,12 @@ public class AntiBotService implements SettingsDependent {
             return;
         }
 
-        Runnable enableTask = () -> antiBotStatus = AntiBotStatus.LISTENING;
+        // A delayed run must not re-enable the service after a later reload disabled it
+        Runnable enableTask = () -> {
+            if (antiBotStatus == AntiBotStatus.DISABLED && settings.getProperty(ProtectionSettings.ENABLE_ANTIBOT)) {
+                antiBotStatus = AntiBotStatus.LISTENING;
+            }
+        };
 
         // Delay the schedule on first start
         if (startup) {
