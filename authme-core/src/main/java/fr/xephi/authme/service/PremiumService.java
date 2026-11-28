@@ -88,8 +88,9 @@ public class PremiumService implements HasCleanup {
             // UUID v4 = Mojang-issued UUID: either the server is in online mode (Mojang already
             // verified the session at the connection level) or the proxy forwarded a real Mojang
             // UUID. No extra API call needed — the server's own auth is the source of truth.
-            storePremiumUuid(auth, playerUuid, player, player.getName(), true,
-                MessageKey.PREMIUM_ENABLE_SUCCESS);
+            String name = player.getName();
+            bukkitService.runTaskOptionallyAsync(() -> storePremiumUuid(auth, playerUuid, player, name, true,
+                MessageKey.PREMIUM_ENABLE_SUCCESS));
         } else {
             // UUID v3 = Bukkit offline UUID: fetch the Mojang UUID and hold it as pending.
             // The player must reconnect; a cryptographic Mojang session check on reconnect is
@@ -123,17 +124,19 @@ public class PremiumService implements HasCleanup {
             return;
         }
 
-        auth.setPremiumUuid(null);
         String playerName = player.getName();
         bukkitService.runTaskOptionallyAsync(() -> disablePremiumAsync(auth, player, playerName));
     }
 
     private void disablePremiumAsync(PlayerAuth auth, Player player, String playerName) {
+        UUID previousUuid = auth.getPremiumUuid();
+        auth.setPremiumUuid(null);
         if (dataSource.updatePremiumUuid(auth)) {
             playerCache.updatePlayerIfPresent(auth);
             bungeeSender.sendPremiumUnset(playerName);
             messages.send(player, MessageKey.PREMIUM_DISABLE_SUCCESS);
         } else {
+            auth.setPremiumUuid(previousUuid);
             logger.warning("Failed to clear premium UUID for player " + playerName);
             messages.send(player, MessageKey.PREMIUM_ERROR);
         }
@@ -288,8 +291,10 @@ public class PremiumService implements HasCleanup {
 
     private void storePremiumUuid(PlayerAuth auth, UUID uuid, CommandSender feedbackTarget, String playerName,
                                     boolean updateCache, MessageKey successKey, String... successArgs) {
+        UUID previousUuid = auth.getPremiumUuid();
         auth.setPremiumUuid(uuid);
         if (!dataSource.updatePremiumUuid(auth)) {
+            auth.setPremiumUuid(previousUuid);
             logger.warning("Failed to save premium UUID for player " + playerName);
             messages.send(feedbackTarget, MessageKey.PREMIUM_ERROR);
             return;
