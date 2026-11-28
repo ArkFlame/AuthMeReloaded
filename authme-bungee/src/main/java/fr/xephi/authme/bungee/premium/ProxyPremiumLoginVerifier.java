@@ -181,15 +181,19 @@ final class ProxyPremiumLoginVerifier {
     private Optional<UUID> hasJoined(String username, String serverHash) {
         try {
             HttpURLConnection connection = openGet(HAS_JOINED_URL + "?username=" + username + "&serverId=" + serverHash);
-            int code = connection.getResponseCode();
-            if (code == HttpURLConnection.HTTP_NO_CONTENT || code == HttpURLConnection.HTTP_NOT_FOUND) {
-                return Optional.empty();
+            try {
+                int code = connection.getResponseCode();
+                if (code == HttpURLConnection.HTTP_NO_CONTENT || code == HttpURLConnection.HTTP_NOT_FOUND) {
+                    return Optional.empty();
+                }
+                if (code != HttpURLConnection.HTTP_OK) {
+                    warningLogger.accept("Mojang hasJoined returned " + code + " for '" + username + "'");
+                    return Optional.empty();
+                }
+                return parseUuid(readBody(connection), username);
+            } finally {
+                connection.disconnect();
             }
-            if (code != HttpURLConnection.HTTP_OK) {
-                warningLogger.accept("Mojang hasJoined returned " + code + " for '" + username + "'");
-                return Optional.empty();
-            }
-            return parseUuid(readBody(connection), username);
         } catch (IOException e) {
             warningLogger.accept("Failed to contact Mojang session server for '" + username + "': " + e.getMessage());
             return Optional.empty();

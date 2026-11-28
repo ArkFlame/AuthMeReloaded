@@ -150,8 +150,14 @@ public abstract class AbstractMessageFileHandler implements Reloadable {
      */
     private File getMessageFile(String filePath) {
         File file = new File(dataFolder, filePath);
-        if (!file.exists() && FileUtils.getResourceFromJar(filePath) != null) {
-            FileUtils.copyFileFromResource(file, filePath);
+        if (!file.exists()) {
+            try (java.io.InputStream resource = FileUtils.getResourceFromJar(filePath)) {
+                if (resource != null) {
+                    FileUtils.copyFileFromResource(file, filePath);
+                }
+            } catch (java.io.IOException ignored) {
+                // closing the probe stream failed: nothing to recover
+            }
         }
         return file;
     }

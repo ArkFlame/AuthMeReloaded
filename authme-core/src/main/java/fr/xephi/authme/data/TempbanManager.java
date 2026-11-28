@@ -104,7 +104,7 @@ public class TempbanManager implements SettingsDependent, HasCleanup {
      * @param player The player to tempban
      */
     public void tempbanPlayer(final Player player) {
-        if (isEnabled) {
+        if (isEnabled && player.getAddress() != null) {
             final String name = player.getName();
             final String ip = PlayerUtils.getPlayerIp(player);
             final String reason = messages.retrieveSingle(player, MessageKey.TEMPBAN_MAX_LOGINS);
