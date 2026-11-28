@@ -193,7 +193,7 @@ public abstract class AbstractSpigotPlatformAdapter implements PlatformAdapter {
     }
 
     // Kept lazy so PacketEvents-dependent classes are only loaded after PacketEvents has been confirmed present.
-    private PacketInterceptionAdapter packetInterceptionAdapter;
+    private volatile PacketInterceptionAdapter packetInterceptionAdapter;
 
     @Override
     public void registerInventoryProtection(PlayerCache playerCache, DataSource dataSource) {
