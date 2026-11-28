@@ -324,6 +324,21 @@ class ValidationServiceTest {
     }
 
     @Test
+    void shouldFailRestrictedNameWithoutAddress() {
+        // given
+        given(settings.getProperty(RestrictionSettings.ENABLE_RESTRICTED_USERS)).willReturn(true);
+        given(settings.getProperty(RestrictionSettings.RESTRICTED_USERS))
+            .willReturn(newHashSet("Bobby;127.0.0.4"));
+        validationService.reload();
+        Player disconnected = mock(Player.class);
+        given(disconnected.getName()).willReturn("bobby");
+        given(disconnected.getAddress()).willReturn(null);
+
+        // when / then
+        assertThat(validationService.fulfillsNameRestrictions(disconnected), equalTo(false));
+    }
+
+    @Test
     void shouldLogWarningForInvalidRestrictionRule() {
         // given
         Logger logger = TestHelper.setupLogger();

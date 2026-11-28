@@ -163,6 +163,10 @@ public class ValidationService implements Reloadable {
         }
 
         InetSocketAddress socketAddress = player.getAddress();
+        if (socketAddress == null) {
+            // Disconnected before this check ran: the address cannot satisfy the rule (fail closed).
+            return false;
+        }
         return matchesRestrictions(restrictions, socketAddress.getAddress().getHostAddress(),
             getHostName(socketAddress));
     }
