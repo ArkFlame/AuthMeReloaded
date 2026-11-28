@@ -12,7 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class ConsoleLoggerFactory {
 
     private static final Map<String, ConsoleLogger> consoleLoggers = new ConcurrentHashMap<>();
-    private static Settings settings;
+    private static volatile Settings settings;
 
     /**
      * Creates or returns the already existing logger associated with the given class.
