@@ -26,6 +26,14 @@ class GetEmailCommandTest {
     @InjectMocks
     private GetEmailCommand command;
 
+    @org.junit.jupiter.api.BeforeEach
+    void runTasksImmediately() {
+        fr.xephi.authme.service.BukkitServiceTestHelper.setBukkitServiceToRunTaskOptionallyAsync(bukkitService);
+    }
+
+    @Mock
+    private fr.xephi.authme.service.BukkitService bukkitService;
+
     @Mock
     private DataSource dataSource;
 

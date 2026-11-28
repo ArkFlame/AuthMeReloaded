@@ -31,6 +31,11 @@ class GetIpCommandTest {
     @InjectMocks
     private GetIpCommand command;
 
+    @org.junit.jupiter.api.BeforeEach
+    void runTasksImmediately() {
+        fr.xephi.authme.service.BukkitServiceTestHelper.setBukkitServiceToRunTaskOptionallyAsync(bukkitService);
+    }
+
     @Mock
     private BukkitService bukkitService;
 

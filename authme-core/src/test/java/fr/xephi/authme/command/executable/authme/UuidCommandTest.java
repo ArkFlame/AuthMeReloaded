@@ -31,6 +31,11 @@ class UuidCommandTest {
     @InjectMocks
     private UuidCommand command;
 
+    @org.junit.jupiter.api.BeforeEach
+    void runTasksImmediately() {
+        fr.xephi.authme.service.BukkitServiceTestHelper.setBukkitServiceToRunTaskOptionallyAsync(bukkitService);
+    }
+
     @Mock
     private DataSource dataSource;
 
