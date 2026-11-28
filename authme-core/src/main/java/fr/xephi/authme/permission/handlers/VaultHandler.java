@@ -72,10 +72,17 @@ public class VaultHandler implements PermissionHandler {
 
     @Override
     public boolean setGroup(OfflinePlayer player, UserGroup group) {
-        for (UserGroup g : getGroups(player)) {
-            removeFromGroup(player, g);
+        List<UserGroup> previousGroups = getGroups(player);
+        // Add first: when the add fails the player keeps the groups they had
+        if (!addToGroup(player, group)) {
+            return false;
         }
-        return addToGroup(player, group);
+        for (UserGroup g : previousGroups) {
+            if (!g.getGroupName().equals(group.getGroupName())) {
+                removeFromGroup(player, g);
+            }
+        }
+        return true;
     }
 
     @Override
