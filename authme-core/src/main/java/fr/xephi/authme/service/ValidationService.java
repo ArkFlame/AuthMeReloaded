@@ -30,6 +30,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 /**
  * Validation service.
@@ -241,10 +242,14 @@ public class ValidationService implements Reloadable {
                 int ruleEnd = restriction.indexOf(';', separator + 1);
                 String rule = restriction.substring(separator + 1, ruleEnd < 0 ? restriction.length() : ruleEnd);
                 if (!rule.isEmpty()) {
-                    restrictions.put(restriction.substring(0, separator).toLowerCase(Locale.ROOT),
-                        Pattern.compile(rule.startsWith("regex:")
-                            ? rule.replace("regex:", "")
-                            : rule.replace("*", "(.*)")));
+                    try {
+                        restrictions.put(restriction.substring(0, separator).toLowerCase(Locale.ROOT),
+                            Pattern.compile(rule.startsWith("regex:")
+                                ? rule.replace("regex:", "")
+                                : rule.replace("*", "(.*)")));
+                    } catch (PatternSyntaxException e) {
+                        logger.warning("Ignoring restricted user rule with invalid regex: '" + restriction + "'");
+                    }
                     continue;
                 }
             }
