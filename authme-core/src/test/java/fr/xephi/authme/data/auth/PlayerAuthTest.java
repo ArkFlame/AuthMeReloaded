@@ -58,4 +58,21 @@ class PlayerAuthTest {
         assertThat(auth.getGroupId(), equalTo(19));
         assertThat(auth.getPitch(), equalTo(123.004f));
     }
+
+    @Test
+    void shouldNotPrintPasswordHashOrSaltInToString() {
+        // given
+        PlayerAuth auth = PlayerAuth.builder()
+            .name("bobby")
+            .password(new fr.xephi.authme.security.crypts.HashedPassword("secretHash", "secretSalt"))
+            .build();
+
+        // when
+        String text = auth.toString();
+
+        // then
+        assertThat(text.contains("secretHash"), equalTo(false));
+        assertThat(text.contains("secretSalt"), equalTo(false));
+        assertThat(PlayerAuth.builder().name("nopass").build().toString().contains("nopass"), equalTo(true));
+    }
 }

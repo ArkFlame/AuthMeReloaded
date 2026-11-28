@@ -138,7 +138,6 @@ public class PlayerAuth {
             + " ! LastLogin : " + getLastLogin()
             + " ! LastPosition : " + x + "," + y + "," + z + "," + world
             + " ! Email : " + email
-            + " ! Password : {" + password.getHash() + ", " + password.getSalt() + "}"
             + " ! UUID : " + uuid;
     }
 
