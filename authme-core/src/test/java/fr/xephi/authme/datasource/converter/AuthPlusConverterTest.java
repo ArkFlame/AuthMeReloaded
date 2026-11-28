@@ -29,6 +29,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
@@ -76,8 +77,9 @@ class AuthPlusConverterTest extends AbstractConverterTest {
 
         given(dataSource.isAuthAvailable("existingplayer")).willReturn(true);
         given(dataSource.isAuthAvailable("testplayer")).willReturn(false);
+        given(dataSource.saveAuth(any(PlayerAuth.class))).willReturn(true);
 
-        OfflinePlayer testPlayer     = mockOfflinePlayer("TestPlayer");
+        OfflinePlayer testPlayer    = mockOfflinePlayer("TestPlayer");
         OfflinePlayer existingPlayer = mockOfflinePlayer("ExistingPlayer");
         // UUID_UNKNOWNPLAYER resolves to null (player never joined)
         OfflinePlayer unknownPlayer  = mockOfflinePlayer(null);

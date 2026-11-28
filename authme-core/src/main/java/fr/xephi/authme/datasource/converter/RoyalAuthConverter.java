@@ -55,8 +55,11 @@ public class RoyalAuthConverter implements Converter {
                     .lastLogin(configuration.getLong(LAST_LOGIN_PATH))
                     .realName(playerName)
                     .build();
-                dataSource.saveAuth(auth);
-                dataSource.updateSession(auth);
+                if (dataSource.saveAuth(auth)) {
+                    dataSource.updateSession(auth);
+                } else {
+                    logger.warning("Could not save RoyalAuth account '" + playerName + "'");
+                }
             } catch (Exception e) {
                 logger.logException("Error while trying to import " + player.getName() + " RoyalAuth data", e);
             }

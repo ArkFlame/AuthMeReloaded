@@ -74,6 +74,7 @@ class RoyalAuthConverterTest extends AbstractConverterTest {
         given(dataSource.isAuthAvailable("testplayer")).willReturn(false);
         given(dataSource.isAuthAvailable("existingplayer")).willReturn(true);
         given(dataSource.isAuthAvailable("nofileplayer")).willReturn(false);
+        given(dataSource.saveAuth(any(PlayerAuth.class))).willReturn(true);
 
         File testPlayerFile = new File(tempFolder, "testplayer.yml");
         Files.write(testPlayerFile.toPath(), Arrays.asList(

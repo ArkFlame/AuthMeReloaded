@@ -78,8 +78,11 @@ public class AuthPlusConverter implements Converter {
                 .uuid(uuid)
                 .password(hash, null)
                 .build();
-            dataSource.saveAuth(auth);
-            ++successCount;
+            if (dataSource.saveAuth(auth)) {
+                ++successCount;
+            } else {
+                logger.warning("Could not save account '" + name + "', skipping");
+            }
         }
 
         ConverterUtils.logImportResult(sender, "Auth+", successCount, skippedCount);
