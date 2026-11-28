@@ -25,10 +25,10 @@ public class PacketEventsService implements SettingsDependent {
 
     private final ConsoleLogger logger = ConsoleLoggerFactory.get(PacketEventsService.class);
 
-    private boolean protectInvBeforeLogin;
-    private boolean denyTabCompleteBeforeLogin;
-    private boolean enablePremium;
-    private boolean bungeecordEnabled;
+    private volatile boolean protectInvBeforeLogin;
+    private volatile boolean denyTabCompleteBeforeLogin;
+    private volatile boolean enablePremium;
+    private volatile boolean bungeecordEnabled;
     private final AtomicBoolean inventoryProtectionRegistered = new AtomicBoolean();
     private final AtomicBoolean tabCompleteBlockRegistered = new AtomicBoolean();
     private final AtomicBoolean premiumVerificationRegistered = new AtomicBoolean();

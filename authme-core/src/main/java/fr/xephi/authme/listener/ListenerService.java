@@ -23,7 +23,7 @@ public class ListenerService implements SettingsDependent {
     private final PlayerCache playerCache;
     private final ValidationService validationService;
 
-    private boolean isRegistrationForced;
+    private volatile boolean isRegistrationForced;
 
     @Inject
     ListenerService(Settings settings, DataSource dataSource, PlayerCache playerCache,

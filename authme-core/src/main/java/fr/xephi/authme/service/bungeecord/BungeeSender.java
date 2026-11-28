@@ -25,8 +25,8 @@ public class BungeeSender implements SettingsDependent {
     private final AuthMe plugin;
     private final BukkitService bukkitService;
 
-    private boolean isEnabled;
-    private String destinationServerOnLogin;
+    private volatile boolean isEnabled;
+    private volatile String destinationServerOnLogin;
 
     @Inject
     BungeeSender(AuthMe plugin, BukkitService bukkitService, Settings settings) {

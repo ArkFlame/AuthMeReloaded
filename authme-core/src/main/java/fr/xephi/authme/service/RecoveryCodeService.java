@@ -18,9 +18,9 @@ public class RecoveryCodeService implements SettingsDependent, HasCleanup {
 
     private final ExpiringMap<String, String> recoveryCodes;
     private final TimedCounter<String> playerTries;
-    private int recoveryCodeLength;
-    private int recoveryCodeExpiration;
-    private int recoveryCodeMaxTries;
+    private volatile int recoveryCodeLength;
+    private volatile int recoveryCodeExpiration;
+    private volatile int recoveryCodeMaxTries;
 
     @Inject
     RecoveryCodeService(Settings settings) {

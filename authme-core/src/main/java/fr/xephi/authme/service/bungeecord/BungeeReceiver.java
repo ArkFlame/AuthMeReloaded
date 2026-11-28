@@ -53,9 +53,9 @@ public class BungeeReceiver implements PluginMessageListener, SettingsDependent 
         return Collections.unmodifiableMap(map);
     }
 
-    private boolean isEnabled;
-    private boolean premiumEnabled;
-    private String proxySharedSecret;
+    private volatile boolean isEnabled;
+    private volatile boolean premiumEnabled;
+    private volatile String proxySharedSecret;
     private boolean channelRegistered;
 
     @Inject

@@ -40,7 +40,7 @@ public class BukkitService implements SettingsDependent {
 
     private final AuthMe authMe;
     private final SchedulingAdapter schedulingAdapter;
-    private boolean useAsyncTasks;
+    private volatile boolean useAsyncTasks;
 
     @Inject
     BukkitService(AuthMe authMe, Settings settings, SchedulingAdapter schedulingAdapter) {

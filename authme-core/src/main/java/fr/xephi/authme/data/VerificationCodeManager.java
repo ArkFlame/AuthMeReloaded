@@ -31,7 +31,7 @@ public class VerificationCodeManager implements SettingsDependent, HasCleanup {
     private final ExpiringMap<String, String> verificationCodes;
     private final Set<String> pendingCodeGenerations;
     private final Set<String> verifiedPlayers;
-    private boolean canSendMail;
+    private volatile boolean canSendMail;
 
     @Inject
     VerificationCodeManager(Settings settings, DataSource dataSource, EmailService emailService,
