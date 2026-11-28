@@ -45,7 +45,7 @@ final class FoliaSchedulerProvider implements SchedulerProvider {
         Object scheduler = globalScheduler.get();
         return schedule(plugin, scheduler,
             findMethod(scheduler, "runDelayed", Plugin.class, Consumer.class, long.class),
-            GLOBAL_SCHEDULER_NAME, plugin, toConsumer(task), delayTicks);
+            GLOBAL_SCHEDULER_NAME, plugin, toConsumer(task), Math.max(1L, delayTicks));
     }
 
     @Override

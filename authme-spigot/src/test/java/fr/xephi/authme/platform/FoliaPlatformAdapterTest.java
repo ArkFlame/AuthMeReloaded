@@ -42,6 +42,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
@@ -169,6 +170,26 @@ public class FoliaPlatformAdapterTest {
         // then
         verify(asyncScheduler).runAtFixedRate(isNull(), any(), eq(200L), eq(350L), eq(TimeUnit.MILLISECONDS));
         verify(scheduledTask).cancel();
+    }
+
+    @Test
+    public void entityTasksUseAtLeastOneTickBecauseFoliaRejectsZero() {
+        // given
+        Entity entity = mock(Entity.class, withSettings().mockMaker(MockMakers.INLINE));
+        EntityScheduler scheduler = mock(EntityScheduler.class, withSettings().mockMaker(MockMakers.INLINE));
+        given(entity.getScheduler()).willReturn(scheduler);
+        ScheduledTask scheduledTask = mock(ScheduledTask.class, withSettings().mockMaker(MockMakers.INLINE));
+        given(scheduler.runDelayed(any(), any(), any(), anyLong())).willReturn(scheduledTask);
+        given(scheduler.runAtFixedRate(any(), any(), any(), anyLong(), anyLong())).willReturn(scheduledTask);
+        Runnable task = mock(Runnable.class, withSettings().mockMaker(MockMakers.INLINE));
+
+        // when
+        adapter.runDelayedOnEntityThread(null, entity, task, 0L);
+        adapter.runAtFixedRateOnEntityThread(null, entity, task, 0L, 0L);
+
+        // then
+        verify(scheduler).runDelayed(isNull(), any(), isNull(), eq(1L));
+        verify(scheduler).runAtFixedRate(isNull(), any(), isNull(), eq(1L), eq(1L));
     }
 
     @Test

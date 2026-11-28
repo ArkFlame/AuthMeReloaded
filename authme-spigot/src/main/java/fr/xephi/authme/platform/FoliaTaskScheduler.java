@@ -37,15 +37,21 @@ final class FoliaTaskScheduler {
 
     static CancellableTask runDelayedOnEntityThread(AuthMe plugin, Entity entity, Runnable task, long delay) {
         return cancellableTask(
-            entity.getScheduler().runDelayed(plugin, ignored -> task.run(), null, delay),
+            entity.getScheduler().runDelayed(plugin, ignored -> task.run(), null, atLeastOneTick(delay)),
             plugin, "delayed entity task");
     }
 
     static CancellableTask runAtFixedRateOnEntityThread(AuthMe plugin, Entity entity, Runnable task,
                                                         long delay, long period) {
         return cancellableTask(
-            entity.getScheduler().runAtFixedRate(plugin, ignored -> task.run(), null, delay, period),
+            entity.getScheduler().runAtFixedRate(plugin, ignored -> task.run(), null,
+                atLeastOneTick(delay), atLeastOneTick(period)),
             plugin, "repeating entity task");
+    }
+
+    /** Folia rejects delays and periods below one tick, whereas the Bukkit scheduler treats 0 as "next tick". */
+    private static long atLeastOneTick(long ticks) {
+        return Math.max(1L, ticks);
     }
 
     private static CancellableTask cancellableTask(ScheduledTask scheduledTask, AuthMe plugin, String taskKind) {
