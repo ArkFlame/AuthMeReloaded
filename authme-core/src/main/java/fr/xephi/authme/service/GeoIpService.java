@@ -170,7 +170,8 @@ public class GeoIpService {
 
             logger.info("Successfully downloaded new GEO IP database to " + dataFile);
             startReading();
-        } catch (IOException ioEx) {
+        } catch (IOException | RuntimeException ioEx) {
+            // Unchecked failures must also clear the downloading flag, or lookups stay disabled until restart
             logger.logException("Could not download GeoLiteAPI database", ioEx);
             // Retry after the cooldown instead of staying disabled until the next restart
             retryNotBefore = System.currentTimeMillis() + RETRY_COOLDOWN_MS;
