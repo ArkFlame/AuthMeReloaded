@@ -237,7 +237,10 @@ public class OnJoinVerifier implements Reloadable {
                 }
             }
             if (nonVipPlayer != null) {
-                nonVipPlayer.kickPlayer(messages.retrieveSingle(playerName, MessageKey.KICK_FOR_VIP));
+                // The server-full check can run off the kicked player's owning thread (Folia, Paper login phase)
+                final Player toKick = nonVipPlayer;
+                final String vipKickMessage = messages.retrieveSingle(playerName, MessageKey.KICK_FOR_VIP);
+                bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(toKick, () -> toKick.kickPlayer(vipKickMessage));
                 return null;
             }
             logger.info("VIP player " + playerName + " tried to join, but the server was full");

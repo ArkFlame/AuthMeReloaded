@@ -47,7 +47,9 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -130,6 +132,10 @@ class OnJoinVerifierTest {
         given(bukkitService.getOnlinePlayers()).willReturn(onlinePlayers);
         given(server.getMaxPlayers()).willReturn(onlinePlayers.size());
         given(messages.retrieveSingle("VipPlayer", MessageKey.KICK_FOR_VIP)).willReturn("kick for vip");
+        willAnswer(inv -> {
+            ((Runnable) inv.getArgument(1)).run();
+            return null;
+        }).given(bukkitService).scheduleSyncTaskFromOptionallyAsyncTask(eq(onlinePlayers.get(1)), any(Runnable.class));
 
         boolean result = onJoinVerifier.refusePlayerForFullServer(event);
 
