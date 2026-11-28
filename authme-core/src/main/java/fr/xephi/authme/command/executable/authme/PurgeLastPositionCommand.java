@@ -2,8 +2,10 @@ package fr.xephi.authme.command.executable.authme;
 
 import fr.xephi.authme.command.CommandUtils;
 import fr.xephi.authme.data.auth.PlayerAuth;
+import fr.xephi.authme.service.BukkitService;
 import org.bukkit.command.CommandSender;
 
+import javax.inject.Inject;
 import java.util.List;
 
 /**
@@ -11,15 +13,21 @@ import java.util.List;
  */
 public class PurgeLastPositionCommand extends AbstractPlayerAuthCommand {
 
+    @Inject
+    private BukkitService bukkitService;
+
     @Override
     public void executeCommand(CommandSender sender, List<String> arguments) {
         String playerName = CommandUtils.getTargetPlayerName(sender, arguments);
 
         if ("*".equals(playerName)) {
-            for (PlayerAuth auth : getDataSource().getAllAuths()) {
-                resetAndSaveLastPosition(auth);
-            }
-            sender.sendMessage("All players last position locations are now reset");
+            // One database write per account: keep the whole table walk off the server thread
+            bukkitService.runTaskOptionallyAsync(() -> {
+                for (PlayerAuth auth : getDataSource().getAllAuths()) {
+                    resetAndSaveLastPosition(auth);
+                }
+                sender.sendMessage("All players last position locations are now reset");
+            });
         } else {
             PlayerAuth auth = getAuthOrReportUnknown(sender, playerName);
             if (auth == null) {

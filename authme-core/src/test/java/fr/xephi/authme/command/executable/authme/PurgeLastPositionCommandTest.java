@@ -3,6 +3,7 @@ package fr.xephi.authme.command.executable.authme;
 import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.message.MessageKey;
+import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.service.CommonService;
 import fr.xephi.authme.service.bungeecord.BungeeSender;
 import org.bukkit.command.CommandSender;
@@ -18,6 +19,7 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import static org.hamcrest.Matchers.containsString;
+import static fr.xephi.authme.service.BukkitServiceTestHelper.setBukkitServiceToRunTaskOptionallyAsync;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -43,6 +45,9 @@ class PurgeLastPositionCommandTest {
 
     @Mock
     private CommandSender sender;
+
+    @Mock
+    private BukkitService bukkitService;
 
     @ParameterizedTest
     @CsvSource({
@@ -89,6 +94,7 @@ class PurgeLastPositionCommandTest {
         PlayerAuth auth2 = mock(PlayerAuth.class);
         PlayerAuth auth3 = mock(PlayerAuth.class);
         given(dataSource.getAllAuths()).willReturn(Arrays.asList(auth1, auth2, auth3));
+        setBukkitServiceToRunTaskOptionallyAsync(bukkitService);
 
         // when
         command.executeCommand(sender, Collections.singletonList("*"));
