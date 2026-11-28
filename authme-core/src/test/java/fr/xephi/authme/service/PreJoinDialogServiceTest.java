@@ -145,4 +145,19 @@ class PreJoinDialogServiceTest {
         assertThat(service.approvePreJoinForceLogin("charlie"), is(false));
         assertThat(service.consumeSession("charlie"), is(PreJoinDialogService.PendingDialogState.NONE));
     }
+
+    @Test
+    void shouldNotPrintPasswordsInPendingStateStrings() {
+        // given
+        long sessionId = service.openSession("bob");
+        service.storePendingLoginPassword(sessionId, "loginSecret");
+        service.storePendingPasswordRegistration(sessionId, "regSecret", "reg@example.com");
+
+        // when
+        String text = service.consumeSession("bob").toString();
+
+        // then
+        assertThat(text.contains("loginSecret"), is(false));
+        assertThat(text.contains("regSecret"), is(false));
+    }
 }

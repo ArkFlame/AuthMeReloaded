@@ -231,9 +231,8 @@ public class PreJoinDialogService {
 
         @Override
         public String toString() {
-            return "PendingRegistration[primaryValue=" + primaryValue
-                + ", secondaryValue=" + secondaryValue
-                + ", isEmailRegistration=" + isEmailRegistration + "]";
+            // never print the values: a password registration keeps the password in them
+            return "PendingRegistration[isEmailRegistration=" + isEmailRegistration + "]";
         }
     }
 }
