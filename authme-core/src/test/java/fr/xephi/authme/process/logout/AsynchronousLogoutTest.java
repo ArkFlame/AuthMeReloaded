@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 /**
@@ -56,5 +57,21 @@ class AsynchronousLogoutTest {
         verify(database).setUnlogged("bobby");
         verify(sessionService).revokeSession("bobby");
         verify(syncProcessManager).processSyncPlayerLogout(player);
+    }
+
+    @Test
+    void shouldKeepSessionStartedByNewLoginDuringLogout() {
+        Player player = mock(Player.class);
+        given(player.getName()).willReturn("Bobby");
+        PlayerAuth oldAuth = mock(PlayerAuth.class);
+        PlayerAuth newAuth = mock(PlayerAuth.class);
+        given(playerCache.getAuth("bobby")).willReturn(oldAuth, newAuth);
+
+        asynchronousLogout.logout(player, null);
+
+        verify(database).updateSession(oldAuth);
+        verify(playerCache, never()).removePlayer("bobby");
+        verify(database, never()).setUnlogged("bobby");
+        verify(sessionService, never()).revokeSession("bobby");
     }
 }
