@@ -59,7 +59,7 @@ public class AsyncConfirmEmail implements AsynchronousProcess {
             pendingEmailVerificationCache.removePending(playerName);
         } else {
             // Leave the pending entry in place so the code can be retried after a failed save.
-            logger.warning("Could not save confirmed email for player '" + player + "'");
+            logger.warning("Could not save confirmed email for player '" + playerName + "'");
         }
     }
 }

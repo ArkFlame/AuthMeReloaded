@@ -26,7 +26,7 @@ final class EmailProcessHelper {
             pendingCache.addPending(player.getName(), email, code);
             service.send(player, MessageKey.EMAIL_CONFIRM_CODE_SENT, email);
         } else {
-            logger.warning("Could not send confirmation email for player '" + player + "'");
+            logger.warning("Could not send confirmation email for player '" + player.getName() + "'");
             service.send(player, MessageKey.EMAIL_SEND_FAILURE);
         }
     }

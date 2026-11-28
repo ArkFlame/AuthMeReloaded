@@ -70,7 +70,7 @@ public class AsyncAddEmail implements AsynchronousProcess {
             EmailChangedEvent event = bukkitService.createAndCallEvent(isAsync
                 -> new EmailChangedEvent(player, null, email, isAsync));
             if (event.isCancelled()) {
-                logger.info("Could not add email to player '" + player + "' – event was cancelled");
+                logger.info("Could not add email to player '" + playerName + "' – event was cancelled");
                 service.send(player, MessageKey.EMAIL_ADD_NOT_ALLOWED);
                 return;
             }
@@ -80,7 +80,7 @@ public class AsyncAddEmail implements AsynchronousProcess {
                     logger, player, email);
             } else if (!EmailProcessHelper.persistEmail(service, dataSource, playerCache, auth, player, email,
                 MessageKey.EMAIL_ADDED_SUCCESS)) {
-                logger.warning("Could not save email for player '" + player + "'");
+                logger.warning("Could not save email for player '" + playerName + "'");
             }
         }
     }

@@ -76,7 +76,7 @@ public class AsyncChangeEmail implements AsynchronousProcess {
             EmailChangedEvent event = bukkitService.createAndCallEvent(isAsync
                 -> new EmailChangedEvent(player, oldEmail, newEmail, isAsync));
             if (event.isCancelled()) {
-                logger.info("Could not change email for player '" + player + "' – event was cancelled");
+                logger.info("Could not change email for player '" + playerName + "' – event was cancelled");
                 service.send(player, MessageKey.EMAIL_CHANGE_NOT_ALLOWED);
                 return;
             }
@@ -85,7 +85,7 @@ public class AsyncChangeEmail implements AsynchronousProcess {
                     logger, player, newEmail);
             } else if (!EmailProcessHelper.persistEmail(service, dataSource, playerCache, auth, player, newEmail,
                 MessageKey.EMAIL_CHANGED_SUCCESS)) {
-                logger.warning("Could not change email for player '" + player + "'");
+                logger.warning("Could not change email for player '" + playerName + "'");
             }
         }
     }
