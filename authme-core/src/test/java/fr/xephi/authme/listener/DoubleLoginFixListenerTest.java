@@ -1,6 +1,7 @@
 package fr.xephi.authme.listener;
 
 import fr.xephi.authme.message.MessageKey;
+import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.service.CommonService;
 import fr.xephi.authme.settings.properties.SecuritySettings;
 import org.bukkit.Bukkit;
@@ -20,6 +21,8 @@ import java.util.Arrays;
 import static fr.xephi.authme.listener.TestPlayerUtils.mockPlayerWithName;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.willAnswer;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -40,6 +43,9 @@ class DoubleLoginFixListenerTest {
     @Mock(mockMaker = MockMakers.INLINE)
     private CommonService commonService;
 
+    @Mock
+    private BukkitService bukkitService;
+
     @Test
     void shouldNotKickAnyoneWhenFeatureIsDisabled() {
         given(commonService.getProperty(SecuritySettings.ANTI_GHOST_PLAYERS)).willReturn(false);
@@ -58,6 +64,10 @@ class DoubleLoginFixListenerTest {
         Player duplicate = mockPlayerWithName("ghost");
         given(commonService.retrieveSingleMessage(duplicate, MessageKey.DOUBLE_LOGIN_FIX))
             .willReturn("Doubled login");
+        willAnswer(inv -> {
+            ((Runnable) inv.getArgument(1)).run();
+            return null;
+        }).given(bukkitService).scheduleSyncTaskFromOptionallyAsyncTask(eq(duplicate), any(Runnable.class));
 
         withBukkitServer(serverWithPlayers(first, duplicate),
             () -> listener.onDuplicateNameJoin(mock(PlayerJoinEvent.class, withSettings().mockMaker(MockMakers.INLINE))));

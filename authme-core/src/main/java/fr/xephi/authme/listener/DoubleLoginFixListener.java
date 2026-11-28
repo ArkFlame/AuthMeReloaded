@@ -1,6 +1,7 @@
 package fr.xephi.authme.listener;
 
 import fr.xephi.authme.message.MessageKey;
+import fr.xephi.authme.service.BukkitService;
 import fr.xephi.authme.service.CommonService;
 import fr.xephi.authme.settings.properties.SecuritySettings;
 import org.bukkit.Bukkit;
@@ -23,6 +24,9 @@ public class DoubleLoginFixListener implements Listener {
     @Inject
     private CommonService commonService;
 
+    @Inject
+    private BukkitService bukkitService;
+
     @EventHandler
     public void onDuplicateNameJoin(PlayerJoinEvent event) {
         if (!commonService.getProperty(SecuritySettings.ANTI_GHOST_PLAYERS)) {
@@ -32,7 +36,10 @@ public class DoubleLoginFixListener implements Listener {
         Set<String> seenNames = new HashSet<>();
         for (Player player : Bukkit.getServer().getOnlinePlayers()) {
             if (!seenNames.add(player.getName().toLowerCase(Locale.ROOT))) {
-                player.kickPlayer(commonService.retrieveSingleMessage(player, MessageKey.DOUBLE_LOGIN_FIX));
+                // The duplicate belongs to another thread on Folia: kick it on its own scheduler.
+                final Player duplicate = player;
+                final String kickMessage = commonService.retrieveSingleMessage(duplicate, MessageKey.DOUBLE_LOGIN_FIX);
+                bukkitService.scheduleSyncTaskFromOptionallyAsyncTask(duplicate, () -> duplicate.kickPlayer(kickMessage));
                 break;
             }
         }
