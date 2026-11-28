@@ -30,7 +30,10 @@ public final class TeleportUtils {
             try {
                 TELEPORT_ASYNC_METHOD.invoke(player, location);
                 return;
+            } catch (VirtualMachineError e) {
+                throw e;
             } catch (Throwable ignored) {
+                // fall back to the regular teleport below
             }
         }
         player.teleport(location);
