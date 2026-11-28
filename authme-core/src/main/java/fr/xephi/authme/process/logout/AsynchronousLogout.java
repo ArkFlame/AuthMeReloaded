@@ -69,13 +69,16 @@ public class AsynchronousLogout implements AsynchronousProcess {
                 database.updateQuitLoc(auth);
             }
         } finally {
-            // Always unauthenticate the player, even if persisting the session data failed.
-            playerCache.removePlayer(name);
-            codeManager.unverify(name);
-            database.setUnlogged(name);
-            sessionService.revokeSession(name);
-            bungeeSender.sendAuthMeBungeecordMessage(player, MessageType.LOGOUT);
-            syncProcessManager.processSyncPlayerLogout(player);
+            // Always unauthenticate the player, even if persisting the session data failed. Skip it when the
+            // player quit and logged in again meanwhile, so the new session is not wiped by this stale logout.
+            if (playerCache.getAuth(name) == auth) {
+                playerCache.removePlayer(name);
+                codeManager.unverify(name);
+                database.setUnlogged(name);
+                sessionService.revokeSession(name);
+                bungeeSender.sendAuthMeBungeecordMessage(player, MessageType.LOGOUT);
+                syncProcessManager.processSyncPlayerLogout(player);
+            }
         }
     }
 }
