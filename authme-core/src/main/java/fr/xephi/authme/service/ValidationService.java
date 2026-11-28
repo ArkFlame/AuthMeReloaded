@@ -28,7 +28,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -167,8 +166,7 @@ public class ValidationService implements Reloadable {
             // Disconnected before this check ran: the address cannot satisfy the rule (fail closed).
             return false;
         }
-        return matchesRestrictions(restrictions, socketAddress.getAddress().getHostAddress(),
-            getHostName(socketAddress));
+        return matchesRestrictions(restrictions, socketAddress.getAddress().getHostAddress(), socketAddress);
     }
 
     /**
@@ -182,14 +180,19 @@ public class ValidationService implements Reloadable {
     public boolean fulfillsNameRestrictions(String name, InetAddress address) {
         Collection<Pattern> restrictions = restrictedNames.get(name.toLowerCase(Locale.ROOT));
         return Utils.isCollectionEmpty(restrictions)
-            || matchesRestrictions(restrictions, address.getHostAddress(),
-                getHostName(new InetSocketAddress(address, 0)));
+            || matchesRestrictions(restrictions, address.getHostAddress(), new InetSocketAddress(address, 0));
     }
 
-    private boolean matchesRestrictions(Collection<Pattern> restrictions, String ip, String domain) {
+    /** The host name needs a blocking reverse DNS lookup, so it is only resolved when no rule matched the IP. */
+    private boolean matchesRestrictions(Collection<Pattern> restrictions, String ip, InetSocketAddress socketAddress) {
         for (Pattern restriction : restrictions) {
-            Matcher matcher = restriction.matcher(ip);
-            if (matcher.matches() || matcher.reset(domain).matches()) {
+            if (restriction.matcher(ip).matches()) {
+                return true;
+            }
+        }
+        String domain = getHostName(socketAddress);
+        for (Pattern restriction : restrictions) {
+            if (restriction.matcher(domain).matches()) {
                 return true;
             }
         }
