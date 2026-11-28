@@ -98,7 +98,7 @@ public class AsynchronousQuit implements AsynchronousProcess {
             if (wasLoggedIn) {
                 // One auth for both updates: neither datasource method reads the other's columns.
                 PlayerAuth auth = PlayerAuth.builder().name(name).realName(realName)
-                    .lastIp(PlayerUtils.getPlayerIp(player)).lastLogin(System.currentTimeMillis()).build();
+                    .lastIp(quitIp(player, name)).lastLogin(System.currentTimeMillis()).build();
                 if (service.getProperty(RestrictionSettings.SAVE_QUIT_LOCATION)) {
                     try {
                         auth.setQuitLocation(spawnLoader.getPlayerLocationOrSpawn(player));
@@ -128,6 +128,15 @@ public class AsynchronousQuit implements AsynchronousProcess {
 
             database.invalidateCache(name);
         }
+    }
+
+    /** The address can already be gone at quit time: keep the IP the player logged in with instead of failing. */
+    private String quitIp(Player player, String name) {
+        if (player.getAddress() != null && player.getAddress().getAddress() != null) {
+            return PlayerUtils.getPlayerIp(player);
+        }
+        PlayerAuth cached = playerCache.getAuth(name);
+        return cached == null ? null : cached.getLastIp();
     }
 
 }

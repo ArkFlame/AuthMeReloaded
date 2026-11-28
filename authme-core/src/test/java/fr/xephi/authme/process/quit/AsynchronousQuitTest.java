@@ -105,6 +105,24 @@ class AsynchronousQuitTest {
         verify(playerCache).removePlayer("bobby");
     }
 
+    @Test
+    void shouldKeepSessionUpdateWhenAddressIsAlreadyGone() {
+        Player player = mock(Player.class);
+        given(player.getName()).willReturn("Bobby");
+        given(player.getAddress()).willReturn(null);
+        given(playerCache.isAuthenticated("bobby")).willReturn(true);
+        given(playerCache.getAuth("bobby")).willReturn(
+            PlayerAuth.builder().name("bobby").lastIp("203.0.113.5").build());
+        given(service.getProperty(PluginSettings.SESSIONS_ENABLED)).willReturn(true);
+        given(service.getProperty(RestrictionSettings.SAVE_QUIT_LOCATION)).willReturn(false);
+
+        asynchronousQuit.processQuit(player);
+
+        verify(database).updateSession(org.mockito.ArgumentMatchers.argThat(
+            auth -> "203.0.113.5".equals(auth.getLastIp())));
+        verify(playerCache).removePlayer("bobby");
+    }
+
     private Player mockLoggedInPlayer() {
         Player player = mock(Player.class);
         given(player.getName()).willReturn("Bobby");
