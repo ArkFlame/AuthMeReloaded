@@ -122,7 +122,7 @@ public class LimboPlayer {
      *
      * @return the number of failed TOTP attempts, including this one
      */
-    public int increaseFailedTotpAttempts() {
+    public synchronized int increaseFailedTotpAttempts() {
         return ++failedTotpAttempts;
     }
 
