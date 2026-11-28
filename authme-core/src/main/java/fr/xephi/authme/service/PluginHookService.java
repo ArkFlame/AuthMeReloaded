@@ -24,9 +24,9 @@ public class PluginHookService {
 
     private final ConsoleLogger logger = ConsoleLoggerFactory.get(PluginHookService.class);
     private final PluginManager pluginManager;
-    private Essentials essentials;
-    private Plugin cmi;
-    private MultiverseCore multiverse;
+    private volatile Essentials essentials;
+    private volatile Plugin cmi;
+    private volatile MultiverseCore multiverse;
 
     /**
      * Constructor.
@@ -48,8 +48,9 @@ public class PluginHookService {
      * @param socialSpyStatus The social spy status (enabled/disabled) to set
      */
     public void setEssentialsSocialSpyStatus(Player player, boolean socialSpyStatus) {
-        if (essentials != null) {
-            essentials.getUser(player).setSocialSpyEnabled(socialSpyStatus);
+        Essentials hook = essentials;
+        if (hook != null) {
+            hook.getUser(player).setSocialSpyEnabled(socialSpyStatus);
         }
     }
 
@@ -57,14 +58,16 @@ public class PluginHookService {
      * @return The Essentials data folder, or null if unavailable
      */
     public File getEssentialsDataFolder() {
-        return essentials == null ? null : essentials.getDataFolder();
+        Essentials hook = essentials;
+        return hook == null ? null : hook.getDataFolder();
     }
 
     /**
      * @return The CMI data folder, or null if unavailable
      */
     public File getCmiDataFolder() {
-        return cmi == null ? null : cmi.getDataFolder();
+        Plugin hook = cmi;
+        return hook == null ? null : hook.getDataFolder();
     }
 
     /**
@@ -74,10 +77,11 @@ public class PluginHookService {
      * @return The spawn location from Multiverse, or null if unavailable
      */
     public Location getMultiverseSpawn(World world) {
-        if (multiverse == null) {
+        MultiverseCore hook = multiverse;
+        if (hook == null) {
             return null;
         }
-        MVWorldManager manager = multiverse.getMVWorldManager();
+        MVWorldManager manager = hook.getMVWorldManager();
         return manager.isMVWorld(world) ? manager.getMVWorld(world).getSpawnLocation() : null;
     }
 

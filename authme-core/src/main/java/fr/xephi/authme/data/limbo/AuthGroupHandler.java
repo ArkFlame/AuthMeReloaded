@@ -37,8 +37,8 @@ class AuthGroupHandler implements Reloadable {
     @Inject
     private Settings settings;
 
-    private UserGroup unregisteredGroup;
-    private UserGroup registeredGroup;
+    private volatile UserGroup unregisteredGroup;
+    private volatile UserGroup registeredGroup;
 
     /**
      * Sets the group of a player by its authentication status.

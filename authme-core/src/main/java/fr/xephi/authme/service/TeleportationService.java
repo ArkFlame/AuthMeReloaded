@@ -54,7 +54,7 @@ public class TeleportationService implements Reloadable {
     @Inject
     private TeleportAdapter teleportAdapter;
 
-    private Set<String> spawnOnLoginWorlds;
+    private volatile Set<String> spawnOnLoginWorlds;
     private static final int MAX_PRELOADED_STATUSES = 1024;
     private final ConcurrentHashMap<String, Boolean> preloadedAuthStatus =new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Location> originalJoinLocations = new ConcurrentHashMap<>();

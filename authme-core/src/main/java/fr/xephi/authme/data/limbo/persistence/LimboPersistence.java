@@ -19,7 +19,7 @@ public class LimboPersistence implements SettingsDependent {
     private final ConsoleLogger logger = ConsoleLoggerFactory.get(LimboPersistence.class);
 
     private final Factory<LimboPersistenceHandler> handlerFactory;
-    private LimboPersistenceHandler handler;
+    private volatile LimboPersistenceHandler handler;
 
     @Inject
     LimboPersistence(Settings settings, Factory<LimboPersistenceHandler> handlerFactory) {

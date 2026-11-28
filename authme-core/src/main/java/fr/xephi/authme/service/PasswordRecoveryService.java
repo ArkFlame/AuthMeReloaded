@@ -50,8 +50,8 @@ public class PasswordRecoveryService implements Reloadable, HasCleanup {
     @Inject
     private Messages messages;
 
-    private ExpiringSet<String> emailCooldown;
-    private ExpiringMap<String, String> successfulRecovers;
+    private volatile ExpiringSet<String> emailCooldown;
+    private volatile ExpiringMap<String, String> successfulRecovers;
 
     @PostConstruct
     private void initEmailCooldownSet() {
