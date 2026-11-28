@@ -3,7 +3,6 @@ package fr.xephi.authme.command.executable.authme;
 import fr.xephi.authme.command.ExecutableCommand;
 import fr.xephi.authme.data.auth.PlayerAuth;
 import fr.xephi.authme.message.MessageKey;
-import fr.xephi.authme.service.BukkitService;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
@@ -31,9 +30,6 @@ class TotpDisableAdminCommandTest extends AbstractTotpAdminCommandTest {
 
     @InjectMocks
     private TotpDisableAdminCommand command;
-
-    @Mock
-    private BukkitService bukkitService;
 
     @Override
     protected ExecutableCommand getCommand() {

@@ -5,8 +5,10 @@ import fr.xephi.authme.command.ExecutableCommand;
 import fr.xephi.authme.datasource.DataSource;
 import fr.xephi.authme.message.MessageKey;
 import fr.xephi.authme.message.Messages;
+import fr.xephi.authme.service.BukkitService;
 import org.bukkit.command.CommandSender;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 
@@ -23,10 +25,17 @@ abstract class AbstractTotpAdminCommandTest {
     protected DataSource dataSource;
     @Mock
     protected Messages messages;
+    @Mock
+    protected BukkitService bukkitService;
 
     @BeforeAll
     static void initLogger() {
         TestHelper.setupLogger();
+    }
+
+    @BeforeEach
+    void runTasksImmediately() {
+        fr.xephi.authme.service.BukkitServiceTestHelper.setBukkitServiceToRunTaskOptionallyAsync(bukkitService);
     }
 
     @Test
